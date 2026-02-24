@@ -5,7 +5,8 @@ import {
   Shield, MessageCircle, Send, AlertTriangle, Download, Printer,
   Calculator, TrendingUp, TrendingDown, BarChart3, PieChart, Activity,
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
-  DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp
+  DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
+  Settings, ClipboardCheck, FileSearch, BookOpen
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,11 +41,73 @@ const severityColors: Record<string, { bg: string; label: string }> = {
 };
 
 /* ══════════════════════════════════════════════════════
-   PHASE 1: UPLOAD
+   TIMELINE STEPS
+   ══════════════════════════════════════════════════════ */
+const timelineSteps = [
+  { id: 1, label: "Configuração", icon: Settings },
+  { id: 2, label: "Carregamento", icon: Upload },
+  { id: 3, label: "Processamento", icon: Loader2 },
+  { id: 4, label: "Análise Técnica", icon: FileSearch },
+  { id: 5, label: "Relatório Final", icon: BookOpen },
+];
+
+const StepTimeline = ({ currentStep }: { currentStep: number }) => (
+  <div className="w-full mb-8">
+    <div className="flex items-center justify-between relative">
+      {/* Connecting line */}
+      <div className="absolute top-5 left-0 right-0 h-[2px] bg-border z-0" />
+      <div
+        className="absolute top-5 left-0 h-[2px] z-[1] transition-all duration-700"
+        style={{
+          width: `${((Math.min(currentStep, timelineSteps.length) - 1) / (timelineSteps.length - 1)) * 100}%`,
+          background: "linear-gradient(90deg, hsl(258 90% 66%), hsl(38 85% 55%))",
+        }}
+      />
+
+      {timelineSteps.map((step) => {
+        const isActive = step.id === currentStep;
+        const isComplete = step.id < currentStep;
+        const Icon = step.icon;
+
+        return (
+          <div key={step.id} className="flex flex-col items-center z-10 relative" style={{ flex: 1 }}>
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                isComplete
+                  ? "bg-[hsl(258,90%,66%)] border-[hsl(258,90%,66%)] text-white"
+                  : isActive
+                  ? "bg-white border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] shadow-lg shadow-[hsl(258,90%,66%)]/20"
+                  : "bg-white border-border text-muted-foreground"
+              }`}
+            >
+              {isComplete ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : (
+                <Icon className={`w-4 h-4 ${isActive && step.icon === Loader2 ? "animate-spin" : ""}`} />
+              )}
+            </div>
+            <span
+              className={`text-[11px] mt-2 font-medium text-center leading-tight ${
+                isActive ? "text-[hsl(258,90%,66%)]" : isComplete ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {step.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════════
+   PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
 const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
+  const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
+  const [purpose, setPurpose] = useState<string>("externa");
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -63,78 +126,165 @@ const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
     setConfig({ files: state.config.files.filter(f => f.id !== id) });
   };
 
+  const purposes = [
+    { id: "externa", label: "Auditoria Externa" },
+    { id: "interna", label: "Auditoria Interna" },
+    { id: "fiscalizacao", label: "Fiscalização / Órgãos de Controle" },
+    { id: "defesa", label: "Defesa Técnica" },
+    { id: "revisao", label: "Revisão Independente" },
+  ];
+
+  const hasFiles = state.config.files.length > 0;
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10 mb-4">
-          <Shield className="w-4 h-4 text-primary" />
-          <span className="text-xs font-semibold text-primary">Agente IA Auditor Contábil Sênior</span>
+    <div className="space-y-6">
+      {/* Step timeline */}
+      <StepTimeline currentStep={hasFiles ? 2 : 1} />
+
+      <div className="text-center space-y-2 mb-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(258,90%,66%)]/10 border border-[hsl(258,90%,66%)]/20 mb-2">
+          <Shield className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+          <span className="text-xs font-semibold text-[hsl(258,90%,66%)]">Agente IA Auditor Contábil Sênior</span>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Upload do Balancete</h1>
-        <p className="text-muted-foreground text-sm">
-          Envie o balancete mensal para análise automatizada como Auditor Fiscal Contábil especializado em Recuperação Judicial.
+        <h1 className="text-2xl font-bold text-foreground font-serif">
+          {hasFiles ? "Carregamento" : "Configuração"}
+        </h1>
+        <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+          {hasFiles
+            ? "Documento carregado com sucesso. Configure os parâmetros de análise."
+            : "Faça upload do balancete e configure os parâmetros de análise."}
         </p>
       </div>
 
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
-            onClick={() => document.getElementById("file-input")?.click()}
-            className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${
-              dragOver ? "border-accent bg-accent/5 scale-[1.01]" : "border-border hover:border-accent/60 hover:bg-muted/30"
-            }`}
-          >
-            <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv" onChange={(e) => handleFiles(e.target.files)} />
-            <FileSpreadsheet className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm font-medium text-foreground">Arraste o balancete ou clique para selecionar</p>
-            <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv</p>
-          </div>
+      {/* Two-column layout */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Left: Document Upload */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-foreground">Documento para Análise</h3>
 
-          {state.config.files.length > 0 && (
-            <div className="space-y-2">
+          {hasFiles ? (
+            <div className="space-y-3">
               {state.config.files.map(f => (
-                <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-4 h-4 text-accent" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{f.fileName}</p>
-                      <p className="text-xs text-muted-foreground">{(f.fileSize / 1024).toFixed(1)} KB</p>
-                    </div>
+                <div
+                  key={f.id}
+                  className="relative border-2 border-dashed border-emerald-400/50 rounded-2xl p-8 text-center bg-emerald-50/30"
+                >
+                  <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                    <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px]">🟢 Carregado</Badge>
-                    <Button variant="ghost" size="sm" onClick={() => removeFile(f.id)} className="text-muted-foreground text-xs h-7 w-7 p-0">✕</Button>
+                  <p className="text-sm font-semibold text-foreground">{f.fileName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {(f.fileSize / 1024).toFixed(2)} MB
+                  </p>
+                  <div className="flex items-center justify-center gap-1.5 mt-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span className="text-xs font-medium text-emerald-600">Documento carregado</span>
                   </div>
+                  <button
+                    onClick={() => removeFile(f.id)}
+                    className="absolute top-3 right-3 w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
+              <button
+                onClick={() => document.getElementById("file-input")?.click()}
+                className="w-full py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl hover:bg-muted/30 transition-colors"
+              >
+                + Adicionar outro documento
+              </button>
+            </div>
+          ) : (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+              onClick={() => document.getElementById("file-input")?.click()}
+              className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
+                dragOver
+                  ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5 scale-[1.01]"
+                  : "border-border hover:border-[hsl(258,90%,66%)]/40 hover:bg-muted/30"
+              }`}
+            >
+              <div className="w-14 h-14 mx-auto rounded-xl bg-muted/50 flex items-center justify-center mb-3">
+                <FileSpreadsheet className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Arraste o balancete ou clique para selecionar</p>
+              <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv" onChange={(e) => handleFiles(e.target.files)} />
+        </div>
 
-      <Card className="bg-muted/30">
-        <CardContent className="p-4">
-          <p className="text-xs font-semibold text-foreground mb-2">O Agente IA irá:</p>
-          <ul className="text-xs text-muted-foreground space-y-1.5">
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" /> Validar estrutura e identificar plano de contas</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" /> Mapear: Ativo, Passivo, PL, Receitas, Custos, Despesas</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" /> Executar testes de auditoria automatizados (CPC, IFRS, NBC TA)</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" /> Identificar riscos de insolvência e indicativos de RJ</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" /> Gerar documento "Fase2_AvaliaçãoEmpresas_V3" automaticamente</li>
-          </ul>
-        </CardContent>
-      </Card>
+        {/* Right: Configuration */}
+        <div className="space-y-6">
+          {/* Depth */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Nível de Profundidade Técnica</h3>
+            <div className="space-y-2">
+              {[
+                { id: "executivo", title: "Executivo", desc: "Visão sintética focada em riscos relevantes e impactos financeiros" },
+                { id: "tecnico", title: "Técnico Detalhado", desc: "Análise aprofundada com identificação de inconsistências" },
+                { id: "parecer", title: "Parecer Formal", desc: "Estrutura completa com linguagem normativa NBC TA" },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setDepth(opt.id as any)}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                    depth === opt.id
+                      ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5"
+                      : "border-border hover:border-[hsl(258,90%,66%)]/30 hover:bg-muted/20"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{opt.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                    </div>
+                    {depth === opt.id && (
+                      <div className="w-5 h-5 rounded-full border-2 border-[hsl(258,90%,66%)] flex items-center justify-center shrink-0">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[hsl(258,90%,66%)]" />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <Button
-        onClick={onProcess}
-        disabled={state.config.files.length === 0}
-        className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2 h-12 text-base font-semibold"
-      >
-        Iniciar Análise <ArrowRight className="w-5 h-5" />
-      </Button>
+          {/* Purpose */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Finalidade do Trabalho</h3>
+            <div className="flex flex-wrap gap-2">
+              {purposes.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setPurpose(p.id)}
+                  className={`px-4 py-2.5 rounded-full text-xs font-medium border transition-all ${
+                    purpose === p.id
+                      ? "bg-[hsl(258,90%,66%)] text-white border-[hsl(258,90%,66%)]"
+                      : "bg-white border-border text-foreground hover:border-[hsl(258,90%,66%)]/40"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer action */}
+      <div className="flex justify-center pt-2">
+        <Button
+          onClick={onProcess}
+          disabled={!hasFiles}
+          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20"
+        >
+          Continuar <ArrowRight className="w-5 h-5" />
+        </Button>
+      </div>
     </div>
   );
 };
@@ -179,37 +329,43 @@ const ProcessingPhase = ({ onComplete }: { onComplete: () => void }) => {
   }, [onComplete]);
 
   return (
-    <div className="max-w-lg mx-auto space-y-8 py-16">
-      <div className="text-center space-y-3">
-        <Loader2 className="w-12 h-12 text-accent mx-auto animate-spin" />
-        <h2 className="text-xl font-bold text-foreground">Processando Análise</h2>
-        <p className="text-sm text-muted-foreground">
-          O Agente IA Auditor Contábil Sênior está analisando seus documentos...
-        </p>
-      </div>
+    <div className="space-y-8">
+      <StepTimeline currentStep={3} />
 
-      <div className="space-y-3">
-        <Progress value={progress} className="h-2" />
-        <p className="text-xs text-muted-foreground text-center">{progress}%</p>
-      </div>
-
-      <div className="space-y-2">
-        {processingSteps.map((step, i) => (
-          <div key={i} className={`flex items-center gap-3 p-2.5 rounded-lg transition-all ${
-            i < currentStep ? "bg-emerald-500/5" :
-            i === currentStep ? "bg-accent/5 border border-accent/20" :
-            "opacity-40"
-          }`}>
-            {i < currentStep ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-            ) : i === currentStep ? (
-              <Loader2 className="w-4 h-4 text-accent animate-spin shrink-0" />
-            ) : (
-              <div className="w-4 h-4 rounded-full border border-border shrink-0" />
-            )}
-            <span className="text-xs text-foreground">{step.label}</span>
+      <div className="max-w-lg mx-auto space-y-8 py-8">
+        <div className="text-center space-y-3">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-[hsl(258,90%,66%)] animate-spin" />
           </div>
-        ))}
+          <h2 className="text-xl font-bold text-foreground font-serif">Processando Análise</h2>
+          <p className="text-sm text-muted-foreground">
+            O Agente IA Auditor Contábil Sênior está analisando seus documentos...
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <Progress value={progress} className="h-2" />
+          <p className="text-xs text-muted-foreground text-center">{progress}%</p>
+        </div>
+
+        <div className="space-y-2">
+          {processingSteps.map((step, i) => (
+            <div key={i} className={`flex items-center gap-3 p-2.5 rounded-lg transition-all ${
+              i < currentStep ? "bg-emerald-500/5" :
+              i === currentStep ? "bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20" :
+              "opacity-40"
+            }`}>
+              {i < currentStep ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              ) : i === currentStep ? (
+                <Loader2 className="w-4 h-4 text-[hsl(258,90%,66%)] animate-spin shrink-0" />
+              ) : (
+                <div className="w-4 h-4 rounded-full border border-border shrink-0" />
+              )}
+              <span className="text-xs text-foreground">{step.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -232,7 +388,6 @@ const diagnosticoData = {
   ],
 };
 
-/* ── Mock: Pendências (Análise Técnica) ── */
 const pendencias = [
   { id: "p1", tipo: "Inconsistência", gravidade: "critico", conta: "3.01", problema: "Receita cresce 40% sem aumento proporcional de caixa operacional", fundamentacao: "CPC 47 / IFRS 15 — Os cinco passos de reconhecimento de receita exigem transferência efetiva de controle. A divergência entre receita e caixa operacional pode indicar reconhecimento antecipado.", risco: "Distorção material nas demonstrações", impacto: "Superavaliação do resultado em até R$ 32 milhões", recomendacao: "Revisar a política de reconhecimento de receita e reconciliar com fluxo de caixa operacional" },
   { id: "p2", tipo: "Impropriedade", gravidade: "critico", conta: "2.01.02", problema: "Fornecedores com variação AH de 583% em 2022 — possível reclassificação", fundamentacao: "CPC 26 / IAS 1 — Classificação inadequada de passivos pode distorcer indicadores de liquidez e endividamento. NBC TA 315 — Risco significativo de distorção material.", risco: "Manipulação de indicadores financeiros", impacto: "Distorção de Liquidez Corrente e Endividamento de Curto Prazo", recomendacao: "Investigar composição de fornecedores em 2022 e verificar se houve reclassificação indevida" },
@@ -242,7 +397,6 @@ const pendencias = [
   { id: "p6", tipo: "Observação", gravidade: "baixo", conta: "1.01.06", problema: "Tributos a recuperar cresceram 83% — verificar recuperabilidade", fundamentacao: "CPC 32 / IAS 12 — Créditos tributários devem ter expectativa provável de realização.", risco: "Créditos tributários não recuperáveis", impacto: "R$ 12,8 milhões em tributos a recuperar", recomendacao: "Avaliar expectativa de realização e documentar bases" },
 ];
 
-/* ── Mock: Score RJ ── */
 const scoreRJData = {
   score: 47,
   classificacao: "Atenção",
@@ -272,7 +426,6 @@ const TabDiagnostico = () => {
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-sm text-foreground leading-relaxed">{diagnosticoData.resumo}</p>
           </div>
-
           <div>
             <h4 className="text-sm font-semibold text-foreground mb-3">Pontos-Chave</h4>
             <div className="space-y-2">
@@ -375,7 +528,6 @@ const TabIndicadores = () => {
         ))}
       </div>
 
-      {/* EBITDA estimado card */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2"><Calculator className="w-4 h-4 text-accent" /> EBITDA Estimado</CardTitle>
@@ -575,7 +727,6 @@ const TabRiscoRJ = () => {
               <p className={`text-lg font-semibold mt-2 ${scoreColor}`}>{scoreRJData.classificacao}</p>
               <p className="text-xs text-muted-foreground mt-1">de 100 pontos</p>
             </div>
-
             <div className="space-y-2">
               {scoreRJData.componentes.map(c => (
                 <div key={c.nome} className="space-y-1">
@@ -678,9 +829,7 @@ const TabAnaliseTecnica = () => {
 
   return (
     <div className="space-y-4">
-      {/* Top: Pendências + Detalhes */}
       <div className="grid lg:grid-cols-3 gap-4" style={{ minHeight: 420 }}>
-        {/* Col 1: Lista de Pendências */}
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-500" /> Pendências ({pendencias.length})</CardTitle>
@@ -693,7 +842,7 @@ const TabAnaliseTecnica = () => {
                     key={p.id}
                     onClick={() => setSelectedId(p.id)}
                     className={`w-full text-left p-3 rounded-lg border transition-all ${
-                      selectedId === p.id ? "border-accent bg-accent/5" : "border-border/50 hover:bg-muted/50"
+                      selectedId === p.id ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5" : "border-border/50 hover:bg-muted/50"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
@@ -709,7 +858,6 @@ const TabAnaliseTecnica = () => {
           </CardContent>
         </Card>
 
-        {/* Col 2-3: Detalhes */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">📌 Ponto de Vista do Auditor IA</CardTitle>
@@ -722,15 +870,12 @@ const TabAnaliseTecnica = () => {
                   <Badge variant="outline" className="text-xs">{selected.tipo}</Badge>
                   <Badge variant="secondary" className="text-[10px] font-mono">Conta {selected.conta}</Badge>
                 </div>
-
                 <p className="text-sm font-medium text-foreground">{selected.problema}</p>
-
                 <div className="space-y-3">
                   <div className="p-3 rounded-lg bg-muted/30">
                     <p className="text-[10px] font-semibold text-foreground mb-1 uppercase tracking-wider">Fundamentação Técnica</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">{selected.fundamentacao}</p>
                   </div>
-
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/10">
                       <p className="text-[10px] font-semibold text-red-600 mb-1">Risco Envolvido</p>
@@ -741,7 +886,6 @@ const TabAnaliseTecnica = () => {
                       <p className="text-xs text-foreground">{selected.impacto}</p>
                     </div>
                   </div>
-
                   <div className="p-3 rounded-lg bg-accent/5 border border-accent/20">
                     <p className="text-[10px] font-semibold text-accent-foreground mb-1">Recomendação Corretiva</p>
                     <p className="text-xs text-foreground">{selected.recomendacao}</p>
@@ -755,12 +899,12 @@ const TabAnaliseTecnica = () => {
         </Card>
       </div>
 
-      {/* Bottom: Chat IA integrado */}
+      {/* Chat IA integrado */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-accent" /> Chat com Auditor IA Sênior
+              <MessageCircle className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Chat com Auditor IA Sênior
             </CardTitle>
             {selected && (
               <Badge variant="secondary" className="text-[10px]">Contexto: Conta {selected.conta}</Badge>
@@ -775,7 +919,7 @@ const TabAnaliseTecnica = () => {
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] p-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
                     msg.role === "user"
-                      ? "bg-accent text-accent-foreground rounded-br-sm"
+                      ? "bg-[hsl(258,90%,66%)] text-white rounded-br-sm"
                       : "bg-muted text-foreground rounded-bl-sm"
                   }`}>
                     {msg.text}
@@ -796,7 +940,7 @@ const TabAnaliseTecnica = () => {
             </div>
             <div className="flex gap-2">
               <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Pergunte sobre esta pendência..." className="text-sm" />
-              <Button onClick={sendChat} className="bg-accent text-accent-foreground hover:bg-accent/90 px-4"><Send className="w-4 h-4" /></Button>
+              <Button onClick={sendChat} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white px-4"><Send className="w-4 h-4" /></Button>
             </div>
           </div>
         </CardContent>
@@ -804,7 +948,6 @@ const TabAnaliseTecnica = () => {
     </div>
   );
 };
-
 
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
@@ -814,10 +957,12 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
 
   return (
     <div className="space-y-6">
+      <StepTimeline currentStep={5} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Fase2_AvaliaçãoEmpresas_V3</h1>
+          <h1 className="text-2xl font-bold text-foreground font-serif">Fase2_AvaliaçãoEmpresas_V3</h1>
           <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Agente IA Auditor Contábil Sênior</p>
         </div>
         <div className="flex gap-2">
@@ -830,22 +975,22 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
       {/* Tabs */}
       <Tabs defaultValue="diagnostico" className="w-full">
         <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1.5">
-          <TabsTrigger value="diagnostico" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+          <TabsTrigger value="diagnostico" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Activity className="w-3.5 h-3.5" /> Diagnóstico
           </TabsTrigger>
-          <TabsTrigger value="analise-tecnica" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+          <TabsTrigger value="analise-tecnica" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Search className="w-3.5 h-3.5" /> Análise Técnica
           </TabsTrigger>
-          <TabsTrigger value="indicadores" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+          <TabsTrigger value="indicadores" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <BarChart3 className="w-3.5 h-3.5" /> Indicadores
           </TabsTrigger>
-          <TabsTrigger value="endividamento" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+          <TabsTrigger value="endividamento" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Landmark className="w-3.5 h-3.5" /> Endividamento
           </TabsTrigger>
-          <TabsTrigger value="patrimonial" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+          <TabsTrigger value="patrimonial" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Layers className="w-3.5 h-3.5" /> Patrimonial
           </TabsTrigger>
-          <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+          <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
           </TabsTrigger>
         </TabsList>
