@@ -1,14 +1,16 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import type { AuditState, AuditStep, AuditConfig, AuditFinding } from "@/types/audit";
-import { defaultTopics, defaultFindings, defaultReportSections, defaultOnDemandContents } from "@/data/auditMockData";
+import type { AuditState, AuditStep, AuditConfig, AuditFinding, ScopeCheckItem, BalancoRow } from "@/types/audit";
+import { defaultScopeChecks, defaultFindings, defaultReportSections, defaultOnDemandContents, defaultBalancoRows, defaultDreRows, defaultFinancialAnalysis, defaultEntityData } from "@/data/auditMockData";
 
 interface AuditContextType {
   state: AuditState;
   setStep: (step: AuditStep) => void;
   setConfig: (config: Partial<AuditConfig>) => void;
-  toggleTopic: (id: string) => void;
+  toggleScopeCheck: (id: string) => void;
+  setScopeIssueType: (id: string, issueType: import("@/types/audit").ScopeIssueType) => void;
   toggleOnDemandContent: (id: string) => void;
   updateFinding: (id: string, updates: Partial<AuditFinding>) => void;
+  updateBalancoRow: (conta: string, year: string, value: number) => void;
   goNext: () => void;
   goPrevious: () => void;
   resetAudit: () => void;
@@ -16,11 +18,20 @@ interface AuditContextType {
 
 const initialState: AuditState = {
   currentStep: 1,
-  config: { file: null, depth: "executive", purpose: "external" },
-  topics: defaultTopics,
+  config: {
+    files: [],
+    depth: "executive",
+    purpose: "external",
+    entityData: defaultEntityData,
+  },
+  scopeChecks: defaultScopeChecks,
   findings: defaultFindings,
+  balancoRows: defaultBalancoRows,
+  dreRows: defaultDreRows,
+  financialAnalysis: defaultFinancialAnalysis,
   reportSections: defaultReportSections,
   onDemandContents: defaultOnDemandContents,
+  dreValidation: "validado",
 };
 
 const AuditContext = createContext<AuditContextType>({} as AuditContextType);
@@ -36,10 +47,17 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
     setState(s => ({ ...s, config: { ...s.config, ...config } }));
   }, []);
 
-  const toggleTopic = useCallback((id: string) => {
+  const toggleScopeCheck = useCallback((id: string) => {
     setState(s => ({
       ...s,
-      topics: s.topics.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t),
+      scopeChecks: s.scopeChecks.map(c => c.id === id ? { ...c, enabled: !c.enabled } : c),
+    }));
+  }, []);
+
+  const setScopeIssueType = useCallback((id: string, issueType: import("@/types/audit").ScopeIssueType) => {
+    setState(s => ({
+      ...s,
+      scopeChecks: s.scopeChecks.map(c => c.id === id ? { ...c, issueType } : c),
     }));
   }, []);
 
@@ -59,10 +77,19 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
     }));
   }, []);
 
+  const updateBalancoRow = useCallback((conta: string, year: string, value: number) => {
+    setState(s => ({
+      ...s,
+      balancoRows: s.balancoRows.map(r =>
+        r.conta === conta ? { ...r, values: { ...r.values, [year]: value }, adjusted: true } : r
+      ),
+    }));
+  }, []);
+
   const goNext = useCallback(() => {
     setState(s => ({
       ...s,
-      currentStep: Math.min(s.currentStep + 1, 5) as AuditStep,
+      currentStep: Math.min(s.currentStep + 1, 13) as AuditStep,
     }));
   }, []);
 
@@ -78,7 +105,10 @@ export const AuditProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <AuditContext.Provider value={{ state, setStep, setConfig, toggleTopic, toggleOnDemandContent, updateFinding, goNext, goPrevious, resetAudit }}>
+    <AuditContext.Provider value={{
+      state, setStep, setConfig, toggleScopeCheck, setScopeIssueType,
+      toggleOnDemandContent, updateFinding, updateBalancoRow, goNext, goPrevious, resetAudit,
+    }}>
       {children}
     </AuditContext.Provider>
   );
