@@ -301,7 +301,7 @@ const processingSteps = [
   { label: "Analisando endividamento e solvência...", duration: 1400 },
   { label: "Executando Score BEX-RJ...", duration: 1200 },
   { label: "Classificando pendências contábeis...", duration: 1000 },
-  { label: "Gerando documento Fase2_AvaliaçãoEmpresas_V3...", duration: 1500 },
+  { label: "Gerando documento Avaliação Empresarial...", duration: 1500 },
 ];
 
 const ProcessingPhase = ({ onComplete }: { onComplete: () => void }) => {
@@ -420,7 +420,7 @@ const TabDiagnostico = () => {
             <CardTitle className="text-base flex items-center gap-2"><Activity className="w-4 h-4 text-accent" /> Diagnóstico Financeiro</CardTitle>
             <Badge className={`${r.bg} border text-xs`}>{r.label}</Badge>
           </div>
-          <CardDescription>Resumo executivo automatizado — Fase2_AvaliaçãoEmpresas_V3</CardDescription>
+          <CardDescription>Resumo executivo automatizado — Avaliação Empresarial</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
@@ -962,7 +962,7 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-serif">Fase2_AvaliaçãoEmpresas_V3</h1>
+          <h1 className="text-2xl font-bold text-foreground font-serif">Avaliação Empresarial</h1>
           <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Agente IA Auditor Contábil Sênior</p>
         </div>
         <div className="flex gap-2">
