@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Shield, User, LogOut, ArrowLeft, Settings } from "lucide-react";
+import { Shield, User, LogOut, ArrowLeft, Settings, Brain } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
 
@@ -10,7 +10,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
 
   const isAuditPage = location.pathname === "/audit";
-  const showBack = isAuditPage || (role === "usuario" && location.pathname !== "/user") || (role === "auditor_chefe" && location.pathname !== "/dashboard");
+  const showBack = isAuditPage || (role === "usuario" && location.pathname !== "/user") || (role === "auditor_chefe" && location.pathname !== "/dashboard") || (role === "gestor_ia" && location.pathname !== "/gestor-ia");
 
   return (
     <div className="min-h-screen flex flex-col bg-[hsl(230,30%,98%)]">
@@ -23,7 +23,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <Link to={role === "auditor_chefe" ? "/dashboard" : "/user"} className="flex items-center gap-2">
+            <Link to={role === "gestor_ia" ? "/gestor-ia" : role === "auditor_chefe" ? "/dashboard" : "/user"} className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-[hsl(258,90%,66%)]" />
               <span className="font-bold text-white text-sm">Plataforma de Auditoria IA</span>
             </Link>
@@ -35,13 +35,15 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
           <div className="flex items-center gap-2">
             {role && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[hsl(230,25%,22%)] border border-[hsl(230,20%,28%)]">
-                {role === "auditor_chefe" ? (
+                {role === "gestor_ia" ? (
+                  <Brain className="w-3.5 h-3.5 text-[hsl(258,90%,66%)]" />
+                ) : role === "auditor_chefe" ? (
                   <Shield className="w-3.5 h-3.5 text-[hsl(258,90%,66%)]" />
                 ) : (
                   <User className="w-3.5 h-3.5 text-[hsl(200,98%,55%)]" />
                 )}
                 <span className="text-xs font-medium text-white hidden sm:inline">
-                  {role === "auditor_chefe" ? "Auditor Chefe" : role === "empresa" ? "Empresa" : "Usuário"}
+                  {role === "gestor_ia" ? "Gestor IA" : role === "auditor_chefe" ? "Auditor Chefe" : role === "empresa" ? "Empresa" : "Usuário"}
                 </span>
               </div>
             )}
