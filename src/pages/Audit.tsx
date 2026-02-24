@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import PlatformLayout from "@/components/PlatformLayout";
 import { parseSpreadsheet, analyzeFinancialData, streamAuditChat, type ParsedFinancialData } from "@/services/auditAIService";
+import TabKanitz from "@/components/audit/TabKanitz";
 import { toast } from "@/hooks/use-toast";
 
 /* ── Helpers ── */
@@ -1846,6 +1847,9 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
           <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
           </TabsTrigger>
+          <TabsTrigger value="kanitz" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+            <Scale className="w-3.5 h-3.5" /> Kanitz
+          </TabsTrigger>
           <TabsTrigger value="relatorio-final" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <BookOpen className="w-3.5 h-3.5" /> Relatório Final
           </TabsTrigger>
@@ -1856,6 +1860,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
         <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="relatorio-final">
           {reportGenerated ? (
