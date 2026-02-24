@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Upload, FileText, CheckCircle2, ArrowRight, ArrowLeft,
@@ -18,6 +18,8 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import PlatformLayout from "@/components/PlatformLayout";
+import { parseSpreadsheet, analyzeFinancialData, streamAuditChat, type ParsedFinancialData } from "@/services/auditAIService";
+import { toast } from "@/hooks/use-toast";
 
 /* ── Helpers ── */
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
@@ -103,15 +105,18 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
-const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
+const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFilesReady: (files: File[]) => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
   const [purpose, setPurpose] = useState<string>("externa");
+  const [rawFiles, setRawFiles] = useState<File[]>([]);
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
-    const newDocs = Array.from(fileList).map((f, i) => ({
+    const filesArr = Array.from(fileList);
+    setRawFiles(prev => [...prev, ...filesArr]);
+    const newDocs = filesArr.map((f, i) => ({
       id: `doc-${Date.now()}-${i}`,
       fileName: f.name,
       fileSize: f.size,
@@ -123,7 +128,14 @@ const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
   };
 
   const removeFile = (id: string) => {
+    const idx = state.config.files.findIndex(f => f.id === id);
     setConfig({ files: state.config.files.filter(f => f.id !== id) });
+    if (idx >= 0) setRawFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleContinue = () => {
+    onFilesReady(rawFiles);
+    onProcess();
   };
 
   const purposes = [
@@ -138,7 +150,6 @@ const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
 
   return (
     <div className="space-y-6">
-      {/* Step timeline */}
       <StepTimeline currentStep={hasFiles ? 2 : 1} />
 
       <div className="text-center space-y-2 mb-2">
@@ -156,44 +167,27 @@ const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
         </p>
       </div>
 
-      {/* Two-column layout */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Left: Document Upload */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-foreground">Documento para Análise</h3>
 
           {hasFiles ? (
             <div className="space-y-3">
               {state.config.files.map(f => (
-                <div
-                  key={f.id}
-                  className="relative border-2 border-dashed border-emerald-400/50 rounded-2xl p-8 text-center bg-emerald-50/30"
-                >
+                <div key={f.id} className="relative border-2 border-dashed border-emerald-400/50 rounded-2xl p-8 text-center bg-emerald-50/30">
                   <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
                     <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
                   </div>
                   <p className="text-sm font-semibold text-foreground">{f.fileName}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {(f.fileSize / 1024).toFixed(2)} MB
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{(f.fileSize / 1024).toFixed(2)} MB</p>
                   <div className="flex items-center justify-center gap-1.5 mt-3">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     <span className="text-xs font-medium text-emerald-600">Documento carregado</span>
                   </div>
-                  <button
-                    onClick={() => removeFile(f.id)}
-                    className="absolute top-3 right-3 w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs"
-                  >
-                    ✕
-                  </button>
+                  <button onClick={() => removeFile(f.id)} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs">✕</button>
                 </div>
               ))}
-              <button
-                onClick={() => document.getElementById("file-input")?.click()}
-                className="w-full py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl hover:bg-muted/30 transition-colors"
-              >
-                + Adicionar outro documento
-              </button>
+              <button onClick={() => document.getElementById("file-input")?.click()} className="w-full py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl hover:bg-muted/30 transition-colors">+ Adicionar outro documento</button>
             </div>
           ) : (
             <div
@@ -202,9 +196,7 @@ const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
               onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
               onClick={() => document.getElementById("file-input")?.click()}
               className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
-                dragOver
-                  ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5 scale-[1.01]"
-                  : "border-border hover:border-[hsl(258,90%,66%)]/40 hover:bg-muted/30"
+                dragOver ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5 scale-[1.01]" : "border-border hover:border-[hsl(258,90%,66%)]/40 hover:bg-muted/30"
               }`}
             >
               <div className="w-14 h-14 mx-auto rounded-xl bg-muted/50 flex items-center justify-center mb-3">
@@ -217,9 +209,7 @@ const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
           <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv" onChange={(e) => handleFiles(e.target.files)} />
         </div>
 
-        {/* Right: Configuration */}
         <div className="space-y-6">
-          {/* Depth */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Nível de Profundidade Técnica</h3>
             <div className="space-y-2">
@@ -228,15 +218,10 @@ const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
                 { id: "tecnico", title: "Técnico Detalhado", desc: "Análise aprofundada com identificação de inconsistências" },
                 { id: "parecer", title: "Parecer Formal", desc: "Estrutura completa com linguagem normativa NBC TA" },
               ].map(opt => (
-                <button
-                  key={opt.id}
-                  onClick={() => setDepth(opt.id as any)}
+                <button key={opt.id} onClick={() => setDepth(opt.id as any)}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                    depth === opt.id
-                      ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5"
-                      : "border-border hover:border-[hsl(258,90%,66%)]/30 hover:bg-muted/20"
-                  }`}
-                >
+                    depth === opt.id ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5" : "border-border hover:border-[hsl(258,90%,66%)]/30 hover:bg-muted/20"
+                  }`}>
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-foreground">{opt.title}</p>
@@ -253,35 +238,23 @@ const UploadPhase = ({ onProcess }: { onProcess: () => void }) => {
             </div>
           </div>
 
-          {/* Purpose */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Finalidade do Trabalho</h3>
             <div className="flex flex-wrap gap-2">
               {purposes.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setPurpose(p.id)}
+                <button key={p.id} onClick={() => setPurpose(p.id)}
                   className={`px-4 py-2.5 rounded-full text-xs font-medium border transition-all ${
-                    purpose === p.id
-                      ? "bg-[hsl(258,90%,66%)] text-white border-[hsl(258,90%,66%)]"
-                      : "bg-white border-border text-foreground hover:border-[hsl(258,90%,66%)]/40"
-                  }`}
-                >
-                  {p.label}
-                </button>
+                    purpose === p.id ? "bg-[hsl(258,90%,66%)] text-white border-[hsl(258,90%,66%)]" : "bg-white border-border text-foreground hover:border-[hsl(258,90%,66%)]/40"
+                  }`}>{p.label}</button>
               ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer action */}
       <div className="flex justify-center pt-2">
-        <Button
-          onClick={onProcess}
-          disabled={!hasFiles}
-          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20"
-        >
+        <Button onClick={handleContinue} disabled={!hasFiles}
+          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
           Continuar <ArrowRight className="w-5 h-5" />
         </Button>
       </div>
@@ -304,34 +277,116 @@ const processingSteps = [
   { label: "Gerando documento Avaliação Empresarial...", duration: 1500 },
 ];
 
-const ProcessingPhase = ({ onComplete }: { onComplete: () => void }) => {
+const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: { 
+  onComplete: () => void; 
+  files: File[];
+  onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
+}) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    const totalDuration = processingSteps.reduce((a, s) => a + s.duration, 0);
-    let elapsed = 0;
+    if (startedRef.current) return;
+    startedRef.current = true;
 
-    const runStep = (idx: number) => {
-      if (idx >= processingSteps.length) {
+    const runRealAnalysis = async () => {
+      try {
+        // Step 1: Parse files
+        setCurrentStep(0);
+        setProgress(5);
+        
+        let parsedData: ParsedFinancialData | null = null;
+        if (files.length > 0) {
+          setCurrentStep(1);
+          setProgress(15);
+          parsedData = await parseSpreadsheet(files[0]);
+          
+          // If additional files, merge data
+          for (let i = 1; i < files.length; i++) {
+            const additional = await parseSpreadsheet(files[i]);
+            parsedData.balanco.push(...additional.balanco);
+            parsedData.dre.push(...additional.dre);
+            additional.years.forEach(y => {
+              if (!parsedData!.years.includes(y)) parsedData!.years.push(y);
+            });
+          }
+          parsedData.years.sort();
+        }
+
+        // Steps 2-5: Visual progress while waiting
+        setCurrentStep(2);
+        setProgress(25);
+        
+        // Step 6: Call AI
+        setCurrentStep(3);
+        setProgress(35);
+        
+        const dataToAnalyze = parsedData || {
+          balanco: [],
+          dre: [],
+          years: [],
+        };
+        
+        setCurrentStep(4);
+        setProgress(50);
+
+        const analysis = await analyzeFinancialData(dataToAnalyze, {
+          depth: "tecnico",
+          purpose: "externa",
+        });
+
+        setCurrentStep(5);
+        setProgress(70);
+
+        // Step 7-8: Final processing
+        setCurrentStep(6);
+        setProgress(85);
+        
+        setCurrentStep(7);
+        setProgress(95);
+        
+        setCurrentStep(8);
         setProgress(100);
+
+        onAnalysisReady(analysis, parsedData);
         setTimeout(onComplete, 500);
-        return;
+      } catch (err) {
+        console.error("Processing error:", err);
+        setError(err instanceof Error ? err.message : "Erro ao processar análise");
+        toast({
+          title: "Erro no processamento",
+          description: err instanceof Error ? err.message : "Erro desconhecido",
+          variant: "destructive",
+        });
       }
-      setCurrentStep(idx);
-      elapsed += processingSteps[idx].duration;
-      setProgress(Math.round((elapsed / totalDuration) * 100));
-      setTimeout(() => runStep(idx + 1), processingSteps[idx].duration);
     };
 
-    const timer = setTimeout(() => runStep(0), 300);
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+    runRealAnalysis();
+  }, [files, onComplete, onAnalysisReady]);
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <StepTimeline currentStep={3} />
+        <div className="max-w-lg mx-auto space-y-6 py-8 text-center">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-red-500/10 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground font-serif">Erro no Processamento</h2>
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Tentar Novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       <StepTimeline currentStep={3} />
-
       <div className="max-w-lg mx-auto space-y-8 py-8">
         <div className="text-center space-y-3">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
@@ -339,15 +394,13 @@ const ProcessingPhase = ({ onComplete }: { onComplete: () => void }) => {
           </div>
           <h2 className="text-xl font-bold text-foreground font-serif">Processando Análise</h2>
           <p className="text-sm text-muted-foreground">
-            O Agente IA Auditor Contábil Sênior está analisando seus documentos...
+            O Agente IA Auditor Contábil Sênior está analisando seus documentos em tempo real...
           </p>
         </div>
-
         <div className="space-y-3">
           <Progress value={progress} className="h-2" />
           <p className="text-xs text-muted-foreground text-center">{progress}%</p>
         </div>
-
         <div className="space-y-2">
           {processingSteps.map((step, i) => (
             <div key={i} className={`flex items-center gap-3 p-2.5 rounded-lg transition-all ${
@@ -410,8 +463,9 @@ const scoreRJData = {
 };
 
 /* ── Tab 1: Diagnóstico Financeiro ── */
-const TabDiagnostico = () => {
-  const r = riskBadge[diagnosticoData.riskLevel];
+const TabDiagnostico = ({ data }: { data?: any }) => {
+  const d = data || diagnosticoData;
+  const r = riskBadge[d.riskLevel] || riskBadge["moderado"];
   return (
     <div className="space-y-6">
       <Card>
@@ -424,12 +478,12 @@ const TabDiagnostico = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-            <p className="text-sm text-foreground leading-relaxed">{diagnosticoData.resumo}</p>
+            <p className="text-sm text-foreground leading-relaxed">{d.resumo}</p>
           </div>
           <div>
             <h4 className="text-sm font-semibold text-foreground mb-3">Pontos-Chave</h4>
             <div className="space-y-2">
-              {diagnosticoData.pontosChave.map(p => (
+              {(d.pontosChave || []).map((p: any) => (
                 <div key={p.item} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/30">
                   <div className="flex items-center gap-3">
                     <div className={`w-2.5 h-2.5 rounded-full ${
@@ -798,33 +852,61 @@ const TabRiscoRJ = () => {
 };
 
 /* ── Tab 2: Análise Técnica (Pendências + Chat IA) ── */
-const TabAnaliseTecnica = () => {
-  const [selectedId, setSelectedId] = useState(pendencias[0]?.id || "");
-  const selected = pendencias.find(p => p.id === selectedId);
-  const [chatMessages, setChatMessages] = useState<Array<{ role: "bot" | "user"; text: string }>>([
-    { role: "bot", text: "Sou o Agente IA Auditor Contábil Sênior. Selecione uma pendência ao lado e me pergunte que respondo suas dúvidas, fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
+const TabAnaliseTecnica = ({ pendenciasData, parsedData }: { pendenciasData?: any[]; parsedData?: ParsedFinancialData | null }) => {
+  const activePendencias = pendenciasData || pendencias;
+  const [selectedId, setSelectedId] = useState(activePendencias[0]?.id || "");
+  const selected = activePendencias.find((p: any) => p.id === selectedId);
+  const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([
+    { role: "assistant", text: "Sou o Agente IA Auditor Contábil Sênior. Selecione uma pendência ao lado e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
   ]);
   const [chatInput, setChatInput] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
 
-  const mockResponses: Record<string, string> = {
-    "risco": "Com base na análise, o Score BEX-RJ de 47 pontos indica **zona de atenção**. Os principais fatores são:\n\n1. **Endividamento oneroso crescente** — Empréstimos LP cresceram 57%\n2. **Deterioração da margem líquida** — Queda de 60%\n3. **Concentração de dívida bancária** — R$ 155M em dívida onerosa\n\nEmbora o PL esteja positivo, a tendência de deterioração exige monitoramento contínuo.",
-    "ajuste": "Os principais ajustes contábeis recomendados são:\n\n1. **Teste de Impairment** (CPC 01) — Imobilizado de R$ 342M sem evidência de teste\n2. **Valor Realizável do Estoque** (CPC 16) — Estoque excedente de ~R$ 8,7M\n3. **PECLD sobre Contas a Receber** (CPC 48) — Crescimento de 56% exige revisão do aging\n4. **Reclassificação de Fornecedores 2022** — Variação de 583% exige investigação",
-    "ressalva": "Sim, os achados podem gerar **ressalva no parecer** conforme NBC TA 705:\n\n• **Ressalva qualificada** — Ausência de teste de impairment constitui distorção material\n• **Base para ressalva** — CPC 01 exige teste anual quando há indicativos de perda\n• **Impacto** — Parágrafo de ênfase sobre continuidade (NBC TA 570)",
-  };
-
-  const sendChat = () => {
-    if (!chatInput.trim()) return;
+  const sendChat = async () => {
+    if (!chatInput.trim() || isStreaming) return;
     const q = chatInput.trim();
     setChatInput("");
     setChatMessages(m => [...m, { role: "user", text: q }]);
+    setIsStreaming(true);
 
-    setTimeout(() => {
-      const ctx = selected ? `Referente à pendência "${selected.problema}" (Conta ${selected.conta}):\n\n` : "";
-      const key = Object.keys(mockResponses).find(k => q.toLowerCase().includes(k));
-      const response = key ? ctx + mockResponses[key] :
-        `${ctx}Com base nos frameworks CPC/IFRS/NBC TA, este ponto requer avaliação considerando:\n\n• Materialidade do item\n• Impacto nos indicadores financeiros\n• Risco para continuidade operacional\n• Potencial impacto jurídico (Lei 11.101/2005)\n\nDeseja que eu aprofunde em algum aspecto?`;
-      setChatMessages(m => [...m, { role: "bot", text: response }]);
-    }, 800);
+    let assistantText = "";
+    const upsertAssistant = (chunk: string) => {
+      assistantText += chunk;
+      setChatMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && prev.length > 1 && prev[prev.length - 2]?.role === "user") {
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, text: assistantText } : m));
+        }
+        return [...prev, { role: "assistant" as const, text: assistantText }];
+      });
+    };
+
+    try {
+      const aiMessages = chatMessages
+        .filter((_, i) => i > 0) // skip initial system msg
+        .map(m => ({ role: m.role as "user" | "assistant", content: m.text }));
+      aiMessages.push({ role: "user", content: q });
+
+      const context = {
+        pendenciaSelecionada: selected,
+        dadosFinanceiros: parsedData ? { balanco: parsedData.balanco.slice(0, 20), dre: parsedData.dre.slice(0, 10) } : null,
+      };
+
+      await streamAuditChat({
+        messages: aiMessages,
+        context,
+        onDelta: upsertAssistant,
+        onDone: () => setIsStreaming(false),
+        onError: (error) => {
+          setChatMessages(m => [...m, { role: "assistant", text: `⚠️ Erro: ${error}` }]);
+          setIsStreaming(false);
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      setChatMessages(m => [...m, { role: "assistant", text: "⚠️ Erro ao conectar com o Agente IA. Tente novamente." }]);
+      setIsStreaming(false);
+    }
   };
 
   return (
@@ -832,12 +914,12 @@ const TabAnaliseTecnica = () => {
       <div className="grid lg:grid-cols-3 gap-4" style={{ minHeight: 420 }}>
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-500" /> Pendências ({pendencias.length})</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-500" /> Pendências ({activePendencias.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[360px]">
               <div className="space-y-2 pr-2">
-                {pendencias.map(p => (
+                {activePendencias.map((p: any) => (
                   <button
                     key={p.id}
                     onClick={() => setSelectedId(p.id)}
@@ -939,8 +1021,10 @@ const TabAnaliseTecnica = () => {
               ))}
             </div>
             <div className="flex gap-2">
-              <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Pergunte sobre esta pendência..." className="text-sm" />
-              <Button onClick={sendChat} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white px-4"><Send className="w-4 h-4" /></Button>
+              <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Pergunte sobre esta pendência..." className="text-sm" disabled={isStreaming} />
+              <Button onClick={sendChat} disabled={isStreaming} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white px-4">
+                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -1557,10 +1641,19 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: { 
+  onBack: () => void; 
+  aiAnalysis?: any;
+  parsedData?: ParsedFinancialData | null;
+}) => {
   const navigate = useNavigate();
   const [reportGenerated, setReportGenerated] = useState(false);
   const [activeTab, setActiveTab] = useState("diagnostico");
+
+  // Use AI data if available, otherwise fall back to mock data
+  const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
+  const activePendencias = aiAnalysis?.pendencias || pendencias;
+  const activeScoreRJ = aiAnalysis?.scoreRJ || scoreRJData;
 
   const handleGerarRelatorio = () => {
     setReportGenerated(true);
@@ -1604,8 +1697,8 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="diagnostico"><TabDiagnostico /></TabsContent>
-        <TabsContent value="analise-tecnica"><TabAnaliseTecnica /></TabsContent>
+        <TabsContent value="diagnostico"><TabDiagnostico data={activeDiagnostico} /></TabsContent>
+        <TabsContent value="analise-tecnica"><TabAnaliseTecnica pendenciasData={activePendencias} parsedData={parsedData} /></TabsContent>
         <TabsContent value="indicadores"><TabIndicadores /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial /></TabsContent>
@@ -1629,13 +1722,38 @@ type AuditPhase = "upload" | "processing" | "results";
 
 const AuditContent = () => {
   const [phase, setPhase] = useState<AuditPhase>("upload");
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [parsedData, setParsedData] = useState<ParsedFinancialData | null>(null);
+
+  const handleAnalysisReady = useCallback((analysis: any, parsed: ParsedFinancialData | null) => {
+    setAiAnalysis(analysis);
+    setParsedData(parsed);
+  }, []);
 
   return (
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-4 md:p-6">
-        {phase === "upload" && <UploadPhase onProcess={() => setPhase("processing")} />}
-        {phase === "processing" && <ProcessingPhase onComplete={() => setPhase("results")} />}
-        {phase === "results" && <ResultsPhase onBack={() => setPhase("upload")} />}
+        {phase === "upload" && (
+          <UploadPhase 
+            onProcess={() => setPhase("processing")} 
+            onFilesReady={setUploadedFiles} 
+          />
+        )}
+        {phase === "processing" && (
+          <ProcessingPhase 
+            onComplete={() => setPhase("results")} 
+            files={uploadedFiles}
+            onAnalysisReady={handleAnalysisReady}
+          />
+        )}
+        {phase === "results" && (
+          <ResultsPhase 
+            onBack={() => { setPhase("upload"); setAiAnalysis(null); setParsedData(null); }} 
+            aiAnalysis={aiAnalysis}
+            parsedData={parsedData}
+          />
+        )}
       </div>
     </PlatformLayout>
   );
