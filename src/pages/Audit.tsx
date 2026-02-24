@@ -798,7 +798,7 @@ const TabRiscoRJ = () => {
 };
 
 /* ── Tab 2: Análise Técnica (Pendências + Chat IA) ── */
-const TabAnaliseTecnica = ({ onGerarRelatorio }: { onGerarRelatorio?: () => void }) => {
+const TabAnaliseTecnica = () => {
   const [selectedId, setSelectedId] = useState(pendencias[0]?.id || "");
   const selected = pendencias.find(p => p.id === selectedId);
   const [chatMessages, setChatMessages] = useState<Array<{ role: "bot" | "user"; text: string }>>([
@@ -946,21 +946,83 @@ const TabAnaliseTecnica = ({ onGerarRelatorio }: { onGerarRelatorio?: () => void
         </CardContent>
       </Card>
 
-      {/* Botão Gerar Relatório */}
-      {onGerarRelatorio && (
-        <div className="flex justify-center pt-6 pb-2 border-t border-border/30 mt-6">
-          <Button
-            onClick={onGerarRelatorio}
-            size="lg"
-            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-14 px-12 text-base font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/30"
-          >
-            <FileText className="w-5 h-5" /> Gerar Relatório BEX
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
+
+/* ══════════════════════════════════════════════════════
+   TAB: RELATÓRIO FINAL — PREVIEW (antes de gerar)
+   ══════════════════════════════════════════════════════ */
+const reportTopics = [
+  { num: "1", title: "Capa", desc: "Logo BEX, título, empresa, CNPJ, data-base, responsável técnico e classificação de risco", icon: Shield },
+  { num: "2", title: "Diagnóstico Executivo", desc: "Situação geral, classificação de risco, pontos-chave e conclusão técnica com fundamentação CPC/IFRS/NBC TA", icon: Activity },
+  { num: "3", title: "Solvência", desc: "Liquidez Corrente, Seca, Geral, Solvência Total, Capital de Giro, Cobertura de Juros — com interpretação técnica", icon: Scale },
+  { num: "4", title: "Análise Técnica — Pendências", desc: "Tabela consolidada com tipo, gravidade, impacto, fundamentação normativa e recomendações corretivas", icon: AlertTriangle },
+  { num: "5", title: "Indicadores Econômico-Financeiros", desc: "Liquidez, Endividamento, Rentabilidade e EBITDA estimado com fórmulas e interpretação", icon: BarChart3 },
+  { num: "6", title: "Endividamento", desc: "Estrutura da dívida, concentração de risco, dependência bancária e análise estratégica", icon: Landmark },
+  { num: "7", title: "Balanço Patrimonial", desc: "Ativo, Passivo, PL com análise horizontal e validações de consistência", icon: Layers },
+  { num: "★", title: "Score BEX de Solvência", desc: "Classificação final ponderada: Liquidez (25%), Endividamento (25%), PL (20%), Geração Caixa (15%), Pressão CP (15%)", icon: Target },
+];
+
+const TabRelatorioPreview = ({ onGerar }: { onGerar: () => void }) => (
+  <div className="space-y-6">
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Relatório Técnico de Avaliação Contábil e Solvência Empresarial</CardTitle>
+            <CardDescription className="text-xs">Documento estruturado gerado automaticamente pelo Agente IA Auditor Contábil Sênior</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          O relatório final consolida todas as análises realizadas em um documento técnico estruturado, com linguagem normativa e fundamentação contábil completa. Ao gerar, os seguintes tópicos serão incluídos:
+        </p>
+
+        <div className="grid gap-3">
+          {reportTopics.map(t => {
+            const Icon = t.icon;
+            return (
+              <div key={t.num} className="flex items-start gap-4 p-4 rounded-xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-[hsl(258,90%,66%)]">{t.num}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon className="w-3.5 h-3.5 text-[hsl(258,90%,66%)]" />
+                    <h4 className="text-sm font-semibold text-foreground">{t.title}</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t.desc}</p>
+                </div>
+                <CheckCircle2 className="w-4 h-4 text-emerald-500/50 shrink-0 mt-1" />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 pt-2">
+          {["NBC TA 700", "NBC TA 705", "CPC 26", "CPC 47", "IFRS 15", "Lei 11.101/2005"].map(n => (
+            <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+
+    <div className="flex justify-center pt-2 pb-4">
+      <Button
+        onClick={onGerar}
+        size="lg"
+        className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-14 px-12 text-base font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/30"
+      >
+        <FileText className="w-5 h-5" /> Gerar Relatório BEX
+      </Button>
+    </div>
+  </div>
+);
 
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
@@ -1502,12 +1564,11 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
 
   const handleGerarRelatorio = () => {
     setReportGenerated(true);
-    setActiveTab("relatorio-final");
   };
 
   return (
     <div className="space-y-6">
-      <StepTimeline currentStep={5} />
+      <StepTimeline currentStep={reportGenerated ? 5 : 4} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1538,22 +1599,24 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
           <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
           </TabsTrigger>
-          {reportGenerated && (
-            <TabsTrigger value="relatorio-final" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
-              <BookOpen className="w-3.5 h-3.5" /> Relatório Final
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="relatorio-final" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+            <BookOpen className="w-3.5 h-3.5" /> Relatório Final
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="diagnostico"><TabDiagnostico /></TabsContent>
-        <TabsContent value="analise-tecnica"><TabAnaliseTecnica onGerarRelatorio={handleGerarRelatorio} /></TabsContent>
+        <TabsContent value="analise-tecnica"><TabAnaliseTecnica /></TabsContent>
         <TabsContent value="indicadores"><TabIndicadores /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ /></TabsContent>
-        {reportGenerated && (
-          <TabsContent value="relatorio-final"><TabRelatorioFinal onBack={onBack} /></TabsContent>
-        )}
+        <TabsContent value="relatorio-final">
+          {reportGenerated ? (
+            <TabRelatorioFinal onBack={onBack} />
+          ) : (
+            <TabRelatorioPreview onGerar={handleGerarRelatorio} />
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );
