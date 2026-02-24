@@ -968,14 +968,23 @@ const TabRelatorioPreview = ({ onGerar }: { onGerar: () => void }) => (
   <div className="space-y-6">
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Relatório Técnico de Avaliação Contábil e Solvência Empresarial</CardTitle>
+              <CardDescription className="text-xs">Documento estruturado gerado automaticamente pelo Agente IA Auditor Contábil Sênior</CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-base">Relatório Técnico de Avaliação Contábil e Solvência Empresarial</CardTitle>
-            <CardDescription className="text-xs">Documento estruturado gerado automaticamente pelo Agente IA Auditor Contábil Sênior</CardDescription>
-          </div>
+          <Button
+            onClick={onGerar}
+            size="lg"
+            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-8 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/30 shrink-0"
+          >
+            <FileText className="w-4 h-4" /> Gerar Relatório BEX
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1012,15 +1021,6 @@ const TabRelatorioPreview = ({ onGerar }: { onGerar: () => void }) => (
       </CardContent>
     </Card>
 
-    <div className="flex justify-center pt-2 pb-4">
-      <Button
-        onClick={onGerar}
-        size="lg"
-        className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-14 px-12 text-base font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/30"
-      >
-        <FileText className="w-5 h-5" /> Gerar Relatório BEX
-      </Button>
-    </div>
   </div>
 );
 
