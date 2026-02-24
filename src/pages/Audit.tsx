@@ -802,7 +802,7 @@ const TabAnaliseTecnica = () => {
   const [selectedId, setSelectedId] = useState(pendencias[0]?.id || "");
   const selected = pendencias.find(p => p.id === selectedId);
   const [chatMessages, setChatMessages] = useState<Array<{ role: "bot" | "user"; text: string }>>([
-    { role: "bot", text: "Sou o Agente IA Auditor Contábil Sênior. Selecione uma pendência ao lado e me pergunte sobre fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
+    { role: "bot", text: "Sou o Agente IA Auditor Contábil Sênior. Selecione uma pendência ao lado e me pergunte que respondo suas dúvidas, fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
   ]);
   const [chatInput, setChatInput] = useState("");
 
