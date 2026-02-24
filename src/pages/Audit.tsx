@@ -798,7 +798,7 @@ const TabRiscoRJ = () => {
 };
 
 /* ── Tab 2: Análise Técnica (Pendências + Chat IA) ── */
-const TabAnaliseTecnica = () => {
+const TabAnaliseTecnica = ({ onGerarRelatorio }: { onGerarRelatorio?: () => void }) => {
   const [selectedId, setSelectedId] = useState(pendencias[0]?.id || "");
   const selected = pendencias.find(p => p.id === selectedId);
   const [chatMessages, setChatMessages] = useState<Array<{ role: "bot" | "user"; text: string }>>([
@@ -945,6 +945,548 @@ const TabAnaliseTecnica = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Botão Gerar Relatório */}
+      {onGerarRelatorio && (
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={onGerarRelatorio}
+            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20"
+          >
+            <FileText className="w-5 h-5" /> Gerar Relatório
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   TAB: RELATÓRIO FINAL BEX
+   ══════════════════════════════════════════════════════ */
+const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
+  const { state } = useAudit();
+  const navigate = useNavigate();
+  const today = new Date().toLocaleDateString("pt-BR");
+  const d = state.config.entityData["2023"];
+  const ind = state.financialAnalysis.indicators;
+
+  const scoreColor = scoreRJData.score <= 30 ? "text-emerald-600" :
+                     scoreRJData.score <= 60 ? "text-yellow-600" :
+                     scoreRJData.score <= 80 ? "text-orange-600" : "text-red-600";
+  const scoreBg = scoreRJData.score <= 30 ? "bg-emerald-500/10 border-emerald-500/30" :
+                  scoreRJData.score <= 60 ? "bg-yellow-500/10 border-yellow-500/30" :
+                  scoreRJData.score <= 80 ? "bg-orange-500/10 border-orange-500/30" : "bg-red-500/10 border-red-500/30";
+  const scoreLabel = scoreRJData.score <= 30 ? "Saudável" :
+                     scoreRJData.score <= 60 ? "Atenção" :
+                     scoreRJData.score <= 80 ? "Alto Risco" : "Risco Estrutural";
+
+  const riskIcon = scoreRJData.score <= 30 ? "🟢" :
+                   scoreRJData.score <= 60 ? "🟡" :
+                   scoreRJData.score <= 80 ? "🔴" : "⚫";
+
+  const empCP = 18966329;
+  const empLP = 136588365;
+  const dividaOnerosa = empCP + empLP;
+  const ptotal = d ? d.passivoCirculante + d.passivoNaoCirculante : 0;
+
+  const solvencyIndicators = d && ind["2023"] ? [
+    { name: "Liquidez Corrente", result: fmtPct(ind["2023"].liquidezCorrente), param: "> 1,5", classification: ind["2023"].liquidezCorrente > 1.5 ? "Adequada" : ind["2023"].liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(d.ativoCirculante)} / PC R$ ${fmt(d.passivoCirculante)}` },
+    { name: "Liquidez Seca", result: fmtPct(ind["2023"].liquidezSeca), param: "> 1,0", classification: ind["2023"].liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
+    { name: "Liquidez Geral", result: fmtPct(ind["2023"].liquidezGeral), param: "> 1,0", classification: ind["2023"].liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
+    { name: "Cobertura de Juros", result: `${ind["2023"].coberturaJuros.toFixed(1)}x`, param: "> 3,0x", classification: ind["2023"].coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
+    { name: "Capital de Giro Líquido", result: `R$ ${fmt(d.ativoCirculante - d.passivoCirculante)}`, param: "> 0", classification: d.ativoCirculante - d.passivoCirculante > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
+    { name: "Solvência Total", result: fmtPct((d.ativoCirculante + d.ativoNaoCirculante) / ptotal), param: "> 1,0", classification: (d.ativoCirculante + d.ativoNaoCirculante) / ptotal > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
+  ] : [];
+
+  const SectionTitle = ({ num, title }: { num: string; title: string }) => (
+    <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
+      <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)] text-white flex items-center justify-center text-sm font-bold">{num}</div>
+      <h2 className="text-lg font-bold text-foreground font-serif">{title}</h2>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Action buttons */}
+      <div className="flex justify-end gap-2 print:hidden">
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+          <Download className="w-4 h-4" /> Exportar
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+          <Printer className="w-4 h-4" /> Imprimir
+        </Button>
+        <Button variant="outline" size="sm" onClick={onBack} className="gap-1.5">
+          <ArrowLeft className="w-4 h-4" /> Nova Análise
+        </Button>
+      </div>
+
+      {/* ── CAPA ── */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-[hsl(258,90%,66%)] via-[hsl(258,80%,55%)] to-[hsl(258,70%,40%)] text-white p-8 md:p-12 text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+              <Shield className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/70 font-semibold">Plataforma BEX</p>
+            <h1 className="text-xl md:text-2xl font-bold font-serif leading-tight">
+              RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
+            </h1>
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10">
+            <span className={`text-lg`}>{riskIcon}</span>
+            <span className="text-sm font-semibold">{scoreLabel} — Score BEX: {scoreRJData.score}/100</span>
+          </div>
+          <div className="space-y-1 text-sm text-white/80">
+            <p className="font-semibold text-white">Empresa Analisada: Empresa Demonstração S.A.</p>
+            <p>CNPJ: 12.345.678/0001-90</p>
+            <p>Data-base do Balancete: 31/12/2023</p>
+            <p>Data de Emissão: {today}</p>
+          </div>
+          <div className="pt-4 border-t border-white/20 space-y-1">
+            <p className="text-xs text-white/60 uppercase tracking-wider">Responsável Técnico</p>
+            <p className="text-sm font-semibold">Agente IA — Auditor Contábil Sênior</p>
+            <p className="text-xs text-white/70">Especialista em Recuperação Judicial e Análise Empresarial</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── 1. DIAGNÓSTICO EXECUTIVO ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="1" title="DIAGNÓSTICO EXECUTIVO" />
+          
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">1.1 Situação Geral</h3>
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${scoreBg}`}>
+              <span>{riskIcon}</span>
+              <span className={`text-sm font-semibold ${scoreColor}`}>Classificação de Risco: {scoreLabel}</span>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">1.2 Principais Pontos Identificados</h3>
+            <div className="space-y-2">
+              {diagnosticoData.pontosChave.map(p => (
+                <div key={p.item} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/30">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full ${
+                      p.status === "positivo" ? "bg-emerald-500" :
+                      p.status === "atencao" ? "bg-yellow-500" : "bg-red-500"
+                    }`} />
+                    <span className="text-sm font-medium text-foreground">{p.item}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{p.detail}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Auditor IA</h3>
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-sm text-foreground leading-relaxed">{diagnosticoData.resumo}</p>
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {["CPC 26", "CPC 47", "IFRS 15", "NBC TA 570", "Lei 11.101/2005"].map(n => (
+                  <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 2. SOLVÊNCIA ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="2" title="SOLVÊNCIA" />
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">2.1 Índices de Solvência</h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">Indicador</TableHead>
+                    <TableHead className="text-right text-[10px]">Resultado</TableHead>
+                    <TableHead className="text-right text-[10px]">Parâmetro</TableHead>
+                    <TableHead className="text-[10px]">Classificação</TableHead>
+                    <TableHead className="text-[10px]">Comentário Técnico</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {solvencyIndicators.map(si => (
+                    <TableRow key={si.name}>
+                      <TableCell className="text-xs font-medium">{si.name}</TableCell>
+                      <TableCell className="text-right text-xs font-mono">{si.result}</TableCell>
+                      <TableCell className="text-right text-xs font-mono text-muted-foreground">{si.param}</TableCell>
+                      <TableCell>
+                        <Badge className={`text-[10px] ${
+                          si.classification === "Adequada" || si.classification === "Positivo" || si.classification === "Solvente"
+                            ? "bg-emerald-500/15 text-emerald-600"
+                            : si.classification === "Atenção"
+                            ? "bg-yellow-500/15 text-yellow-600"
+                            : "bg-red-500/15 text-red-600"
+                        }`}>{si.classification}</Badge>
+                      </TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">{si.comment}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
+            <div className="space-y-3">
+              {[
+                { title: "Capacidade de Pagamento", text: "A empresa apresenta liquidez corrente de " + (ind["2023"] ? fmtPct(ind["2023"].liquidezCorrente) : "N/A") + ", indicando capacidade de honrar obrigações de curto prazo, porém com tendência de redução no período analisado." },
+                { title: "Avaliação de Risco de Insolvência", text: "O Score BEX-RJ de " + scoreRJData.score + " pontos classifica a empresa na faixa de \"" + scoreLabel + "\". A análise multifatorial considera endividamento, liquidez, patrimônio líquido, geração de caixa e concentração de dívida." },
+                { title: "Continuidade Operacional (Going Concern)", text: "Com PL positivo de R$ " + fmt(d?.patrimonioLiquido || 0) + " e capital de giro líquido positivo, a premissa de continuidade é sustentável no curto prazo, porém requer monitoramento do endividamento oneroso crescente." },
+                { title: "Probabilidade Estrutural de RJ", text: scoreRJData.score <= 30 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : scoreRJData.score <= 60 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
+              ].map(item => (
+                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30">
+                  <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 3. ANÁLISE TÉCNICA — PENDÊNCIAS ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="3" title="ANÁLISE TÉCNICA — PENDÊNCIAS" />
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">3.1 Tabela de Pendências</h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">ID</TableHead>
+                    <TableHead className="text-[10px]">Tipo</TableHead>
+                    <TableHead className="text-[10px]">Conta</TableHead>
+                    <TableHead className="text-[10px]">Descrição</TableHead>
+                    <TableHead className="text-[10px]">Gravidade</TableHead>
+                    <TableHead className="text-[10px]">Impacto</TableHead>
+                    <TableHead className="text-[10px]">Recomendação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendencias.map((p, i) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-[10px] font-mono">{i + 1}</TableCell>
+                      <TableCell className="text-[10px]">{p.tipo}</TableCell>
+                      <TableCell className="text-[10px] font-mono">{p.conta}</TableCell>
+                      <TableCell className="text-xs max-w-[200px]">{p.problema}</TableCell>
+                      <TableCell><Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge></TableCell>
+                      <TableCell className="text-[10px]">{p.impacto}</TableCell>
+                      <TableCell className="text-[10px] max-w-[180px]">{p.recomendacao}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
+            <div className="space-y-3">
+              {pendencias.map((p, i) => (
+                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge>
+                    <span className="text-xs font-semibold text-foreground">Pendência {i + 1}: {p.problema}</span>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    <div className="p-2 rounded bg-muted/30">
+                      <p className="text-[10px] font-semibold text-foreground mb-0.5">Fundamentação Normativa</p>
+                      <p className="text-[10px] text-muted-foreground">{p.fundamentacao}</p>
+                    </div>
+                    <div className="p-2 rounded bg-red-500/5">
+                      <p className="text-[10px] font-semibold text-red-600 mb-0.5">Risco Econômico / Jurídico</p>
+                      <p className="text-[10px] text-foreground">{p.risco}</p>
+                    </div>
+                  </div>
+                  <div className="p-2 rounded bg-accent/5 border border-accent/20">
+                    <p className="text-[10px] font-semibold text-accent-foreground mb-0.5">Recomendação Corretiva</p>
+                    <p className="text-[10px] text-foreground">{p.recomendacao}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 4. INDICADORES ECONÔMICO-FINANCEIROS ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="4" title="INDICADORES ECONÔMICO-FINANCEIROS" />
+
+          {[
+            { title: "4.1 Indicadores de Liquidez", items: [
+              { name: "Liquidez Corrente", formula: "AC / PC", value: ind["2023"]?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
+              { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: ind["2023"]?.liquidezSeca, interp: "Liquidez excluindo estoques" },
+              { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: ind["2023"]?.liquidezGeral, interp: "Capacidade de pagamento total" },
+            ]},
+            { title: "4.2 Indicadores de Endividamento", items: [
+              { name: "Endividamento Total", formula: "PT / AT", value: ind["2023"]?.endividamentoGeral, interp: "Grau de comprometimento do ativo com terceiros" },
+              { name: "Composição do Endividamento", formula: "PC / PT", value: ind["2023"]?.composicaoEndividamento, interp: "Concentração da dívida no curto prazo" },
+              { name: "Imobilização do PL", formula: "Imob / PL", value: ind["2023"]?.imobilizacaoPL, interp: "Grau de imobilização do capital próprio" },
+            ]},
+            { title: "4.3 Indicadores de Rentabilidade", items: [
+              { name: "Margem Operacional", formula: "LAJIR / Receita", value: ind["2023"]?.margemOperacional, interp: "Eficiência operacional da empresa" },
+              { name: "ROA", formula: "LL / AT", value: ind["2023"]?.roa, interp: "Retorno gerado pelo ativo total" },
+              { name: "ROE", formula: "LL / PL", value: ind["2023"]?.roe, interp: "Retorno ao acionista sobre capital investido" },
+            ]},
+          ].map(sec => (
+            <div key={sec.title}>
+              <h3 className="text-sm font-semibold text-foreground mb-3">{sec.title}</h3>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-[10px]">Indicador</TableHead>
+                      <TableHead className="text-[10px]">Fórmula</TableHead>
+                      <TableHead className="text-right text-[10px]">Resultado</TableHead>
+                      <TableHead className="text-[10px]">Interpretação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sec.items.map(item => (
+                      <TableRow key={item.name}>
+                        <TableCell className="text-xs font-medium">{item.name}</TableCell>
+                        <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
+                        <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtPct(item.value) : "—"}</TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{item.interp}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ))}
+
+          {d && (
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA Estimado (2023)</h3>
+              <div className="p-4 rounded-lg bg-muted/30 text-center">
+                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(d.resultadoOperacional + d.despesasFinanceiras)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Despesas Financeiras</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── 5. ENDIVIDAMENTO ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="5" title="ENDIVIDAMENTO" />
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                { label: "Empréstimos CP", value: empCP },
+                { label: "Empréstimos LP", value: empLP },
+                { label: "Dívida Bancária Total", value: dividaOnerosa },
+                { label: "Fornecedores", value: d?.fornecedores || 0 },
+                { label: "Passivo Circulante", value: d?.passivoCirculante || 0 },
+                { label: "Passivo Não Circulante", value: d?.passivoNaoCirculante || 0 },
+              ].map(item => (
+                <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30">
+                  <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                  <p className="text-sm font-bold font-mono text-foreground">R$ {fmt(item.value)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">5.2 Concentração de Risco</h3>
+            <div className="space-y-2">
+              {[
+                { label: "% Dívida Onerosa / Passivo Total", value: ptotal ? fmtPct(dividaOnerosa / ptotal) : "N/A", risk: dividaOnerosa / ptotal > 0.5 },
+                { label: "Dependência Bancária", value: d ? fmtPct(dividaOnerosa / (d.ativoCirculante + d.ativoNaoCirculante)) : "N/A", risk: false },
+                { label: "Pressão no Fluxo de Caixa (Emp CP / Caixa)", value: d ? `${(empCP / d.caixaEquivalentes).toFixed(1)}x` : "N/A", risk: d ? empCP / d.caixaEquivalentes > 1 : false },
+              ].map(item => (
+                <div key={item.label} className={`flex justify-between p-3 rounded-lg ${item.risk ? "bg-orange-500/5 border border-orange-500/20" : "bg-muted/20"}`}>
+                  <span className="text-xs text-foreground">{item.label}</span>
+                  <span className={`text-xs font-mono font-bold ${item.risk ? "text-orange-600" : "text-foreground"}`}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">5.3 Análise Estratégica</h3>
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
+              <p className="text-xs text-foreground leading-relaxed">
+                A estrutura de endividamento revela concentração em empréstimos de longo prazo (R$ {fmt(empLP)}), representando {ptotal ? fmtPct(empLP / ptotal) : "N/A"} do passivo total. 
+                A dívida onerosa total de R$ {fmt(dividaOnerosa)} exige monitoramento contínuo da capacidade de refinanciamento e dos covenants ativos.
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {["Risco de vencimento concentrado", "Capacidade de renegociação limitada", "Monitorar covenants", "Avaliar necessidade de RJ"].map(t => (
+                  <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 6. BALANÇO PATRIMONIAL ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="6" title="BALANÇO PATRIMONIAL" />
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px]">Conta</TableHead>
+                  <TableHead className="text-[10px]">Descrição</TableHead>
+                  {["2021", "2022", "2023"].map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
+                  <TableHead className="text-right text-[10px]">AH 23/22</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {state.balancoRows.map(row => {
+                  const v22 = row.values["2022"] || 0;
+                  const v23 = row.values["2023"] || 0;
+                  const ah = v22 !== 0 ? ((v23 - v22) / Math.abs(v22)) : 0;
+                  const isAlert = Math.abs(ah) > 0.25 && row.conta !== "1" && row.conta !== "2";
+                  return (
+                    <TableRow key={row.conta} className={row.hasRisk ? "bg-orange-500/5" : ""}>
+                      <TableCell className="text-[10px] font-mono text-muted-foreground">{row.conta}</TableCell>
+                      <TableCell className={`text-xs ${row.conta.split(".").length <= 2 ? "font-semibold" : ""}`}>{row.descricao}</TableCell>
+                      {["2021", "2022", "2023"].map(y => (
+                        <TableCell key={y} className="text-right text-xs font-mono">{fmt(row.values[y] || 0)}</TableCell>
+                      ))}
+                      <TableCell className={`text-right text-xs font-mono ${isAlert ? "text-orange-600 font-bold" : "text-muted-foreground"}`}>
+                        {fmtPct(ah)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">Validações</h3>
+            <div className="space-y-2">
+              {[
+                { check: "Ativo = Passivo + PL", status: true, detail: `R$ ${fmt(state.balancoRows.find(r => r.conta === "1")?.values["2023"] || 0)} = R$ ${fmt(state.balancoRows.find(r => r.conta === "2")?.values["2023"] || 0)}` },
+                { check: "Passivo a Descoberto", status: (d?.patrimonioLiquido || 0) > 0, detail: d && d.patrimonioLiquido > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
+                { check: "PL Negativo", status: (d?.patrimonioLiquido || 0) > 0, detail: d && d.patrimonioLiquido > 0 ? `PL positivo: R$ ${fmt(d.patrimonioLiquido)}` : "PL NEGATIVO identificado" },
+                { check: "Descasamento Estrutural", status: (d?.ativoCirculante || 0) > (d?.passivoCirculante || 0), detail: "Capital de giro líquido " + ((d?.ativoCirculante || 0) > (d?.passivoCirculante || 0) ? "positivo" : "negativo") },
+              ].map(v => (
+                <div key={v.check} className={`flex items-center justify-between p-3 rounded-lg ${v.status ? "bg-emerald-500/5 border border-emerald-500/20" : "bg-red-500/5 border border-red-500/20"}`}>
+                  <div className="flex items-center gap-2">
+                    {v.status ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertTriangle className="w-4 h-4 text-red-500" />}
+                    <span className="text-xs font-medium text-foreground">{v.check}</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{v.detail}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── SCORE FINAL ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="★" title="CLASSIFICAÇÃO FINAL — SCORE BEX DE SOLVÊNCIA" />
+          
+          <div className="text-center py-6">
+            <p className={`text-6xl font-bold ${scoreColor}`}>{scoreRJData.score}</p>
+            <p className={`text-xl font-semibold mt-2 ${scoreColor}`}>{scoreLabel}</p>
+            <p className="text-xs text-muted-foreground mt-1">Score BEX de Solvência — de 100 pontos</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            {scoreRJData.componentes.map(c => (
+              <div key={c.nome} className="p-3 rounded-lg bg-muted/20 space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-foreground">{c.nome} ({(c.peso * 100)}%)</span>
+                  <span className="font-mono font-bold">{c.valor}/100</span>
+                </div>
+                <Progress value={c.valor} className="h-1.5" />
+                <p className="text-[10px] text-muted-foreground">{c.nota}</p>
+              </div>
+            ))}
+          </div>
+
+          <code className="block bg-muted/50 p-4 rounded-lg text-[11px] font-mono leading-relaxed">
+            Score Solvência ={"\n"}
+            {"  "}(Liquidez × 0.25) +{"\n"}
+            {"  "}(Endividamento × 0.25) +{"\n"}
+            {"  "}(PL × 0.20) +{"\n"}
+            {"  "}(Geração Caixa × 0.15) +{"\n"}
+            {"  "}(Pressão CP × 0.15)
+          </code>
+
+          <div className="space-y-2">
+            {[
+              { range: "0 – 30", label: "Saudável", color: "bg-emerald-500/10 text-emerald-600", active: scoreRJData.score <= 30 },
+              { range: "31 – 60", label: "Atenção", color: "bg-yellow-500/10 text-yellow-600", active: scoreRJData.score > 30 && scoreRJData.score <= 60 },
+              { range: "61 – 80", label: "Alto Risco", color: "bg-orange-500/10 text-orange-600", active: scoreRJData.score > 60 && scoreRJData.score <= 80 },
+              { range: "81 – 100", label: "Risco Estrutural", color: "bg-red-500/10 text-red-600", active: scoreRJData.score > 80 },
+            ].map(item => (
+              <div key={item.range} className={`flex items-center justify-between p-3 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-accent" : ""}`}>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-mono font-bold px-2 py-1 rounded ${item.color}`}>{item.range}</span>
+                  <span className="text-sm font-medium text-foreground">{item.label}</span>
+                </div>
+                {item.active && <CheckCircle2 className="w-4 h-4 text-accent" />}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── ASSINATURA ── */}
+      <Card className="bg-muted/20">
+        <CardContent className="pt-6 text-center space-y-3">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
+            <Shield className="w-6 h-6 text-[hsl(258,90%,66%)]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Documento gerado e assinado digitalmente</p>
+            <p className="text-xs text-muted-foreground">Agente IA — Auditor Contábil Sênior</p>
+            <p className="text-xs text-muted-foreground">Especialista em Recuperação Judicial e Análise Empresarial</p>
+            <p className="text-xs text-muted-foreground mt-2">Plataforma BEX — {today}</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-1.5 pt-2">
+            {["NBC TA 700", "NBC TA 705", "CPC 26", "Lei 11.101/2005", "IFRS"].map(n => (
+              <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Action buttons bottom */}
+      <div className="flex justify-center gap-3 pt-4 print:hidden">
+        <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
+          <Download className="w-4 h-4" /> Exportar
+        </Button>
+        <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
+          <Printer className="w-4 h-4" /> Imprimir
+        </Button>
+        <Button variant="outline" onClick={onBack} className="gap-1.5">
+          <ArrowLeft className="w-4 h-4" /> Nova Análise
+        </Button>
+      </div>
     </div>
   );
 };
@@ -954,6 +1496,13 @@ const TabAnaliseTecnica = () => {
    ══════════════════════════════════════════════════════ */
 const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
   const navigate = useNavigate();
+  const [reportGenerated, setReportGenerated] = useState(false);
+  const [activeTab, setActiveTab] = useState("diagnostico");
+
+  const handleGerarRelatorio = () => {
+    setReportGenerated(true);
+    setActiveTab("relatorio-final");
+  };
 
   return (
     <div className="space-y-6">
@@ -965,15 +1514,10 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
           <h1 className="text-2xl font-bold text-foreground font-serif">Avaliação Empresarial</h1>
           <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Agente IA Auditor Contábil Sênior</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5"><Download className="w-4 h-4" /> Exportar</Button>
-          <Button variant="outline" size="sm" className="gap-1.5"><Printer className="w-4 h-4" /> Imprimir</Button>
-          <Button variant="outline" size="sm" onClick={onBack} className="gap-1.5"><ArrowLeft className="w-4 h-4" /> Nova Análise</Button>
-        </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="diagnostico" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1.5">
           <TabsTrigger value="diagnostico" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Activity className="w-3.5 h-3.5" /> Diagnóstico
@@ -993,14 +1537,22 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
           <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
           </TabsTrigger>
+          {reportGenerated && (
+            <TabsTrigger value="relatorio-final" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+              <BookOpen className="w-3.5 h-3.5" /> Relatório Final
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="diagnostico"><TabDiagnostico /></TabsContent>
-        <TabsContent value="analise-tecnica"><TabAnaliseTecnica /></TabsContent>
+        <TabsContent value="analise-tecnica"><TabAnaliseTecnica onGerarRelatorio={handleGerarRelatorio} /></TabsContent>
         <TabsContent value="indicadores"><TabIndicadores /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ /></TabsContent>
+        {reportGenerated && (
+          <TabsContent value="relatorio-final"><TabRelatorioFinal onBack={onBack} /></TabsContent>
+        )}
       </Tabs>
     </div>
   );
