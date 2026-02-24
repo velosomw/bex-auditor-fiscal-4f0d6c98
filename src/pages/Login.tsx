@@ -10,6 +10,7 @@ import { toast } from "sonner";
 const USERS = [
   { email: "auditor@auditor.com.br", password: "auditor@150213", role: "auditor_chefe" as const },
   { email: "usuario@usuario.com.br", password: "usuario@150213", role: "usuario" as const },
+  { email: "empresa@empresa.com.br", password: "empresa@150213", role: "empresa" as const },
 ];
 
 const Login = () => {
@@ -31,6 +32,8 @@ const Login = () => {
         setRole(user.role);
         if (user.role === "auditor_chefe") {
           navigate("/dashboard");
+        } else if (user.role === "empresa") {
+          navigate("/user");
         } else {
           navigate("/user");
         }

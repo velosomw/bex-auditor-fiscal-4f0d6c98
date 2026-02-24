@@ -41,7 +41,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
                   <User className="w-3.5 h-3.5 text-[hsl(200,98%,55%)]" />
                 )}
                 <span className="text-xs font-medium text-white hidden sm:inline">
-                  {role === "auditor_chefe" ? "Auditor Chefe" : "Usuário"}
+                  {role === "auditor_chefe" ? "Auditor Chefe" : role === "empresa" ? "Empresa" : "Usuário"}
                 </span>
               </div>
             )}
