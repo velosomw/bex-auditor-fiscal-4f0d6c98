@@ -503,11 +503,69 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
   );
 };
 
+/* ── Helper: compute indicators from parsed data ── */
+const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => {
+  if (!parsedData) return {};
+  const findValue = (rows: typeof parsedData.balanco, keyword: string, year: string) => {
+    const row = rows.find(r => r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword));
+    return row?.values[year] || 0;
+  };
+
+  const result: Record<string, any> = {};
+  for (const year of parsedData.years) {
+    const allRows = [...parsedData.balanco, ...parsedData.dre];
+    const ac = Math.abs(findValue(allRows, "total do ativo circulante", year) || findValue(allRows, "ativo circulante", year));
+    const anc = Math.abs(findValue(allRows, "total do ativo não circulante", year) || findValue(allRows, "ativo nao circulante", year));
+    const pc = Math.abs(findValue(allRows, "total do passivo circulante", year) || findValue(allRows, "passivo circulante", year));
+    const pnc = Math.abs(findValue(allRows, "total do passivo não circulante", year) || findValue(allRows, "passivo nao circulante", year));
+    const pl = findValue(allRows, "total do patrimônio", year) || findValue(allRows, "patrimonio líquido", year) || findValue(allRows, "patrimônio líquido", year);
+    const estoque = Math.abs(findValue(allRows, "estoque", year));
+    const caixa = Math.abs(findValue(allRows, "caixa", year));
+    const receita = Math.abs(findValue(allRows, "receitas líquidas", year) || findValue(allRows, "receita líquida", year));
+    const lucro = findValue(allRows, "resultado do exercício", year) || findValue(allRows, "lucro líquido", year);
+    const resOp = findValue(allRows, "resultado operacional", year) || findValue(allRows, "lucro operacional bruto", year);
+    const despFin = Math.abs(findValue(allRows, "despesas financeiras", year));
+    const imob = Math.abs(findValue(allRows, "imobilizado", year));
+    const contasReceber = Math.abs(findValue(allRows, "contas a receber", year));
+    const fornecedores = Math.abs(findValue(allRows, "fornecedores", year));
+    const cmv = Math.abs(findValue(allRows, "cmv", year) || findValue(allRows, "total dos custos", year));
+    const at = ac + anc || 1;
+    const pt = pc + pnc || 1;
+
+    result[year] = {
+      liquidezCorrente: pc ? ac / pc : 0,
+      liquidezSeca: pc ? (ac - estoque) / pc : 0,
+      liquidezImediata: pc ? caixa / pc : 0,
+      liquidezGeral: pt ? (ac + anc) / pt : 0,
+      endividamentoGeral: at ? pt / at : 0,
+      composicaoEndividamento: pt ? pc / pt : 0,
+      imobilizacaoPL: Math.abs(pl) ? imob / Math.abs(pl) : 0,
+      coberturaJuros: despFin ? (resOp + despFin) / despFin : 0,
+      giroAtivo: at ? receita / at : 0,
+      pmr: receita ? (contasReceber * 360) / receita : 0,
+      pmp: cmv ? (fornecedores * 360) / cmv : 0,
+      idadeMediaEstoque: cmv ? (estoque * 360) / cmv : 0,
+      margemLiquida: receita ? lucro / receita : 0,
+      margemOperacional: receita ? resOp / receita : 0,
+      roa: at ? lucro / at : 0,
+      roe: Math.abs(pl) ? lucro / Math.abs(pl) : 0,
+      // extra values for endividamento tab
+      _ac: ac, _anc: anc, _pc: pc, _pnc: pnc, _pl: pl, _caixa: caixa,
+      _receita: receita, _lucro: lucro, _resOp: resOp, _despFin: despFin,
+      _imob: imob, _estoque: estoque, _fornecedores: fornecedores, _cmv: cmv,
+      _contasReceber: contasReceber,
+    };
+  }
+  return result;
+};
+
 /* ── Tab 2: Indicadores Econômico-Financeiros ── */
-const TabIndicadores = () => {
+const TabIndicadores = ({ parsedData }: { parsedData?: ParsedFinancialData | null }) => {
   const { state } = useAudit();
-  const years = ["2021", "2022", "2023"];
-  const ind = state.financialAnalysis.indicators;
+  const computedInd = computeIndicatorsFromParsed(parsedData || null);
+  const hasComputed = Object.keys(computedInd).length > 0;
+  const ind = hasComputed ? computedInd : state.financialAnalysis.indicators;
+  const years = hasComputed ? Object.keys(computedInd).sort() : ["2021", "2022", "2023"];
 
   const sections = [
     {
@@ -582,47 +640,64 @@ const TabIndicadores = () => {
         ))}
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2"><Calculator className="w-4 h-4 text-accent" /> EBITDA Estimado</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            {["2021", "2022", "2023"].map(y => {
-              const d = state.config.entityData[y];
-              if (!d) return null;
-              const ebitda = d.resultadoOperacional + d.despesasFinanceiras;
-              return (
-                <div key={y} className="p-4 rounded-lg bg-muted/30 text-center">
-                  <p className="text-xs text-muted-foreground">{y}</p>
-                  <p className="text-lg font-bold font-mono text-foreground">{fmt(ebitda)}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Desp. Financeiras</p>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {hasComputed && years.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2"><Calculator className="w-4 h-4 text-accent" /> EBITDA Estimado</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`grid grid-cols-${Math.min(years.length, 4)} gap-4`}>
+              {years.map(y => {
+                const d = computedInd[y];
+                if (!d) return null;
+                const ebitda = (d._resOp || 0) + (d._despFin || 0);
+                return (
+                  <div key={y} className="p-4 rounded-lg bg-muted/30 text-center">
+                    <p className="text-xs text-muted-foreground">{y}</p>
+                    <p className="text-lg font-bold font-mono text-foreground">{fmt(ebitda)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Desp. Financeiras</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
 
 /* ── Tab 3: Análise de Endividamento ── */
-const TabEndividamento = () => {
-  const { state } = useAudit();
-  const d = state.config.entityData["2023"];
-  if (!d) return null;
+const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null }) => {
+  const computedInd = computeIndicatorsFromParsed(parsedData || null);
+  const years = Object.keys(computedInd).sort();
+  const latestYear = years[years.length - 1];
+  const d = latestYear ? computedInd[latestYear] : null;
 
-  const empCP = 18966329;
-  const empLP = 136588365;
-  const dividaOnerosa = empCP + empLP;
-  const dividaLiquida = dividaOnerosa - d.caixaEquivalentes;
-  const ptotal = d.passivoCirculante + d.passivoNaoCirculante;
+  const pc = d?._pc || 0;
+  const pnc = d?._pnc || 0;
+  const ptotal = pc + pnc || 1;
+  const caixa = d?._caixa || 0;
+  const ac = d?._ac || 0;
+  const anc = d?._anc || 0;
 
-  const riscos = [
-    { tipo: "Risco Bancário", nivel: "alto", detail: `Dívida onerosa: R$ ${fmt(dividaOnerosa)} — ${fmtPct(dividaOnerosa / ptotal)} do passivo total` },
-    { tipo: "Risco Trabalhista", nivel: "medio", detail: "Sem provisões trabalhistas evidenciadas no balancete. Verificar contingências." },
-    { tipo: "Risco Fiscal", nivel: "medio", detail: `Tributos a recuperar de R$ ${fmt(12845667)} — verificar recuperabilidade.` },
+  // Try to extract loan data from parsed balanco
+  const findAbsValue = (keyword: string) => {
+    if (!parsedData) return 0;
+    const row = parsedData.balanco.find(r => 
+      r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword)
+    );
+    return Math.abs(row?.values[latestYear || ""] || 0);
+  };
+
+  const emprestimos = findAbsValue("empréstimos") || findAbsValue("financiamentos");
+  const fornecedores = d?._fornecedores || 0;
+  const dividaLiquida = emprestimos - caixa;
+
+  const riscos = aiAnalysis?.riscosEndividamento || [
+    { tipo: "Risco Bancário", nivel: "medio", detail: `Empréstimos: R$ ${fmt(emprestimos)}` },
+    { tipo: "Risco Trabalhista", nivel: "medio", detail: "Verificar contingências trabalhistas." },
+    { tipo: "Risco Fiscal", nivel: "medio", detail: "Verificar recuperabilidade de tributos." },
   ];
 
   return (
@@ -630,18 +705,19 @@ const TabEndividamento = () => {
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2"><Landmark className="w-4 h-4 text-accent" /> Estrutura da Dívida</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2"><Landmark className="w-4 h-4 text-accent" /> Estrutura da Dívida {latestYear && `(${latestYear})`}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {[
-              { label: "Dívida Onerosa Total", value: dividaOnerosa },
-              { label: "├─ Curto Prazo", value: empCP, sub: true },
-              { label: "└─ Longo Prazo", value: empLP, sub: true },
-              { label: "Caixa e Equivalentes", value: d.caixaEquivalentes },
+              { label: "Empréstimos e Financiamentos", value: emprestimos },
+              { label: "Fornecedores", value: fornecedores },
+              { label: "Passivo Circulante", value: pc },
+              { label: "Passivo Não Circulante", value: pnc },
+              { label: "Caixa e Equivalentes", value: caixa },
               { label: "Dívida Líquida", value: dividaLiquida, highlight: true },
             ].map(item => (
               <div key={item.label} className={`flex justify-between p-3 rounded-lg ${item.highlight ? "bg-accent/5 border border-accent/20" : "bg-muted/30"}`}>
-                <span className={`text-sm ${(item as any).sub ? "text-muted-foreground pl-4" : "text-foreground font-medium"}`}>{item.label}</span>
+                <span className="text-sm text-foreground font-medium">{item.label}</span>
                 <span className={`text-sm font-mono font-bold ${item.value < 0 ? "text-red-500" : "text-foreground"}`}>{fmt(item.value)}</span>
               </div>
             ))}
@@ -657,22 +733,22 @@ const TabEndividamento = () => {
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-muted-foreground">Curto Prazo</span>
-                  <span className="font-mono">{fmtPct(d.passivoCirculante / ptotal)}</span>
+                  <span className="font-mono">{fmtPct(pc / ptotal)}</span>
                 </div>
-                <Progress value={(d.passivoCirculante / ptotal) * 100} className="h-2" />
+                <Progress value={(pc / ptotal) * 100} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-muted-foreground">Longo Prazo</span>
-                  <span className="font-mono">{fmtPct(d.passivoNaoCirculante / ptotal)}</span>
+                  <span className="font-mono">{fmtPct(pnc / ptotal)}</span>
                 </div>
-                <Progress value={(d.passivoNaoCirculante / ptotal) * 100} className="h-2" />
+                <Progress value={(pnc / ptotal) * 100} className="h-2" />
               </div>
             </div>
 
             <div className="border-t border-border/50 pt-3 space-y-2">
               <p className="text-xs font-semibold text-foreground">Classificação de Risco</p>
-              {riscos.map(r => (
+              {riscos.map((r: any) => (
                 <div key={r.tipo} className="flex items-start gap-2 p-2 rounded bg-muted/20">
                   <Badge className={`${severityColors[r.nivel]?.bg} text-[10px] shrink-0`}>{r.nivel.toUpperCase()}</Badge>
                   <div>
@@ -690,15 +766,18 @@ const TabEndividamento = () => {
 };
 
 /* ── Tab 4: Análise Patrimonial ── */
-const TabPatrimonial = () => {
+const TabPatrimonial = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null }) => {
   const { state } = useAudit();
-  const years = ["2021", "2022", "2023"];
+  
+  // Use parsed data if available, otherwise fall back to mock
+  const hasParsed = parsedData && parsedData.balanco.length > 0;
+  const rows = hasParsed ? parsedData.balanco : state.balancoRows;
+  const years = hasParsed ? parsedData.years : ["2021", "2022", "2023"];
+  const lastYear = years[years.length - 1];
+  const prevYear = years.length >= 2 ? years[years.length - 2] : null;
 
-  const alertas = [
-    { conta: "1.02.03 — Imobilizado", alerta: "Ativos superavaliados?", detail: `Crescimento de 51% sem teste de impairment. Valor: R$ ${fmt(342266918)}`, gravidade: "alto" },
-    { conta: "1.01.04 — Estoques", alerta: "Estoques inflados?", detail: `Crescimento de 45% acima do CMV. Valor: R$ ${fmt(28446924)}`, gravidade: "medio" },
-    { conta: "1.02.04 — Intangível", alerta: "Sem depreciação evidenciada?", detail: `Salto de R$ 8M para R$ 82M em 2022 (891%). Possível aquisição sem amortização.`, gravidade: "medio" },
-    { conta: "1.01.03 — Contas a Receber", alerta: "Concentração?", detail: `Crescimento de 56%. Verificar aging e PECLD. Valor: R$ ${fmt(21974701)}`, gravidade: "baixo" },
+  const alertas = aiAnalysis?.alertasPatrimoniais || [
+    { conta: "Sem dados da IA", alerta: "Carregue um documento para análise real", detail: "", gravidade: "baixo" },
   ];
 
   return (
@@ -714,25 +793,28 @@ const TabPatrimonial = () => {
                 <TableHead className="text-[10px]">Conta</TableHead>
                 <TableHead className="text-[10px]">Descrição</TableHead>
                 {years.map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
-                <TableHead className="text-right text-[10px]">AH 23/22</TableHead>
+                {prevYear && <TableHead className="text-right text-[10px]">AH {lastYear}/{prevYear}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {state.balancoRows.map(row => {
-                const v22 = row.values["2022"] || 0;
-                const v23 = row.values["2023"] || 0;
-                const ah = v22 !== 0 ? ((v23 - v22) / Math.abs(v22)) : 0;
-                const isAlert = Math.abs(ah) > 0.25 && row.conta !== "1" && row.conta !== "2";
+              {rows.map((row: any, idx: number) => {
+                const vPrev = prevYear ? (row.values[prevYear] || 0) : 0;
+                const vLast = row.values[lastYear] || 0;
+                const ah = vPrev !== 0 ? ((vLast - vPrev) / Math.abs(vPrev)) : 0;
+                const isAlert = Math.abs(ah) > 0.25;
+                const isTotal = row.conta.toLowerCase().includes("total") || row.descricao.toLowerCase().includes("total");
                 return (
-                  <TableRow key={row.conta} className={row.hasRisk ? "bg-orange-500/5" : ""}>
+                  <TableRow key={`${row.conta}-${idx}`} className={(row as any).hasRisk ? "bg-orange-500/5" : ""}>
                     <TableCell className="text-[10px] font-mono text-muted-foreground">{row.conta}</TableCell>
-                    <TableCell className={`text-xs ${row.conta.split(".").length <= 2 ? "font-semibold" : ""}`}>{row.descricao}</TableCell>
+                    <TableCell className={`text-xs ${isTotal ? "font-semibold" : ""}`}>{row.descricao}</TableCell>
                     {years.map(y => (
                       <TableCell key={y} className="text-right text-xs font-mono">{fmt(row.values[y] || 0)}</TableCell>
                     ))}
-                    <TableCell className={`text-right text-xs font-mono ${isAlert ? "text-orange-500 font-bold" : ""}`}>
-                      {ah > 0 ? "+" : ""}{fmtPct(ah)}
-                    </TableCell>
+                    {prevYear && (
+                      <TableCell className={`text-right text-xs font-mono ${isAlert ? "text-orange-500 font-bold" : ""}`}>
+                        {ah > 0 ? "+" : ""}{fmtPct(ah)}
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
@@ -746,9 +828,9 @@ const TabPatrimonial = () => {
           <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-500" /> Alertas Patrimoniais</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {alertas.map(a => (
-            <div key={a.conta} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
-              <Badge className={`${severityColors[a.gravidade]?.bg} text-[10px] shrink-0 mt-0.5`}>{a.gravidade.toUpperCase()}</Badge>
+          {alertas.map((a: any, i: number) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
+              <Badge className={`${severityColors[a.gravidade]?.bg} text-[10px] shrink-0 mt-0.5`}>{(a.gravidade || "").toUpperCase()}</Badge>
               <div>
                 <p className="text-xs font-semibold text-foreground">{a.conta} — {a.alerta}</p>
                 <p className="text-[10px] text-muted-foreground">{a.detail}</p>
@@ -762,10 +844,11 @@ const TabPatrimonial = () => {
 };
 
 /* ── Tab 5: Risco de Recuperação Judicial ── */
-const TabRiscoRJ = () => {
-  const scoreColor = scoreRJData.score <= 30 ? "text-emerald-500" :
-                     scoreRJData.score <= 60 ? "text-yellow-500" :
-                     scoreRJData.score <= 80 ? "text-orange-500" : "text-red-500";
+const TabRiscoRJ = ({ aiAnalysis }: { aiAnalysis?: any }) => {
+  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
+  const scoreColor = activeScore.score <= 30 ? "text-emerald-500" :
+                     activeScore.score <= 60 ? "text-yellow-500" :
+                     activeScore.score <= 80 ? "text-orange-500" : "text-red-500";
 
   return (
     <div className="space-y-4">
@@ -777,12 +860,12 @@ const TabRiscoRJ = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center py-6">
-              <p className={`text-6xl font-bold ${scoreColor}`}>{scoreRJData.score}</p>
-              <p className={`text-lg font-semibold mt-2 ${scoreColor}`}>{scoreRJData.classificacao}</p>
+              <p className={`text-6xl font-bold ${scoreColor}`}>{activeScore.score}</p>
+              <p className={`text-lg font-semibold mt-2 ${scoreColor}`}>{activeScore.classificacao}</p>
               <p className="text-xs text-muted-foreground mt-1">de 100 pontos</p>
             </div>
             <div className="space-y-2">
-              {scoreRJData.componentes.map(c => (
+              {(activeScore.componentes || []).map((c: any) => (
                 <div key={c.nome} className="space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-foreground font-medium">{c.nome} <span className="text-muted-foreground">({(c.peso * 100)}%)</span></span>
@@ -819,10 +902,10 @@ const TabRiscoRJ = () => {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { range: "0 – 30", label: "Saudável", color: "bg-emerald-500/10 text-emerald-600", active: scoreRJData.score <= 30 },
-                { range: "31 – 60", label: "Atenção", color: "bg-yellow-500/10 text-yellow-600", active: scoreRJData.score > 30 && scoreRJData.score <= 60 },
-                { range: "61 – 80", label: "Alto Risco", color: "bg-orange-500/10 text-orange-600", active: scoreRJData.score > 60 && scoreRJData.score <= 80 },
-                { range: "81 – 100", label: "Forte Indicativo de RJ", color: "bg-red-500/10 text-red-600", active: scoreRJData.score > 80 },
+                { range: "0 – 30", label: "Saudável", color: "bg-emerald-500/10 text-emerald-600", active: activeScore.score <= 30 },
+                { range: "31 – 60", label: "Atenção", color: "bg-yellow-500/10 text-yellow-600", active: activeScore.score > 30 && activeScore.score <= 60 },
+                { range: "61 – 80", label: "Alto Risco", color: "bg-orange-500/10 text-orange-600", active: activeScore.score > 60 && activeScore.score <= 80 },
+                { range: "81 – 100", label: "Forte Indicativo de RJ", color: "bg-red-500/10 text-red-600", active: activeScore.score > 80 },
               ].map(item => (
                 <div key={item.range} className={`flex items-center justify-between p-3 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-accent" : ""}`}>
                   <div className="flex items-center gap-3">
@@ -1111,39 +1194,63 @@ const TabRelatorioPreview = ({ onGerar }: { onGerar: () => void }) => (
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
+const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const today = new Date().toLocaleDateString("pt-BR");
-  const d = state.config.entityData["2023"];
-  const ind = state.financialAnalysis.indicators;
+  
+  const computedInd = computeIndicatorsFromParsed(parsedData || null);
+  const hasComputed = Object.keys(computedInd).length > 0;
+  const years = hasComputed ? Object.keys(computedInd).sort() : ["2021", "2022", "2023"];
+  const latestYear = years[years.length - 1];
+  const ind = hasComputed ? computedInd : state.financialAnalysis.indicators;
+  const d = hasComputed ? computedInd[latestYear] : state.config.entityData["2023"];
 
-  const scoreColor = scoreRJData.score <= 30 ? "text-emerald-600" :
-                     scoreRJData.score <= 60 ? "text-yellow-600" :
-                     scoreRJData.score <= 80 ? "text-orange-600" : "text-red-600";
-  const scoreBg = scoreRJData.score <= 30 ? "bg-emerald-500/10 border-emerald-500/30" :
-                  scoreRJData.score <= 60 ? "bg-yellow-500/10 border-yellow-500/30" :
-                  scoreRJData.score <= 80 ? "bg-orange-500/10 border-orange-500/30" : "bg-red-500/10 border-red-500/30";
-  const scoreLabel = scoreRJData.score <= 30 ? "Saudável" :
-                     scoreRJData.score <= 60 ? "Atenção" :
-                     scoreRJData.score <= 80 ? "Alto Risco" : "Risco Estrutural";
+  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
+  const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
+  const activePend = aiAnalysis?.pendencias || pendencias;
 
-  const riskIcon = scoreRJData.score <= 30 ? "🟢" :
-                   scoreRJData.score <= 60 ? "🟡" :
-                   scoreRJData.score <= 80 ? "🔴" : "⚫";
+  const scoreColor = activeScore.score <= 30 ? "text-emerald-600" :
+                     activeScore.score <= 60 ? "text-yellow-600" :
+                     activeScore.score <= 80 ? "text-orange-600" : "text-red-600";
+  const scoreBg = activeScore.score <= 30 ? "bg-emerald-500/10 border-emerald-500/30" :
+                  activeScore.score <= 60 ? "bg-yellow-500/10 border-yellow-500/30" :
+                  activeScore.score <= 80 ? "bg-orange-500/10 border-orange-500/30" : "bg-red-500/10 border-red-500/30";
+  const scoreLabel = activeScore.score <= 30 ? "Saudável" :
+                     activeScore.score <= 60 ? "Atenção" :
+                     activeScore.score <= 80 ? "Alto Risco" : "Risco Estrutural";
 
-  const empCP = 18966329;
-  const empLP = 136588365;
-  const dividaOnerosa = empCP + empLP;
-  const ptotal = d ? d.passivoCirculante + d.passivoNaoCirculante : 0;
+  const riskIcon = activeScore.score <= 30 ? "🟢" :
+                   activeScore.score <= 60 ? "🟡" :
+                   activeScore.score <= 80 ? "🔴" : "⚫";
 
-  const solvencyIndicators = d && ind["2023"] ? [
-    { name: "Liquidez Corrente", result: fmtPct(ind["2023"].liquidezCorrente), param: "> 1,5", classification: ind["2023"].liquidezCorrente > 1.5 ? "Adequada" : ind["2023"].liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(d.ativoCirculante)} / PC R$ ${fmt(d.passivoCirculante)}` },
-    { name: "Liquidez Seca", result: fmtPct(ind["2023"].liquidezSeca), param: "> 1,0", classification: ind["2023"].liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
-    { name: "Liquidez Geral", result: fmtPct(ind["2023"].liquidezGeral), param: "> 1,0", classification: ind["2023"].liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
-    { name: "Cobertura de Juros", result: `${ind["2023"].coberturaJuros.toFixed(1)}x`, param: "> 3,0x", classification: ind["2023"].coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
-    { name: "Capital de Giro Líquido", result: `R$ ${fmt(d.ativoCirculante - d.passivoCirculante)}`, param: "> 0", classification: d.ativoCirculante - d.passivoCirculante > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
-    { name: "Solvência Total", result: fmtPct((d.ativoCirculante + d.ativoNaoCirculante) / ptotal), param: "> 1,0", classification: (d.ativoCirculante + d.ativoNaoCirculante) / ptotal > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
+  // Compute from real data
+  const findAbsValue = (keyword: string) => {
+    if (!parsedData) return 0;
+    const row = parsedData.balanco.find(r => 
+      r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword)
+    );
+    return Math.abs(row?.values[latestYear || ""] || 0);
+  };
+
+  const emprestimos = findAbsValue("empréstimos") || findAbsValue("financiamentos");
+  const pc = d?._pc || d?.passivoCirculante || 0;
+  const pnc = d?._pnc || d?.passivoNaoCirculante || 0;
+  const ac = d?._ac || d?.ativoCirculante || 0;
+  const anc = d?._anc || d?.ativoNaoCirculante || 0;
+  const caixa = d?._caixa || d?.caixaEquivalentes || 0;
+  const dividaOnerosa = emprestimos;
+  const ptotal = pc + pnc || 1;
+  const fornec = d?._fornecedores || d?.fornecedores || 0;
+
+  const latestInd = ind[latestYear];
+  const solvencyIndicators = latestInd ? [
+    { name: "Liquidez Corrente", result: fmtPct(latestInd.liquidezCorrente), param: "> 1,5", classification: latestInd.liquidezCorrente > 1.5 ? "Adequada" : latestInd.liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
+    { name: "Liquidez Seca", result: fmtPct(latestInd.liquidezSeca), param: "> 1,0", classification: latestInd.liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
+    { name: "Liquidez Geral", result: fmtPct(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
+    { name: "Cobertura de Juros", result: `${latestInd.coberturaJuros.toFixed(1)}x`, param: "> 3,0x", classification: latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
+    { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: ac - pc > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
+    { name: "Solvência Total", result: fmtPct((ac + anc) / ptotal), param: "> 1,0", classification: (ac + anc) / ptotal > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
 
   const SectionTitle = ({ num, title }: { num: string; title: string }) => (
@@ -1184,7 +1291,7 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
           </div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10">
             <span className={`text-lg`}>{riskIcon}</span>
-            <span className="text-sm font-semibold">{scoreLabel} — Score BEX: {scoreRJData.score}/100</span>
+            <span className="text-sm font-semibold">{scoreLabel} — Score BEX: {activeScore.score}/100</span>
           </div>
           <div className="space-y-1 text-sm text-white/80">
             <p className="font-semibold text-white">Empresa Analisada: Empresa Demonstração S.A.</p>
@@ -1216,7 +1323,7 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">1.2 Principais Pontos Identificados</h3>
             <div className="space-y-2">
-              {diagnosticoData.pontosChave.map(p => (
+              {(activeDiag.pontosChave || []).map((p: any) => (
                 <div key={p.item} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/30">
                   <div className="flex items-center gap-3">
                     <div className={`w-2.5 h-2.5 rounded-full ${
@@ -1234,7 +1341,7 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Auditor IA</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-              <p className="text-sm text-foreground leading-relaxed">{diagnosticoData.resumo}</p>
+              <p className="text-sm text-foreground leading-relaxed">{activeDiag.resumo}</p>
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {["CPC 26", "CPC 47", "IFRS 15", "NBC TA 570", "Lei 11.101/2005"].map(n => (
                   <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
@@ -1290,10 +1397,10 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
             <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
             <div className="space-y-3">
               {[
-                { title: "Capacidade de Pagamento", text: "A empresa apresenta liquidez corrente de " + (ind["2023"] ? fmtPct(ind["2023"].liquidezCorrente) : "N/A") + ", indicando capacidade de honrar obrigações de curto prazo, porém com tendência de redução no período analisado." },
-                { title: "Avaliação de Risco de Insolvência", text: "O Score BEX-RJ de " + scoreRJData.score + " pontos classifica a empresa na faixa de \"" + scoreLabel + "\". A análise multifatorial considera endividamento, liquidez, patrimônio líquido, geração de caixa e concentração de dívida." },
-                { title: "Continuidade Operacional (Going Concern)", text: "Com PL positivo de R$ " + fmt(d?.patrimonioLiquido || 0) + " e capital de giro líquido positivo, a premissa de continuidade é sustentável no curto prazo, porém requer monitoramento do endividamento oneroso crescente." },
-                { title: "Probabilidade Estrutural de RJ", text: scoreRJData.score <= 30 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : scoreRJData.score <= 60 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
+                { title: "Capacidade de Pagamento", text: "A empresa apresenta liquidez corrente de " + (latestInd ? fmtPct(latestInd.liquidezCorrente) : "N/A") + ", indicando capacidade de honrar obrigações de curto prazo." },
+                { title: "Avaliação de Risco de Insolvência", text: "O Score BEX-RJ de " + activeScore.score + " pontos classifica a empresa na faixa de \"" + scoreLabel + "\". A análise multifatorial considera endividamento, liquidez, patrimônio líquido, geração de caixa e concentração de dívida." },
+                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(Math.abs(d?._pl || d?.patrimonioLiquido || 0)) + " e capital de giro líquido " + (ac - pc > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
+                { title: "Probabilidade Estrutural de RJ", text: activeScore.score <= 30 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : activeScore.score <= 60 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
                 <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30">
                   <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
@@ -1326,7 +1433,7 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendencias.map((p, i) => (
+                  {activePend.map((p: any, i: number) => (
                     <TableRow key={p.id}>
                       <TableCell className="text-[10px] font-mono">{i + 1}</TableCell>
                       <TableCell className="text-[10px]">{p.tipo}</TableCell>
@@ -1345,7 +1452,7 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
             <div className="space-y-3">
-              {pendencias.map((p, i) => (
+              {activePend.map((p: any, i: number) => (
                 <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2">
                   <div className="flex items-center gap-2">
                     <Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge>
@@ -1379,19 +1486,19 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
 
           {[
             { title: "4.1 Indicadores de Liquidez", items: [
-              { name: "Liquidez Corrente", formula: "AC / PC", value: ind["2023"]?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
-              { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: ind["2023"]?.liquidezSeca, interp: "Liquidez excluindo estoques" },
-              { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: ind["2023"]?.liquidezGeral, interp: "Capacidade de pagamento total" },
+              { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
+              { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
+              { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
             ]},
             { title: "4.2 Indicadores de Endividamento", items: [
-              { name: "Endividamento Total", formula: "PT / AT", value: ind["2023"]?.endividamentoGeral, interp: "Grau de comprometimento do ativo com terceiros" },
-              { name: "Composição do Endividamento", formula: "PC / PT", value: ind["2023"]?.composicaoEndividamento, interp: "Concentração da dívida no curto prazo" },
-              { name: "Imobilização do PL", formula: "Imob / PL", value: ind["2023"]?.imobilizacaoPL, interp: "Grau de imobilização do capital próprio" },
+              { name: "Endividamento Total", formula: "PT / AT", value: latestInd?.endividamentoGeral, interp: "Grau de comprometimento do ativo com terceiros" },
+              { name: "Composição do Endividamento", formula: "PC / PT", value: latestInd?.composicaoEndividamento, interp: "Concentração da dívida no curto prazo" },
+              { name: "Imobilização do PL", formula: "Imob / PL", value: latestInd?.imobilizacaoPL, interp: "Grau de imobilização do capital próprio" },
             ]},
             { title: "4.3 Indicadores de Rentabilidade", items: [
-              { name: "Margem Operacional", formula: "LAJIR / Receita", value: ind["2023"]?.margemOperacional, interp: "Eficiência operacional da empresa" },
-              { name: "ROA", formula: "LL / AT", value: ind["2023"]?.roa, interp: "Retorno gerado pelo ativo total" },
-              { name: "ROE", formula: "LL / PL", value: ind["2023"]?.roe, interp: "Retorno ao acionista sobre capital investido" },
+              { name: "Margem Operacional", formula: "LAJIR / Receita", value: latestInd?.margemOperacional, interp: "Eficiência operacional da empresa" },
+              { name: "ROA", formula: "LL / AT", value: latestInd?.roa, interp: "Retorno gerado pelo ativo total" },
+              { name: "ROE", formula: "LL / PL", value: latestInd?.roe, interp: "Retorno ao acionista sobre capital investido" },
             ]},
           ].map(sec => (
             <div key={sec.title}>
@@ -1423,9 +1530,9 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
 
           {d && (
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA Estimado (2023)</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA Estimado ({latestYear})</h3>
               <div className="p-4 rounded-lg bg-muted/30 text-center">
-                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(d.resultadoOperacional + d.despesasFinanceiras)}</p>
+                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt((d._resOp || d.resultadoOperacional || 0) + (d._despFin || d.despesasFinanceiras || 0))}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Despesas Financeiras</p>
               </div>
             </div>
@@ -1442,12 +1549,11 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
             <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { label: "Empréstimos CP", value: empCP },
-                { label: "Empréstimos LP", value: empLP },
+                { label: "Empréstimos e Financiamentos", value: emprestimos },
                 { label: "Dívida Bancária Total", value: dividaOnerosa },
-                { label: "Fornecedores", value: d?.fornecedores || 0 },
-                { label: "Passivo Circulante", value: d?.passivoCirculante || 0 },
-                { label: "Passivo Não Circulante", value: d?.passivoNaoCirculante || 0 },
+                { label: "Fornecedores", value: fornec },
+                { label: "Passivo Circulante", value: pc },
+                { label: "Passivo Não Circulante", value: pnc },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
@@ -1462,8 +1568,8 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
             <div className="space-y-2">
               {[
                 { label: "% Dívida Onerosa / Passivo Total", value: ptotal ? fmtPct(dividaOnerosa / ptotal) : "N/A", risk: dividaOnerosa / ptotal > 0.5 },
-                { label: "Dependência Bancária", value: d ? fmtPct(dividaOnerosa / (d.ativoCirculante + d.ativoNaoCirculante)) : "N/A", risk: false },
-                { label: "Pressão no Fluxo de Caixa (Emp CP / Caixa)", value: d ? `${(empCP / d.caixaEquivalentes).toFixed(1)}x` : "N/A", risk: d ? empCP / d.caixaEquivalentes > 1 : false },
+                { label: "Dependência Bancária", value: fmtPct(dividaOnerosa / (ac + anc || 1)), risk: false },
+                { label: "Pressão no Fluxo de Caixa (Emp / Caixa)", value: caixa ? `${(emprestimos / caixa).toFixed(1)}x` : "N/A", risk: caixa ? emprestimos / caixa > 1 : false },
               ].map(item => (
                 <div key={item.label} className={`flex justify-between p-3 rounded-lg ${item.risk ? "bg-orange-500/5 border border-orange-500/20" : "bg-muted/20"}`}>
                   <span className="text-xs text-foreground">{item.label}</span>
@@ -1477,7 +1583,7 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
             <h3 className="text-sm font-semibold text-foreground mb-2">5.3 Análise Estratégica</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
               <p className="text-xs text-foreground leading-relaxed">
-                A estrutura de endividamento revela concentração em empréstimos de longo prazo (R$ {fmt(empLP)}), representando {ptotal ? fmtPct(empLP / ptotal) : "N/A"} do passivo total. 
+                A estrutura de endividamento revela passivo não circulante de R$ {fmt(pnc)}, representando {fmtPct(pnc / ptotal)} do passivo total. 
                 A dívida onerosa total de R$ {fmt(dividaOnerosa)} exige monitoramento contínuo da capacidade de refinanciamento e dos covenants ativos.
               </p>
               <div className="flex flex-wrap gap-1.5 pt-2">
@@ -1501,26 +1607,31 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
                 <TableRow>
                   <TableHead className="text-[10px]">Conta</TableHead>
                   <TableHead className="text-[10px]">Descrição</TableHead>
-                  {["2021", "2022", "2023"].map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
-                  <TableHead className="text-right text-[10px]">AH 23/22</TableHead>
+                  {years.map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
+                  {years.length >= 2 && <TableHead className="text-right text-[10px]">AH</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {state.balancoRows.map(row => {
-                  const v22 = row.values["2022"] || 0;
-                  const v23 = row.values["2023"] || 0;
-                  const ah = v22 !== 0 ? ((v23 - v22) / Math.abs(v22)) : 0;
-                  const isAlert = Math.abs(ah) > 0.25 && row.conta !== "1" && row.conta !== "2";
+                {(parsedData?.balanco || state.balancoRows).map((row: any, idx: number) => {
+                  const prevY = years.length >= 2 ? years[years.length - 2] : null;
+                  const lastY = years[years.length - 1];
+                  const vPrev = prevY ? (row.values[prevY] || 0) : 0;
+                  const vLast = row.values[lastY] || 0;
+                  const ah = vPrev !== 0 ? ((vLast - vPrev) / Math.abs(vPrev)) : 0;
+                  const isAlert = Math.abs(ah) > 0.25;
+                  const isTotal = (row.conta || "").toLowerCase().includes("total") || (row.descricao || "").toLowerCase().includes("total");
                   return (
-                    <TableRow key={row.conta} className={row.hasRisk ? "bg-orange-500/5" : ""}>
+                    <TableRow key={`${row.conta}-${idx}`} className={row.hasRisk ? "bg-orange-500/5" : ""}>
                       <TableCell className="text-[10px] font-mono text-muted-foreground">{row.conta}</TableCell>
-                      <TableCell className={`text-xs ${row.conta.split(".").length <= 2 ? "font-semibold" : ""}`}>{row.descricao}</TableCell>
-                      {["2021", "2022", "2023"].map(y => (
+                      <TableCell className={`text-xs ${isTotal ? "font-semibold" : ""}`}>{row.descricao}</TableCell>
+                      {years.map(y => (
                         <TableCell key={y} className="text-right text-xs font-mono">{fmt(row.values[y] || 0)}</TableCell>
                       ))}
-                      <TableCell className={`text-right text-xs font-mono ${isAlert ? "text-orange-600 font-bold" : "text-muted-foreground"}`}>
-                        {fmtPct(ah)}
-                      </TableCell>
+                      {years.length >= 2 && (
+                        <TableCell className={`text-right text-xs font-mono ${isAlert ? "text-orange-600 font-bold" : "text-muted-foreground"}`}>
+                          {fmtPct(ah)}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -1532,10 +1643,10 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações</h3>
             <div className="space-y-2">
               {[
-                { check: "Ativo = Passivo + PL", status: true, detail: `R$ ${fmt(state.balancoRows.find(r => r.conta === "1")?.values["2023"] || 0)} = R$ ${fmt(state.balancoRows.find(r => r.conta === "2")?.values["2023"] || 0)}` },
-                { check: "Passivo a Descoberto", status: (d?.patrimonioLiquido || 0) > 0, detail: d && d.patrimonioLiquido > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
-                { check: "PL Negativo", status: (d?.patrimonioLiquido || 0) > 0, detail: d && d.patrimonioLiquido > 0 ? `PL positivo: R$ ${fmt(d.patrimonioLiquido)}` : "PL NEGATIVO identificado" },
-                { check: "Descasamento Estrutural", status: (d?.ativoCirculante || 0) > (d?.passivoCirculante || 0), detail: "Capital de giro líquido " + ((d?.ativoCirculante || 0) > (d?.passivoCirculante || 0) ? "positivo" : "negativo") },
+                { check: "Ativo = Passivo + PL", status: true, detail: `Ativo Total: R$ ${fmt(ac + anc)} | Passivo + PL: R$ ${fmt(pc + pnc)}` },
+                { check: "Passivo a Descoberto", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
+                { check: "PL Negativo", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl || d?.patrimonioLiquido || 0))}` : "PL NEGATIVO identificado" },
+                { check: "Descasamento Estrutural", status: ac > pc, detail: "Capital de giro líquido " + (ac > pc ? "positivo" : "negativo") },
               ].map(v => (
                 <div key={v.check} className={`flex items-center justify-between p-3 rounded-lg ${v.status ? "bg-emerald-500/5 border border-emerald-500/20" : "bg-red-500/5 border border-red-500/20"}`}>
                   <div className="flex items-center gap-2">
@@ -1556,13 +1667,13 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
           <SectionTitle num="★" title="CLASSIFICAÇÃO FINAL — SCORE BEX DE SOLVÊNCIA" />
           
           <div className="text-center py-6">
-            <p className={`text-6xl font-bold ${scoreColor}`}>{scoreRJData.score}</p>
+            <p className={`text-6xl font-bold ${scoreColor}`}>{activeScore.score}</p>
             <p className={`text-xl font-semibold mt-2 ${scoreColor}`}>{scoreLabel}</p>
             <p className="text-xs text-muted-foreground mt-1">Score BEX de Solvência — de 100 pontos</p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">
-            {scoreRJData.componentes.map(c => (
+            {(activeScore.componentes || []).map((c: any) => (
               <div key={c.nome} className="p-3 rounded-lg bg-muted/20 space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="font-medium text-foreground">{c.nome} ({(c.peso * 100)}%)</span>
@@ -1585,10 +1696,10 @@ const TabRelatorioFinal = ({ onBack }: { onBack: () => void }) => {
 
           <div className="space-y-2">
             {[
-              { range: "0 – 30", label: "Saudável", color: "bg-emerald-500/10 text-emerald-600", active: scoreRJData.score <= 30 },
-              { range: "31 – 60", label: "Atenção", color: "bg-yellow-500/10 text-yellow-600", active: scoreRJData.score > 30 && scoreRJData.score <= 60 },
-              { range: "61 – 80", label: "Alto Risco", color: "bg-orange-500/10 text-orange-600", active: scoreRJData.score > 60 && scoreRJData.score <= 80 },
-              { range: "81 – 100", label: "Risco Estrutural", color: "bg-red-500/10 text-red-600", active: scoreRJData.score > 80 },
+              { range: "0 – 30", label: "Saudável", color: "bg-emerald-500/10 text-emerald-600", active: activeScore.score <= 30 },
+              { range: "31 – 60", label: "Atenção", color: "bg-yellow-500/10 text-yellow-600", active: activeScore.score > 30 && activeScore.score <= 60 },
+              { range: "61 – 80", label: "Alto Risco", color: "bg-orange-500/10 text-orange-600", active: activeScore.score > 60 && activeScore.score <= 80 },
+              { range: "81 – 100", label: "Risco Estrutural", color: "bg-red-500/10 text-red-600", active: activeScore.score > 80 },
             ].map(item => (
               <div key={item.range} className={`flex items-center justify-between p-3 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-accent" : ""}`}>
                 <div className="flex items-center gap-3">
@@ -1699,13 +1810,13 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
 
         <TabsContent value="diagnostico"><TabDiagnostico data={activeDiagnostico} /></TabsContent>
         <TabsContent value="analise-tecnica"><TabAnaliseTecnica pendenciasData={activePendencias} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="indicadores"><TabIndicadores /></TabsContent>
-        <TabsContent value="endividamento"><TabEndividamento /></TabsContent>
-        <TabsContent value="patrimonial"><TabPatrimonial /></TabsContent>
-        <TabsContent value="risco-rj"><TabRiscoRJ /></TabsContent>
+        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} /></TabsContent>
+        <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="relatorio-final">
           {reportGenerated ? (
-            <TabRelatorioFinal onBack={onBack} />
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} />
           ) : (
             <TabRelatorioPreview onGerar={handleGerarRelatorio} />
           )}
