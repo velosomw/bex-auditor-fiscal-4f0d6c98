@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Activity, PieChart, ArrowRight, Info, Bot, Brain, FileText, DollarSign, Gauge, SlidersHorizontal } from "lucide-react";
 import { defaultEntityData, defaultFinancialAnalysis } from "@/data/auditMockData";
 import PlatformLayout from "@/components/PlatformLayout";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const fmt = (v: number, dec = 2) => v.toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const fmtPct = (v: number) => fmt(v * 100) + "%";
@@ -457,6 +458,418 @@ const TabAgenteRelatorio = () => {
   );
 };
 
+// ─── Risk Engine Consolidado ─────────────────────────────────
+const TabRiskEngine = () => {
+  const [persona, setPersona] = useState<PersonaVector>(presetPersonas[0].vec);
+  const [weights, setWeights] = useState({ wA: 0.40, wF: 0.35, wR: 0.25 });
+  const [lambda, setLambda] = useState(0.15);
+
+  // Mock base scores (would come from real agent outputs)
+  const mockIRC = 0.72;
+  const mockInconsistencias = 0.45;
+  const mockMaterialidade = 0.38;
+  const mockVARAdj = 0.65;
+  const mockSFStress = 0.58;
+  const mockAlavancagem = 0.71;
+  const mockAlertLevel = 0.62;
+  const mockComplexidadeRisco = 0.55;
+  const mockFreqDesvios = 0.48;
+
+  // 2.1 Score Auditor (SA)
+  const SA = (mockIRC + mockInconsistencias + mockMaterialidade) / 3;
+  // 2.2 Score Financeiro (SF)
+  const SF = (mockVARAdj + mockSFStress + mockAlavancagem) / 3;
+  // 2.3 Score Narrativo (SR)
+  const SR = (mockAlertLevel + mockComplexidadeRisco + mockFreqDesvios) / 3;
+
+  // Normalização Min-Max (scores already 0-1 in mock)
+  const scores = [SA, SF, SR];
+  const sMin = Math.min(...scores);
+  const sMax = Math.max(...scores);
+  const normalize = (x: number) => sMax === sMin ? 0.5 : (x - sMin) / (sMax - sMin);
+  const SA_norm = normalize(SA);
+  const SF_norm = normalize(SF);
+  const SR_norm = normalize(SR);
+
+  // Correlação mock (calculada a partir de dados simulados)
+  const rhoAF = 0.78;
+  const rhoAR = 0.52;
+  const rhoFR = 0.61;
+  const corrFactor = (rhoAF + rhoAR + rhoFR) / 3;
+
+  // Persona scores por agente
+  const scorePersonaA = (persona.Rn + persona.Cr + persona.Sr + persona.Da + persona.Ap) / 5;
+  const scorePersonaF = (persona.Rn + persona.Cr + persona.Sr + persona.Da + persona.Ap) / 5;
+  const scorePersonaR = (persona.Rn + persona.Cr + persona.Sr + persona.Da + persona.Ap) / 5;
+
+  // Pesos ajustados por persona (seção 6)
+  const wA_adj = weights.wA * (1 + scorePersonaA);
+  const wF_adj = weights.wF * (1 + scorePersonaF);
+  const wR_adj = weights.wR * (1 + scorePersonaR);
+
+  // ECRS (seção 5)
+  const ECRS = wA_adj * SA_norm + wF_adj * SF_norm + wR_adj * SR_norm + lambda * corrFactor;
+
+  // Normalizar ECRS para [0,1]
+  const ECRSNorm = Math.min(ECRS / (wA_adj + wF_adj + wR_adj + lambda), 1);
+
+  // Risco Sistêmico (seção 7)
+  const systemicRisk = ECRSNorm * corrFactor;
+  const systemicAlert = corrFactor > 0.7 && ECRSNorm > 0.75;
+
+  // Classificação (seção 8)
+  const getClassification = (score: number): { label: string; level: RiskLevel } => {
+    if (score <= 0.30) return { label: "Baixo Risco", level: "Saudável" };
+    if (score <= 0.60) return { label: "Risco Moderado", level: "Moderado" };
+    if (score <= 0.80) return { label: "Alto Risco", level: "Alto" };
+    return { label: "Risco Crítico", level: "Crítico" };
+  };
+
+  const classification = getClassification(ECRSNorm);
+
+  // Histórico mock
+  const historicalData = [
+    { month: "Set", ecrs: 0.42, sa: 0.45, sf: 0.38, sr: 0.35 },
+    { month: "Out", ecrs: 0.48, sa: 0.50, sf: 0.42, sr: 0.40 },
+    { month: "Nov", ecrs: 0.52, sa: 0.48, sf: 0.55, sr: 0.45 },
+    { month: "Dez", ecrs: 0.58, sa: 0.52, sf: 0.60, sr: 0.50 },
+    { month: "Jan", ecrs: 0.55, sa: 0.50, sf: 0.58, sr: 0.48 },
+    { month: "Fev", ecrs: ECRSNorm, sa: SA, sf: SF, sr: SR },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle icon={Activity} title="Risk Engine Consolidado Multiagente (ECRS)" subtitle="Motor matemático central — Score estratégico auditável" />
+
+      {/* Architecture Flow */}
+      <Card>
+        <CardContent className="p-5">
+          <h4 className="text-sm font-semibold text-foreground mb-3">Fluxo Arquitetural</h4>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {["Inputs", "Agentes Individuais", "Normalização", "Correlação", "Motor Consolidado", "Classificação", "Alertas", "Relatório"].map((step, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className={`px-3 py-1.5 rounded-lg font-medium ${i === 4 ? "bg-[hsl(258,90%,66%)] text-white" : "bg-muted text-foreground"}`}>{step}</span>
+                {i < 7 && <ArrowRight className="w-3 h-3 text-muted-foreground" />}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Scores Base dos 3 Agentes */}
+      <div className="grid md:grid-cols-3 gap-4">
+        {[
+          { name: "Score Auditor (SA)", score: SA, norm: SA_norm, formula: "SA = (IRC + Inconsistências + Materialidade) / 3", items: [{ k: "IRC", v: mockIRC }, { k: "Inconsistências", v: mockInconsistencias }, { k: "Materialidade", v: mockMaterialidade }], color: "hsl(258,90%,66%)" },
+          { name: "Score Financeiro (SF)", score: SF, norm: SF_norm, formula: "SF = (VAR_adj + SF_stress + Alavancagem) / 3", items: [{ k: "VAR Ajustado", v: mockVARAdj }, { k: "Stress Financeiro", v: mockSFStress }, { k: "Alavancagem", v: mockAlavancagem }], color: "hsl(38,90%,55%)" },
+          { name: "Score Narrativo (SR)", score: SR, norm: SR_norm, formula: "SR = (AlertLevel + Complexidade + Desvios) / 3", items: [{ k: "Alert Level", v: mockAlertLevel }, { k: "Complexidade", v: mockComplexidadeRisco }, { k: "Freq. Desvios", v: mockFreqDesvios }], color: "hsl(152,70%,45%)" },
+        ].map((agent, i) => (
+          <Card key={i} style={{ borderTopColor: agent.color, borderTopWidth: 3 }}>
+            <CardContent className="p-5 space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">{agent.name}</h4>
+              <FormulaBlock formula={agent.formula} />
+              <div className="space-y-1.5">
+                {agent.items.map((item, j) => (
+                  <div key={j} className="flex justify-between text-sm p-1.5 rounded bg-muted/50">
+                    <span className="text-muted-foreground">{item.k}</span>
+                    <span className="font-mono font-bold" style={{ color: agent.color }}>{fmt(item.v, 3)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 border-t border-border space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Score Base</span>
+                  <span className="font-bold font-mono">{fmt(agent.score, 4)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Score Normalizado</span>
+                  <span className="font-bold font-mono" style={{ color: agent.color }}>{fmt(agent.norm, 4)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Normalização */}
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <h4 className="text-sm font-semibold text-foreground">Normalização Min-Max</h4>
+          <FormulaBlock formula="Score_norm = (X − X_min) / (X_max − X_min)" description="Todos os scores normalizados para [0, 1] antes da consolidação" />
+          <div className="grid grid-cols-3 gap-3">
+            {[{ label: "SA", raw: SA, norm: SA_norm }, { label: "SF", raw: SF, norm: SF_norm }, { label: "SR", raw: SR, norm: SR_norm }].map((s, i) => (
+              <div key={i} className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-xs text-muted-foreground">{s.label}: {fmt(s.raw, 3)}</p>
+                <ArrowRight className="w-3 h-3 text-muted-foreground mx-auto my-1" />
+                <p className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(s.norm, 4)}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Matriz de Correlação + Motor Consolidado */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Correlation Matrix */}
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Matriz de Correlação entre Riscos</h4>
+            <div className="overflow-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="p-2 text-left text-muted-foreground"></th>
+                    <th className="p-2 text-center font-semibold">Auditor (A)</th>
+                    <th className="p-2 text-center font-semibold">Financeiro (F)</th>
+                    <th className="p-2 text-center font-semibold">Relatório (R)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { label: "Auditor (A)", vals: [1, rhoAF, rhoAR] },
+                    { label: "Financeiro (F)", vals: [rhoAF, 1, rhoFR] },
+                    { label: "Relatório (R)", vals: [rhoAR, rhoFR, 1] },
+                  ].map((row, i) => (
+                    <tr key={i} className="border-b border-border last:border-0">
+                      <td className="p-2 font-semibold text-foreground">{row.label}</td>
+                      {row.vals.map((v, j) => (
+                        <td key={j} className="p-2 text-center">
+                          <span className={`font-mono font-bold px-2 py-1 rounded ${v === 1 ? "bg-muted text-foreground" : v > 0.7 ? "bg-red-500/10 text-red-600" : v > 0.5 ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}>
+                            {fmt(v, 2)}
+                          </span>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-between text-sm p-3 rounded-lg bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20">
+              <span className="font-semibold text-foreground">CorrFactor (ρ̄)</span>
+              <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(corrFactor, 4)}</span>
+            </div>
+            {rhoAF > 0.7 && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center gap-2 text-xs">
+                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                <span className="text-red-600 font-medium">ρ_AF = {fmt(rhoAF, 2)} {">"} 0.7 → Alta correlação Auditor-Financeiro → Risco sistêmico potencial</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ECRS Consolidado */}
+        <Card className="bg-gradient-to-br from-[hsl(258,90%,66%)]/5 to-transparent border-[hsl(258,90%,66%)]/20">
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">EBEX Consolidated Risk Score (ECRS)</h4>
+            <FormulaBlock formula="ECRS = w_A·SA + w_F·SF + w_R·SR + λ·CorrFactor" description="w_i^adj = w_i × (1 + ScorePersona_i)" />
+
+            {/* Pesos configuráveis */}
+            <div className="space-y-3">
+              {[
+                { label: "Peso Auditor (w_A)", key: "wA" as const, base: weights.wA, adj: wA_adj },
+                { label: "Peso Financeiro (w_F)", key: "wF" as const, base: weights.wF, adj: wF_adj },
+                { label: "Peso Relatório (w_R)", key: "wR" as const, base: weights.wR, adj: wR_adj },
+              ].map((w) => (
+                <div key={w.key} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{w.label}</span>
+                    <span className="font-mono">
+                      {fmt(w.base, 2)} <ArrowRight className="w-2.5 h-2.5 inline text-muted-foreground mx-1" /> <span className="font-bold text-[hsl(258,90%,66%)]">{fmt(w.adj, 3)}</span>
+                    </span>
+                  </div>
+                  <Slider
+                    value={[w.base * 100]}
+                    onValueChange={([v]) => setWeights(prev => ({ ...prev, [w.key]: v / 100 }))}
+                    max={100} step={1}
+                    className="[&_[role=slider]]:border-[hsl(258,90%,66%)] [&_[role=slider]]:bg-card [&_span[data-orientation]]:bg-[hsl(258,90%,66%)]"
+                  />
+                </div>
+              ))}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Lambda (λ) — Amplificação Sistêmica</span>
+                  <span className="font-mono font-bold text-[hsl(38,90%,55%)]">{fmt(lambda, 2)}</span>
+                </div>
+                <Slider
+                  value={[lambda * 100]}
+                  onValueChange={([v]) => setLambda(v / 100)}
+                  max={50} step={1}
+                  className="[&_[role=slider]]:border-[hsl(38,90%,55%)] [&_[role=slider]]:bg-card [&_span[data-orientation]]:bg-[hsl(38,90%,55%)]"
+                />
+              </div>
+            </div>
+
+            {/* Score Final */}
+            <div className="text-center p-4 rounded-xl border border-[hsl(258,90%,66%)]/30 bg-background/80">
+              <p className="text-xs text-muted-foreground mb-1">ECRS Consolidado</p>
+              <div className="text-5xl font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(ECRSNorm, 4)}</div>
+              <div className="mt-2">{getRiskBadge(classification.level)}</div>
+              <p className="text-sm font-semibold text-foreground mt-1">{classification.label}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Risco Sistêmico + Classificação */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Detecção de Risco Sistêmico</h4>
+            <FormulaBlock formula="SystemicRisk = ECRS × ρ̄" description="Gatilho: ρ̄ > 0.7 AND ECRS > 0.75 → Alerta Crítico" />
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between p-2 rounded-lg bg-muted/50">
+                <span className="text-muted-foreground">ECRS</span>
+                <span className="font-mono font-bold">{fmt(ECRSNorm, 4)}</span>
+              </div>
+              <div className="flex justify-between p-2 rounded-lg bg-muted/50">
+                <span className="text-muted-foreground">ρ̄ (Correlação Média)</span>
+                <span className="font-mono font-bold">{fmt(corrFactor, 4)}</span>
+              </div>
+              <div className="flex justify-between p-3 rounded-lg bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20">
+                <span className="font-semibold text-foreground">Systemic Risk</span>
+                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(systemicRisk, 4)}</span>
+              </div>
+            </div>
+            {systemicAlert ? (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-red-600">⚠ ALERTA CRÍTICO — Risco Sistêmico Detectado</p>
+                  <p className="text-xs text-red-500 mt-0.5">Correlação e ECRS acima dos limites — revisão urgente recomendada</p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span className="text-xs text-emerald-600 font-medium">Sem alerta sistêmico ativo. Indicadores dentro dos limites aceitáveis.</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Tabela de Classificação Final</h4>
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Faixa</TableHead>
+                    <TableHead>Classificação</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { range: "0 – 0.30", label: "Baixo Risco", level: "Saudável" as RiskLevel },
+                    { range: "0.31 – 0.60", label: "Risco Moderado", level: "Moderado" as RiskLevel },
+                    { range: "0.61 – 0.80", label: "Alto Risco", level: "Alto" as RiskLevel },
+                    { range: "0.81 – 1.00", label: "Risco Crítico", level: "Crítico" as RiskLevel },
+                  ].map((row) => {
+                    const isActive = classification.label === row.label;
+                    return (
+                      <TableRow key={row.range} className={isActive ? "bg-[hsl(258,90%,66%)]/5" : ""}>
+                        <TableCell className="font-mono text-sm">{row.range}</TableCell>
+                        <TableCell className="font-medium">{row.label}</TableCell>
+                        <TableCell className="text-center">
+                          {isActive ? <Badge className="bg-[hsl(258,90%,66%)] text-white">← Atual</Badge> : getRiskBadge(row.level)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Ajuste por Persona */}
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <h4 className="text-sm font-semibold text-foreground">Ajuste por Persona (VPC)</h4>
+          <FormulaBlock formula="w_i^adj = w_i × (1 + ScorePersona_i)\nScorePersona = (Rₙ + Cᵣ + Sᵣ + Dₐ + Aₚ) / 5" description="O vetor persona amplifica os pesos proporcionalmente ao perfil do agente" />
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              { name: "Auditor", scoreP: scorePersonaA, wBase: weights.wA, wAdj: wA_adj },
+              { name: "Financeiro", scoreP: scorePersonaF, wBase: weights.wF, wAdj: wF_adj },
+              { name: "Relatório", scoreP: scorePersonaR, wBase: weights.wR, wAdj: wR_adj },
+            ].map((a, i) => (
+              <div key={i} className="p-4 rounded-xl bg-muted/50 space-y-2">
+                <p className="text-sm font-semibold text-foreground">{a.name}</p>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">ScorePersona</span>
+                  <span className="font-mono font-bold">{fmt(a.scoreP, 3)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Peso Base</span>
+                  <span className="font-mono">{fmt(a.wBase, 2)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Peso Ajustado</span>
+                  <span className="font-mono font-bold text-[hsl(258,90%,66%)]">{fmt(a.wAdj, 3)}</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full rounded-full bg-[hsl(258,90%,66%)]" style={{ width: `${Math.min(a.wAdj * 100, 100)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Histórico Temporal */}
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <h4 className="text-sm font-semibold text-foreground">Histórico Temporal ECRS</h4>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={historicalData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,20%,88%)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
+              <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
+              <Tooltip />
+              <Line type="monotone" dataKey="ecrs" stroke="hsl(258,90%,66%)" strokeWidth={2.5} dot={{ fill: "hsl(258,90%,66%)", r: 4 }} name="ECRS" />
+              <Line type="monotone" dataKey="sa" stroke="hsl(200,90%,50%)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="SA" />
+              <Line type="monotone" dataKey="sf" stroke="hsl(38,90%,55%)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="SF" />
+              <Line type="monotone" dataKey="sr" stroke="hsl(152,70%,45%)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="SR" />
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="flex justify-center gap-6">
+            {[
+              { label: "ECRS", color: "hsl(258,90%,66%)" },
+              { label: "SA (Auditor)", color: "hsl(200,90%,50%)" },
+              { label: "SF (Financeiro)", color: "hsl(38,90%,55%)" },
+              { label: "SR (Relatório)", color: "hsl(152,70%,45%)" },
+            ].map((l, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-3 h-1 rounded-full" style={{ background: l.color }} />
+                {l.label}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Governança */}
+      <Card className="bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent border-[hsl(258,90%,66%)]/20">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-[hsl(258,90%,66%)] shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-foreground mb-1">Governança & Auditoria do Risk Engine</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Cada cálculo registra: <strong>versão do modelo</strong>, <strong>versão do persona</strong>, <strong>pesos utilizados</strong>,
+                <strong> timestamp</strong> e <strong>fonte dos dados</strong>. O Risk Governance Index (RGI = IRC × Score_Agente)
+                permite comparação entre agentes, benchmark interno e controle de calibragem contínuo.
+                Rastreabilidade completa via logs estruturados em BigQuery Analytics.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 // ─── Main Page ───────────────────────────────────────────────
 const ModeloMatematico = () => {
   const [selectedYear, setSelectedYear] = useState("2023");
@@ -642,6 +1055,7 @@ const ModeloMatematico = () => {
             <TabsTrigger value="insolvencia" className="text-xs">Insolvência</TabsTrigger>
             <TabsTrigger value="solvencia" className="text-xs">Solvência</TabsTrigger>
             <TabsTrigger value="matriz" className="text-xs">Matriz de Risco</TabsTrigger>
+            <TabsTrigger value="risk-engine" className="text-xs gap-1"><Activity className="w-3 h-3" /> Risk Engine</TabsTrigger>
           </TabsList>
 
           {/* PERSONA */}
@@ -649,6 +1063,7 @@ const ModeloMatematico = () => {
           <TabsContent value="agente-auditor"><TabAgenteAuditor /></TabsContent>
           <TabsContent value="agente-financeiro"><TabAgenteFinanceiro /></TabsContent>
           <TabsContent value="agente-relatorio"><TabAgenteRelatorio /></TabsContent>
+          <TabsContent value="risk-engine"><TabRiskEngine /></TabsContent>
 
           {/* LIQUIDEZ */}
           <TabsContent value="liquidez" className="space-y-4">

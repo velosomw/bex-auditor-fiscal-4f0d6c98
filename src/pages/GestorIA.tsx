@@ -10,7 +10,7 @@ import {
   Activity, Zap, Database, Globe, Webhook, CreditCard, Scale,
   MessageSquare, Thermometer, Cpu, Eye, Send, SlidersHorizontal
 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 
 // ─── Mock Data ───────────────────────────────────────────────
 const kpiCards = [
@@ -495,6 +495,172 @@ const TabLogs = () => (
   </div>
 );
 
+// ─── Tab: Risk Engine Consolidado ─────────────────────────────
+const TabRiskEngineDash = () => {
+  // Mock consolidated scores
+  const SA = 0.517;
+  const SF = 0.647;
+  const SR = 0.550;
+  const ECRS = 0.624;
+  const systemicRisk = 0.398;
+  const corrFactor = 0.637;
+
+  const radarData = [
+    { subject: "Risco Contábil", A: SA * 100, fullMark: 100 },
+    { subject: "Risco Financeiro", A: SF * 100, fullMark: 100 },
+    { subject: "Risco Narrativo", A: SR * 100, fullMark: 100 },
+    { subject: "Correlação", A: corrFactor * 100, fullMark: 100 },
+    { subject: "Sistêmico", A: systemicRisk * 100, fullMark: 100 },
+    { subject: "ECRS", A: ECRS * 100, fullMark: 100 },
+  ];
+
+  const historicalECRS = [
+    { month: "Set", ecrs: 0.42, threshold: 0.75 },
+    { month: "Out", ecrs: 0.48, threshold: 0.75 },
+    { month: "Nov", ecrs: 0.52, threshold: 0.75 },
+    { month: "Dez", ecrs: 0.58, threshold: 0.75 },
+    { month: "Jan", ecrs: 0.55, threshold: 0.75 },
+    { month: "Fev", ecrs: ECRS, threshold: 0.75 },
+  ];
+
+  const getClassColor = (score: number) => {
+    if (score <= 0.30) return "hsl(152,70%,45%)";
+    if (score <= 0.60) return "hsl(38,90%,55%)";
+    if (score <= 0.80) return "hsl(258,90%,66%)";
+    return "hsl(0,70%,55%)";
+  };
+
+  const getClassLabel = (score: number) => {
+    if (score <= 0.30) return "Baixo Risco";
+    if (score <= 0.60) return "Risco Moderado";
+    if (score <= 0.80) return "Alto Risco";
+    return "Risco Crítico";
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* KPI Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "ECRS Consolidado", value: ECRS.toFixed(3), color: getClassColor(ECRS), sub: getClassLabel(ECRS), icon: Activity },
+          { label: "Score Auditor (SA)", value: SA.toFixed(3), color: "hsl(258,90%,66%)", sub: "Contábil", icon: Bot },
+          { label: "Score Financeiro (SF)", value: SF.toFixed(3), color: "hsl(38,90%,55%)", sub: "Financeiro", icon: DollarSign },
+          { label: "Risco Sistêmico", value: systemicRisk.toFixed(3), color: systemicRisk > 0.5 ? "hsl(0,70%,55%)" : "hsl(152,70%,45%)", sub: systemicRisk > 0.5 ? "Alerta" : "Controlado", icon: AlertTriangle },
+        ].map((kpi, i) => (
+          <div key={i} className="bg-card rounded-xl border border-border p-5 relative overflow-hidden">
+            <div className="absolute top-3 right-3 opacity-10">
+              <kpi.icon className="w-12 h-12" style={{ color: kpi.color }} />
+            </div>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ background: `${kpi.color}15` }}>
+              <kpi.icon className="w-4.5 h-4.5" style={{ color: kpi.color }} />
+            </div>
+            <div className="text-2xl font-bold font-mono" style={{ color: kpi.color }}>{kpi.value}</div>
+            <div className="text-sm font-semibold text-foreground mt-1">{kpi.label}</div>
+            <div className="text-xs text-muted-foreground">{kpi.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Radar + Trend */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-card rounded-xl border border-border p-5">
+          <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
+            <Activity className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Radar dos 3 Agentes
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <RadarChart data={radarData}>
+              <PolarGrid stroke="hsl(214,20%,88%)" />
+              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} stroke="hsl(215,12%,50%)" />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} stroke="hsl(215,12%,50%)" />
+              <Radar name="Risk" dataKey="A" stroke="hsl(258,90%,66%)" fill="hsl(258,90%,66%)" fillOpacity={0.2} strokeWidth={2} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-card rounded-xl border border-border p-5">
+          <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
+            <TrendingUp className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Histórico ECRS
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={historicalECRS}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,20%,88%)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
+              <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
+              <Tooltip />
+              <Line type="monotone" dataKey="ecrs" stroke="hsl(258,90%,66%)" strokeWidth={2.5} dot={{ fill: "hsl(258,90%,66%)", r: 4 }} name="ECRS" />
+              <Line type="monotone" dataKey="threshold" stroke="hsl(0,70%,55%)" strokeWidth={1} strokeDasharray="6 3" dot={false} name="Limiar Crítico" />
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="flex justify-center gap-6 mt-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="w-3 h-1 rounded-full bg-[hsl(258,90%,66%)]" /> ECRS
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="w-3 h-1 rounded-full bg-[hsl(0,70%,55%)]" /> Limiar Crítico (0.75)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Correlation Matrix */}
+      <div className="bg-card rounded-xl border border-border p-5">
+        <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
+          <BarChart3 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Matriz de Correlação Dinâmica
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="overflow-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="p-2.5 text-left text-muted-foreground"></th>
+                  <th className="p-2.5 text-center font-semibold text-foreground">Auditor</th>
+                  <th className="p-2.5 text-center font-semibold text-foreground">Financeiro</th>
+                  <th className="p-2.5 text-center font-semibold text-foreground">Relatório</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: "Auditor", vals: [1, 0.78, 0.52] },
+                  { label: "Financeiro", vals: [0.78, 1, 0.61] },
+                  { label: "Relatório", vals: [0.52, 0.61, 1] },
+                ].map((row, i) => (
+                  <tr key={i} className="border-b border-border last:border-0">
+                    <td className="p-2.5 font-semibold text-foreground">{row.label}</td>
+                    {row.vals.map((v, j) => (
+                      <td key={j} className="p-2.5 text-center">
+                        <span className={`font-mono font-bold text-sm px-2 py-1 rounded ${v === 1 ? "bg-muted text-foreground" : v > 0.7 ? "bg-red-500/10 text-red-600" : v > 0.5 ? "bg-amber-500/10 text-amber-600" : "bg-emerald-500/10 text-emerald-600"}`}>
+                          {v.toFixed(2)}
+                        </span>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="space-y-3">
+            <div className="p-3 rounded-lg bg-muted/50 flex justify-between text-sm">
+              <span className="text-muted-foreground">CorrFactor (ρ̄)</span>
+              <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{corrFactor.toFixed(4)}</span>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 flex justify-between text-sm">
+              <span className="text-muted-foreground">ρ_AF (Auditor-Financeiro)</span>
+              <span className="font-bold font-mono text-red-600">0.78 ⚠</span>
+            </div>
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-xs">
+              <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+              <span className="text-red-600 font-medium">Alta correlação Auditor-Financeiro: risco sistêmico potencial</span>
+            </div>
+            <a href="/modelo-matematico" className="text-xs font-medium text-[hsl(258,90%,66%)] hover:underline flex items-center gap-1 mt-2">
+              <Brain className="w-3.5 h-3.5" /> Abrir Risk Engine Detalhado →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Page ───────────────────────────────────────────────
 const GestorIA = () => {
   return (
@@ -557,6 +723,9 @@ const GestorIA = () => {
             <TabsTrigger value="logs" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <ScrollText className="w-3.5 h-3.5" /> Logs & Auditoria
             </TabsTrigger>
+            <TabsTrigger value="risk-engine" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <Activity className="w-3.5 h-3.5" /> Risk Engine
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
@@ -565,6 +734,7 @@ const GestorIA = () => {
           <TabsContent value="agentes"><TabAgentes /></TabsContent>
           <TabsContent value="governanca"><TabGovernanca /></TabsContent>
           <TabsContent value="logs"><TabLogs /></TabsContent>
+          <TabsContent value="risk-engine"><TabRiskEngineDash /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
