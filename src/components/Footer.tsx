@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { MapPin, Phone, Mail, Shield, User } from "lucide-react";
+import { MapPin, Phone, Mail, Shield, User, Building2 } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -68,6 +68,13 @@ const Footer = () => {
               >
                 <Shield className="w-4 h-4" />
                 Auditor Chefe
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-primary-foreground/5 border border-primary-foreground/10 text-primary-foreground/70 text-sm font-semibold hover:bg-primary-foreground/10 transition-colors"
+              >
+                <Building2 className="w-4 h-4" />
+                Empresa
               </Link>
               <Link
                 to="/login"
