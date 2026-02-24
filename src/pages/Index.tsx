@@ -3,6 +3,9 @@ import { motion } from "framer-motion";
 import { ArrowRight, Shield, TrendingUp, BarChart3, Users } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import aboutBg from "@/assets/about-bg.jpg";
+import imgDiagnostico from "@/assets/solution-diagnostico.jpg";
+import imgSolvencia from "@/assets/solution-solvencia.jpg";
+import imgConsultoria from "@/assets/solution-consultoria.jpg";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -199,34 +202,50 @@ const Index = () => {
       {/* Solutions CTA */}
       <section className="section-padding bg-background">
         <div className="max-w-7xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-12 text-center"
-          >
-            Pacotes de Soluções
-          </motion.h2>
+          <div className="flex items-center justify-between mb-12">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-3xl md:text-4xl font-serif font-bold text-foreground"
+            >
+              Pacotes de Soluções
+            </motion.h2>
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              <Link
+                to="/solucoes"
+                className="hidden md:inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-accent text-accent text-sm font-semibold hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                Veja mais
+              </Link>
+            </motion.div>
+          </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                tag: "Básico",
+                tag: "Pacote Básico",
                 title: "Diagnóstico Rápido",
                 desc: "Ideal para empresas que começam a sentir o peso das dívidas. Relatório Técnico-Financeiro com prioridades e oportunidades imediatas.",
                 href: "/solucoes/diagnostico-rapido",
+                image: imgDiagnostico,
               },
               {
-                tag: "Intermediário",
+                tag: "Pacote Intermediário",
                 title: "Solvência + Reestruturação",
                 desc: "Para empresas em crise moderada. Parecer de Solvência (Z-Score, Kanitz, Matias) e Plano Financeiro com projeções e cenários.",
                 href: "/solucoes/solvencia-reestruturacao",
-                featured: true,
+                image: imgSolvencia,
               },
               {
-                tag: "Avançado",
+                tag: "Pacote Avançado",
                 title: "Consultoria Completa",
                 desc: "Para empresas em crise aguda ou ambiente judicial. Laudo de Viabilidade, suporte integral em RJ/RE e dashboards mensais.",
                 href: "/solucoes/consultoria-completa",
+                image: imgConsultoria,
               },
             ].map((pkg, i) => (
               <motion.div
@@ -235,32 +254,32 @@ const Index = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15 }}
-                className={`card-hover rounded-lg p-8 border transition-colors ${
-                  pkg.featured
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-foreground border-border"
-                }`}
               >
-                <span
-                  className={`inline-block text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full mb-4 ${
-                    pkg.featured
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {pkg.tag}
-                </span>
-                <h3 className="font-serif font-bold text-xl mb-3">{pkg.title}</h3>
-                <p className={`text-sm leading-relaxed mb-6 ${pkg.featured ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                  {pkg.desc}
-                </p>
                 <Link
                   to={pkg.href}
-                  className={`inline-flex items-center gap-2 text-sm font-semibold ${
-                    pkg.featured ? "text-accent" : "text-accent"
-                  } hover:underline`}
+                  className="group block bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                 >
-                  Saiba mais <ArrowRight className="w-4 h-4" />
+                  <div className="aspect-[4/3] overflow-hidden rounded-t-2xl">
+                    <img
+                      src={pkg.image}
+                      alt={pkg.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-6 pb-8">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {pkg.tag}
+                    </span>
+                    <h3 className="font-serif font-bold text-xl text-foreground mt-2 mb-3 group-hover:text-accent transition-colors duration-300">
+                      {pkg.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                      {pkg.desc}
+                    </p>
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-accent">
+                      Saiba mais <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                    </span>
+                  </div>
                 </Link>
               </motion.div>
             ))}
