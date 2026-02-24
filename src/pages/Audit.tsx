@@ -948,12 +948,13 @@ const TabAnaliseTecnica = ({ onGerarRelatorio }: { onGerarRelatorio?: () => void
 
       {/* Botão Gerar Relatório */}
       {onGerarRelatorio && (
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-6 pb-2 border-t border-border/30 mt-6">
           <Button
             onClick={onGerarRelatorio}
-            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20"
+            size="lg"
+            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-14 px-12 text-base font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/30"
           >
-            <FileText className="w-5 h-5" /> Gerar Relatório
+            <FileText className="w-5 h-5" /> Gerar Relatório BEX
           </Button>
         </div>
       )}
