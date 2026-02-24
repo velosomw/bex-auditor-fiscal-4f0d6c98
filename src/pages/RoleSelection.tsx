@@ -12,7 +12,7 @@ const RoleSelection = () => {
     return null;
   }
 
-  const selectRole = (role: "auditor_chefe" | "usuario") => {
+  const selectRole = (role: "auditor_chefe" | "usuario" | "empresa") => {
     setRole(role);
     navigate(role === "auditor_chefe" ? "/dashboard" : "/user");
   };
@@ -25,7 +25,7 @@ const RoleSelection = () => {
           <p className="text-[hsl(230,15%,55%)]">Escolha como deseja acessar a plataforma</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             {
               role: "auditor_chefe" as const,
@@ -33,6 +33,13 @@ const RoleSelection = () => {
               title: "Auditor Chefe",
               desc: "Dashboard consolidado de todas as auditorias. Visão gerencial com KPIs, tendências e alertas.",
               color: "hsl(258,90%,66%)",
+            },
+            {
+              role: "empresa" as const,
+              icon: User,
+              title: "Empresa",
+              desc: "Dashboard simplificado com suas auditorias contábeis. Acompanhe conformidade e documentos.",
+              color: "hsl(38,92%,50%)",
             },
             {
               role: "usuario" as const,
