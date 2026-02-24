@@ -8,7 +8,7 @@ import {
   Plus, Download, Settings, CheckCircle2, XCircle, Pause,
   FileText, Upload, Search, Trash2, Edit, Brain, BarChart3,
   Activity, Zap, Database, Globe, Webhook, CreditCard, Scale,
-  MessageSquare, Thermometer, Cpu, Eye, Send
+  MessageSquare, Thermometer, Cpu, Eye, Send, SlidersHorizontal
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 
@@ -267,51 +267,154 @@ const TabBaseConhecimento = () => (
 );
 
 // ─── Tab: Gestão de Agentes ──────────────────────────────────
-const TabAgentes = () => (
-  <div className="space-y-6">
-    <p className="text-sm text-muted-foreground">Configure modelos, temperatura, tokens e parâmetros dos agentes de IA.</p>
-    <div className="grid gap-4">
-      {agents.map((agent, i) => (
-        <div key={i} className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
-                <Bot className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+const personaVarLabels = [
+  { key: "Rn", label: "Rigor Normativo (Rₙ)" },
+  { key: "Cr", label: "Conservadorismo (Cᵣ)" },
+  { key: "Sr", label: "Sensibilidade Risco (Sᵣ)" },
+  { key: "Da", label: "Profundidade Analítica (Dₐ)" },
+  { key: "Fl", label: "Formalidade (Fₗ)" },
+  { key: "Ap", label: "Agressividade (Aₚ)" },
+];
+
+const defaultPersonas: Record<string, number[]> = {
+  "Agente Auditor Contábil": [0.9, 0.8, 0.9, 0.9, 0.8, 0.9],
+  "Agente Financeiro": [0.7, 0.7, 0.8, 0.8, 0.6, 0.6],
+  "Agente de Relatório": [0.6, 0.5, 0.5, 0.6, 0.9, 0.5],
+};
+
+const TabAgentes = () => {
+  const [expandedAgent, setExpandedAgent] = useState<number | null>(null);
+  const [personas, setPersonas] = useState<Record<string, number[]>>(defaultPersonas);
+
+  const updatePersonaVar = (agentName: string, idx: number, val: number) => {
+    setPersonas(prev => ({
+      ...prev,
+      [agentName]: prev[agentName].map((v, i) => i === idx ? val : v),
+    }));
+  };
+
+  const getScore = (vals: number[]) => vals.reduce((a, b) => a + b, 0) / vals.length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Configure modelos, persona e parâmetros dos agentes de IA.</p>
+        <a href="/modelo-matematico" className="text-xs font-medium text-[hsl(258,90%,66%)] hover:underline flex items-center gap-1">
+          <Brain className="w-3.5 h-3.5" /> Ver Modelo Matemático Completo →
+        </a>
+      </div>
+      <div className="grid gap-4">
+        {agents.map((agent, i) => {
+          const isExpanded = expandedAgent === i;
+          const pVals = personas[agent.name] || [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+          const score = getScore(pVals);
+
+          return (
+            <div key={i} className="bg-card rounded-xl border border-border overflow-hidden">
+              {/* Agent Header */}
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground">{agent.name}</h4>
+                      <p className="text-xs text-muted-foreground">{agent.type}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right mr-2">
+                      <p className="text-xs text-muted-foreground">Score VPC</p>
+                      <p className="text-lg font-bold font-mono text-[hsl(258,90%,66%)]">{score.toFixed(2)}</p>
+                    </div>
+                    <StatusBadge status={agent.status} />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => setExpandedAgent(isExpanded ? null : i)}
+                    >
+                      <SlidersHorizontal className="w-3 h-3" /> {isExpanded ? "Fechar" : "Persona"}
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Cpu className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Modelo:</span>
+                    <span className="font-semibold text-foreground">{agent.model}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Thermometer className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Temp:</span>
+                    <span className="font-semibold text-foreground">{agent.temp}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Tokens:</span>
+                    <span className="font-semibold text-foreground">{agent.tokens}</span>
+                  </div>
+                </div>
+                {/* Mini bar preview */}
+                {!isExpanded && (
+                  <div className="flex gap-1 mt-3">
+                    {pVals.map((v, j) => (
+                      <div key={j} className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden" title={personaVarLabels[j].label}>
+                        <div className="h-full rounded-full bg-[hsl(258,90%,66%)]" style={{ width: `${v * 100}%` }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
-                <h4 className="font-semibold text-foreground">{agent.name}</h4>
-                <p className="text-xs text-muted-foreground">{agent.type}</p>
-              </div>
+
+              {/* Expanded Persona Sliders */}
+              {isExpanded && (
+                <div className="border-t border-border bg-muted/20 p-5 space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+                    <h5 className="text-sm font-semibold text-foreground">Vetor de Persona Configurável (VPC)</h5>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
+                    {personaVarLabels.map((pv, j) => (
+                      <div key={pv.key} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-foreground">{pv.label}</span>
+                          <span className="text-xs font-bold font-mono text-[hsl(258,90%,66%)]">{pVals[j].toFixed(2)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={pVals[j] * 100}
+                          onChange={(e) => updatePersonaVar(agent.name, j, Number(e.target.value) / 100)}
+                          className="w-full h-1.5 rounded-full appearance-none bg-muted cursor-pointer accent-[hsl(258,90%,66%)]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <div className="flex items-center gap-4">
+                      <div className="text-xs text-muted-foreground">
+                        Score Global: <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{score.toFixed(3)}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Fórmula: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">Score = Σ(Vars) / 6</code>
+                      </div>
+                    </div>
+                    <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5 text-xs">
+                      <CheckCircle2 className="w-3 h-3" /> Salvar Persona
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-3">
-              <StatusBadge status={agent.status} />
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                <Settings className="w-3 h-3" /> Configurar
-              </Button>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex items-center gap-2 text-sm">
-              <Cpu className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Modelo:</span>
-              <span className="font-semibold text-foreground">{agent.model}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Thermometer className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Temp:</span>
-              <span className="font-semibold text-foreground">{agent.temp}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MessageSquare className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Tokens:</span>
-              <span className="font-semibold text-foreground">{agent.tokens}</span>
-            </div>
-          </div>
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Tab: Governança ─────────────────────────────────────────
 const TabGovernanca = () => (

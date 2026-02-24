@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Activity, PieChart, ArrowRight, Info } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Activity, PieChart, ArrowRight, Info, Bot, Brain, FileText, DollarSign, Gauge, SlidersHorizontal } from "lucide-react";
 import { defaultEntityData, defaultFinancialAnalysis } from "@/data/auditMockData";
 import PlatformLayout from "@/components/PlatformLayout";
 
@@ -55,6 +56,408 @@ const SectionTitle = ({ icon: Icon, title, subtitle }: { icon: any; title: strin
   </div>
 );
 
+// ─── VPC Types ───────────────────────────────────────────────
+interface PersonaVector {
+  Rn: number; Cr: number; Sr: number; Da: number; Fl: number; Ap: number;
+}
+
+const personaLabels: Record<keyof PersonaVector, { label: string; desc: string }> = {
+  Rn: { label: "Rigor Normativo (Rₙ)", desc: "Nível de aderência estrita às normas IFRS/CPC/NBC TA" },
+  Cr: { label: "Conservadorismo de Risco (Cᵣ)", desc: "Tendência a classificar situações como risco mais elevado" },
+  Sr: { label: "Sensibilidade a Risco (Sᵣ)", desc: "Capacidade de detectar sinais fracos de risco" },
+  Da: { label: "Profundidade Analítica (Dₐ)", desc: "Extensão e detalhamento da análise técnica" },
+  Fl: { label: "Formalidade Linguística (Fₗ)", desc: "Grau de tecnicidade no vocabulário e estilo do relatório" },
+  Ap: { label: "Agressividade na Identificação (Aₚ)", desc: "Tendência a apontar desvios e inconsistências" },
+};
+
+const presetPersonas: { name: string; vec: PersonaVector }[] = [
+  { name: "Conservador Técnico", vec: { Rn: 0.9, Cr: 0.8, Sr: 0.9, Da: 0.9, Fl: 0.8, Ap: 0.9 } },
+  { name: "Executivo Estratégico", vec: { Rn: 0.6, Cr: 0.7, Sr: 0.7, Da: 0.6, Fl: 0.7, Ap: 0.6 } },
+  { name: "Analítico Moderado", vec: { Rn: 0.7, Cr: 0.6, Sr: 0.6, Da: 0.8, Fl: 0.6, Ap: 0.5 } },
+];
+
+const calcScore = (v: PersonaVector) => (v.Rn + v.Cr + v.Sr + v.Da + v.Fl + v.Ap) / 6;
+
+// ─── VPC Persona Tab ─────────────────────────────────────────
+const TabPersona = () => {
+  const [persona, setPersona] = useState<PersonaVector>(presetPersonas[0].vec);
+  const [alpha, setAlpha] = useState(0.7);
+  const [activePreset, setActivePreset] = useState(0);
+
+  const score = calcScore(persona);
+
+  const applyPreset = (idx: number) => {
+    setActivePreset(idx);
+    setPersona(presetPersonas[idx].vec);
+  };
+
+  const updateVar = (key: keyof PersonaVector, val: number) => {
+    setActivePreset(-1);
+    setPersona(prev => ({ ...prev, [key]: val }));
+  };
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle icon={SlidersHorizontal} title="Vetor de Persona Configurável (VPC)" subtitle="Modelo matemático de configuração comportamental dos agentes" />
+
+      {/* Concept */}
+      <Card>
+        <CardContent className="p-5 space-y-4">
+          <FormulaBlock formula="P = (Rₙ, Cᵣ, Sᵣ, Dₐ, Fₗ, Aₚ)    onde cada variável ∈ [0, 1]" description="Vetor matemático que define o comportamento técnico, rigor e perfil decisório de cada agente" />
+          <FormulaBlock formula="O = B + α·P" description="O = Output final | B = Resultado base do LLM | P = Vetor persona | α = Peso de influência do Gestor" />
+          <FormulaBlock formula="Score_Agente = (Rₙ + Cᵣ + Sᵣ + Dₐ + Fₗ + Aₚ) / 6" description="Determina: nível de detalhamento, número de alertas, extensão do relatório, grau de criticidade" />
+        </CardContent>
+      </Card>
+
+      {/* Presets */}
+      <div>
+        <h4 className="text-sm font-semibold text-foreground mb-3">Personas Pré-configuradas</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {presetPersonas.map((p, i) => (
+            <button
+              key={i}
+              onClick={() => applyPreset(i)}
+              className={`text-left p-4 rounded-xl border transition-all ${
+                activePreset === i ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5 shadow-md" : "border-border bg-card hover:border-muted-foreground/30"
+              }`}
+            >
+              <h5 className="font-semibold text-sm text-foreground">{p.name}</h5>
+              <p className="text-xs text-muted-foreground mt-1">Score: {fmt(calcScore(p.vec), 2)}</p>
+              <div className="flex gap-1 mt-2">
+                {(Object.keys(p.vec) as (keyof PersonaVector)[]).map(k => (
+                  <div key={k} className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-[hsl(258,90%,66%)]" style={{ width: `${p.vec[k] * 100}%` }} />
+                  </div>
+                ))}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sliders */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Gauge className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Configuração do Vetor P
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {(Object.keys(persona) as (keyof PersonaVector)[]).map(key => (
+              <div key={key} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">{personaLabels[key].label}</span>
+                  <span className="text-sm font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(persona[key], 2)}</span>
+                </div>
+                <Slider
+                  value={[persona[key] * 100]}
+                  onValueChange={([v]) => updateVar(key, v / 100)}
+                  max={100}
+                  step={1}
+                  className="[&_[role=slider]]:border-[hsl(258,90%,66%)] [&_[role=slider]]:bg-card [&_span[data-orientation]]:bg-[hsl(258,90%,66%)]"
+                />
+                <p className="text-xs text-muted-foreground">{personaLabels[key].desc}</p>
+              </div>
+            ))}
+
+            {/* Alpha */}
+            <div className="pt-3 border-t border-border space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Peso de Influência (α)</span>
+                <span className="text-sm font-bold font-mono text-[hsl(38,90%,55%)]">{fmt(alpha, 2)}</span>
+              </div>
+              <Slider
+                value={[alpha * 100]}
+                onValueChange={([v]) => setAlpha(v / 100)}
+                max={100}
+                step={1}
+                className="[&_[role=slider]]:border-[hsl(38,90%,55%)] [&_[role=slider]]:bg-card [&_span[data-orientation]]:bg-[hsl(38,90%,55%)]"
+              />
+              <p className="text-xs text-muted-foreground">Define o quanto o vetor persona influencia o output do LLM</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Score & Radar Summary */}
+        <div className="space-y-4">
+          <Card className="bg-gradient-to-br from-[hsl(258,90%,66%)]/5 to-transparent border-[hsl(258,90%,66%)]/20">
+            <CardContent className="p-5 space-y-4">
+              <h4 className="text-sm font-semibold text-foreground">Score Global do Agente</h4>
+              <div className="text-center py-4">
+                <div className="text-5xl font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(score, 3)}</div>
+                <p className="text-xs text-muted-foreground mt-2">Score = (Rₙ + Cᵣ + Sᵣ + Dₐ + Fₗ + Aₚ) / 6</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {(Object.keys(persona) as (keyof PersonaVector)[]).map(key => (
+                  <div key={key} className="flex items-center justify-between p-2 rounded-lg bg-background/60">
+                    <span className="text-xs text-muted-foreground">{key}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-[hsl(258,90%,66%)]" style={{ width: `${persona[key] * 100}%` }} />
+                      </div>
+                      <span className="text-xs font-bold font-mono text-foreground">{fmt(persona[key], 1)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Governance Matrix */}
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">Matriz de Governança IA</h4>
+              <FormulaBlock formula={`RiskGovernanceIndex = IRC × Score_Agente`} description="Permite comparação entre agentes, benchmark interno e controle de calibragem" />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between p-2 rounded-lg bg-muted/50">
+                  <span className="text-muted-foreground">Score Agente</span>
+                  <span className="font-bold font-mono">{fmt(score, 3)}</span>
+                </div>
+                <div className="flex justify-between p-2 rounded-lg bg-muted/50">
+                  <span className="text-muted-foreground">α (Influência)</span>
+                  <span className="font-bold font-mono">{fmt(alpha, 2)}</span>
+                </div>
+                <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20">
+                  <span className="font-semibold text-foreground">Impacto Efetivo (α × Score)</span>
+                  <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(alpha * score, 3)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Presets Table */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Comparativo de Personas</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Persona</TableHead>
+                <TableHead className="text-center">Rₙ</TableHead>
+                <TableHead className="text-center">Cᵣ</TableHead>
+                <TableHead className="text-center">Sᵣ</TableHead>
+                <TableHead className="text-center">Dₐ</TableHead>
+                <TableHead className="text-center">Fₗ</TableHead>
+                <TableHead className="text-center">Aₚ</TableHead>
+                <TableHead className="text-center">Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {presetPersonas.map((p, i) => (
+                <TableRow key={i} className={activePreset === i ? "bg-[hsl(258,90%,66%)]/5" : ""}>
+                  <TableCell className="font-medium">{p.name}</TableCell>
+                  {(Object.keys(p.vec) as (keyof PersonaVector)[]).map(k => (
+                    <TableCell key={k} className="text-center font-mono text-sm">{p.vec[k]}</TableCell>
+                  ))}
+                  <TableCell className="text-center font-mono text-sm font-bold text-[hsl(258,90%,66%)]">{fmt(calcScore(p.vec), 2)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// ─── Agent-Specific Formula Tabs ─────────────────────────────
+const TabAgenteAuditor = () => {
+  const [persona] = useState<PersonaVector>(presetPersonas[0].vec);
+
+  const baseWeights = [0.25, 0.20, 0.20, 0.20, 0.15];
+  const adjustedWeights = baseWeights.map(w => w * (1 + persona.Cr + persona.Sr));
+  const materialidadeBase = 500000;
+  const materialidade = materialidadeBase * (1 - persona.Rn);
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle icon={Bot} title="Agente Auditor Contábil" subtitle="Framework: IFRS · CPC · NBC TA · CFC" />
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* IRC */}
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Índice de Risco Contábil (IRC)</h4>
+            <FormulaBlock formula="IRC = w₁·LI + w₂·AL + w₃·ROA + w₄·LC + w₅·NE" description="Pesos ajustados pela persona: wᵢ = wᵢ × (1 + Cᵣ + Sᵣ)" />
+            <div className="space-y-2">
+              {["LI (Liquidez Imediata)", "AL (Alavancagem)", "ROA (Retorno s/ Ativos)", "LC (Liquidez Corrente)", "NE (Inconsist. Notas)"].map((label, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 text-sm">
+                  <span className="text-muted-foreground">{label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">Base: {fmt(baseWeights[i], 2)}</span>
+                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                    <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(adjustedWeights[i], 3)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="bg-[hsl(258,90%,66%)]/5 p-3 rounded-lg border border-[hsl(258,90%,66%)]/20 text-xs text-muted-foreground">
+              <strong>Efeito persona:</strong> Alta sensibilidade a risco (Sᵣ={persona.Sr}) + Conservadorismo (Cᵣ={persona.Cr}) → pesos amplificados em {fmt(1 + persona.Cr + persona.Sr, 1)}×
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Materialidade */}
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Índice de Materialidade Dinâmica</h4>
+            <FormulaBlock formula="Materialidade = Base × (1 − Rₙ)" description="Auditor mais rigoroso → menor tolerância → materialidade reduzida" />
+            <div className="space-y-3">
+              <div className="flex justify-between p-2 rounded-lg bg-muted/50 text-sm">
+                <span className="text-muted-foreground">Base</span>
+                <span className="font-mono">R$ {(materialidadeBase).toLocaleString("pt-BR")}</span>
+              </div>
+              <div className="flex justify-between p-2 rounded-lg bg-muted/50 text-sm">
+                <span className="text-muted-foreground">Rigor Normativo (Rₙ)</span>
+                <span className="font-mono">{persona.Rn}</span>
+              </div>
+              <div className="flex justify-between p-3 rounded-lg bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20 text-sm">
+                <span className="font-semibold text-foreground">Materialidade Ajustada</span>
+                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">R$ {materialidade.toLocaleString("pt-BR")}</span>
+              </div>
+            </div>
+            <div className="bg-amber-500/5 p-3 rounded-lg border border-amber-500/20 text-xs text-muted-foreground">
+              Rₙ = {persona.Rn} → Tolerância: {fmt((1 - persona.Rn) * 100)}% → Materialidade {persona.Rn > 0.7 ? "reduzida (alta exigência)" : "ampla (baixa exigência)"}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+const TabAgenteFinanceiro = () => {
+  const [persona] = useState<PersonaVector>(presetPersonas[0].vec);
+
+  const varBase = 2500000;
+  const varAdj = varBase * (1 + persona.Sr + persona.Cr);
+  const betaBase = [0.4, 0.35, 0.25];
+  const betaAdj = betaBase.map(b => b * (1 + persona.Da));
+  const nBaseSimulations = 10000;
+  const nAdj = Math.round(nBaseSimulations * (1 + persona.Da));
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle icon={DollarSign} title="Agente Financeiro" subtitle="VAR · Stress Testing · Monte Carlo" />
+
+      <div className="grid md:grid-cols-3 gap-4">
+        {/* VAR */}
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">VAR Ajustado por Persona</h4>
+            <FormulaBlock formula="VAR_adj = VAR × (1 + Sᵣ + Cᵣ)" />
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">VAR Base</span><span className="font-mono">R$ {varBase.toLocaleString("pt-BR")}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Sᵣ + Cᵣ</span><span className="font-mono">{fmt(persona.Sr + persona.Cr, 1)}</span></div>
+              <hr className="border-border" />
+              <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5">
+                <span className="font-semibold">VAR Ajustado</span>
+                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">R$ {varAdj.toLocaleString("pt-BR")}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stress */}
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Score Stress Financeiro</h4>
+            <FormulaBlock formula="SF = β₁·Endiv + β₂·Fluxo + β₃·Juros\nβᵢ = βᵢ × (1 + Dₐ)" />
+            <div className="space-y-2 text-sm">
+              {["Endividamento", "Fluxo de Caixa", "Juros"].map((label, i) => (
+                <div key={i} className="flex justify-between p-2 rounded-lg bg-muted/50">
+                  <span className="text-muted-foreground">{label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{fmt(betaBase[i], 2)}</span>
+                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                    <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(betaAdj[i], 3)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Monte Carlo */}
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Simulação Monte Carlo</h4>
+            <FormulaBlock formula="N = N_base × (1 + Dₐ)" description="Agente mais técnico → mais simulações → maior precisão" />
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">N Base</span><span className="font-mono">{nBaseSimulations.toLocaleString("pt-BR")}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Dₐ</span><span className="font-mono">{persona.Da}</span></div>
+              <hr className="border-border" />
+              <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5">
+                <span className="font-semibold">N Ajustado</span>
+                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{nAdj.toLocaleString("pt-BR")}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+const TabAgenteRelatorio = () => {
+  const [persona] = useState<PersonaVector>(presetPersonas[0].vec);
+
+  const ctBase = 50;
+  const gamma = 30;
+  const ct = ctBase + persona.Fl * gamma;
+  const irc = 0.72; // mock
+  const alertLevel = irc * (persona.Ap + persona.Cr);
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle icon={FileText} title="Agente de Relatório" subtitle="Consolidação · Parecer · Sumário Executivo" />
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Índice de Complexidade Textual</h4>
+            <FormulaBlock formula="CT = Base + (Fₗ × γ)" description="Formalidade alta → vocabulário técnico elevado" />
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Base</span><span className="font-mono">{ctBase}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Fₗ (Formalidade)</span><span className="font-mono">{persona.Fl}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">γ (gamma)</span><span className="font-mono">{gamma}</span></div>
+              <hr className="border-border" />
+              <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5">
+                <span className="font-semibold">CT Final</span>
+                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(ct, 1)}</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{ct > 70 ? "→ Linguagem altamente técnica com termos normativos" : ct > 55 ? "→ Linguagem técnica moderada" : "→ Linguagem simplificada/executiva"}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Intensidade de Alerta no Relatório</h4>
+            <FormulaBlock formula="AlertLevel = IRC × (Aₚ + Cᵣ)" description="Persona agressiva → mais destaque visual de risco" />
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">IRC (mock)</span><span className="font-mono">{irc}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Aₚ + Cᵣ</span><span className="font-mono">{fmt(persona.Ap + persona.Cr, 1)}</span></div>
+              <hr className="border-border" />
+              <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5">
+                <span className="font-semibold">Alert Level</span>
+                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(alertLevel, 3)}</span>
+              </div>
+            </div>
+            <div className={`p-3 rounded-lg text-xs ${alertLevel > 1 ? "bg-red-500/10 text-red-600 border border-red-500/20" : alertLevel > 0.7 ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"}`}>
+              {alertLevel > 1 ? "⚠ Alta intensidade — relatório com alertas visuais agressivos" : alertLevel > 0.7 ? "Moderada — relatório equilibrado com destaques de risco" : "Suave — relatório com tom neutro"}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Page ───────────────────────────────────────────────
 const ModeloMatematico = () => {
   const [selectedYear, setSelectedYear] = useState("2023");
   const years = Object.keys(defaultEntityData).sort();
@@ -64,7 +467,6 @@ const ModeloMatematico = () => {
   const at = d.ativoCirculante + d.ativoNaoCirculante;
   const pt = d.passivoCirculante + d.passivoNaoCirculante;
 
-  // AH calculations (base = first year)
   const baseYear = years[0];
   const dBase = defaultEntityData[baseYear];
   const atBase = dBase.ativoCirculante + dBase.ativoNaoCirculante;
@@ -78,7 +480,6 @@ const ModeloMatematico = () => {
     { label: "Patrimônio Líquido", base: dBase.patrimonioLiquido, current: d.patrimonioLiquido },
   ].map((i) => ({ ...i, variation: i.base ? (i.current - i.base) / i.base : 0 }));
 
-  // AV calculations
   const avBalanco = [
     { label: "Ativo Circulante", value: d.ativoCirculante },
     { label: "Ativo Não Circulante", value: d.ativoNaoCirculante },
@@ -93,14 +494,12 @@ const ModeloMatematico = () => {
     { label: "Lucro Líquido", value: d.lucroLiquido },
   ].map((i) => ({ ...i, pct: d.receitaLiquida ? i.value / d.receitaLiquida : 0 }));
 
-  // Insolvency
   const lg = ind.liquidezGeral;
   const roa = ind.roa;
   const eg = ind.endividamentoGeral;
   const insolvencyScore = lg * 0.4 + roa * 0.3 - eg * 0.3;
   const insolvencyClass = insolvencyScore < 0 ? "Insolvência" : insolvencyScore <= 1 ? "Atenção" : "Solidez";
 
-  // Extended Kanitz
   const cg = d.ativoCirculante - d.passivoCirculante;
   const x1 = at ? cg / at : 0;
   const x2 = at ? d.lucroLiquido / at : 0;
@@ -109,12 +508,10 @@ const ModeloMatematico = () => {
   const x5 = at ? d.receitaLiquida / at : 0;
   const kanitz = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
 
-  // Solvency
   const ptAdj = pt + d.duplicatasDescontadas;
   const egAdj = at ? ptAdj / at : 0;
   const plAdj = at - ptAdj;
 
-  // Risk matrix
   const liquidezStatus = ind.liquidezCorrente < 1 ? "Baixa" : ind.liquidezCorrente < 1.5 ? "Média" : "Alta";
   const endivStatus = eg > 0.80 ? "Alta" : eg > 0.60 ? "Média" : "Baixa";
   const rentStatus = ind.margemLiquida < 0 ? "Negativa" : ind.margemLiquida < 0.05 ? "Baixa" : "Positiva";
@@ -133,7 +530,7 @@ const ModeloMatematico = () => {
               <Calculator className="w-6 h-6 text-primary" />
               Modelo Matemático Detalhado
             </h1>
-            <p className="text-sm text-muted-foreground">Índices Financeiros — Plataforma de Auditoria IA v3.0</p>
+            <p className="text-sm text-muted-foreground">Índices Financeiros & Sistema de Persona — Plataforma de Auditoria IA v3.0</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Ano:</span>
@@ -230,8 +627,12 @@ const ModeloMatematico = () => {
         </Card>
 
         {/* Tabs */}
-        <Tabs defaultValue="liquidez" className="space-y-4">
+        <Tabs defaultValue="persona" className="space-y-4">
           <TabsList className="bg-muted/50 flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="persona" className="text-xs gap-1"><SlidersHorizontal className="w-3 h-3" /> Persona (VPC)</TabsTrigger>
+            <TabsTrigger value="agente-auditor" className="text-xs gap-1"><Bot className="w-3 h-3" /> Agente Auditor</TabsTrigger>
+            <TabsTrigger value="agente-financeiro" className="text-xs gap-1"><DollarSign className="w-3 h-3" /> Agente Financeiro</TabsTrigger>
+            <TabsTrigger value="agente-relatorio" className="text-xs gap-1"><FileText className="w-3 h-3" /> Agente Relatório</TabsTrigger>
             <TabsTrigger value="liquidez" className="text-xs">Liquidez</TabsTrigger>
             <TabsTrigger value="estrutura" className="text-xs">Estrutura de Capital</TabsTrigger>
             <TabsTrigger value="atividade" className="text-xs">Atividade</TabsTrigger>
@@ -242,6 +643,12 @@ const ModeloMatematico = () => {
             <TabsTrigger value="solvencia" className="text-xs">Solvência</TabsTrigger>
             <TabsTrigger value="matriz" className="text-xs">Matriz de Risco</TabsTrigger>
           </TabsList>
+
+          {/* PERSONA */}
+          <TabsContent value="persona"><TabPersona /></TabsContent>
+          <TabsContent value="agente-auditor"><TabAgenteAuditor /></TabsContent>
+          <TabsContent value="agente-financeiro"><TabAgenteFinanceiro /></TabsContent>
+          <TabsContent value="agente-relatorio"><TabAgenteRelatorio /></TabsContent>
 
           {/* LIQUIDEZ */}
           <TabsContent value="liquidez" className="space-y-4">
@@ -734,6 +1141,7 @@ const ModeloMatematico = () => {
                       Os índices calculados alimentam diretamente as 4 camadas do Motor IA: <strong>Camada 2</strong> — Classificação de Risco,{" "}
                       <strong>Camada 3</strong> — Materialidade, <strong>Camada 4</strong> — Parecer. Rastreabilidade via NBC TA 200, 315, 320, 500, 705 e Lei 6.404/76.
                       Logs de simulação, histórico de ajustes e versão de cálculo de índices são mantidos para auditoria completa.
+                      O VPC (Vetor de Persona Configurável) permite ao Gestor calibrar o comportamento de cada agente com rastreabilidade matemática.
                     </p>
                   </div>
                 </div>
