@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { MapPin, Phone, Mail, Shield, User, Building2 } from "lucide-react";
+import { MapPin, Phone, Mail, Shield, User, Building2, Brain } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -82,6 +82,13 @@ const Footer = () => {
               >
                 <User className="w-4 h-4" />
                 Usuário
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[hsl(258,90%,66%)]/10 border border-[hsl(258,90%,66%)]/20 text-[hsl(258,90%,66%)] text-sm font-semibold hover:bg-[hsl(258,90%,66%)]/20 transition-colors"
+              >
+                <Brain className="w-4 h-4" />
+                Gestor IA
               </Link>
             </div>
           </div>

@@ -19,6 +19,7 @@ import Dashboard from "./pages/Dashboard";
 import UserDashboard from "./pages/UserDashboard";
 import Audit from "./pages/Audit";
 import ModeloMatematico from "./pages/ModeloMatematico";
+import GestorIA from "./pages/GestorIA";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/user" element={<UserDashboard />} />
             <Route path="/audit" element={<Audit />} />
+            <Route path="/gestor-ia" element={<GestorIA />} />
             <Route path="/modelo-matematico" element={<ModeloMatematico />} />
 
             <Route path="*" element={<Layout><NotFound /></Layout>} />

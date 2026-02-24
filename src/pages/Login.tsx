@@ -11,6 +11,7 @@ const USERS = [
   { email: "auditor@auditor.com.br", password: "auditor@150213", role: "auditor_chefe" as const },
   { email: "usuario@usuario.com.br", password: "usuario@150213", role: "usuario" as const },
   { email: "empresa@empresa.com.br", password: "empresa@150213", role: "empresa" as const },
+  { email: "gestor@gestor.com.br", password: "gestor@150213", role: "gestor_ia" as const },
 ];
 
 const Login = () => {
@@ -32,6 +33,8 @@ const Login = () => {
         setRole(user.role);
         if (user.role === "auditor_chefe") {
           navigate("/dashboard");
+        } else if (user.role === "gestor_ia") {
+          navigate("/gestor-ia");
         } else if (user.role === "empresa") {
           navigate("/user");
         } else {
