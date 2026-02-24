@@ -1601,43 +1601,86 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData }: { onBack: () => v
         <CardContent className="pt-6 space-y-4">
           <SectionTitle num="6" title="BALANÇO PATRIMONIAL" />
 
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-[10px]">Conta</TableHead>
-                  <TableHead className="text-[10px]">Descrição</TableHead>
-                  {years.map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
-                  {years.length >= 2 && <TableHead className="text-right text-[10px]">AH</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(parsedData?.balanco || state.balancoRows).map((row: any, idx: number) => {
-                  const prevY = years.length >= 2 ? years[years.length - 2] : null;
-                  const lastY = years[years.length - 1];
-                  const vPrev = prevY ? (row.values[prevY] || 0) : 0;
-                  const vLast = row.values[lastY] || 0;
-                  const ah = vPrev !== 0 ? ((vLast - vPrev) / Math.abs(vPrev)) : 0;
-                  const isAlert = Math.abs(ah) > 0.25;
-                  const isTotal = (row.conta || "").toLowerCase().includes("total") || (row.descricao || "").toLowerCase().includes("total");
-                  return (
-                    <TableRow key={`${row.conta}-${idx}`} className={row.hasRisk ? "bg-orange-500/5" : ""}>
-                      <TableCell className="text-[10px] font-mono text-muted-foreground">{row.conta}</TableCell>
-                      <TableCell className={`text-xs ${isTotal ? "font-semibold" : ""}`}>{row.descricao}</TableCell>
-                      {years.map(y => (
-                        <TableCell key={y} className="text-right text-xs font-mono">{fmt(row.values[y] || 0)}</TableCell>
-                      ))}
-                      {years.length >= 2 && (
-                        <TableCell className={`text-right text-xs font-mono ${isAlert ? "text-orange-600 font-bold" : "text-muted-foreground"}`}>
-                          {fmtPct(ah)}
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+          <div className="text-center mb-2">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">DEMONSTRATIVOS FINANCEIROS CONSOLIDADOS</h3>
+            <p className="text-[10px] text-muted-foreground mt-1">Balanço Patrimonial</p>
           </div>
+
+          {(() => {
+            const allRows = parsedData?.balanco || state.balancoRows;
+            const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1"));
+            const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2"));
+            const maxRows = Math.max(ativoRows.length, passivoRows.length);
+
+            const isParent = (conta: string) => {
+              const parts = conta.replace(/\./g, "").length;
+              return conta === "1" || conta === "2" || conta === "1.01" || conta === "1.02" || conta === "2.01" || conta === "2.02" || conta === "2.03" || parts <= 3;
+            };
+
+            const getIndent = (conta: string) => {
+              const depth = (conta.match(/\./g) || []).length;
+              return depth > 0 ? `${depth * 12}px` : "0px";
+            };
+
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[10px] border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-border">
+                      <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
+                      <th className="text-left p-1.5 text-muted-foreground font-semibold">ATIVO</th>
+                      {years.map(y => <th key={`a-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
+                      <th className="w-[16px]"></th>
+                      <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
+                      <th className="text-left p-1.5 text-muted-foreground font-semibold">PASSIVO + PL</th>
+                      {years.map(y => <th key={`p-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: maxRows }).map((_, idx) => {
+                      const aRow = ativoRows[idx];
+                      const pRow = passivoRows[idx];
+                      const aParent = aRow && isParent(aRow.conta);
+                      const pParent = pRow && isParent(pRow.conta);
+
+                      return (
+                        <tr key={idx} className="border-b border-border/40 hover:bg-muted/30">
+                          {/* ATIVO side */}
+                          <td className={`p-1.5 font-mono text-muted-foreground ${aParent ? "font-bold" : ""}`}>
+                            {aRow?.conta || ""}
+                          </td>
+                          <td className={`p-1.5 ${aParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: aRow ? `calc(6px + ${getIndent(aRow.conta)})` : "6px" }}>
+                            {aRow?.descricao || ""}
+                          </td>
+                          {years.map(y => (
+                            <td key={`a-${y}-${idx}`} className={`p-1.5 text-right font-mono ${aParent ? "font-bold text-foreground" : "text-foreground"}`}>
+                              {aRow ? fmt(aRow.values[y] || 0) : ""}
+                            </td>
+                          ))}
+
+                          {/* Separator */}
+                          <td className="bg-border/20"></td>
+
+                          {/* PASSIVO side */}
+                          <td className={`p-1.5 font-mono text-muted-foreground ${pParent ? "font-bold" : ""}`}>
+                            {pRow?.conta || ""}
+                          </td>
+                          <td className={`p-1.5 ${pParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: pRow ? `calc(6px + ${getIndent(pRow.conta)})` : "6px" }}>
+                            {pRow?.descricao || ""}
+                          </td>
+                          {years.map(y => (
+                            <td key={`p-${y}-${idx}`} className={`p-1.5 text-right font-mono ${pParent ? "font-bold text-foreground" : "text-foreground"}`}>
+                              {pRow ? fmt(pRow.values[y] || 0) : ""}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações</h3>
