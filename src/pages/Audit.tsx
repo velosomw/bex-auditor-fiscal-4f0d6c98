@@ -646,160 +646,165 @@ const TabRiscoRJ = () => {
   );
 };
 
-/* ── Tab 6: Análise Técnica (Pendências) ── */
+/* ── Tab 2: Análise Técnica (Pendências + Chat IA) ── */
 const TabAnaliseTecnica = () => {
   const [selectedId, setSelectedId] = useState(pendencias[0]?.id || "");
   const selected = pendencias.find(p => p.id === selectedId);
+  const [chatMessages, setChatMessages] = useState<Array<{ role: "bot" | "user"; text: string }>>([
+    { role: "bot", text: "Sou o Agente IA Auditor Contábil Sênior. Selecione uma pendência ao lado e me pergunte sobre fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
+  ]);
+  const [chatInput, setChatInput] = useState("");
+
+  const mockResponses: Record<string, string> = {
+    "risco": "Com base na análise, o Score BEX-RJ de 47 pontos indica **zona de atenção**. Os principais fatores são:\n\n1. **Endividamento oneroso crescente** — Empréstimos LP cresceram 57%\n2. **Deterioração da margem líquida** — Queda de 60%\n3. **Concentração de dívida bancária** — R$ 155M em dívida onerosa\n\nEmbora o PL esteja positivo, a tendência de deterioração exige monitoramento contínuo.",
+    "ajuste": "Os principais ajustes contábeis recomendados são:\n\n1. **Teste de Impairment** (CPC 01) — Imobilizado de R$ 342M sem evidência de teste\n2. **Valor Realizável do Estoque** (CPC 16) — Estoque excedente de ~R$ 8,7M\n3. **PECLD sobre Contas a Receber** (CPC 48) — Crescimento de 56% exige revisão do aging\n4. **Reclassificação de Fornecedores 2022** — Variação de 583% exige investigação",
+    "ressalva": "Sim, os achados podem gerar **ressalva no parecer** conforme NBC TA 705:\n\n• **Ressalva qualificada** — Ausência de teste de impairment constitui distorção material\n• **Base para ressalva** — CPC 01 exige teste anual quando há indicativos de perda\n• **Impacto** — Parágrafo de ênfase sobre continuidade (NBC TA 570)",
+  };
+
+  const sendChat = () => {
+    if (!chatInput.trim()) return;
+    const q = chatInput.trim();
+    setChatInput("");
+    setChatMessages(m => [...m, { role: "user", text: q }]);
+
+    setTimeout(() => {
+      const ctx = selected ? `Referente à pendência "${selected.problema}" (Conta ${selected.conta}):\n\n` : "";
+      const key = Object.keys(mockResponses).find(k => q.toLowerCase().includes(k));
+      const response = key ? ctx + mockResponses[key] :
+        `${ctx}Com base nos frameworks CPC/IFRS/NBC TA, este ponto requer avaliação considerando:\n\n• Materialidade do item\n• Impacto nos indicadores financeiros\n• Risco para continuidade operacional\n• Potencial impacto jurídico (Lei 11.101/2005)\n\nDeseja que eu aprofunde em algum aspecto?`;
+      setChatMessages(m => [...m, { role: "bot", text: response }]);
+    }, 800);
+  };
 
   return (
-    <div className="grid lg:grid-cols-3 gap-4" style={{ minHeight: 500 }}>
-      {/* Col 1: Lista de Pendências */}
-      <Card className="lg:col-span-1">
+    <div className="space-y-4">
+      {/* Top: Pendências + Detalhes */}
+      <div className="grid lg:grid-cols-3 gap-4" style={{ minHeight: 420 }}>
+        {/* Col 1: Lista de Pendências */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-500" /> Pendências ({pendencias.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[360px]">
+              <div className="space-y-2 pr-2">
+                {pendencias.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedId(p.id)}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      selectedId === p.id ? "border-accent bg-accent/5" : "border-border/50 hover:bg-muted/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge>
+                      <span className="text-[10px] text-muted-foreground">{p.tipo}</span>
+                    </div>
+                    <p className="text-xs font-medium text-foreground line-clamp-2">{p.problema}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Conta: {p.conta}</p>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Col 2-3: Detalhes */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">📌 Ponto de Vista do Auditor IA</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {selected ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className={`${severityColors[selected.gravidade]?.bg} text-xs`}>{severityColors[selected.gravidade]?.label}</Badge>
+                  <Badge variant="outline" className="text-xs">{selected.tipo}</Badge>
+                  <Badge variant="secondary" className="text-[10px] font-mono">Conta {selected.conta}</Badge>
+                </div>
+
+                <p className="text-sm font-medium text-foreground">{selected.problema}</p>
+
+                <div className="space-y-3">
+                  <div className="p-3 rounded-lg bg-muted/30">
+                    <p className="text-[10px] font-semibold text-foreground mb-1 uppercase tracking-wider">Fundamentação Técnica</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{selected.fundamentacao}</p>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/10">
+                      <p className="text-[10px] font-semibold text-red-600 mb-1">Risco Envolvido</p>
+                      <p className="text-xs text-foreground">{selected.risco}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
+                      <p className="text-[10px] font-semibold text-orange-600 mb-1">Impacto no Balanço</p>
+                      <p className="text-xs text-foreground">{selected.impacto}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-accent/5 border border-accent/20">
+                    <p className="text-[10px] font-semibold text-accent-foreground mb-1">Recomendação Corretiva</p>
+                    <p className="text-xs text-foreground">{selected.recomendacao}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Selecione uma pendência para ver o parecer do Auditor IA.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottom: Chat IA integrado */}
+      <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-orange-500" /> Pendências ({pendencias.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-accent" /> Chat com Auditor IA Sênior
+            </CardTitle>
+            {selected && (
+              <Badge variant="secondary" className="text-[10px]">Contexto: Conta {selected.conta}</Badge>
+            )}
+          </div>
+          <CardDescription className="text-xs">Tire dúvidas sobre pendências, fundamentação técnica, riscos e ajustes contábeis.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[440px]">
-            <div className="space-y-2 pr-2">
-              {pendencias.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedId(p.id)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    selectedId === p.id ? "border-accent bg-accent/5" : "border-border/50 hover:bg-muted/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge>
-                    <span className="text-[10px] text-muted-foreground">{p.tipo}</span>
+          <ScrollArea className="mb-3" style={{ maxHeight: 250 }}>
+            <div className="space-y-3 pr-2">
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] p-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
+                    msg.role === "user"
+                      ? "bg-accent text-accent-foreground rounded-br-sm"
+                      : "bg-muted text-foreground rounded-bl-sm"
+                  }`}>
+                    {msg.text}
                   </div>
-                  <p className="text-xs font-medium text-foreground line-clamp-2">{p.problema}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Conta: {p.conta}</p>
-                </button>
+                </div>
               ))}
             </div>
           </ScrollArea>
-        </CardContent>
-      </Card>
 
-      {/* Col 2-3: Detalhes */}
-      <Card className="lg:col-span-2">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">📌 Ponto de Vista do Auditor IA</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selected ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge className={`${severityColors[selected.gravidade]?.bg} text-xs`}>{severityColors[selected.gravidade]?.label}</Badge>
-                <Badge variant="outline" className="text-xs">{selected.tipo}</Badge>
-                <Badge variant="secondary" className="text-[10px] font-mono">Conta {selected.conta}</Badge>
-              </div>
-
-              <p className="text-sm font-medium text-foreground">{selected.problema}</p>
-
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-muted/30">
-                  <p className="text-[10px] font-semibold text-foreground mb-1 uppercase tracking-wider">Fundamentação Técnica</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{selected.fundamentacao}</p>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/10">
-                    <p className="text-[10px] font-semibold text-red-600 mb-1">Risco Envolvido</p>
-                    <p className="text-xs text-foreground">{selected.risco}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
-                    <p className="text-[10px] font-semibold text-orange-600 mb-1">Impacto no Balanço</p>
-                    <p className="text-xs text-foreground">{selected.impacto}</p>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-accent/5 border border-accent/20">
-                  <p className="text-[10px] font-semibold text-accent-foreground mb-1">Recomendação Corretiva</p>
-                  <p className="text-xs text-foreground">{selected.recomendacao}</p>
-                </div>
-              </div>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {["Por que classificou como crítico?", "Isso pode levar a RJ?", "Qual ajuste contábil?", "Gera ressalva no parecer?"].map(q => (
+                <button key={q} onClick={() => setChatInput(q)}
+                  className="text-[10px] px-2 py-1 rounded-full bg-muted/50 border border-border/50 text-muted-foreground hover:bg-muted transition-colors">
+                  {q}
+                </button>
+              ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Selecione uma pendência para ver o parecer do Auditor IA.</p>
-          )}
+            <div className="flex gap-2">
+              <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Pergunte sobre esta pendência..." className="text-sm" />
+              <Button onClick={sendChat} className="bg-accent text-accent-foreground hover:bg-accent/90 px-4"><Send className="w-4 h-4" /></Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 };
 
-/* ── Tab 7: Chat Auditor IA ── */
-const TabChat = () => {
-  const [messages, setMessages] = useState<Array<{ role: "bot" | "user"; text: string }>>([
-    { role: "bot", text: "Sou o Agente IA Auditor Contábil Sênior, especialista em Recuperação Judicial. Posso responder sobre:\n\n• Fundamentação técnica dos achados\n• Riscos de insolvência e RJ\n• Ajustes contábeis recomendados\n• Normas CPC, IFRS, NBC TA\n• Impacto jurídico das pendências\n\nComo posso ajudar?" },
-  ]);
-  const [input, setInput] = useState("");
-
-  const mockResponses: Record<string, string> = {
-    "risco": "Com base na análise, o Score BEX-RJ de 47 pontos indica **zona de atenção**. Os principais fatores são:\n\n1. **Endividamento oneroso crescente** — Empréstimos LP cresceram 57%\n2. **Deterioração da margem líquida** — Queda de 60%\n3. **Concentração de dívida bancária** — R$ 155M em dívida onerosa\n\nEmbora o PL esteja positivo, a tendência de deterioração exige monitoramento contínuo. Não há indicativo imediato de RJ, mas a empresa deve implementar plano de reestruturação financeira.",
-    "ajuste": "Os principais ajustes contábeis recomendados são:\n\n1. **Teste de Impairment** (CPC 01) — Imobilizado de R$ 342M sem evidência de teste\n2. **Valor Realizável do Estoque** (CPC 16) — Estoque excedente de ~R$ 8,7M\n3. **PECLD sobre Contas a Receber** (CPC 48) — Crescimento de 56% exige revisão do aging\n4. **Reclassificação de Fornecedores 2022** — Variação de 583% exige investigação\n\nImpacto estimado: Potencial redução de R$ 15-20M no ativo líquido.",
-    "ressalva": "Sim, os achados identificados podem gerar **ressalva no parecer de auditoria** conforme NBC TA 705:\n\n• **Ressalva qualificada** — Ausência de teste de impairment constitui distorção material, porém não generalizada\n• **Base para ressalva** — CPC 01 exige teste anual quando há indicativos de perda\n• **Impacto** — O parecer deve incluir parágrafo de ênfase sobre continuidade (NBC TA 570)\n\nRecomendo também nota explicativa sobre a evolução do endividamento oneroso.",
-  };
-
-  const send = () => {
-    if (!input.trim()) return;
-    const q = input.trim();
-    setInput("");
-    setMessages(m => [...m, { role: "user", text: q }]);
-
-    setTimeout(() => {
-      const key = Object.keys(mockResponses).find(k => q.toLowerCase().includes(k));
-      const response = key ? mockResponses[key] :
-        `Análise sobre "${q}":\n\nCom base nas demonstrações financeiras analisadas e nos frameworks CPC/IFRS/NBC TA, posso informar que este ponto requer avaliação complementar considerando:\n\n• Materialidade do item\n• Impacto nos indicadores financeiros\n• Risco para continuidade operacional\n• Potencial impacto jurídico (Lei 11.101/2005)\n\nDeseja que eu aprofunde em algum desses aspectos?`;
-      setMessages(m => [...m, { role: "bot", text: response }]);
-    }, 800);
-  };
-
-  return (
-    <Card className="flex flex-col" style={{ minHeight: 550 }}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <MessageCircle className="w-4 h-4 text-accent" /> Chat com Auditor IA Sênior
-        </CardTitle>
-        <CardDescription>Linguagem técnica, fundamentada e objetiva. Especialista em RJ e solvência.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        <ScrollArea className="flex-1 mb-4">
-          <div className="space-y-3 pr-2" style={{ maxHeight: 400 }}>
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] p-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
-                  msg.role === "user"
-                    ? "bg-accent text-accent-foreground rounded-br-sm"
-                    : "bg-muted text-foreground rounded-bl-sm"
-                }`}>
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-1.5">
-            {["Por que risco moderado?", "Qual ajuste contábil?", "Isso gera ressalva?", "Pode levar a RJ?"].map(q => (
-              <button key={q} onClick={() => { setInput(q); }}
-                className="text-[10px] px-2 py-1 rounded-full bg-muted/50 border border-border/50 text-muted-foreground hover:bg-muted transition-colors">
-                {q}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Pergunte ao Auditor IA..." className="text-sm" />
-            <Button onClick={send} className="bg-accent text-accent-foreground hover:bg-accent/90 px-4"><Send className="w-4 h-4" /></Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
 
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
@@ -828,6 +833,9 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
           <TabsTrigger value="diagnostico" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
             <Activity className="w-3.5 h-3.5" /> Diagnóstico
           </TabsTrigger>
+          <TabsTrigger value="analise-tecnica" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+            <Search className="w-3.5 h-3.5" /> Análise Técnica
+          </TabsTrigger>
           <TabsTrigger value="indicadores" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
             <BarChart3 className="w-3.5 h-3.5" /> Indicadores
           </TabsTrigger>
@@ -840,21 +848,14 @@ const ResultsPhase = ({ onBack }: { onBack: () => void }) => {
           <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
             <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
           </TabsTrigger>
-          <TabsTrigger value="analise-tecnica" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
-            <Search className="w-3.5 h-3.5" /> Análise Técnica
-          </TabsTrigger>
-          <TabsTrigger value="chat" className="text-xs gap-1.5 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
-            <MessageCircle className="w-3.5 h-3.5" /> Chat IA
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="diagnostico"><TabDiagnostico /></TabsContent>
+        <TabsContent value="analise-tecnica"><TabAnaliseTecnica /></TabsContent>
         <TabsContent value="indicadores"><TabIndicadores /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ /></TabsContent>
-        <TabsContent value="analise-tecnica"><TabAnaliseTecnica /></TabsContent>
-        <TabsContent value="chat"><TabChat /></TabsContent>
       </Tabs>
     </div>
   );
