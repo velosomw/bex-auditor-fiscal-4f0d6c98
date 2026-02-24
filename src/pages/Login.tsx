@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-const VALID_EMAIL = "auditor@auditor.com.br";
-const VALID_PASSWORD = "auditor@2026";
+const USERS = [
+  { email: "auditor@auditor.com.br", password: "auditor@150213", role: "auditor_chefe" as const },
+  { email: "usuario@usuario.com.br", password: "usuario@150213", role: "usuario" as const },
+];
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,17 +18,23 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useUser();
+  const { login, setRole } = useUser();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     setTimeout(() => {
-      if (email === VALID_EMAIL && password === VALID_PASSWORD) {
+      const user = USERS.find(u => u.email === email && u.password === password);
+      if (user) {
         login();
+        setRole(user.role);
+        if (user.role === "auditor_chefe") {
+          navigate("/platform/dashboard");
+        } else {
+          navigate("/platform/user-dashboard");
+        }
         toast.success("Login realizado com sucesso!");
-        navigate("/select-role");
       } else {
         toast.error("Credenciais inválidas. Verifique e-mail e senha.");
       }
