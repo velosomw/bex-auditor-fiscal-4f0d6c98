@@ -30,9 +30,9 @@ const Login = () => {
         login();
         setRole(user.role);
         if (user.role === "auditor_chefe") {
-          navigate("/platform/dashboard");
+          navigate("/dashboard");
         } else {
-          navigate("/platform/user-dashboard");
+          navigate("/user");
         }
         toast.success("Login realizado com sucesso!");
       } else {
