@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import HeroBanner from "@/components/HeroBanner";
 
 const insights = [
   {
@@ -32,14 +33,10 @@ const insights = [
 const Insights = () => {
   return (
     <>
-      <section className="relative py-24 md:py-32 bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h1 className="text-4xl md:text-5xl font-display font-bold max-w-2xl mb-4">Insights</h1>
-          <p className="text-primary-foreground/70 max-w-xl">
-            Artigos, análises e publicações sobre reestruturação financeira, gestão de solvência e recuperação empresarial.
-          </p>
-        </div>
-      </section>
+      <HeroBanner
+        title="Insights"
+        subtitle="Artigos, análises e publicações sobre reestruturação financeira, gestão de solvência e recuperação empresarial."
+      />
 
       <section className="section-padding bg-background">
         <div className="max-w-7xl mx-auto">

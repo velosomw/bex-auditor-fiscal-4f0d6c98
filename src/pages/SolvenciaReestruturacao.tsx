@@ -1,34 +1,21 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
-import imgSolvencia from "@/assets/solution-solvencia.jpg";
+import HeroBanner from "@/components/HeroBanner";
 import PappersSection from "@/components/PappersSection";
 
 const SolvenciaReestruturacao = () => {
   return (
     <>
-      <section className="section-padding bg-background">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-            <Link to="/" className="hover:text-accent transition-colors">🏠</Link>
-            <span>/</span>
-            <Link to="/solucoes" className="hover:text-accent transition-colors">Soluções</Link>
-            <span>/</span>
-            <span className="text-foreground font-medium">Solvência + Reestruturação</span>
-          </div>
-          <div className="relative rounded-3xl overflow-hidden bg-primary min-h-[280px] md:min-h-[320px] flex">
-            <div className="relative z-10 flex-1 flex flex-col justify-center p-10 md:p-14 lg:p-16">
-              <p className="text-accent text-sm font-semibold tracking-widest uppercase mb-3">Pacote Intermediário</p>
-              <h1 className="text-4xl md:text-5xl font-display font-bold text-primary-foreground max-w-2xl mb-4">Solvência + Plano de Reestruturação</h1>
-              <p className="text-primary-foreground/70 max-w-md text-lg">
-                Para empresas em crise moderada que necessitam de um plano estruturado de recuperação financeira.
-              </p>
-            </div>
-            <div className="hidden md:flex items-center justify-end w-[45%] overflow-hidden">
-              <img src={imgSolvencia} alt="Solvência e Reestruturação" className="w-full h-full object-cover" />
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroBanner
+        title="Solvência + Plano de Reestruturação"
+        subtitle="Para empresas em crise moderada que necessitam de um plano estruturado de recuperação financeira."
+        tag="Pacote Intermediário"
+        breadcrumbs={[
+          { label: "🏠", href: "/" },
+          { label: "Soluções", href: "/solucoes" },
+          { label: "Solvência + Reestruturação" },
+        ]}
+      />
 
       {/* O que entregamos */}
       <section className="section-padding bg-background">

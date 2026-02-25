@@ -1,17 +1,14 @@
 import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import HeroBanner from "@/components/HeroBanner";
 
 const Contato = () => {
   return (
     <>
-      <section className="relative py-24 md:py-32 bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h1 className="text-4xl md:text-5xl font-display font-bold max-w-2xl mb-4">Contato</h1>
-          <p className="text-primary-foreground/70 max-w-xl">
-            Entre em contato com nossos especialistas para uma avaliação inicial sem compromisso.
-          </p>
-        </div>
-      </section>
+      <HeroBanner
+        title="Contato"
+        subtitle="Entre em contato com nossos especialistas para uma avaliação inicial sem compromisso."
+      />
 
       <section className="section-padding bg-background">
         <div className="max-w-7xl mx-auto">
