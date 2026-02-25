@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import solutionsHero from "@/assets/solutions-hero.jpg";
+import sphereVideo from "@/assets/solutions-sphere.mp4";
 import imgDiagnostico from "@/assets/solution-diagnostico.jpg";
 import imgSolvencia from "@/assets/solution-solvencia.jpg";
 import imgConsultoria from "@/assets/solution-consultoria.jpg";
@@ -62,15 +62,16 @@ const Solucoes = () => {
                 Como podemos contribuir com a evolução dos seus negócios?
               </motion.p>
             </div>
-            <div className="hidden md:flex items-center justify-center w-[40%] relative overflow-hidden">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg viewBox="0 0 400 400" className="w-[350px] h-[350px]" fill="none">
-                  <circle cx="200" cy="200" r="160" fill="hsl(var(--primary))" fillOpacity="0.6" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.2" />
-                  <circle cx="200" cy="200" r="120" fill="hsl(var(--primary))" fillOpacity="0.7" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.15" />
-                  <circle cx="200" cy="200" r="80" fill="hsl(var(--primary))" fillOpacity="0.85" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.1" />
-                  <circle cx="200" cy="200" r="40" fill="hsl(222 47% 10%)" />
-                </svg>
-              </div>
+            <div className="hidden md:flex items-center justify-center w-[45%] relative overflow-hidden bg-[hsl(222_47%_8%)]">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover opacity-90"
+              >
+                <source src={sphereVideo} type="video/mp4" />
+              </video>
             </div>
           </div>
         </div>
