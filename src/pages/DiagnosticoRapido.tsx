@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import imgDiagnostico from "@/assets/solution-diagnostico.jpg";
+import PappersSection from "@/components/PappersSection";
 
 const DiagnosticoRapido = () => {
   return (
@@ -92,6 +93,8 @@ const DiagnosticoRapido = () => {
           </div>
         </div>
       </section>
+
+      <PappersSection />
     </>
   );
 };
