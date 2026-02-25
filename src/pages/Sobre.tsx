@@ -1,17 +1,14 @@
 import { motion } from "framer-motion";
 import aboutBg from "@/assets/about-bg.jpg";
+import HeroBanner from "@/components/HeroBanner";
 
 const Sobre = () => {
   return (
     <>
-      <section className="relative py-24 md:py-32 bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h1 className="text-4xl md:text-5xl font-display font-bold max-w-2xl mb-4">Sobre Nós</h1>
-          <p className="text-primary-foreground/70 max-w-xl">
-            Conheça a BEX Auditoria e nossa missão de transformar desafios financeiros em oportunidades de crescimento.
-          </p>
-        </div>
-      </section>
+      <HeroBanner
+        title="Sobre Nós"
+        subtitle="Conheça a BEX Auditoria e nossa missão de transformar desafios financeiros em oportunidades de crescimento."
+      />
 
       <section className="section-padding bg-background">
         <div className="max-w-7xl mx-auto">

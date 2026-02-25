@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import wavesVideo from "@/assets/solutions-waves.mp4";
+import HeroBanner from "@/components/HeroBanner";
 import imgDiagnostico from "@/assets/solution-diagnostico.jpg";
 import imgSolvencia from "@/assets/solution-solvencia.jpg";
 import imgConsultoria from "@/assets/solution-consultoria.jpg";
@@ -36,49 +36,14 @@ const solutions = [
 const Solucoes = () => {
   return (
     <>
-      {/* Hero */}
-      <section className="section-padding bg-background">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-            <Link to="/" className="hover:text-accent transition-colors">🏠</Link>
-            <span>/</span>
-            <span className="text-foreground font-medium">Soluções</span>
-          </div>
-          <div className="relative rounded-3xl overflow-hidden bg-primary min-h-[280px] md:min-h-[320px] flex">
-            {/* Video background */}
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-            >
-              <source src={wavesVideo} type="video/mp4" />
-            </video>
-            {/* Gradient overlay for seamless blend with primary */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[hsl(222_47%_14%)] via-[hsl(222_47%_14%/0.85)] to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222_47%_14%/0.3)] to-transparent" />
-
-            <div className="relative z-10 flex-1 flex flex-col justify-center p-10 md:p-14 lg:p-16">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-4xl md:text-5xl font-display font-bold text-primary-foreground mb-4"
-              >
-                Soluções
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-primary-foreground/70 max-w-md text-lg"
-              >
-                Como podemos contribuir com a evolução dos seus negócios?
-              </motion.p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroBanner
+        title="Soluções"
+        subtitle="Como podemos contribuir com a evolução dos seus negócios?"
+        breadcrumbs={[
+          { label: "🏠", href: "/" },
+          { label: "Soluções" },
+        ]}
+      />
 
       {/* Intro */}
       <section className="section-padding bg-background">

@@ -1,34 +1,21 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
-import imgConsultoria from "@/assets/solution-consultoria.jpg";
+import HeroBanner from "@/components/HeroBanner";
 import PappersSection from "@/components/PappersSection";
 
 const ConsultoriaCompleta = () => {
   return (
     <>
-      <section className="section-padding bg-background">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-            <Link to="/" className="hover:text-accent transition-colors">🏠</Link>
-            <span>/</span>
-            <Link to="/solucoes" className="hover:text-accent transition-colors">Soluções</Link>
-            <span>/</span>
-            <span className="text-foreground font-medium">Consultoria Completa</span>
-          </div>
-          <div className="relative rounded-3xl overflow-hidden bg-primary min-h-[280px] md:min-h-[320px] flex">
-            <div className="relative z-10 flex-1 flex flex-col justify-center p-10 md:p-14 lg:p-16">
-              <p className="text-accent text-sm font-semibold tracking-widest uppercase mb-3">Pacote Avançado</p>
-              <h1 className="text-4xl md:text-5xl font-display font-bold text-primary-foreground max-w-2xl mb-4">Consultoria Completa</h1>
-              <p className="text-primary-foreground/70 max-w-md text-lg">
-                Para empresas em crise aguda ou em ambiente judicial. Acompanhamento integral de 6 a 12 meses.
-              </p>
-            </div>
-            <div className="hidden md:flex items-center justify-end w-[45%] overflow-hidden">
-              <img src={imgConsultoria} alt="Consultoria Completa" className="w-full h-full object-cover" />
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroBanner
+        title="Consultoria Completa"
+        subtitle="Para empresas em crise aguda ou em ambiente judicial. Acompanhamento integral de 6 a 12 meses."
+        tag="Pacote Avançado"
+        breadcrumbs={[
+          { label: "🏠", href: "/" },
+          { label: "Soluções", href: "/solucoes" },
+          { label: "Consultoria Completa" },
+        ]}
+      />
 
       {/* O que entregamos */}
       <section className="section-padding bg-background">
