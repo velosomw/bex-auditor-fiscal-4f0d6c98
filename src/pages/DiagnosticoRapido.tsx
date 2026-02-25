@@ -34,7 +34,7 @@ const DiagnosticoRapido = () => {
       {/* O que entregamos */}
       <section className="section-padding bg-background">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-[1fr_1px_1fr] gap-0">
+          <div className="grid md:grid-cols-2 gap-0">
             {/* Coluna esquerda - Texto */}
             <div className="pr-0 md:pr-10 pb-8 md:pb-0">
               <h2 className="text-2xl md:text-3xl font-serif font-bold text-foreground mb-6">O que entregamos</h2>
@@ -45,9 +45,6 @@ const DiagnosticoRapido = () => {
                 Nosso diagnóstico oferece uma visão clara e objetiva da situação financeira, permitindo decisões estratégicas fundamentadas.
               </p>
             </div>
-
-            {/* Separador vertical */}
-            <div className="hidden md:block bg-border" />
 
             {/* Coluna direita - Tópicos */}
             <div className="pl-0 md:pl-0">
