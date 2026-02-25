@@ -67,7 +67,7 @@ const Index = () => {
             </Link>
             <Link
               to="/contato"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-md border border-primary-foreground/30 text-primary-foreground font-semibold hover:border-accent hover:text-accent transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
             >
               Fale Conosco
             </Link>
