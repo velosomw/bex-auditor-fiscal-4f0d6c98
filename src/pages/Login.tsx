@@ -102,7 +102,7 @@ const Login = () => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-[hsl(217,91%,50%)] to-[hsl(217,85%,42%)] hover:from-[hsl(217,91%,45%)] hover:to-[hsl(217,85%,38%)] text-white border-0 h-11 text-base font-semibold"
+              className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
             >
               {loading ? "Autenticando..." : "Entrar"}
             </Button>

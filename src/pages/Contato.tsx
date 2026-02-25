@@ -58,7 +58,7 @@ const Contato = () => {
                   <label className="block text-sm font-medium text-foreground mb-1.5">Mensagem</label>
                   <textarea rows={4} className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none" placeholder="Descreva brevemente sua situação..." />
                 </div>
-                <button type="submit" className="px-8 py-3 rounded-md bg-accent text-accent-foreground font-semibold hover:opacity-90 transition-opacity">
+                <button type="submit" className="px-8 py-3 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]">
                   Enviar Mensagem
                 </button>
               </form>
