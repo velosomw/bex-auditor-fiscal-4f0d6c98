@@ -60,7 +60,7 @@ const Index = () => {
           >
             <Link
               to="/solucoes"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-md bg-accent text-accent-foreground font-semibold hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
             >
               Nossas Soluções
               <ArrowRight className="w-4 h-4" />
@@ -331,7 +331,7 @@ const Index = () => {
           </p>
           <Link
             to="/contato"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-md bg-accent text-accent-foreground font-semibold hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
           >
             Entre em Contato <ArrowRight className="w-4 h-4" />
           </Link>
