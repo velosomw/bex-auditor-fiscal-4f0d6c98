@@ -40,7 +40,7 @@ const Index = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-primary-foreground leading-tight max-w-3xl mb-6"
+            className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-primary-foreground leading-tight max-w-3xl mb-6"
           >
             Transparência na Reestruturação e Recuperação de Empresas
           </motion.h1>
@@ -87,7 +87,7 @@ const Index = () => {
             <motion.h2
               variants={fadeUp}
               custom={0}
-              className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4"
+              className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4"
             >
               Como ajudamos sua empresa
             </motion.h2>
@@ -137,7 +137,7 @@ const Index = () => {
                 <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center mb-5">
                   <item.icon className="w-6 h-6 text-accent" />
                 </div>
-                <h3 className="font-serif font-semibold text-lg text-foreground mb-2">{item.title}</h3>
+                <h3 className="font-display font-semibold text-lg text-foreground mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
@@ -158,7 +158,7 @@ const Index = () => {
               <motion.h2
                 variants={fadeUp}
                 custom={0}
-                className="text-3xl md:text-4xl font-serif font-bold mb-8"
+                className="text-3xl md:text-4xl font-display font-bold mb-8"
               >
                 Nosso Método em 4 Fases
               </motion.h2>
@@ -175,7 +175,7 @@ const Index = () => {
                     custom={i + 1}
                     className="flex gap-5"
                   >
-                    <span className="text-accent font-serif font-bold text-2xl shrink-0">{step.n}</span>
+                    <span className="text-accent font-display font-bold text-2xl shrink-0">{step.n}</span>
                     <div>
                       <h3 className="font-semibold font-sans mb-1">{step.title}</h3>
                       <p className="text-sm text-primary-foreground/60 leading-relaxed">{step.desc}</p>
@@ -191,7 +191,7 @@ const Index = () => {
                 className="rounded-lg shadow-2xl w-full object-cover aspect-[4/3]"
               />
               <div className="absolute -bottom-6 -left-6 bg-accent text-accent-foreground p-6 rounded-lg shadow-xl">
-                <p className="text-3xl font-serif font-bold">+15</p>
+                <p className="text-3xl font-display font-bold">+15</p>
                 <p className="text-sm font-medium">Anos de experiência</p>
               </div>
             </motion.div>
@@ -207,7 +207,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-serif font-bold text-foreground"
+              className="text-3xl md:text-4xl font-display font-bold text-foreground"
             >
               Pacotes de Soluções
             </motion.h2>
@@ -270,7 +270,7 @@ const Index = () => {
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       {pkg.tag}
                     </span>
-                    <h3 className="font-serif font-bold text-xl text-foreground mt-2 mb-3 group-hover:text-accent transition-colors duration-300">
+                    <h3 className="font-display font-bold text-xl text-foreground mt-2 mb-3 group-hover:text-accent transition-colors duration-300">
                       {pkg.title}
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed mb-4">
@@ -294,7 +294,7 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-12"
+            className="text-3xl md:text-4xl font-display font-bold text-foreground mb-12"
           >
             Resultados Esperados
           </motion.h2>
@@ -312,7 +312,7 @@ const Index = () => {
                 transition={{ delay: i * 0.15 }}
                 className="bg-card rounded-lg p-8 card-hover border border-border"
               >
-                <p className="text-2xl font-serif font-bold text-accent mb-3">{item.value}</p>
+                <p className="text-2xl font-display font-bold text-accent mb-3">{item.value}</p>
                 <p className="text-sm text-muted-foreground">{item.label}</p>
               </motion.div>
             ))}
@@ -323,7 +323,7 @@ const Index = () => {
       {/* CTA */}
       <section className="section-padding bg-primary text-primary-foreground text-center">
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
             Pronto para um novo ciclo?
           </h2>
           <p className="text-primary-foreground/60 mb-8">

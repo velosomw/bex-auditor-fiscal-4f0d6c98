@@ -1,13 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import {
-  FileText,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Plus,
-  Eye,
-  TrendingUp,
-} from "lucide-react";
+import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +30,7 @@ const statusConfig = {
 };
 
 const kpis = [
-  { label: "Total de Auditorias", value: userStats.totalAudits, icon: FileText, bgClass: "bg-[hsl(258,90%,66%)]/10", colorClass: "text-[hsl(258,90%,66%)]" },
+  { label: "Total de Auditorias", value: userStats.totalAudits, icon: FileText, bgClass: "bg-[hsl(217,91%,50%)]/10", colorClass: "text-[hsl(217,91%,50%)]" },
   { label: "Concluídas", value: userStats.completed, icon: CheckCircle2, bgClass: "bg-[hsl(142,76%,36%)]/10", colorClass: "text-[hsl(142,76%,36%)]" },
   { label: "Em Andamento", value: userStats.inProgress, icon: Clock, bgClass: "bg-[hsl(38,92%,50%)]/10", colorClass: "text-[hsl(38,92%,50%)]" },
   { label: "Achados Totais", value: userStats.totalFindings, icon: AlertTriangle, bgClass: "bg-[hsl(0,84%,60%)]/10", colorClass: "text-[hsl(0,84%,60%)]" },
@@ -59,7 +51,7 @@ const UserDashboard = () => {
           <Button
             size="sm"
             onClick={() => navigate("/audit")}
-            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white gap-1.5"
+            className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
           >
             <Plus className="w-4 h-4" /> Nova Auditoria
           </Button>
@@ -89,7 +81,7 @@ const UserDashboard = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+                  <FileText className="w-5 h-5 text-[hsl(217,91%,50%)]" />
                   <CardTitle className="text-lg">Documentos Analisados</CardTitle>
                 </div>
                 <CardDescription>Suas auditorias recentes e status de análise</CardDescription>
@@ -152,7 +144,7 @@ const UserDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-center mb-4">
-                  <p className="text-4xl font-bold text-[hsl(258,90%,66%)]">{userStats.avgConformidade}%</p>
+                  <p className="text-4xl font-bold text-[hsl(217,91%,50%)]">{userStats.avgConformidade}%</p>
                   <p className="text-xs text-muted-foreground mt-1">Conformidade Geral</p>
                   <Progress value={userStats.avgConformidade} className="h-2 mt-3" />
                 </div>

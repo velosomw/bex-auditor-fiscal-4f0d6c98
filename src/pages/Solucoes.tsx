@@ -49,7 +49,7 @@ const Solucoes = () => {
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-4xl md:text-5xl font-serif font-bold text-primary-foreground mb-4"
+                className="text-4xl md:text-5xl font-display font-bold text-primary-foreground mb-4"
               >
                 Soluções
               </motion.h1>
@@ -68,7 +68,7 @@ const Solucoes = () => {
                   <circle cx="200" cy="200" r="160" fill="hsl(var(--primary))" fillOpacity="0.6" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.2" />
                   <circle cx="200" cy="200" r="120" fill="hsl(var(--primary))" fillOpacity="0.7" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.15" />
                   <circle cx="200" cy="200" r="80" fill="hsl(var(--primary))" fillOpacity="0.85" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.1" />
-                  <circle cx="200" cy="200" r="40" fill="hsl(215 45% 10%)" />
+                  <circle cx="200" cy="200" r="40" fill="hsl(222 47% 10%)" />
                 </svg>
               </div>
             </div>
@@ -79,7 +79,7 @@ const Solucoes = () => {
       {/* Intro */}
       <section className="section-padding bg-background">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-serif font-bold text-foreground mb-6">
+          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-6">
             Exceder as expectativas é o que nos move
           </h2>
           <p className="text-muted-foreground leading-relaxed">
@@ -91,7 +91,7 @@ const Solucoes = () => {
       {/* Solutions Grid */}
       <section className="section-padding bg-muted">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-serif font-bold text-foreground mb-12 text-center">
+          <h2 className="text-3xl font-display font-bold text-foreground mb-12 text-center">
             Nossos Pacotes
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
@@ -118,7 +118,7 @@ const Solucoes = () => {
                     <span className="text-xs font-semibold uppercase tracking-wider text-accent">
                       {sol.tag}
                     </span>
-                    <h3 className="font-serif font-bold text-xl text-foreground mt-2 mb-3 group-hover:text-accent transition-colors">
+                    <h3 className="font-display font-bold text-xl text-foreground mt-2 mb-3 group-hover:text-accent transition-colors">
                       {sol.title}
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed mb-4">{sol.desc}</p>

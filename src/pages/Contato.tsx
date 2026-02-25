@@ -6,7 +6,7 @@ const Contato = () => {
     <>
       <section className="relative py-24 md:py-32 bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold max-w-2xl mb-4">Contato</h1>
+          <h1 className="text-4xl md:text-5xl font-display font-bold max-w-2xl mb-4">Contato</h1>
           <p className="text-primary-foreground/70 max-w-xl">
             Entre em contato com nossos especialistas para uma avaliação inicial sem compromisso.
           </p>
@@ -22,42 +22,26 @@ const Contato = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-2xl font-serif font-bold text-foreground mb-6">Envie sua mensagem</h2>
+              <h2 className="text-2xl font-display font-bold text-foreground mb-6">Envie sua mensagem</h2>
               <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
                 <div className="grid md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">Nome</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      placeholder="Seu nome"
-                    />
+                    <input type="text" className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Seu nome" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">Empresa</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      placeholder="Nome da empresa"
-                    />
+                    <input type="text" className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Nome da empresa" />
                   </div>
                 </div>
                 <div className="grid md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">E-mail</label>
-                    <input
-                      type="email"
-                      className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      placeholder="seu@email.com"
-                    />
+                    <input type="email" className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent" placeholder="seu@email.com" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">Telefone</label>
-                    <input
-                      type="tel"
-                      className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                      placeholder="(11) 99999-9999"
-                    />
+                    <input type="tel" className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent" placeholder="(11) 99999-9999" />
                   </div>
                 </div>
                 <div>
@@ -72,16 +56,9 @@ const Contato = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1.5">Mensagem</label>
-                  <textarea
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                    placeholder="Descreva brevemente sua situação..."
-                  />
+                  <textarea rows={4} className="w-full px-4 py-3 rounded-md border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none" placeholder="Descreva brevemente sua situação..." />
                 </div>
-                <button
-                  type="submit"
-                  className="px-8 py-3 rounded-md bg-accent text-accent-foreground font-semibold hover:opacity-90 transition-opacity"
-                >
+                <button type="submit" className="px-8 py-3 rounded-md bg-accent text-accent-foreground font-semibold hover:opacity-90 transition-opacity">
                   Enviar Mensagem
                 </button>
               </form>
@@ -95,7 +72,7 @@ const Contato = () => {
               className="space-y-8"
             >
               <div>
-                <h2 className="text-2xl font-serif font-bold text-foreground mb-6">Informações de Contato</h2>
+                <h2 className="text-2xl font-display font-bold text-foreground mb-6">Informações de Contato</h2>
                 <div className="space-y-6">
                   <div className="flex gap-4">
                     <MapPin className="w-5 h-5 text-accent shrink-0 mt-0.5" />
@@ -127,7 +104,7 @@ const Contato = () => {
               </div>
 
               <div className="bg-primary rounded-lg p-8 text-primary-foreground">
-                <h3 className="font-serif font-bold text-lg mb-3">Avaliação Inicial Gratuita</h3>
+                <h3 className="font-display font-bold text-lg mb-3">Avaliação Inicial Gratuita</h3>
                 <p className="text-sm text-primary-foreground/70 leading-relaxed">
                   Agende uma conversa sem compromisso com nossos especialistas. Analisamos brevemente sua situação e indicamos o melhor caminho para sua empresa.
                 </p>
