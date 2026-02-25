@@ -1121,7 +1121,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData }: { pendenciasData?: an
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL — PREVIEW (antes de gerar)
    ══════════════════════════════════════════════════════ */
-const reportTopics = [
+const reportTopicsBex = [
   { num: "1", title: "Capa", desc: "Logo BEX, título, empresa, CNPJ, data-base, responsável técnico e classificação de risco", icon: Shield },
   { num: "2", title: "Diagnóstico Executivo", desc: "Situação geral, classificação de risco, pontos-chave e conclusão técnica com fundamentação CPC/IFRS/NBC TA", icon: Activity },
   { num: "3", title: "Solvência", desc: "Liquidez Corrente, Seca, Geral, Solvência Total, Capital de Giro, Cobertura de Juros — com interpretação técnica", icon: Scale },
@@ -1132,70 +1132,125 @@ const reportTopics = [
   { num: "★", title: "Score BEX de Solvência", desc: "Classificação final ponderada: Liquidez (25%), Endividamento (25%), PL (20%), Geração Caixa (15%), Pressão CP (15%)", icon: Target },
 ];
 
-const TabRelatorioPreview = ({ onGerar }: { onGerar: () => void }) => (
+const reportTopicsKanitz = [
+  { num: "1", title: "Capa", desc: "Empresa, período, data de geração e responsável técnico", icon: Shield },
+  { num: "2", title: "Sumário Executivo", desc: "Situação atual, comparação com período anterior, tendência de solvência e risco identificado", icon: Activity },
+  { num: "3", title: "Indicadores Financeiros", desc: "RPL, LG, LS, LC e GE — valores base, fórmulas, resultado e interpretação técnica", icon: Calculator },
+  { num: "4", title: "Resultado do Fator de Insolvência", desc: "Valor do FI, classificação, termômetro visual e histórico por período", icon: Target },
+  { num: "5", title: "Análise Técnica Automatizada", desc: "Estrutura de capital, dependência de terceiros, capacidade de pagamento e deterioração financeira", icon: Search },
+  { num: "6", title: "Recomendações Estratégicas", desc: "Redução de passivos, reestruturação de capital, ajustes operacionais e planejamento de fluxo de caixa", icon: TrendingUp },
+  { num: "7", title: "Memória de Cálculo", desc: "Transparência completa das fórmulas, pesos e dados utilizados no cálculo do FI", icon: Calculator },
+];
+
+const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => void; onGerarKanitz: () => void }) => (
   <div className="space-y-6">
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between gap-4">
+    <div className="text-center space-y-2 mb-2">
+      <h2 className="text-lg font-bold text-foreground font-serif">Selecione o Relatório para Gerar</h2>
+      <p className="text-sm text-muted-foreground max-w-xl mx-auto">Escolha entre o Relatório BEX (Avaliação Contábil e Solvência) ou o Relatório Kanitz (Termômetro de Insolvência).</p>
+    </div>
+
+    <div className="grid lg:grid-cols-2 gap-6">
+      {/* Card BEX */}
+      <Card className="border-2 hover:border-[hsl(258,90%,66%)]/50 transition-all">
+        <CardHeader>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-[hsl(258,90%,66%)]" />
             </div>
             <div>
-              <CardTitle className="text-base">Relatório Técnico de Avaliação Contábil e Solvência Empresarial</CardTitle>
-              <CardDescription className="text-xs">Documento estruturado gerado automaticamente pelo Agente IA Auditor Contábil Sênior</CardDescription>
+              <CardTitle className="text-base">Relatório BEX</CardTitle>
+              <CardDescription className="text-xs">Avaliação Contábil e Solvência Empresarial</CardDescription>
             </div>
           </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Relatório técnico completo com diagnóstico executivo, solvência, pendências contábeis, indicadores financeiros, endividamento, balanço patrimonial e Score BEX de Solvência.
+          </p>
+          <div className="space-y-2">
+            {reportTopicsBex.map(t => {
+              const Icon = t.icon;
+              return (
+                <div key={t.num} className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/20">
+                  <div className="w-6 h-6 rounded bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-bold text-[hsl(258,90%,66%)]">{t.num}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground">{t.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{t.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {["NBC TA 700", "CPC 26", "IFRS 15", "Lei 11.101/2005"].map(n => (
+              <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
+            ))}
+          </div>
           <Button
-            onClick={onGerar}
-            size="lg"
-            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-8 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/30 shrink-0"
+            onClick={onGerarBex}
+            className="w-full bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-11 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20"
           >
             <FileText className="w-4 h-4" /> Gerar Relatório BEX
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          O relatório final consolida todas as análises realizadas em um documento técnico estruturado, com linguagem normativa e fundamentação contábil completa. Ao gerar, os seguintes tópicos serão incluídos:
-        </p>
+        </CardContent>
+      </Card>
 
-        <div className="grid gap-3">
-          {reportTopics.map(t => {
-            const Icon = t.icon;
-            return (
-              <div key={t.num} className="flex items-start gap-4 p-4 rounded-xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-xs font-bold text-[hsl(258,90%,66%)]">{t.num}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon className="w-3.5 h-3.5 text-[hsl(258,90%,66%)]" />
-                    <h4 className="text-sm font-semibold text-foreground">{t.title}</h4>
+      {/* Card Kanitz */}
+      <Card className="border-2 hover:border-amber-500/50 transition-all">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <Scale className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Relatório Kanitz</CardTitle>
+              <CardDescription className="text-xs">Termômetro de Insolvência — Stephen C. Kanitz</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Relatório de análise preditiva de falência com cálculo do Fator de Insolvência (FI), classificação de risco, análise técnica automatizada e recomendações estratégicas.
+          </p>
+          <div className="space-y-2">
+            {reportTopicsKanitz.map(t => {
+              const Icon = t.icon;
+              return (
+                <div key={t.num} className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/20">
+                  <div className="w-6 h-6 rounded bg-amber-500/10 flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-bold text-amber-600">{t.num}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{t.desc}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground">{t.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{t.desc}</p>
+                  </div>
                 </div>
-                <CheckCircle2 className="w-4 h-4 text-emerald-500/50 shrink-0 mt-1" />
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 pt-2">
-          {["NBC TA 700", "NBC TA 705", "CPC 26", "CPC 47", "IFRS 15", "Lei 11.101/2005"].map(n => (
-            <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {["Kanitz (1978)", "NBC TA 570", "Lei 11.101/2005", "CPC 26"].map(n => (
+              <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
+            ))}
+          </div>
+          <Button
+            onClick={onGerarKanitz}
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2 h-11 text-sm font-semibold rounded-xl shadow-lg shadow-amber-500/20"
+          >
+            <Scale className="w-4 h-4" /> Gerar Relatório Kanitz
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   </div>
 );
 
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null }) => {
+const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const today = new Date().toLocaleDateString("pt-BR");
@@ -1268,6 +1323,11 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData }: { onBack: () => v
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
+        {onSwitchToKanitz && (
+          <Button size="sm" className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white" onClick={onSwitchToKanitz}>
+            <Scale className="w-4 h-4" /> Relatório Kanitz
+          </Button>
+        )}
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
@@ -1782,6 +1842,470 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData }: { onBack: () => v
         <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
+        {onSwitchToKanitz && (
+          <Button className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white" onClick={onSwitchToKanitz}>
+            <Scale className="w-4 h-4" /> Relatório Kanitz
+          </Button>
+        )}
+        <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
+          <Printer className="w-4 h-4" /> Imprimir
+        </Button>
+        <Button variant="outline" onClick={onBack} className="gap-1.5">
+          <ArrowLeft className="w-4 h-4" /> Nova Análise
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   TAB: RELATÓRIO KANITZ (TERMÔMETRO DE INSOLVÊNCIA)
+   ══════════════════════════════════════════════════════ */
+const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void }) => {
+  const today = new Date().toLocaleDateString("pt-BR");
+
+  const findValue = (keyword: string, year: string) => {
+    if (!parsedData) return 0;
+    const allRows = [...parsedData.balanco, ...parsedData.dre];
+    const row = allRows.find(r =>
+      r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword)
+    );
+    return row?.values[year] || 0;
+  };
+
+  const kanitzResults: Array<{
+    year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
+    classificacao: "solvente" | "penumbra" | "insolvente"; riskScoreNormalized: number;
+    ac: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number;
+  }> = [];
+
+  if (parsedData) {
+    for (const year of parsedData.years) {
+      const ac = Math.abs(findValue("total do ativo circulante", year) || findValue("ativo circulante", year));
+      const pc = Math.abs(findValue("total do passivo circulante", year) || findValue("passivo circulante", year));
+      const pnc = Math.abs(findValue("total do passivo não circulante", year) || findValue("passivo nao circulante", year));
+      const pl = Math.abs(findValue("total do patrimônio", year) || findValue("patrimonio líquido", year) || findValue("patrimônio líquido", year));
+      const estoque = Math.abs(findValue("estoque", year));
+      const ll = findValue("resultado do exercício", year) || findValue("lucro líquido", year);
+      const rlp = Math.abs(findValue("realizável a longo prazo", year) || findValue("realizavel", year));
+      const pt = pc + pnc;
+      const rpl = pl !== 0 ? ll / pl : 0;
+      const lg = pt !== 0 ? (ac + rlp) / pt : 0;
+      const ls = pc !== 0 ? (ac - estoque) / pc : 0;
+      const lc = pc !== 0 ? ac / pc : 0;
+      const ge = pl !== 0 ? pt / pl : 0;
+      const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
+      const classificacao: "solvente" | "penumbra" | "insolvente" = fi > 0 ? "solvente" : fi >= -3 ? "penumbra" : "insolvente";
+      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, classificacao, riskScoreNormalized: 0, ac, pc, pnc, pl, estoque, rlp, pt, ll });
+    }
+    if (kanitzResults.length > 0) {
+      const fiValues = kanitzResults.map(r => r.fi);
+      const fiMin = Math.min(...fiValues);
+      const fiMax = Math.max(...fiValues);
+      const range = fiMax - fiMin || 1;
+      kanitzResults.forEach(r => { r.riskScoreNormalized = Math.round(((r.fi - fiMin) / range) * 100); });
+    }
+  }
+
+  const latest = kanitzResults[kanitzResults.length - 1];
+  const previous = kanitzResults.length > 1 ? kanitzResults[kanitzResults.length - 2] : null;
+  const fiDelta = previous ? (latest?.fi || 0) - previous.fi : 0;
+
+  const classColors: Record<string, { icon: string; label: string; color: string }> = {
+    solvente: { icon: "🟢", label: "Solvente", color: "text-emerald-600" },
+    penumbra: { icon: "🟡", label: "Zona de Penumbra", color: "text-yellow-600" },
+    insolvente: { icon: "🔴", label: "Insolvente", color: "text-red-600" },
+  };
+
+  const SectionTitle = ({ num, title }: { num: string; title: string }) => (
+    <div className="flex items-center gap-3 py-3 border-b-2 border-amber-500/30 mb-4">
+      <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm font-bold">{num}</div>
+      <h2 className="text-lg font-bold text-foreground font-serif">{title}</h2>
+    </div>
+  );
+
+  const fmtDec = (n: number) => n.toFixed(4);
+
+  if (!parsedData || kanitzResults.length === 0) {
+    return (
+      <Card><CardContent className="py-12 text-center">
+        <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">Nenhum dado financeiro disponível para gerar o Relatório Kanitz.</p>
+      </CardContent></Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Action buttons */}
+      <div className="flex justify-end gap-2 print:hidden">
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+          <Download className="w-4 h-4" /> Exportar
+        </Button>
+        {onSwitchToBex && (
+          <Button size="sm" className="gap-1.5 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white" onClick={onSwitchToBex}>
+            <BookOpen className="w-4 h-4" /> Relatório BEX
+          </Button>
+        )}
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+          <Printer className="w-4 h-4" /> Imprimir
+        </Button>
+        <Button variant="outline" size="sm" onClick={onBack} className="gap-1.5">
+          <ArrowLeft className="w-4 h-4" /> Nova Análise
+        </Button>
+      </div>
+
+      {/* ── CAPA ── */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-amber-800 text-white p-8 md:p-12 text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+              <Scale className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/70 font-semibold">Plataforma BEX</p>
+            <h1 className="text-xl md:text-2xl font-bold font-serif leading-tight">
+              RELATÓRIO KANITZ<br />TERMÔMETRO DE INSOLVÊNCIA
+            </h1>
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10">
+            <span className="text-lg">{latest && classColors[latest.classificacao]?.icon}</span>
+            <span className="text-sm font-semibold">{latest && classColors[latest.classificacao]?.label} — FI: {latest?.fi.toFixed(2)}</span>
+          </div>
+          <div className="space-y-1 text-sm text-white/80">
+            <p className="font-semibold text-white">Empresa Analisada: Empresa Demonstração S.A.</p>
+            <p>Período: {parsedData.years.join(" / ")}</p>
+            <p>Data de Emissão: {today}</p>
+          </div>
+          <div className="pt-4 border-t border-white/20 space-y-1">
+            <p className="text-xs text-white/60 uppercase tracking-wider">Responsável Técnico</p>
+            <p className="text-sm font-semibold">Agente IA — Auditor Contábil Sênior</p>
+            <p className="text-xs text-white/70">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── 1. SUMÁRIO EXECUTIVO ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="1" title="SUMÁRIO EXECUTIVO" />
+          <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+            <p className="text-sm text-foreground leading-relaxed">
+              {latest.classificacao === "solvente"
+                ? `A empresa apresenta Fator de Insolvência de ${latest.fi.toFixed(2)}, classificando-se como SOLVENTE segundo o modelo Kanitz. Os indicadores de liquidez e rentabilidade demonstram capacidade adequada de honrar obrigações no curto e longo prazo. O Risk Score normalizado de ${latest.riskScoreNormalized}/100 confirma perfil de baixo risco.`
+                : latest.classificacao === "penumbra"
+                ? `A empresa encontra-se em ZONA DE PENUMBRA com Fator de Insolvência de ${latest.fi.toFixed(2)}. Apresenta fragilidade nos indicadores de liquidez seca (LS = ${fmtDec(latest.ls)}) e aumento do grau de endividamento (GE = ${fmtDec(latest.ge)}). Recomenda-se revisão da estrutura de capital e renegociação de passivos. O Risk Score normalizado é ${latest.riskScoreNormalized}/100.`
+                : `A empresa está em situação de INSOLVÊNCIA com Fator de Insolvência de ${latest.fi.toFixed(2)}. Os indicadores financeiros demonstram deterioração severa. Liquidez Seca de ${fmtDec(latest.ls)} e Grau de Endividamento de ${fmtDec(latest.ge)} indicam incapacidade de pagamento. Recomenda-se reestruturação financeira imediata conforme Lei 11.101/2005.`}
+            </p>
+          </div>
+          {previous && (
+            <div className="grid sm:grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg bg-muted/20 text-center">
+                <p className="text-[10px] text-muted-foreground">FI Atual ({latest.year})</p>
+                <p className={`text-2xl font-bold font-mono ${classColors[latest.classificacao]?.color}`}>{latest.fi.toFixed(2)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/20 text-center">
+                <p className="text-[10px] text-muted-foreground">FI Anterior ({previous.year})</p>
+                <p className={`text-2xl font-bold font-mono ${classColors[previous.classificacao]?.color}`}>{previous.fi.toFixed(2)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/20 text-center">
+                <p className="text-[10px] text-muted-foreground">Variação</p>
+                <p className={`text-2xl font-bold font-mono ${fiDelta > 0 ? "text-emerald-600" : "text-red-600"}`}>
+                  {fiDelta > 0 ? "+" : ""}{fiDelta.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── 2. INDICADORES FINANCEIROS ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="2" title="INDICADORES FINANCEIROS" />
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px]">Indicador</TableHead>
+                  <TableHead className="text-[10px]">Sigla</TableHead>
+                  <TableHead className="text-[10px]">Fórmula</TableHead>
+                  <TableHead className="text-[10px]">Peso Kanitz</TableHead>
+                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
+                  <TableHead className="text-[10px]">Interpretação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { name: "Rentabilidade do PL", sigla: "RPL", formula: "LL / PL", peso: "+0,05", key: "rpl" as const, interp: "Retorno ao acionista" },
+                  { name: "Liquidez Geral", sigla: "LG", formula: "(AC + RLP) / PT", peso: "+1,65", key: "lg" as const, interp: "Capacidade de pagamento total" },
+                  { name: "Liquidez Seca", sigla: "LS", formula: "(AC - EST) / PC", peso: "+3,55", key: "ls" as const, interp: "Liquidez excluindo estoques" },
+                  { name: "Liquidez Corrente", sigla: "LC", formula: "AC / PC", peso: "−1,06", key: "lc" as const, interp: "Capacidade de curto prazo" },
+                  { name: "Grau de Endividamento", sigla: "GE", formula: "PT / PL", peso: "−0,33", key: "ge" as const, interp: "Dependência de terceiros" },
+                ].map(ind => (
+                  <TableRow key={ind.sigla}>
+                    <TableCell className="text-xs font-medium">{ind.name}</TableCell>
+                    <TableCell className="text-xs font-mono font-bold">{ind.sigla}</TableCell>
+                    <TableCell className="text-[10px] font-mono text-muted-foreground">{ind.formula}</TableCell>
+                    <TableCell className="text-xs font-mono font-bold">{ind.peso}</TableCell>
+                    {kanitzResults.map(r => (
+                      <TableCell key={r.year} className="text-right text-xs font-mono">{fmtDec(r[ind.key])}</TableCell>
+                    ))}
+                    <TableCell className="text-[10px] text-muted-foreground">{ind.interp}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 3. RESULTADO DO FATOR DE INSOLVÊNCIA ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="3" title="RESULTADO DO FATOR DE INSOLVÊNCIA" />
+          
+          <div className="text-center py-6">
+            <p className={`text-6xl font-bold ${classColors[latest.classificacao]?.color}`}>{latest.fi.toFixed(2)}</p>
+            <p className={`text-xl font-semibold mt-2 ${classColors[latest.classificacao]?.color}`}>
+              {classColors[latest.classificacao]?.icon} {classColors[latest.classificacao]?.label}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Fator de Insolvência — Modelo Kanitz</p>
+          </div>
+
+          {/* Termômetro */}
+          <div className="px-4">
+            <div className="relative h-12 rounded-full overflow-hidden bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500">
+              {kanitzResults.map(r => {
+                const pos = Math.max(0, Math.min(100, ((r.fi + 7) / 14) * 100));
+                return (
+                  <div key={r.year} className="absolute top-0 bottom-0 w-1 bg-foreground rounded-full shadow-lg" style={{ left: `${pos}%`, transform: "translateX(-50%)" }} title={`${r.year}: FI = ${r.fi.toFixed(2)}`}>
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold whitespace-nowrap bg-foreground text-background px-1.5 py-0.5 rounded">{r.year}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
+              <span>Insolvente (FI &lt; -3)</span>
+              <span>Penumbra (-3 ≤ FI ≤ 0)</span>
+              <span>Solvente (FI &gt; 0)</span>
+            </div>
+          </div>
+
+          {/* Classificação por período */}
+          <div className="grid sm:grid-cols-3 gap-3 mt-4">
+            {kanitzResults.map(r => (
+              <div key={r.year} className={`p-4 rounded-lg border text-center space-y-1 ${
+                r.classificacao === "solvente" ? "bg-emerald-500/10 border-emerald-500/30" :
+                r.classificacao === "penumbra" ? "bg-yellow-500/10 border-yellow-500/30" : "bg-red-500/10 border-red-500/30"
+              }`}>
+                <p className="text-xs text-muted-foreground font-semibold">{r.year}</p>
+                <p className="text-2xl font-bold font-mono">{r.fi.toFixed(2)}</p>
+                <p className={`text-xs font-semibold ${classColors[r.classificacao]?.color}`}>{classColors[r.classificacao]?.icon} {classColors[r.classificacao]?.label}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 4. ANÁLISE TÉCNICA AUTOMATIZADA ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="4" title="ANÁLISE TÉCNICA AUTOMATIZADA" />
+          <div className="space-y-3">
+            {[
+              { title: "Estrutura de Capital", text: `O Patrimônio Líquido de R$ ${fmt(latest.pl)} representa ${latest.pt > 0 ? fmtPct(latest.pl / (latest.pl + latest.pt)) : "N/A"} do capital total. O Grau de Endividamento (GE) de ${fmtDec(latest.ge)} indica ${latest.ge > 2 ? "alta" : latest.ge > 1 ? "moderada" : "baixa"} dependência de capital de terceiros.` },
+              { title: "Dependência de Terceiros", text: `O Passivo Total de R$ ${fmt(latest.pt)} é composto por PC R$ ${fmt(latest.pc)} (${fmtPct(latest.pt > 0 ? latest.pc / latest.pt : 0)}) e PNC R$ ${fmt(latest.pnc)} (${fmtPct(latest.pt > 0 ? latest.pnc / latest.pt : 0)}). ${latest.pc > latest.pnc ? "Concentração de dívida no curto prazo requer atenção." : "Dívida majoritariamente de longo prazo, permitindo maior planejamento."}` },
+              { title: "Capacidade de Pagamento", text: `A Liquidez Corrente (LC) de ${fmtDec(latest.lc)} ${latest.lc > 1.5 ? "indica capacidade adequada de honrar compromissos de curto prazo" : latest.lc > 1 ? "indica capacidade limitada — recomenda-se monitoramento" : "indica incapacidade de honrar obrigações correntes"}. A Liquidez Seca (LS) de ${fmtDec(latest.ls)} ${latest.ls > 1 ? "confirma solidez mesmo excluindo estoques" : "revela fragilidade quando estoques são excluídos"}.` },
+              { title: "Deterioração Financeira", text: previous ? `O FI variou de ${previous.fi.toFixed(2)} (${previous.year}) para ${latest.fi.toFixed(2)} (${latest.year}), representando ${fiDelta > 0 ? "melhora" : "piora"} de ${Math.abs(fiDelta).toFixed(2)} pontos. ${Math.abs(fiDelta) > 1 ? "Variação significativa requer atenção da gestão." : "Variação dentro de parâmetros normais."}` : "Análise comparativa indisponível — apenas um período carregado." },
+            ].map(item => (
+              <div key={item.title} className="p-4 rounded-lg bg-muted/20 border border-border/30">
+                <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 5. RECOMENDAÇÕES ESTRATÉGICAS ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="5" title="RECOMENDAÇÕES ESTRATÉGICAS" />
+          <div className="space-y-3">
+            {[
+              ...(latest.ge > 1.5 ? [{ icon: "📉", title: "Redução de Passivos", text: "O Grau de Endividamento elevado requer plano de desalavancagem. Priorizar quitação de dívidas onerosas e renegociação de condições." }] : []),
+              ...(latest.lc < 1.5 ? [{ icon: "🔄", title: "Reestruturação de Capital", text: "Avaliar aporte de capital próprio ou conversão de dívida em participação societária para reequilibrar a estrutura de capital." }] : []),
+              { icon: "⚙️", title: "Ajustes Operacionais", text: `Com RPL de ${fmtDec(latest.rpl)}, ${latest.rpl > 0.15 ? "a rentabilidade está adequada. Manter eficiência operacional." : "recomenda-se revisão de custos e margens para melhorar a geração de resultado."}` },
+              { icon: "💰", title: "Planejamento de Fluxo de Caixa", text: `Liquidez Seca de ${fmtDec(latest.ls)} ${latest.ls < 1 ? "indica necessidade de melhorar a gestão de recebíveis e reduzir dependência de estoques" : "está dentro de parâmetros aceitáveis"}. Monitorar ciclo financeiro e prazos médios.` },
+              ...(latest.fi <= 0 ? [{ icon: "⚠️", title: "Monitoramento de Insolvência", text: "Com FI na zona de " + (latest.classificacao === "penumbra" ? "penumbra" : "insolvência") + ", implementar acompanhamento mensal dos indicadores Kanitz. Avaliar necessidade de consultoria especializada em recuperação empresarial." }] : []),
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-4 rounded-lg bg-muted/20 border border-border/30">
+                <span className="text-xl shrink-0">{item.icon}</span>
+                <div>
+                  <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── 6. MEMÓRIA DE CÁLCULO ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="6" title="MEMÓRIA DE CÁLCULO" />
+          
+          <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
+            <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
+            <code className="block text-[11px] font-mono leading-relaxed text-foreground">
+              FI = (0,05 × RPL) + (1,65 × LG) + (3,55 × LS) − (1,06 × LC) − (0,33 × GE)
+            </code>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px]">Componente</TableHead>
+                  <TableHead className="text-[10px]">Peso</TableHead>
+                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year} (Valor)</TableHead>)}
+                  {kanitzResults.map(r => <TableHead key={`w-${r.year}`} className="text-right text-[10px]">{r.year} (Ponderado)</TableHead>)}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { name: "RPL", peso: 0.05, key: "rpl" as const },
+                  { name: "LG", peso: 1.65, key: "lg" as const },
+                  { name: "LS", peso: 3.55, key: "ls" as const },
+                  { name: "LC", peso: -1.06, key: "lc" as const },
+                  { name: "GE", peso: -0.33, key: "ge" as const },
+                ].map(c => (
+                  <TableRow key={c.name}>
+                    <TableCell className="text-xs font-mono font-bold">{c.name}</TableCell>
+                    <TableCell className="text-xs font-mono">{c.peso > 0 ? `+${c.peso}` : c.peso}</TableCell>
+                    {kanitzResults.map(r => (
+                      <TableCell key={r.year} className="text-right text-xs font-mono">{fmtDec(r[c.key])}</TableCell>
+                    ))}
+                    {kanitzResults.map(r => (
+                      <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * r[c.key]).toFixed(4)}</TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                <TableRow className="border-t-2 border-foreground/20">
+                  <TableCell className="text-xs font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
+                  {kanitzResults.map(r => <TableCell key={r.year} className="text-right" />)}
+                  {kanitzResults.map(r => (
+                    <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${
+                      r.fi > 0 ? "text-emerald-600" : r.fi >= -3 ? "text-yellow-600" : "text-red-600"
+                    }`}>{r.fi.toFixed(2)}</TableCell>
+                  ))}
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Dados Utilizados</h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">Variável</TableHead>
+                    {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { label: "Lucro Líquido", key: "ll" },
+                    { label: "Patrimônio Líquido", key: "pl" },
+                    { label: "Ativo Circulante", key: "ac" },
+                    { label: "Realizável a LP", key: "rlp" },
+                    { label: "Estoques", key: "estoque" },
+                    { label: "Passivo Circulante", key: "pc" },
+                    { label: "Passivo Total", key: "pt" },
+                  ].map(v => (
+                    <TableRow key={v.label}>
+                      <TableCell className="text-xs font-medium">{v.label}</TableCell>
+                      {kanitzResults.map(r => (
+                        <TableCell key={r.year} className="text-right text-xs font-mono">R$ {fmt((r as any)[v.key])}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Risk Score Normalizado ── */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="★" title="RISK SCORE NORMALIZADO — ESCALA EBEX" />
+          <div className="text-center py-4">
+            <p className="text-5xl font-bold font-mono text-foreground">{latest.riskScoreNormalized}</p>
+            <p className="text-sm font-semibold mt-1 text-muted-foreground">de 100 pontos</p>
+            <p className={`text-xs mt-1 ${latest.riskScoreNormalized <= 30 ? "text-red-600" : latest.riskScoreNormalized <= 70 ? "text-yellow-600" : "text-emerald-600"}`}>
+              {latest.riskScoreNormalized <= 30 ? "Alto Risco" : latest.riskScoreNormalized <= 70 ? "Médio Risco" : "Baixo Risco"}
+            </p>
+          </div>
+          <div className="space-y-2">
+            {[
+              { range: "0 – 30", label: "Alto Risco", color: "bg-red-500/10 text-red-600", active: latest.riskScoreNormalized <= 30 },
+              { range: "31 – 70", label: "Médio Risco", color: "bg-yellow-500/10 text-yellow-600", active: latest.riskScoreNormalized > 30 && latest.riskScoreNormalized <= 70 },
+              { range: "71 – 100", label: "Baixo Risco", color: "bg-emerald-500/10 text-emerald-600", active: latest.riskScoreNormalized > 70 },
+            ].map(item => (
+              <div key={item.range} className={`flex items-center justify-between p-3 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-amber-500" : ""}`}>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-mono font-bold px-2 py-1 rounded ${item.color}`}>{item.range}</span>
+                  <span className="text-sm font-medium text-foreground">{item.label}</span>
+                </div>
+                {item.active && <CheckCircle2 className="w-4 h-4 text-amber-500" />}
+              </div>
+            ))}
+          </div>
+          <div className="p-3 rounded-lg bg-muted/30">
+            <p className="text-[10px] font-semibold text-foreground mb-1">Fórmula de Normalização:</p>
+            <code className="text-[10px] font-mono text-muted-foreground">
+              RiskScore = (FI - FI_min) / (FI_max - FI_min) × 100
+            </code>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── ASSINATURA ── */}
+      <Card className="bg-muted/20">
+        <CardContent className="pt-6 text-center space-y-3">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center">
+            <Scale className="w-6 h-6 text-amber-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Documento gerado e assinado digitalmente</p>
+            <p className="text-xs text-muted-foreground">Agente IA — Auditor Contábil Sênior</p>
+            <p className="text-xs text-muted-foreground">Modelo: Kanitz — Termômetro de Insolvência (1978)</p>
+            <p className="text-xs text-muted-foreground mt-2">Plataforma BEX — {today}</p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-1.5 pt-2">
+            {["Kanitz (1978)", "NBC TA 570", "CPC 26", "Lei 11.101/2005"].map(n => (
+              <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Action buttons bottom */}
+      <div className="flex justify-center gap-3 pt-4 print:hidden">
+        <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
+          <Download className="w-4 h-4" /> Exportar
+        </Button>
+        {onSwitchToBex && (
+          <Button className="gap-1.5 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white" onClick={onSwitchToBex}>
+            <BookOpen className="w-4 h-4" /> Relatório BEX
+          </Button>
+        )}
         <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
@@ -1802,7 +2326,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
   parsedData?: ParsedFinancialData | null;
 }) => {
   const navigate = useNavigate();
-  const [reportGenerated, setReportGenerated] = useState(false);
+  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
   const [activeTab, setActiveTab] = useState("diagnostico");
 
   // Use AI data if available, otherwise fall back to mock data
@@ -1810,13 +2334,17 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
   const activePendencias = aiAnalysis?.pendencias || pendencias;
   const activeScoreRJ = aiAnalysis?.scoreRJ || scoreRJData;
 
-  const handleGerarRelatorio = () => {
-    setReportGenerated(true);
+  const handleGerarBex = () => {
+    setReportType("bex");
+  };
+
+  const handleGerarKanitz = () => {
+    setReportType("kanitz");
   };
 
   return (
     <div className="space-y-6">
-      <StepTimeline currentStep={reportGenerated ? 5 : 4} />
+      <StepTimeline currentStep={reportType !== "none" ? 5 : 4} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1863,10 +2391,12 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="relatorio-final">
-          {reportGenerated ? (
-            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} />
+          {reportType === "bex" ? (
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarKanitz} />
+          ) : reportType === "kanitz" ? (
+            <TabRelatorioKanitz onBack={onBack} parsedData={parsedData} onSwitchToBex={handleGerarBex} />
           ) : (
-            <TabRelatorioPreview onGerar={handleGerarRelatorio} />
+            <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} />
           )}
         </TabsContent>
       </Tabs>
