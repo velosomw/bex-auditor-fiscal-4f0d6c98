@@ -57,7 +57,7 @@ const DiagnosticoRapido = () => {
       </section>
 
       {/* Para quem é indicado */}
-      <section className="px-6 md:px-12 lg:px-20 xl:px-32 py-16 lg:py-24">
+      <section className="px-6 md:px-12 lg:px-20 xl:px-32 py-6 lg:py-10">
         <div className="max-w-7xl mx-auto rounded-3xl bg-primary overflow-hidden">
           <div className="grid md:grid-cols-2">
             <div className="p-10 md:p-14">
