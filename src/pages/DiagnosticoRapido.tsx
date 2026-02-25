@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
 import imgDiagnostico from "@/assets/solution-diagnostico.jpg";
 import PappersSection from "@/components/PappersSection";
 
@@ -33,25 +33,43 @@ const DiagnosticoRapido = () => {
 
       {/* O que entregamos */}
       <section className="section-padding bg-background">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-serif font-bold text-foreground mb-6">O que entregamos</h2>
-          <p className="text-muted-foreground leading-relaxed mb-8">
-            Relatório Técnico-Financeiro completo com prioridades e oportunidades imediatas de renegociação. Levantamos, classificamos e analisamos todo o passivo, fluxos de caixa e estrutura de custos da sua empresa.
-          </p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              "Análise completa do passivo empresarial",
-              "Mapeamento de fluxos de caixa",
-              "Identificação de custos ocultos",
-              "Priorização de pagamentos",
-              "Oportunidades imediatas de renegociação",
-              "Relatório executivo com recomendações",
-            ].map((item) => (
-              <div key={item} className="flex items-center gap-3 text-sm text-foreground">
-                <CheckCircle2 className="w-5 h-5 text-accent shrink-0" />
-                {item}
-              </div>
-            ))}
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-[1fr_1px_1fr] gap-0">
+            {/* Coluna esquerda - Texto */}
+            <div className="pr-0 md:pr-10 pb-8 md:pb-0">
+              <h2 className="text-2xl md:text-3xl font-serif font-bold text-foreground mb-6">O que entregamos</h2>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                Relatório Técnico-Financeiro completo com prioridades e oportunidades imediatas de renegociação. Levantamos, classificamos e analisamos todo o passivo, fluxos de caixa e estrutura de custos da sua empresa.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                Nosso diagnóstico oferece uma visão clara e objetiva da situação financeira, permitindo decisões estratégicas fundamentadas.
+              </p>
+            </div>
+
+            {/* Separador vertical */}
+            <div className="hidden md:block bg-border" />
+
+            {/* Coluna direita - Tópicos */}
+            <div className="pl-0 md:pl-0">
+              {[
+                "Análise completa do passivo empresarial",
+                "Mapeamento de fluxos de caixa",
+                "Identificação de custos ocultos",
+                "Priorização de pagamentos",
+                "Oportunidades imediatas de renegociação",
+                "Relatório executivo com recomendações",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="group flex items-center justify-between px-6 py-4 border-b border-border last:border-b-0 cursor-default hover:bg-muted/50 hover:pl-8 transition-all duration-300"
+                >
+                  <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">
+                    {item}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
 import imgConsultoria from "@/assets/solution-consultoria.jpg";
 import PappersSection from "@/components/PappersSection";
 
@@ -32,29 +32,42 @@ const ConsultoriaCompleta = () => {
 
       {/* O que entregamos */}
       <section className="section-padding bg-background">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-serif font-bold text-foreground mb-6">O que entregamos</h2>
-          <p className="text-muted-foreground leading-relaxed mb-8">
-            Acompanhamento completo e integral durante 6 a 12 meses, incluindo suporte técnico em Recuperação Judicial e Extrajudicial, com relatórios mensais e treinamento gerencial.
-          </p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {[
-              "Laudo de Viabilidade Econômico-Financeira",
-              "Suporte integral em RJ/RE",
-              "Negociação direta com bancos e credores",
-              "Negociação com fornecedores estratégicos",
-              "Relatórios mensais de acompanhamento",
-              "Dashboards de performance financeira",
-              "Treinamento gerencial e financeiro",
-              "Governança financeira aprimorada",
-              "Indicadores de performance customizados",
-              "Educação financeira para gestão",
-            ].map((item) => (
-              <div key={item} className="flex items-center gap-3 text-sm text-foreground">
-                <CheckCircle2 className="w-5 h-5 text-accent shrink-0" />
-                {item}
-              </div>
-            ))}
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-[1fr_1px_1fr] gap-0">
+            <div className="pr-0 md:pr-10 pb-8 md:pb-0">
+              <h2 className="text-2xl md:text-3xl font-serif font-bold text-foreground mb-6">O que entregamos</h2>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                Acompanhamento completo e integral durante 6 a 12 meses, incluindo suporte técnico em Recuperação Judicial e Extrajudicial, com relatórios mensais e treinamento gerencial.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                Nossa consultoria oferece governança financeira aprimorada e indicadores de performance customizados para a recuperação sustentável da empresa.
+              </p>
+            </div>
+            <div className="hidden md:block bg-border" />
+            <div className="pl-0 md:pl-0">
+              {[
+                "Laudo de Viabilidade Econômico-Financeira",
+                "Suporte integral em RJ/RE",
+                "Negociação direta com bancos e credores",
+                "Negociação com fornecedores estratégicos",
+                "Relatórios mensais de acompanhamento",
+                "Dashboards de performance financeira",
+                "Treinamento gerencial e financeiro",
+                "Governança financeira aprimorada",
+                "Indicadores de performance customizados",
+                "Educação financeira para gestão",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="group flex items-center justify-between px-6 py-4 border-b border-border last:border-b-0 cursor-default hover:bg-muted/50 hover:pl-8 transition-all duration-300"
+                >
+                  <span className="text-sm font-medium text-foreground group-hover:text-accent transition-colors">
+                    {item}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
