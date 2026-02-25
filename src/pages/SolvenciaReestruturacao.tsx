@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import imgSolvencia from "@/assets/solution-solvencia.jpg";
+import PappersSection from "@/components/PappersSection";
 
 const SolvenciaReestruturacao = () => {
   return (
@@ -93,6 +94,8 @@ const SolvenciaReestruturacao = () => {
           </div>
         </div>
       </section>
+
+      <PappersSection />
     </>
   );
 };
