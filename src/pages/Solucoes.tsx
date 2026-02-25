@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import sphereVideo from "@/assets/solutions-sphere.mp4";
+import wavesVideo from "@/assets/solutions-waves.mp4";
 import imgDiagnostico from "@/assets/solution-diagnostico.jpg";
 import imgSolvencia from "@/assets/solution-solvencia.jpg";
 import imgConsultoria from "@/assets/solution-consultoria.jpg";
@@ -45,6 +45,20 @@ const Solucoes = () => {
             <span className="text-foreground font-medium">Soluções</span>
           </div>
           <div className="relative rounded-3xl overflow-hidden bg-primary min-h-[280px] md:min-h-[320px] flex">
+            {/* Video background */}
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            >
+              <source src={wavesVideo} type="video/mp4" />
+            </video>
+            {/* Gradient overlay for seamless blend with primary */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[hsl(222_47%_14%)] via-[hsl(222_47%_14%/0.85)] to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[hsl(222_47%_14%/0.3)] to-transparent" />
+
             <div className="relative z-10 flex-1 flex flex-col justify-center p-10 md:p-14 lg:p-16">
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
@@ -61,17 +75,6 @@ const Solucoes = () => {
               >
                 Como podemos contribuir com a evolução dos seus negócios?
               </motion.p>
-            </div>
-            <div className="hidden md:flex items-center justify-center w-[45%] relative overflow-hidden bg-[hsl(222_47%_8%)]">
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover opacity-90"
-              >
-                <source src={sphereVideo} type="video/mp4" />
-              </video>
             </div>
           </div>
         </div>
