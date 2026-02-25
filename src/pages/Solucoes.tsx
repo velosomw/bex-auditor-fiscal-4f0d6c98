@@ -37,37 +37,42 @@ const Solucoes = () => {
   return (
     <>
       {/* Hero */}
-      <section className="relative py-24 md:py-32 overflow-hidden">
-        <img
-          src={solutionsHero}
-          alt="Soluções BEX"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="hero-overlay absolute inset-0" />
-        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-accent text-sm font-semibold tracking-widest uppercase mb-3"
-          >
-            Nossas Soluções
-          </motion.p>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-serif font-bold text-primary-foreground max-w-2xl mb-4"
-          >
-            Soluções Estratégicas para sua Empresa
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-primary-foreground/70 max-w-xl"
-          >
-            Como podemos contribuir com a evolução dos seus negócios?
-          </motion.p>
+      <section className="section-padding bg-background">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+            <Link to="/" className="hover:text-accent transition-colors">🏠</Link>
+            <span>/</span>
+            <span className="text-foreground font-medium">Soluções</span>
+          </div>
+          <div className="relative rounded-3xl overflow-hidden bg-primary min-h-[280px] md:min-h-[320px] flex">
+            <div className="relative z-10 flex-1 flex flex-col justify-center p-10 md:p-14 lg:p-16">
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl md:text-5xl font-serif font-bold text-primary-foreground mb-4"
+              >
+                Soluções
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-primary-foreground/70 max-w-md text-lg"
+              >
+                Como podemos contribuir com a evolução dos seus negócios?
+              </motion.p>
+            </div>
+            <div className="hidden md:flex items-center justify-center w-[40%] relative overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg viewBox="0 0 400 400" className="w-[350px] h-[350px]" fill="none">
+                  <circle cx="200" cy="200" r="160" fill="hsl(var(--primary))" fillOpacity="0.6" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.2" />
+                  <circle cx="200" cy="200" r="120" fill="hsl(var(--primary))" fillOpacity="0.7" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.15" />
+                  <circle cx="200" cy="200" r="80" fill="hsl(var(--primary))" fillOpacity="0.85" stroke="hsl(var(--accent))" strokeWidth="1" strokeOpacity="0.1" />
+                  <circle cx="200" cy="200" r="40" fill="hsl(215 45% 10%)" />
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
