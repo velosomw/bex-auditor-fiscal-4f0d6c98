@@ -9,7 +9,7 @@ const Footer = () => {
           {/* Brand */}
           <div>
             <Link to="/" className="inline-flex items-center gap-2 mb-4">
-              <span className="text-2xl font-serif font-bold">BEX</span>
+              <span className="text-2xl font-display font-bold">BEX</span>
               <span className="text-sm text-accent font-medium tracking-widest uppercase">Auditoria</span>
             </Link>
             <p className="text-primary-foreground/60 text-sm leading-relaxed">
@@ -85,7 +85,7 @@ const Footer = () => {
               </Link>
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[hsl(258,90%,66%)]/10 border border-[hsl(258,90%,66%)]/20 text-[hsl(258,90%,66%)] text-sm font-semibold hover:bg-[hsl(258,90%,66%)]/20 transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-accent/10 border border-accent/20 text-accent text-sm font-semibold hover:bg-accent/20 transition-colors"
               >
                 <Brain className="w-4 h-4" />
                 Gestor IA

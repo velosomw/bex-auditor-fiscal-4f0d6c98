@@ -46,7 +46,7 @@ const Header = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-12 h-16 lg:h-20">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-2xl font-serif font-bold text-primary-foreground tracking-tight">
+          <span className="text-2xl font-display font-bold text-primary-foreground tracking-tight">
             BEX
           </span>
           <span className="text-sm font-sans text-accent font-medium tracking-widest uppercase">

@@ -34,7 +34,7 @@ const Insights = () => {
     <>
       <section className="relative py-24 md:py-32 bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold max-w-2xl mb-4">Insights</h1>
+          <h1 className="text-4xl md:text-5xl font-display font-bold max-w-2xl mb-4">Insights</h1>
           <p className="text-primary-foreground/70 max-w-xl">
             Artigos, análises e publicações sobre reestruturação financeira, gestão de solvência e recuperação empresarial.
           </p>
@@ -57,7 +57,7 @@ const Insights = () => {
                   <span className="text-xs font-semibold uppercase tracking-wider text-accent">{item.category}</span>
                   <span className="text-xs text-muted-foreground">{item.date}</span>
                 </div>
-                <h2 className="font-serif font-bold text-xl text-foreground mb-3">{item.title}</h2>
+                <h2 className="font-display font-bold text-xl text-foreground mb-3">{item.title}</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4">{item.excerpt}</p>
                 <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent cursor-pointer hover:underline">
                   Ler mais <ArrowRight className="w-4 h-4" />

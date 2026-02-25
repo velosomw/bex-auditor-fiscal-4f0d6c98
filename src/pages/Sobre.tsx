@@ -6,7 +6,7 @@ const Sobre = () => {
     <>
       <section className="relative py-24 md:py-32 bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold max-w-2xl mb-4">Sobre Nós</h1>
+          <h1 className="text-4xl md:text-5xl font-display font-bold max-w-2xl mb-4">Sobre Nós</h1>
           <p className="text-primary-foreground/70 max-w-xl">
             Conheça a BEX Auditoria e nossa missão de transformar desafios financeiros em oportunidades de crescimento.
           </p>
@@ -21,7 +21,7 @@ const Sobre = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl font-serif font-bold text-foreground mb-6">
+              <h2 className="text-3xl font-display font-bold text-foreground mb-6">
                 Inteligência financeira para o seu negócio
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
@@ -49,7 +49,7 @@ const Sobre = () => {
       {/* Values */}
       <section className="section-padding bg-muted">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-serif font-bold text-foreground mb-12 text-center">Nossos Valores</h2>
+          <h2 className="text-3xl font-display font-bold text-foreground mb-12 text-center">Nossos Valores</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { title: "Transparência", desc: "Clareza total em cada etapa do processo. Relatórios objetivos e comunicação direta." },
@@ -64,7 +64,7 @@ const Sobre = () => {
                 transition={{ delay: i * 0.15 }}
                 className="bg-card rounded-lg p-8 border border-border card-hover"
               >
-                <h3 className="font-serif font-bold text-lg text-foreground mb-3">{v.title}</h3>
+                <h3 className="font-display font-bold text-lg text-foreground mb-3">{v.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{v.desc}</p>
               </motion.div>
             ))}
@@ -75,16 +75,16 @@ const Sobre = () => {
       {/* Locations */}
       <section className="section-padding bg-background">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-serif font-bold text-foreground mb-12">Nossos Escritórios</h2>
+          <h2 className="text-3xl font-display font-bold text-foreground mb-12">Nossos Escritórios</h2>
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-card rounded-lg p-8 border border-border">
-              <h3 className="font-serif font-bold text-foreground mb-2">São Paulo/SP</h3>
+              <h3 className="font-display font-bold text-foreground mb-2">São Paulo/SP</h3>
               <p className="text-sm text-muted-foreground">Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso</p>
               <p className="text-sm text-muted-foreground">CEP: 04003-003</p>
               <p className="text-sm text-accent mt-2">Tel.: (11) 3285-4472</p>
             </div>
             <div className="bg-card rounded-lg p-8 border border-border">
-              <h3 className="font-serif font-bold text-foreground mb-2">Santana de Parnaíba/SP</h3>
+              <h3 className="font-display font-bold text-foreground mb-2">Santana de Parnaíba/SP</h3>
               <p className="text-sm text-muted-foreground">Av. Yojiro Takaoka, n. 4384, Cj. 702, Alphaville</p>
               <p className="text-sm text-muted-foreground">CEP: 06541-038</p>
             </div>
