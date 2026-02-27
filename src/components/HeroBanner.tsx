@@ -31,13 +31,13 @@ const HeroBanner = ({ title, subtitle, tag, breadcrumbs, videoSrc }: HeroBannerP
             ))}
           </div>
         )}
-        <div className="relative rounded-3xl overflow-hidden bg-primary min-h-[280px] md:min-h-[320px] flex">
+        <div className="relative rounded-3xl bg-primary min-h-[280px] md:min-h-[320px] flex overflow-visible">
           {/* Solid primary background — no video behind */}
 
           {/* Content left + Video card right */}
           <div className="relative z-10 flex-1 flex items-center">
             {/* Text */}
-            <div className="flex-1 flex flex-col justify-center p-10 md:p-14 lg:p-16">
+            <div className="flex-1 flex flex-col justify-center p-10 md:p-14 lg:p-16 md:pr-[280px] lg:pr-[340px] xl:pr-[380px]">
               {tag && (
                 <p className="text-accent text-sm font-semibold tracking-widest uppercase mb-3">
                   {tag}
@@ -60,13 +60,13 @@ const HeroBanner = ({ title, subtitle, tag, breadcrumbs, videoSrc }: HeroBannerP
               </motion.p>
             </div>
 
-            {/* Video card — right side, floating */}
-            <div className="hidden md:block relative mr-8 lg:mr-12 shrink-0">
+        {/* Video card — right side, floating past banner */}
+            <div className="hidden md:block absolute right-[-40px] lg:right-[-60px] top-1/2 -translate-y-1/2 z-20">
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
-                className="w-[320px] lg:w-[400px] h-[200px] lg:h-[240px] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
+                className="w-[300px] lg:w-[380px] xl:w-[420px] h-[220px] lg:h-[260px] xl:h-[290px] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10"
               >
                 <video
                   autoPlay
