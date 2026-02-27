@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
 import HeroBanner from "@/components/HeroBanner";
+import videoSolvencia from "@/assets/video-solvencia.mp4";
 import PappersSection from "@/components/PappersSection";
 
 const SolvenciaReestruturacao = () => {
@@ -10,6 +11,7 @@ const SolvenciaReestruturacao = () => {
         title="Solvência + Plano de Reestruturação"
         subtitle="Para empresas em crise moderada que necessitam de um plano estruturado de recuperação financeira."
         tag="Pacote Intermediário"
+        videoSrc={videoSolvencia}
         breadcrumbs={[
           { label: "🏠", href: "/" },
           { label: "Soluções", href: "/solucoes" },

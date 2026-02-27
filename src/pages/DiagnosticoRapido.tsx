@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
 import HeroBanner from "@/components/HeroBanner";
+import videoDiagnostico from "@/assets/video-diagnostico.mp4";
 import PappersSection from "@/components/PappersSection";
 
 const DiagnosticoRapido = () => {
@@ -11,6 +12,7 @@ const DiagnosticoRapido = () => {
         title="Diagnóstico Rápido"
         subtitle="Ideal para empresas que começam a sentir o peso das dívidas e precisam de clareza sobre suas prioridades financeiras."
         tag="Pacote Básico"
+        videoSrc={videoDiagnostico}
         breadcrumbs={[
           { label: "🏠", href: "/" },
           { label: "Soluções", href: "/solucoes" },
