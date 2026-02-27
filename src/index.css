@@ -119,4 +119,28 @@
     box-shadow: var(--card-hover-shadow);
     @apply -translate-y-1;
   }
+
+  .platform-protected {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  .platform-protected img {
+    -webkit-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+  }
+
+  .no-copy {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+@media print {
+  .platform-protected {
+    display: none !important;
+  }
 }

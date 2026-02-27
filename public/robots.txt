@@ -1,8 +1,20 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /dashboard
+Disallow: /audit
+Disallow: /login
+Disallow: /user
+Disallow: /gestor-ia
+Disallow: /modelo-matematico
+Disallow: /select-role
 
 User-agent: Bingbot
 Allow: /
+Disallow: /dashboard
+Disallow: /audit
+Disallow: /login
+Disallow: /user
+Disallow: /gestor-ia
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +22,31 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
 User-agent: *
-Allow: /
+Disallow: /dashboard
+Disallow: /audit
+Disallow: /login
+Disallow: /user
+Disallow: /gestor-ia
+Disallow: /modelo-matematico
