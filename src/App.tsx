@@ -21,6 +21,7 @@ import Audit from "./pages/Audit";
 import ModeloMatematico from "./pages/ModeloMatematico";
 import GestorIA from "./pages/GestorIA";
 import NotFound from "./pages/NotFound";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             {/* Site público */}
             <Route path="/" element={<Layout><Index /></Layout>} />
