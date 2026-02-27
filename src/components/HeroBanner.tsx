@@ -73,7 +73,11 @@ const HeroBanner = ({ title, subtitle, tag, breadcrumbs, videoSrc }: HeroBannerP
                   loop
                   muted
                   playsInline
+                  preload="metadata"
+                  disablePictureInPicture
+                  disableRemotePlayback
                   className="w-full h-full object-cover"
+                  style={{ willChange: 'transform' }}
                 >
                   <source src={video} type="video/mp4" />
                 </video>
