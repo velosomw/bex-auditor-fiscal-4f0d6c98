@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
 import HeroBanner from "@/components/HeroBanner";
+import videoConsultoria from "@/assets/video-consultoria.mp4";
 import PappersSection from "@/components/PappersSection";
 
 const ConsultoriaCompleta = () => {
@@ -10,6 +11,7 @@ const ConsultoriaCompleta = () => {
         title="Consultoria Completa"
         subtitle="Para empresas em crise aguda ou em ambiente judicial. Acompanhamento integral de 6 a 12 meses."
         tag="Pacote Avançado"
+        videoSrc={videoConsultoria}
         breadcrumbs={[
           { label: "🏠", href: "/" },
           { label: "Soluções", href: "/solucoes" },

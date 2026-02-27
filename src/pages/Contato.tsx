@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import HeroBanner from "@/components/HeroBanner";
+import videoContato from "@/assets/video-contato.mp4";
 
 const Contato = () => {
   return (
@@ -8,6 +9,7 @@ const Contato = () => {
       <HeroBanner
         title="Contato"
         subtitle="Entre em contato com nossos especialistas para uma avaliação inicial sem compromisso."
+        videoSrc={videoContato}
       />
 
       <section className="section-padding bg-background">

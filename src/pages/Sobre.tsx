@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import aboutBg from "@/assets/about-bg.jpg";
 import HeroBanner from "@/components/HeroBanner";
+import videoSobre from "@/assets/video-sobre.mp4";
 
 const Sobre = () => {
   return (
@@ -8,6 +9,7 @@ const Sobre = () => {
       <HeroBanner
         title="Sobre Nós"
         subtitle="Conheça a BEX Auditoria e nossa missão de transformar desafios financeiros em oportunidades de crescimento."
+        videoSrc={videoSobre}
       />
 
       <section className="section-padding bg-background">

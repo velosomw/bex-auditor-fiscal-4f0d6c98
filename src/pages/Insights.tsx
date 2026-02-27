@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import HeroBanner from "@/components/HeroBanner";
+import videoInsights from "@/assets/video-insights.mp4";
 
 const insights = [
   {
@@ -36,6 +37,7 @@ const Insights = () => {
       <HeroBanner
         title="Insights"
         subtitle="Artigos, análises e publicações sobre reestruturação financeira, gestão de solvência e recuperação empresarial."
+        videoSrc={videoInsights}
       />
 
       <section className="section-padding bg-background">
