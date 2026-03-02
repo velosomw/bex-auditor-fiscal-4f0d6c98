@@ -102,7 +102,7 @@ const Header = () => {
         {/* CTA Desktop */}
         <Link
           to="/contato"
-          className="hidden lg:inline-flex items-center px-6 py-2.5 rounded-md bg-accent text-accent-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
+          className="hidden lg:inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
         >
           Fale Conosco
         </Link>
@@ -172,9 +172,9 @@ const Header = () => {
                   </AnimatePresence>
                 </div>
               ))}
-              <Link
+                <Link
                 to="/contato"
-                className="block mt-4 text-center py-3 rounded-md bg-accent text-accent-foreground font-semibold"
+                className="block mt-4 text-center py-3 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
               >
                 Fale Conosco
               </Link>
