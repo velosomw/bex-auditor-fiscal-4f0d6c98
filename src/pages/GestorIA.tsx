@@ -61,7 +61,7 @@ const knowledgeItems = [
 
 const agents = [
   { name: "Agente Auditor Contábil", type: "Auditoria", model: "Gemini 2.5 Pro", temp: 0.3, status: "active", tokens: "128K" },
-  { name: "Agente Financeiro", type: "Financeiro", model: "GPT-5", temp: 0.2, status: "active", tokens: "64K" },
+  { name: "Agente Financeiro", type: "Financeiro", model: "GPT OSS", temp: 0.2, status: "active", tokens: "64K" },
   { name: "Agente de Relatório", type: "Relatório", model: "Gemini 2.5 Flash", temp: 0.4, status: "paused", tokens: "32K" },
 ];
 
