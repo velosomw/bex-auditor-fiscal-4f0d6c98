@@ -10,8 +10,11 @@ const Footer = () => {
           {/* Brand */}
           <div>
             <Link to="/" className="inline-flex items-center gap-2 mb-4">
-              <span className="text-2xl font-display font-bold">BEX</span>
-              <span className="text-sm text-accent font-medium tracking-widest uppercase">Auditoria</span>
+              <img 
+                src={logoBex} 
+                alt="BEX Auditoria" 
+                className="h-10 w-auto object-contain brightness-0 invert"
+              />
             </Link>
             <p className="text-primary-foreground/60 text-sm leading-relaxed">
               Transparência na Reestruturação e Recuperação de Empresas. Inteligência financeira para o seu negócio.
