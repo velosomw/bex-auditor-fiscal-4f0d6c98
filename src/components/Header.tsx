@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import logoBex from "@/assets/logo-bex.png";
 
 const navItems = [
   { label: "Insights", href: "/insights" },
