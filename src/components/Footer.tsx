@@ -13,7 +13,7 @@ const Footer = () => {
               <img 
                 src={logoBex} 
                 alt="BEX Auditoria" 
-                className="h-10 w-auto object-contain brightness-0 invert"
+                className="h-12 w-auto object-contain"
               />
             </Link>
             <p className="text-primary-foreground/60 text-sm leading-relaxed">
