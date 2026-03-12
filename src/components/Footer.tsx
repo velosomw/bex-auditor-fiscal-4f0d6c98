@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail, Shield, User, Building2, Brain } from "lucide-react";
+import logoBex from "@/assets/logo-bex-footer.png";
 
 const Footer = () => {
   return (
