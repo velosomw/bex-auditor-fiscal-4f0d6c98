@@ -2030,7 +2030,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
             <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPages}
           </span>
         )}
-        <Button variant="outline" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-bex-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
+        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
         {onSwitchToKanitz && (
