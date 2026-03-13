@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, CheckCircle2, Clock, Award, Plus, Download, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Eye, Calculator } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText, CheckCircle2, Clock, Award, Plus, Download, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Eye, Calculator, Building2, Activity, Scale, AlertOctagon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,32 @@ import { mockStats, mockCompliance, mockRisks, mockNormativeReferences, mockCrit
 import PlatformLayout from "@/components/PlatformLayout";
 
 const COLORS = ["hsl(217,91%,50%)", "hsl(200,98%,55%)", "hsl(142,76%,36%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)"];
+
+/* ── Mock: Last Audit Overview ── */
+const lastAuditOverview = {
+  empresa: "Empresa Demonstração S.A.",
+  periodo: "Exercício 2023",
+  statusFinanceiro: "Atenção",
+  scoreRisco: 47,
+  indicadores: {
+    liquidezCorrente: 1.78,
+    endividamento: 0.445,
+    kanitz: 1.24,
+  },
+  alertasIA: [
+    { icone: "⚠", titulo: "Estoque elevado", descricao: "Estoques cresceram 45% acima do CMV", severidade: "medio" },
+    { icone: "⚠", titulo: "Dependência factoring", descricao: "Antecipação de recebíveis identificada — fator de risco", severidade: "alto" },
+    { icone: "⚠", titulo: "Passivo crescente", descricao: "Empréstimos LP cresceram 57% no período", severidade: "alto" },
+    { icone: "📉", titulo: "Margem em deterioração", descricao: "Margem líquida caiu 60% no período analisado", severidade: "critico" },
+  ],
+};
+
+const severityStyle: Record<string, string> = {
+  critico: "border-l-[hsl(0,84%,60%)] bg-[hsl(0,84%,60%)]/5",
+  alto: "border-l-[hsl(38,92%,50%)] bg-[hsl(38,92%,50%)]/5",
+  medio: "border-l-[hsl(200,98%,55%)] bg-[hsl(200,98%,55%)]/5",
+  baixo: "border-l-muted bg-muted/30",
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -38,11 +64,98 @@ const Dashboard = () => {
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => navigate("/modelo-matematico")}>
               <Calculator className="w-4 h-4" /> Modelo Matemático
             </Button>
-            <Button size="sm" className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5">
+            <Button size="sm" className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5" onClick={() => navigate("/audit")}>
               <Plus className="w-4 h-4" /> Nova Auditoria
             </Button>
           </div>
         </div>
+
+        {/* ── Audit Overview Panel ── */}
+        <Card className="border-2 border-[hsl(258,90%,66%)]/20 bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Última Avaliação Empresarial
+              </CardTitle>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => navigate("/audit")}>
+                <Eye className="w-3.5 h-3.5" /> Ver Análise Completa
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-3 rounded-lg bg-card border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Empresa</p>
+                <p className="text-sm font-semibold text-foreground">{lastAuditOverview.empresa}</p>
+                <p className="text-xs text-muted-foreground">{lastAuditOverview.periodo}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Status Financeiro</p>
+                <div className="flex items-center gap-2">
+                  <Badge className={`text-xs ${
+                    lastAuditOverview.statusFinanceiro === "Saudável" ? "bg-[hsl(142,76%,36%)]/15 text-[hsl(142,76%,36%)]" :
+                    lastAuditOverview.statusFinanceiro === "Atenção" ? "bg-[hsl(38,92%,50%)]/15 text-[hsl(38,92%,50%)]" :
+                    "bg-[hsl(0,84%,60%)]/15 text-[hsl(0,84%,60%)]"
+                  }`}>
+                    {lastAuditOverview.statusFinanceiro === "Saudável" ? "🟢" : lastAuditOverview.statusFinanceiro === "Atenção" ? "🟡" : "🔴"} {lastAuditOverview.statusFinanceiro}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Score BEX: {lastAuditOverview.scoreRisco}/100</p>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Indicadores-Chave</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Liquidez Corrente</span>
+                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.liquidezCorrente.toFixed(2)}x</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Endividamento</span>
+                    <span className="font-mono font-bold text-foreground">{(lastAuditOverview.indicadores.endividamento * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Kanitz (FI)</span>
+                    <span className="font-mono font-bold text-[hsl(142,76%,36%)]">{lastAuditOverview.indicadores.kanitz.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Score de Risco</p>
+                <div className="flex items-center gap-3">
+                  <p className={`text-3xl font-bold ${
+                    lastAuditOverview.scoreRisco <= 30 ? "text-[hsl(142,76%,36%)]" :
+                    lastAuditOverview.scoreRisco <= 60 ? "text-[hsl(38,92%,50%)]" :
+                    "text-[hsl(0,84%,60%)]"
+                  }`}>{lastAuditOverview.scoreRisco}</p>
+                  <div>
+                    <p className="text-xs text-muted-foreground">de 100</p>
+                    <Progress value={lastAuditOverview.scoreRisco} className="h-1.5 w-20" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Alertas IA */}
+            <div>
+              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                <AlertOctagon className="w-3.5 h-3.5 text-[hsl(38,92%,50%)]" /> Alertas IA
+              </p>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {lastAuditOverview.alertasIA.map((alerta, i) => (
+                  <div key={i} className={`border-l-4 rounded-lg p-3 ${severityStyle[alerta.severidade] || severityStyle.baixo}`}>
+                    <div className="flex items-start gap-2">
+                      <span className="text-sm">{alerta.icone}</span>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">{alerta.titulo}</p>
+                        <p className="text-[10px] text-muted-foreground">{alerta.descricao}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
