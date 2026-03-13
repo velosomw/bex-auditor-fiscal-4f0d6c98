@@ -139,6 +139,13 @@
   }
 }
 
+/* ── A4 Report Container ── */
+.report-pages-container {
+  background: hsl(220, 10%, 92%);
+  padding: 40px 0;
+  border-radius: 8px;
+}
+
 /* ── A4 Report Styles ── */
 .report-a4-page {
   width: 210mm;
