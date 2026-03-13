@@ -409,7 +409,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
           </div>
           <h2 className="text-xl font-bold text-foreground font-serif">Processando Análise</h2>
           <p className="text-sm text-muted-foreground">
-            O Agente IA Auditor Contábil Sênior está analisando seus documentos em tempo real...
+            O Auditor Contábil Sênior IA está analisando seus documentos em tempo real...
           </p>
         </div>
         <div className="space-y-3">
