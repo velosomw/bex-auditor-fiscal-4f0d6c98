@@ -1960,7 +1960,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
    TAB: RELATÓRIO KANITZ EXPANDIDO v2.0
    Risk Intelligence Financial Report — 11 Módulos
    ══════════════════════════════════════════════════════ */
-const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void }) => {
+const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any }) => {
   const today = new Date().toLocaleDateString("pt-BR");
 
   const findValue = (keyword: string, year: string) => {
