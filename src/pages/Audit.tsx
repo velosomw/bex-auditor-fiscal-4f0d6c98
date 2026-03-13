@@ -1504,8 +1504,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
       </ReportPage>
 
       {/* ── 3. ANÁLISE TÉCNICA — PENDÊNCIAS ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="3" title="ANÁLISE TÉCNICA — PENDÊNCIAS" />
 
           <div>
