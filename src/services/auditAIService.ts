@@ -6,14 +6,45 @@ export interface ParsedFinancialData {
   years: string[];
   pdfType?: string;
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
+  documentType?: string; // balancete, balanço, dre, dfc, extrato
 }
 
-/**
- * Check if a file is a PDF
- */
+export interface ConsolidatedFinancialData {
+  empresa: string;
+  periodo: string;
+  documents: Array<{ fileName: string; type: string; format: string }>;
+  contasConsolidadas: Array<{
+    codigo: string;
+    descricao: string;
+    tipo: "ativo" | "passivo" | "receita" | "despesa" | "patrimonio";
+    values: Record<string, number>;
+  }>;
+  estrutura: {
+    ativo_circulante: number;
+    ativo_nao_circulante: number;
+    ativo_total: number;
+    passivo_circulante: number;
+    passivo_nao_circulante: number;
+    passivo_total: number;
+    patrimonio_liquido: number;
+    receita_liquida: number;
+    lucro_liquido: number;
+    estoques: number;
+    clientes: number;
+    caixa: number;
+    fornecedores: number;
+    cmv: number;
+  };
+  balanco: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
+  dre: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
+  years: string[];
+}
+
+/* ── File Type Detection ── */
 const SPREADSHEET_EXTENSIONS = [".xlsx", ".xls", ".csv", ".xlsm", ".xlsb", ".xltx", ".xltm"];
 const PDF_EXTENSIONS = [".pdf"];
 const DOCUMENT_EXTENSIONS = [".docx", ".doc", ".txt", ".rtf"];
+const DATA_EXTENSIONS = [".json", ".xml", ".ofx", ".sped"];
 
 function getFileExtension(file: File): string {
   return file.name.toLowerCase().substring(file.name.lastIndexOf("."));
@@ -31,9 +62,22 @@ export function isDocument(file: File): boolean {
   return DOCUMENT_EXTENSIONS.includes(getFileExtension(file));
 }
 
-/**
- * Convert a File to base64 string
- */
+export function isDataFile(file: File): boolean {
+  return DATA_EXTENSIONS.includes(getFileExtension(file));
+}
+
+export function getFileFormat(file: File): string {
+  const ext = getFileExtension(file);
+  const formatMap: Record<string, string> = {
+    ".pdf": "PDF", ".xlsx": "Excel XLSX", ".xls": "Excel XLS", ".csv": "CSV",
+    ".xlsm": "Excel XLSM", ".xlsb": "Excel XLSB", ".xltx": "Excel XLTX", ".xltm": "Excel XLTM",
+    ".docx": "Word DOCX", ".doc": "Word DOC", ".txt": "Texto TXT", ".rtf": "RTF",
+    ".json": "JSON", ".xml": "XML", ".ofx": "OFX", ".sped": "SPED",
+  };
+  return formatMap[ext] || ext.toUpperCase().replace(".", "");
+}
+
+/* ── File to Base64 ── */
 async function fileToBase64(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -44,19 +88,46 @@ async function fileToBase64(file: File): Promise<string> {
   return btoa(binary);
 }
 
-/**
- * Parse a PDF or document file by sending it to the audit-parse-pdf edge function.
- * Supports PDF (all types), Word (.docx/.doc), and text files (.txt/.rtf).
- */
-export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> {
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+/* ── Parse data files (JSON, XML, OFX, SPED) via AI ── */
+export async function parseDataFileAI(file: File): Promise<ParsedFinancialData> {
+  const ext = getFileExtension(file);
+  const text = await file.text();
+  
+  // For JSON files, try to parse directly first
+  if (ext === ".json") {
+    try {
+      const jsonData = JSON.parse(text);
+      // If it has expected structure, return directly
+      if (jsonData.balanco || jsonData.dre || jsonData.contas) {
+        return {
+          balanco: jsonData.balanco || [],
+          dre: jsonData.dre || [],
+          years: jsonData.years || jsonData.periodos || [],
+          documentInfo: { empresa: jsonData.empresa, periodo: jsonData.periodo, tipo: "JSON Estruturado" },
+          documentType: jsonData.tipo || "balancete",
+        };
+      }
+    } catch { /* not valid JSON or not in expected format, send to AI */ }
+  }
 
+  // Send to AI for extraction
+  const fileBase64 = btoa(unescape(encodeURIComponent(text)));
+  const mimeMap: Record<string, string> = {
+    ".json": "application/json",
+    ".xml": "application/xml",
+    ".ofx": "application/x-ofx",
+    ".sped": "text/plain",
+  };
+
+  return parseDocumentAI_internal(fileBase64, file.name, mimeMap[ext] || "text/plain");
+}
+
+/* ── Parse PDF/Document via AI ── */
+export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> {
   let fileBase64: string;
   let mimeType = file.type;
-
-  // For .txt files, read as text and encode
   const ext = getFileExtension(file);
+
   if (ext === ".txt") {
     const text = await file.text();
     fileBase64 = btoa(unescape(encodeURIComponent(text)));
@@ -74,17 +145,20 @@ export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> 
     }
   }
 
+  return parseDocumentAI_internal(fileBase64, file.name, mimeType);
+}
+
+async function parseDocumentAI_internal(fileBase64: string, fileName: string, mimeType: string): Promise<ParsedFinancialData> {
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
   const response = await fetch(`${SUPABASE_URL}/functions/v1/audit-parse-pdf`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${SUPABASE_KEY}`,
     },
-    body: JSON.stringify({
-      fileBase64,
-      fileName: file.name,
-      mimeType,
-    }),
+    body: JSON.stringify({ fileBase64, fileName, mimeType }),
   });
 
   if (!response.ok) {
@@ -101,23 +175,72 @@ export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> 
     years: extracted.years || [],
     pdfType: extracted.pdfType,
     documentInfo: extracted.documentInfo,
+    documentType: extracted.documentInfo?.tipo,
   };
 }
 
-/**
- * Parse any supported file (spreadsheet, PDF, Word, or text)
- */
+/* ── Parse any supported file ── */
 export async function parseFile(file: File): Promise<ParsedFinancialData> {
   if (isPDF(file) || isDocument(file)) {
     return parseDocumentAI(file);
   }
+  if (isDataFile(file)) {
+    return parseDataFileAI(file);
+  }
   return parseSpreadsheet(file);
 }
 
-/**
- * Parse an uploaded spreadsheet file (xlsx, xls, csv) and extract financial data.
- * Attempts to identify balance sheet and income statement rows.
- */
+/* ── Parse multiple files and consolidate ── */
+export async function parseMultipleFiles(files: File[]): Promise<{ parsed: ParsedFinancialData; fileResults: Array<{ fileName: string; format: string; type: string; rows: number; success: boolean; error?: string }> }> {
+  const consolidated: ParsedFinancialData = {
+    balanco: [],
+    dre: [],
+    years: [],
+    documentInfo: {},
+  };
+
+  const fileResults: Array<{ fileName: string; format: string; type: string; rows: number; success: boolean; error?: string }> = [];
+
+  for (const file of files) {
+    try {
+      const result = await parseFile(file);
+      
+      // Merge data
+      consolidated.balanco.push(...result.balanco);
+      consolidated.dre.push(...result.dre);
+      result.years.forEach(y => {
+        if (!consolidated.years.includes(y)) consolidated.years.push(y);
+      });
+
+      // Merge document info
+      if (result.documentInfo?.empresa && !consolidated.documentInfo?.empresa) {
+        consolidated.documentInfo!.empresa = result.documentInfo.empresa;
+      }
+
+      fileResults.push({
+        fileName: file.name,
+        format: getFileFormat(file),
+        type: result.documentType || result.documentInfo?.tipo || "documento",
+        rows: result.balanco.length + result.dre.length,
+        success: true,
+      });
+    } catch (err) {
+      fileResults.push({
+        fileName: file.name,
+        format: getFileFormat(file),
+        type: "erro",
+        rows: 0,
+        success: false,
+        error: err instanceof Error ? err.message : "Erro desconhecido",
+      });
+    }
+  }
+
+  consolidated.years.sort();
+  return { parsed: consolidated, fileResults };
+}
+
+/* ── Parse spreadsheet ── */
 export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData> {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
@@ -125,14 +248,12 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   const allRows: Array<{ conta: string; descricao: string; values: Record<string, number> }> = [];
   const years = new Set<string>();
 
-  // Process each sheet
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
 
     if (jsonData.length < 2) continue;
 
-    // Find header row (look for year-like columns)
     let headerRowIdx = -1;
     let yearColumns: { idx: number; year: string }[] = [];
 
@@ -143,7 +264,6 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
       const foundYears: { idx: number; year: string }[] = [];
       for (let j = 0; j < row.length; j++) {
         const cell = String(row[j] || "").trim();
-        // Match year patterns: 2020, 2021, 2022, 2023, 2024, 31/12/2023, etc.
         const yearMatch = cell.match(/20\d{2}/);
         if (yearMatch) {
           foundYears.push({ idx: j, year: yearMatch[0] });
@@ -160,7 +280,6 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
 
     yearColumns.forEach(yc => years.add(yc.year));
 
-    // Find account code and description columns
     const headerRow = jsonData[headerRowIdx];
     let contaColIdx = -1;
     let descColIdx = -1;
@@ -175,11 +294,9 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
       }
     }
 
-    // If no explicit columns found, try first two columns
     if (contaColIdx === -1) contaColIdx = 0;
     if (descColIdx === -1) descColIdx = contaColIdx === 0 ? 1 : 0;
 
-    // Parse data rows
     for (let i = headerRowIdx + 1; i < jsonData.length; i++) {
       const row = jsonData[i];
       if (!row || row.length === 0) continue;
@@ -214,7 +331,6 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
     const conta = row.conta.toLowerCase();
     const desc = row.descricao.toLowerCase();
 
-    // DRE accounts typically start with 3, or have revenue/cost keywords
     if (
       conta.startsWith("3") ||
       desc.includes("receita") ||
@@ -241,9 +357,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   };
 }
 
-/**
- * Call the audit-analyze edge function with parsed financial data.
- */
+/* ── Call audit-analyze edge function ── */
 export async function analyzeFinancialData(
   parsedData: ParsedFinancialData,
   config: { depth: string; purpose: string }
@@ -260,6 +374,7 @@ export async function analyzeFinancialData(
     body: JSON.stringify({
       balanco: parsedData.balanco,
       dre: parsedData.dre,
+      documentInfo: parsedData.documentInfo,
       config,
     }),
   });
@@ -273,9 +388,7 @@ export async function analyzeFinancialData(
   return data.analysis;
 }
 
-/**
- * Stream chat with the AI auditor.
- */
+/* ── Stream chat with AI auditor ── */
 export async function streamAuditChat({
   messages,
   context,
