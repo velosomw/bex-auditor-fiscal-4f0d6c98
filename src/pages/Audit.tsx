@@ -156,7 +156,7 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
       <div className="text-center space-y-2 mb-2">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(258,90%,66%)]/10 border border-[hsl(258,90%,66%)]/20 mb-2">
           <Shield className="w-4 h-4 text-[hsl(258,90%,66%)]" />
-          <span className="text-xs font-semibold text-[hsl(258,90%,66%)]">Agente IA Auditor Contábil Sênior</span>
+          <span className="text-xs font-semibold text-[hsl(258,90%,66%)]">Auditor Contábil Sênior IA</span>
         </div>
         <h1 className="text-2xl font-bold text-foreground font-serif">
           {hasFiles ? "Carregamento" : "Configuração"}
