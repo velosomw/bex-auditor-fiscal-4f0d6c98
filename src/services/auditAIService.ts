@@ -4,6 +4,78 @@ export interface ParsedFinancialData {
   balanco: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
   dre: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
   years: string[];
+  pdfType?: string;
+  documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
+}
+
+/**
+ * Check if a file is a PDF
+ */
+export function isPDF(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+/**
+ * Convert a File to base64 string
+ */
+async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/**
+ * Parse a PDF file by sending it to the audit-parse-pdf edge function.
+ * Supports all PDF formats: PDF/A, PDF/X, PDF/E, PDF/UA, PDF/VT, PAdES, OCR, etc.
+ */
+export async function parsePDF(file: File): Promise<ParsedFinancialData> {
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  const base64 = await fileToBase64(file);
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/audit-parse-pdf`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({
+      fileBase64: base64,
+      fileName: file.name,
+      mimeType: file.type || "application/pdf",
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+    throw new Error(err.error || `HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  const extracted = data.extracted;
+
+  return {
+    balanco: extracted.balanco || [],
+    dre: extracted.dre || [],
+    years: extracted.years || [],
+    pdfType: extracted.pdfType,
+    documentInfo: extracted.documentInfo,
+  };
+}
+
+/**
+ * Parse any supported file (spreadsheet or PDF)
+ */
+export async function parseFile(file: File): Promise<ParsedFinancialData> {
+  if (isPDF(file)) {
+    return parsePDF(file);
+  }
+  return parseSpreadsheet(file);
 }
 
 /**

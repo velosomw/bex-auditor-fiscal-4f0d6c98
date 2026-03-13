@@ -18,7 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import PlatformLayout from "@/components/PlatformLayout";
-import { parseSpreadsheet, analyzeFinancialData, streamAuditChat, type ParsedFinancialData } from "@/services/auditAIService";
+import { parseFile, analyzeFinancialData, streamAuditChat, isPDF, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import { toast } from "@/hooks/use-toast";
 
@@ -177,7 +177,11 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
               {state.config.files.map(f => (
                 <div key={f.id} className="relative border-2 border-dashed border-emerald-400/50 rounded-2xl p-8 text-center bg-emerald-50/30">
                   <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
-                    <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
+                    {f.fileName.toLowerCase().endsWith(".pdf") ? (
+                      <FileText className="w-8 h-8 text-emerald-600" />
+                    ) : (
+                      <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
+                    )}
                   </div>
                   <p className="text-sm font-semibold text-foreground">{f.fileName}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{(f.fileSize / 1024).toFixed(2)} MB</p>
@@ -201,13 +205,13 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
               }`}
             >
               <div className="w-14 h-14 mx-auto rounded-xl bg-muted/50 flex items-center justify-center mb-3">
-                <FileSpreadsheet className="w-8 h-8 text-muted-foreground" />
+                <Upload className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-sm font-medium text-foreground">Arraste o balancete ou clique para selecionar</p>
-              <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv</p>
+              <p className="text-sm font-medium text-foreground">Arraste o documento ou clique para selecionar</p>
+              <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv, .pdf (todos os tipos)</p>
             </div>
           )}
-          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv" onChange={(e) => handleFiles(e.target.files)} />
+          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.pdf" onChange={(e) => handleFiles(e.target.files)} />
         </div>
 
         <div className="space-y-6">
@@ -302,11 +306,11 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
         if (files.length > 0) {
           setCurrentStep(1);
           setProgress(15);
-          parsedData = await parseSpreadsheet(files[0]);
+          parsedData = await parseFile(files[0]);
           
           // If additional files, merge data
           for (let i = 1; i < files.length; i++) {
-            const additional = await parseSpreadsheet(files[i]);
+            const additional = await parseFile(files[i]);
             parsedData.balanco.push(...additional.balanco);
             parsedData.dre.push(...additional.dre);
             additional.years.forEach(y => {
