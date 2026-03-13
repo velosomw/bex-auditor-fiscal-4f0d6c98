@@ -5,52 +5,48 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const EXTRACTION_PROMPT = `Você é um especialista em extração de dados financeiros de documentos contábeis.
+const EXTRACTION_PROMPT = `Você é o AGENTE PARSER MULTIFORMATO — um parser contábil especializado da plataforma BEX.
 
-Analise o documento fornecido e extraia TODOS os dados financeiros estruturados.
+Sua função é reconhecer e interpretar diferentes formatos de arquivos financeiros.
 
-O documento pode estar em QUALQUER formato, incluindo:
+## FORMATOS SUPORTADOS
 
-**PDF (todos os tipos):**
-- PDF padrão com texto selecionável
-- PDF/A (ISO 19005) em todas as variantes (A-1, A-2, A-3)
-- PDF/X (X-1a, X-3, X-4)
-- PDF/E, PDF/UA, PDF/VT
-- PDF digitalizado (OCR necessário)
-- PDF com assinatura digital (PAdES - ISO)
-- PDFs com tabelas, gráficos e formatação complexa
+**PDF (todos os tipos):** PDF padrão, PDF/A (A-1, A-2, A-3), PDF/X (X-1a, X-3, X-4), PDF/E, PDF/UA, PDF/VT, PDF OCR, PAdES (ISO)
+**Planilhas Excel:** XLSX, XLSM, XLSB, XLTX, XLTM, XLS
+**Documentos:** DOCX, DOC, TXT, RTF
+**Dados estruturados:** JSON, XML, OFX (Open Financial Exchange), SPED (Sistema Público de Escrituração Digital)
 
-**Planilhas Excel (todos os tipos):**
-- XLSX (Excel padrão)
-- XLSM (Excel com macros)
-- XLSB (Excel binário)
-- XLTX (Template Excel)
-- XLTM (Template Excel com macros)
-- XLS (Excel 97-2003)
+## CAPACIDADES DE IDENTIFICAÇÃO
 
-**Documentos de texto:**
-- DOCX / DOC (Microsoft Word)
-- TXT (texto puro)
-- RTF (Rich Text Format)
+Identifique automaticamente o TIPO de documento:
+- **Balancete** — lista de contas com saldos (débito/crédito/saldo)
+- **Balanço Patrimonial** — Ativo × Passivo + PL
+- **DRE** — Demonstração do Resultado do Exercício
+- **DFC** — Demonstração de Fluxo de Caixa
+- **Extrato Bancário** — movimentações com datas e valores
+- **Relatório Financeiro** — análises e indicadores
 
-INSTRUÇÕES:
-1. Identifique TODAS as contas contábeis presentes no documento
-2. Extraia os valores numéricos para cada período/ano disponível
-3. Classifique cada conta como pertencente ao BALANÇO PATRIMONIAL ou à DRE
+## INSTRUÇÕES DE EXTRAÇÃO
+
+1. Identifique TODAS as contas contábeis presentes
+2. Extraia valores numéricos para cada período/ano
+3. Classifique cada conta como BALANÇO ou DRE
 4. Preserve a hierarquia contábil (contas sintéticas e analíticas)
-5. Se houver dados de múltiplos períodos, extraia todos
-6. Converta todos os valores para formato numérico (sem formatação)
-7. Identifique o tipo/formato do documento quando possível
-8. Para documentos Word/TXT, interprete tabelas, listas e dados tabulares como dados contábeis
+5. Se houver múltiplos períodos, extraia todos
+6. Converta todos os valores para formato numérico
+7. Identifique o tipo/formato do documento
+8. Para OFX, extraia transações e saldos bancários
+9. Para SPED, identifique blocos e registros contábeis
+10. Para XML, interprete a estrutura de tags financeiras
 
-Responda EXCLUSIVAMENTE em JSON válido com esta estrutura:
+Responda EXCLUSIVAMENTE em JSON válido:
 
 {
-  "pdfType": "tipo do documento identificado (ex: PDF/A-1, DOCX, TXT, XLSX, etc.)",
+  "pdfType": "tipo do documento (PDF/A-1, DOCX, OFX, SPED, etc.)",
   "documentInfo": {
     "empresa": "nome da empresa se identificado",
     "periodo": "período do documento",
-    "tipo": "tipo do demonstrativo (Balanço, DRE, Balancete, etc.)"
+    "tipo": "balancete | balanço | dre | dfc | extrato | relatório"
   },
   "years": ["2023", "2022"],
   "balanco": [
@@ -72,54 +68,28 @@ Responda EXCLUSIVAMENTE em JSON válido com esta estrutura:
 REGRAS:
 - Extraia TODAS as linhas contábeis, não resuma
 - Se não conseguir distinguir Balanço de DRE, coloque tudo em "balanco"
-- Valores negativos devem ser representados com sinal negativo
-- Se o documento for digitalizado (imagem), faça OCR e extraia os dados
-- Para documentos Word, interprete formatação de tabelas e dados tabulados
-- Para arquivos TXT, identifique padrões tabulares (separados por tab, espaços ou delimitadores)
-- Responda APENAS com JSON, sem texto adicional`;
+- Valores negativos com sinal negativo
+- OCR para documentos digitalizados
+- Para OFX: extraia BANKTRANLIST e converta para formato contábil
+- Para SPED: extraia registros I150/I155 (balancete) e I350/I355 (DRE)
+- Responda APENAS com JSON`;
 
-/**
- * Extract and repair potentially truncated JSON from LLM response.
- */
 function extractAndRepairJson(raw: string): Record<string, unknown> {
-  // Strip markdown code blocks
-  let cleaned = raw
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*/g, "")
-    .trim();
-
-  // Find JSON object boundaries
+  let cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   const jsonStart = cleaned.indexOf("{");
   if (jsonStart === -1) throw new Error("No JSON object found in AI response");
-
   cleaned = cleaned.substring(jsonStart);
 
-  // Try direct parse first
-  try {
-    return JSON.parse(cleaned);
-  } catch (_e) {
-    console.warn("Direct JSON parse failed, attempting repair...");
-  }
+  try { return JSON.parse(cleaned); } catch { /* continue */ }
 
-  // Clean common issues
   cleaned = cleaned
-    .replace(/,\s*}/g, "}")       // trailing commas in objects
-    .replace(/,\s*]/g, "]")       // trailing commas in arrays
-    .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === "\n" || ch === "\t" ? ch : ""); // control chars
+    .replace(/,\s*}/g, "}")
+    .replace(/,\s*]/g, "]")
+    .replace(/[\x00-\x1F\x7F]/g, (ch) => ch === "\n" || ch === "\t" ? ch : "");
 
-  // Try again after cleaning
-  try {
-    return JSON.parse(cleaned);
-  } catch (_e2) {
-    console.warn("Cleaned parse failed, attempting truncation repair...");
-  }
+  try { return JSON.parse(cleaned); } catch { /* continue */ }
 
-  // Count unclosed brackets/braces to repair truncated JSON
-  let openBraces = 0;
-  let openBrackets = 0;
-  let inString = false;
-  let escape = false;
-
+  let openBraces = 0, openBrackets = 0, inString = false, escape = false;
   for (let i = 0; i < cleaned.length; i++) {
     const ch = cleaned[i];
     if (escape) { escape = false; continue; }
@@ -132,22 +102,15 @@ function extractAndRepairJson(raw: string): Record<string, unknown> {
     else if (ch === "]") openBrackets--;
   }
 
-  // If we're inside a string, close it
   if (inString) cleaned += '"';
 
-  // Remove trailing incomplete key-value (e.g. truncated mid-value)
-  // Find last complete value by looking for last valid comma or brace
   const lastComplete = Math.max(
-    cleaned.lastIndexOf("},"),
-    cleaned.lastIndexOf("}"),
-    cleaned.lastIndexOf("],"),
-    cleaned.lastIndexOf("]"),
-    cleaned.lastIndexOf('",'),
-    cleaned.lastIndexOf('"'),
+    cleaned.lastIndexOf("},"), cleaned.lastIndexOf("}"),
+    cleaned.lastIndexOf("],"), cleaned.lastIndexOf("]"),
+    cleaned.lastIndexOf('",'), cleaned.lastIndexOf('"'),
   );
 
   if (lastComplete > cleaned.length * 0.5) {
-    // Trim to last complete element, then re-count
     const trimmed = cleaned.substring(0, lastComplete + 1);
     let ob = 0, obk = 0, ins = false, esc = false;
     for (let i = 0; i < trimmed.length; i++) {
@@ -162,23 +125,19 @@ function extractAndRepairJson(raw: string): Record<string, unknown> {
       else if (c === "]") obk--;
     }
 
-    let repaired = trimmed;
-    // Remove trailing comma
-    repaired = repaired.replace(/,\s*$/, "");
-    // Close unclosed brackets/braces
+    let repaired = trimmed.replace(/,\s*$/, "");
     for (let i = 0; i < obk; i++) repaired += "]";
     for (let i = 0; i < ob; i++) repaired += "}";
 
     try {
-      const result = JSON.parse(repaired);
       console.warn("Successfully repaired truncated JSON");
-      return result;
+      return JSON.parse(repaired);
     } catch (e3) {
       console.error("Repair attempt failed:", e3);
     }
   }
 
-  throw new Error("Não foi possível extrair JSON válido da resposta da IA. O documento pode ser muito grande.");
+  throw new Error("Não foi possível extrair JSON válido da resposta da IA.");
 }
 
 serve(async (req) => {
@@ -191,7 +150,7 @@ serve(async (req) => {
     
     if (!fileBase64) {
       return new Response(
-        JSON.stringify({ error: "Nenhum arquivo PDF fornecido" }),
+        JSON.stringify({ error: "Nenhum arquivo fornecido" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -199,9 +158,8 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    console.log(`Processing PDF: ${fileName}, type: ${mimeType}, size: ${fileBase64.length} chars base64`);
+    console.log(`Processing file: ${fileName}, type: ${mimeType}, size: ${fileBase64.length} chars base64`);
 
-    // Use Gemini with inline document data for PDF processing
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -223,7 +181,7 @@ serve(async (req) => {
               },
               {
                 type: "text",
-                text: `Extraia todos os dados financeiros deste documento PDF (${fileName}). Identifique o tipo/formato do PDF e extraia todas as contas contábeis com seus valores.`,
+                text: `Extraia todos os dados financeiros deste documento (${fileName}). Identifique o tipo de documento (balancete, balanço, DRE, DFC, extrato) e extraia todas as contas contábeis com seus valores.`,
               },
             ],
           },
@@ -249,18 +207,16 @@ serve(async (req) => {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "Erro ao processar PDF via IA" }),
+        JSON.stringify({ error: "Erro ao processar documento via IA" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
-
-    // Parse the AI response with robust JSON repair for truncated outputs
     const extracted = extractAndRepairJson(content);
 
-    console.log(`PDF parsed successfully: ${extracted.balanco?.length || 0} balanço rows, ${extracted.dre?.length || 0} DRE rows, type: ${extracted.pdfType}`);
+    console.log(`Document parsed: ${(extracted.balanco as any[])?.length || 0} balanço rows, ${(extracted.dre as any[])?.length || 0} DRE rows, type: ${(extracted.documentInfo as any)?.tipo || extracted.pdfType}`);
 
     return new Response(
       JSON.stringify({ extracted }),

@@ -18,7 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import PlatformLayout from "@/components/PlatformLayout";
-import { parseFile, analyzeFinancialData, streamAuditChat, isPDF, type ParsedFinancialData } from "@/services/auditAIService";
+import { parseFile, parseMultipleFiles, analyzeFinancialData, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import { toast } from "@/hooks/use-toast";
 
@@ -181,6 +181,8 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
                       <FileText className="w-8 h-8 text-emerald-600" />
                     ) : (/\.(docx?|txt|rtf)$/i).test(f.fileName) ? (
                       <FileText className="w-8 h-8 text-emerald-600" />
+                    ) : (/\.(json|xml|ofx|sped)$/i).test(f.fileName) ? (
+                      <FileSearch className="w-8 h-8 text-emerald-600" />
                     ) : (
                       <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
                     )}
@@ -210,10 +212,11 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
                 <Upload className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-foreground">Arraste o documento ou clique para selecionar</p>
-              <p className="text-xs text-muted-foreground mt-1">Formatos: PDF, Excel (.xlsx, .xlsm, .xlsb, .xltx, .xltm, .xls), Word (.docx, .doc), CSV, TXT</p>
+              <p className="text-xs text-muted-foreground mt-1">Formatos: PDF, Excel (.xlsx, .xlsm, .xlsb, .xltx, .xltm), Word (.docx), CSV, TXT, JSON, XML, OFX, SPED</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Upload simultâneo de até 20 arquivos</p>
             </div>
           )}
-          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.xltx,.xltm,.pdf,.docx,.doc,.txt,.rtf" onChange={(e) => handleFiles(e.target.files)} />
+          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.xltx,.xltm,.pdf,.docx,.doc,.txt,.rtf,.json,.xml,.ofx,.sped" onChange={(e) => handleFiles(e.target.files)} />
         </div>
 
         <div className="space-y-6">
@@ -273,15 +276,16 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
    PHASE 2: PROCESSING
    ══════════════════════════════════════════════════════ */
 const processingSteps = [
-  { label: "Validando estrutura do balancete...", duration: 1200 },
-  { label: "Identificando plano de contas...", duration: 1000 },
-  { label: "Mapeando Ativo, Passivo e PL...", duration: 1500 },
-  { label: "Executando testes de consistência contábil...", duration: 1300 },
-  { label: "Calculando indicadores financeiros...", duration: 1100 },
-  { label: "Analisando endividamento e solvência...", duration: 1400 },
-  { label: "Executando Score BEX-RJ...", duration: 1200 },
-  { label: "Classificando pendências contábeis...", duration: 1000 },
-  { label: "Gerando documento Avaliação Empresarial...", duration: 1500 },
+  { label: "📥 Upload — Recebendo arquivos...", duration: 800 },
+  { label: "🔍 Agente Parser — Identificando formato e tipo de documento...", duration: 1200 },
+  { label: "📊 Agente Parser — Extraindo dados contábeis...", duration: 1500 },
+  { label: "🏗️ Agente Estruturador — Classificando contas contábeis...", duration: 1300 },
+  { label: "🔎 Agente Auditor — Verificando inconsistências...", duration: 1400 },
+  { label: "📈 Agente Risk Engine — Calculando indicadores financeiros...", duration: 1200 },
+  { label: "📈 Agente Risk Engine — Executando Modelo Kanitz...", duration: 1000 },
+  { label: "📈 Agente Risk Engine — Calculando Score BEX-RJ...", duration: 1100 },
+  { label: "📝 Agente Relatório — Consolidando análise...", duration: 1000 },
+  { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
 const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: { 
@@ -300,43 +304,46 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
 
     const runRealAnalysis = async () => {
       try {
-        // Step 1: Parse files
+        // Step 0: Upload received
         setCurrentStep(0);
         setProgress(5);
         
         let parsedData: ParsedFinancialData | null = null;
         if (files.length > 0) {
+          // Step 1: Parser agent - identify format
           setCurrentStep(1);
+          setProgress(10);
+
+          // Step 2: Parser agent - extract data
+          setCurrentStep(2);
           setProgress(15);
-          parsedData = await parseFile(files[0]);
+
+          const { parsed, fileResults } = await parseMultipleFiles(files);
+          parsedData = parsed;
           
-          // If additional files, merge data
-          for (let i = 1; i < files.length; i++) {
-            const additional = await parseFile(files[i]);
-            parsedData.balanco.push(...additional.balanco);
-            parsedData.dre.push(...additional.dre);
-            additional.years.forEach(y => {
-              if (!parsedData!.years.includes(y)) parsedData!.years.push(y);
-            });
+          const failedFiles = fileResults.filter(f => !f.success);
+          if (failedFiles.length > 0) {
+            console.warn("Some files failed:", failedFiles);
           }
-          parsedData.years.sort();
+          console.log("Files parsed:", fileResults.map(f => `${f.fileName} (${f.format} - ${f.type})`));
         }
 
-        // Steps 2-5: Visual progress while waiting
-        setCurrentStep(2);
-        setProgress(25);
-        
-        // Step 6: Call AI
+        // Step 3: Structurer agent
         setCurrentStep(3);
-        setProgress(35);
+        setProgress(30);
+        
+        // Step 4: Auditor agent
+        setCurrentStep(4);
+        setProgress(40);
         
         const dataToAnalyze = parsedData || {
           balanco: [],
           dre: [],
           years: [],
         };
-        
-        setCurrentStep(4);
+
+        // Step 5-7: Risk Engine
+        setCurrentStep(5);
         setProgress(50);
 
         const analysis = await analyzeFinancialData(dataToAnalyze, {
@@ -344,17 +351,18 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
           purpose: "externa",
         });
 
-        setCurrentStep(5);
-        setProgress(70);
-
-        // Step 7-8: Final processing
         setCurrentStep(6);
-        setProgress(85);
+        setProgress(70);
         
         setCurrentStep(7);
-        setProgress(95);
-        
+        setProgress(80);
+
+        // Step 8: Report agent
         setCurrentStep(8);
+        setProgress(90);
+        
+        // Step 9: Final
+        setCurrentStep(9);
         setProgress(100);
 
         onAnalysisReady(analysis, parsedData);
