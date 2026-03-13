@@ -250,6 +250,12 @@
     background: white !important;
   }
 
+  .report-pages-container {
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
   .report-a4-page,
   .report-a4-cover {
     box-shadow: none;
