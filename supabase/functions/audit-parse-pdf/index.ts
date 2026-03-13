@@ -5,11 +5,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const EXTRACTION_PROMPT = `Você é um especialista em extração de dados financeiros de documentos contábeis em PDF.
+const EXTRACTION_PROMPT = `Você é um especialista em extração de dados financeiros de documentos contábeis.
 
-Analise o documento PDF fornecido e extraia TODOS os dados financeiros estruturados.
+Analise o documento fornecido e extraia TODOS os dados financeiros estruturados.
 
-O documento pode estar em qualquer formato de PDF, incluindo:
+O documento pode estar em QUALQUER formato, incluindo:
+
+**PDF (todos os tipos):**
 - PDF padrão com texto selecionável
 - PDF/A (ISO 19005) em todas as variantes (A-1, A-2, A-3)
 - PDF/X (X-1a, X-3, X-4)
@@ -18,6 +20,19 @@ O documento pode estar em qualquer formato de PDF, incluindo:
 - PDF com assinatura digital (PAdES - ISO)
 - PDFs com tabelas, gráficos e formatação complexa
 
+**Planilhas Excel (todos os tipos):**
+- XLSX (Excel padrão)
+- XLSM (Excel com macros)
+- XLSB (Excel binário)
+- XLTX (Template Excel)
+- XLTM (Template Excel com macros)
+- XLS (Excel 97-2003)
+
+**Documentos de texto:**
+- DOCX / DOC (Microsoft Word)
+- TXT (texto puro)
+- RTF (Rich Text Format)
+
 INSTRUÇÕES:
 1. Identifique TODAS as contas contábeis presentes no documento
 2. Extraia os valores numéricos para cada período/ano disponível
@@ -25,12 +40,13 @@ INSTRUÇÕES:
 4. Preserve a hierarquia contábil (contas sintéticas e analíticas)
 5. Se houver dados de múltiplos períodos, extraia todos
 6. Converta todos os valores para formato numérico (sem formatação)
-7. Identifique o tipo/formato do PDF quando possível
+7. Identifique o tipo/formato do documento quando possível
+8. Para documentos Word/TXT, interprete tabelas, listas e dados tabulares como dados contábeis
 
 Responda EXCLUSIVAMENTE em JSON válido com esta estrutura:
 
 {
-  "pdfType": "tipo do PDF identificado (ex: PDF/A-1, PDF padrão, PDF digitalizado/OCR, etc.)",
+  "pdfType": "tipo do documento identificado (ex: PDF/A-1, DOCX, TXT, XLSX, etc.)",
   "documentInfo": {
     "empresa": "nome da empresa se identificado",
     "periodo": "período do documento",
@@ -58,6 +74,8 @@ REGRAS:
 - Se não conseguir distinguir Balanço de DRE, coloque tudo em "balanco"
 - Valores negativos devem ser representados com sinal negativo
 - Se o documento for digitalizado (imagem), faça OCR e extraia os dados
+- Para documentos Word, interprete formatação de tabelas e dados tabulados
+- Para arquivos TXT, identifique padrões tabulares (separados por tab, espaços ou delimitadores)
 - Responda APENAS com JSON, sem texto adicional`;
 
 serve(async (req) => {

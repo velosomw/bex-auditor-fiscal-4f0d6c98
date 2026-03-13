@@ -177,7 +177,9 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
               {state.config.files.map(f => (
                 <div key={f.id} className="relative border-2 border-dashed border-emerald-400/50 rounded-2xl p-8 text-center bg-emerald-50/30">
                   <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
-                    {f.fileName.toLowerCase().endsWith(".pdf") ? (
+                    {(/\.(pdf)$/i).test(f.fileName) ? (
+                      <FileText className="w-8 h-8 text-emerald-600" />
+                    ) : (/\.(docx?|txt|rtf)$/i).test(f.fileName) ? (
                       <FileText className="w-8 h-8 text-emerald-600" />
                     ) : (
                       <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
@@ -208,10 +210,10 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
                 <Upload className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-foreground">Arraste o documento ou clique para selecionar</p>
-              <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv, .pdf (todos os tipos)</p>
+              <p className="text-xs text-muted-foreground mt-1">Formatos: PDF, Excel (.xlsx, .xlsm, .xlsb, .xltx, .xltm, .xls), Word (.docx, .doc), CSV, TXT</p>
             </div>
           )}
-          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.pdf" onChange={(e) => handleFiles(e.target.files)} />
+          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.xltx,.xltm,.pdf,.docx,.doc,.txt,.rtf" onChange={(e) => handleFiles(e.target.files)} />
         </div>
 
         <div className="space-y-6">
