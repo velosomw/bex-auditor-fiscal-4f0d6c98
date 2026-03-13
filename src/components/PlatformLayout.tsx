@@ -68,7 +68,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
 
       {/* Platform Footer */}
       <footer className="bg-[hsl(222,25%,14%)] border-t border-[hsl(222,20%,22%)] py-4 px-6 text-center text-xs text-[hsl(220,15%,40%)]">
-        © {new Date().getFullYear()} Plataforma de Auditoria IA — Inteligência de Dados. BEX Auditoria.
+        © {new Date().getFullYear()} BEX Auditoria IA — Inteligência de Dados. BEX Auditoria.
       </footer>
     </div>
   );
