@@ -2212,12 +2212,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 3 — DIAGNÓSTICO DE SOLVÊNCIA ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="3" title="DIAGNÓSTICO DE SOLVÊNCIA" />
           <p className="text-xs text-muted-foreground leading-relaxed">
             Análise dos componentes que determinam o score Kanitz, identificando qual variável está deteriorando o índice.
