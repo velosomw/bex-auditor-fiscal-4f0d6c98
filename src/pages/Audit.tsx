@@ -2877,7 +2877,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
           {reportType === "bex" ? (
             <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarKanitz} />
           ) : reportType === "kanitz" ? (
-            <TabRelatorioKanitz onBack={onBack} parsedData={parsedData} onSwitchToBex={handleGerarBex} />
+            <TabRelatorioKanitz onBack={onBack} parsedData={parsedData} onSwitchToBex={handleGerarBex} aiAnalysis={aiAnalysis} />
           ) : (
             <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} />
           )}
