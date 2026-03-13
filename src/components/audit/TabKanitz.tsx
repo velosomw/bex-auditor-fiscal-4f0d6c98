@@ -95,7 +95,29 @@ const classColors = {
    ══════════════════════════════════════════════════════ */
 const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any }) => {
   const [subTab, setSubTab] = useState("visao-geral");
-  const kanitzResults = computeKanitz(parsedData || null);
+  let kanitzResults = computeKanitz(parsedData || null);
+  
+  // Fallback: use AI analysis kanitz data when parsed data yields no results
+  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
+    const aiK = aiAnalysis.kanitz;
+    const comp = aiK.componentes || {};
+    const fi = aiK.fatorInsolvencia || 0;
+    const classificacao: KanitzResult["classificacao"] = 
+      aiK.classificacao === "solvente" ? "solvente" : 
+      aiK.classificacao === "insolvente" ? "insolvente" : "penumbra";
+    kanitzResults = [{
+      year: "Análise IA",
+      rpl: comp.rpl || 0,
+      lg: comp.lg || 0,
+      ls: comp.ls || 0,
+      lc: comp.lc || 0,
+      ge: comp.ge || 0,
+      fi,
+      classificacao,
+      riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
+    }];
+  }
+  
   const latest = kanitzResults[kanitzResults.length - 1];
   const previous = kanitzResults.length > 1 ? kanitzResults[kanitzResults.length - 2] : null;
   const fiDelta = previous ? latest?.fi - previous.fi : 0;
@@ -108,7 +130,7 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
     if (latest.fi < -3) alerts.push("FI abaixo de -3 — empresa na zona de insolvência");
   }
 
-  if (!parsedData || kanitzResults.length === 0) {
+  if (kanitzResults.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">

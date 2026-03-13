@@ -578,12 +578,62 @@ const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => 
 };
 
 /* ── Tab 2: Indicadores Econômico-Financeiros ── */
-const TabIndicadores = ({ parsedData }: { parsedData?: ParsedFinancialData | null }) => {
+const TabIndicadores = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any }) => {
   const { state } = useAudit();
   const computedInd = computeIndicatorsFromParsed(parsedData || null);
   const hasComputed = Object.keys(computedInd).length > 0;
-  const ind = hasComputed ? computedInd : state.financialAnalysis.indicators;
-  const years = hasComputed ? Object.keys(computedInd).sort() : ["2021", "2022", "2023"];
+  
+  // Fallback: use AI analysis indicators when parsed data is empty
+  const aiInd = aiAnalysis?.indicadoresCalculados;
+  const aiStructure = aiAnalysis?.diagnostico?.estruturaFinanceira;
+  const hasAiInd = aiInd && Object.values(aiInd).some((v: any) => v !== 0);
+  
+  let ind: Record<string, any>;
+  let years: string[];
+  
+  if (hasComputed) {
+    ind = computedInd;
+    years = Object.keys(computedInd).sort();
+  } else if (hasAiInd) {
+    // Build indicator object from AI response
+    const ac = aiStructure?.ativo_circulante || 0;
+    const anc = aiStructure?.ativo_nao_circulante || 0;
+    const pc = aiStructure?.passivo_circulante || 0;
+    const pnc = aiStructure?.passivo_nao_circulante || 0;
+    const at = aiStructure?.ativo_total || (ac + anc) || 1;
+    const pt = aiStructure?.passivo_total || (pc + pnc) || 1;
+    const pl = aiStructure?.patrimonio_liquido || 0;
+    ind = {
+      "Análise IA": {
+        liquidezCorrente: aiInd.liquidezCorrente || 0,
+        liquidezSeca: aiInd.liquidezSeca || 0,
+        liquidezImediata: aiInd.liquidezImediata || 0,
+        liquidezGeral: aiInd.liquidezGeral || 0,
+        endividamentoGeral: aiInd.endividamentoTotal || 0,
+        composicaoEndividamento: aiInd.composicaoEndividamento || 0,
+        imobilizacaoPL: aiInd.imobilizacaoPL || 0,
+        coberturaJuros: aiInd.coberturaJuros || 0,
+        giroAtivo: aiInd.giroAtivo || 0,
+        pmr: aiInd.pmr || 0,
+        pmp: aiInd.pmp || 0,
+        idadeMediaEstoque: aiInd.giroEstoque ? 360 / aiInd.giroEstoque : 0,
+        margemLiquida: aiInd.margemLiquida || 0,
+        margemOperacional: aiInd.margemOperacional || 0,
+        roa: aiInd.roa || 0,
+        roe: aiInd.roe || 0,
+        _ac: ac, _anc: anc, _pc: pc, _pnc: pnc, _pl: pl,
+        _caixa: aiStructure?.caixa || 0,
+        _receita: aiStructure?.receita_liquida || 0,
+        _lucro: aiStructure?.lucro_liquido || 0,
+        _resOp: 0, _despFin: 0, _imob: 0, _estoque: aiStructure?.estoques || 0,
+        _fornecedores: aiStructure?.fornecedores || 0, _cmv: 0, _contasReceber: aiStructure?.clientes || 0,
+      }
+    };
+    years = ["Análise IA"];
+  } else {
+    ind = state.financialAnalysis.indicators;
+    years = ["2021", "2022", "2023"];
+  }
 
   const sections = [
     {
@@ -692,12 +742,14 @@ const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsed
   const latestYear = years[years.length - 1];
   const d = latestYear ? computedInd[latestYear] : null;
 
-  const pc = d?._pc || 0;
-  const pnc = d?._pnc || 0;
+  // Fallback to AI structure data
+  const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira;
+  const pc = d?._pc || aiStruct?.passivo_circulante || 0;
+  const pnc = d?._pnc || aiStruct?.passivo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
-  const caixa = d?._caixa || 0;
-  const ac = d?._ac || 0;
-  const anc = d?._anc || 0;
+  const caixa = d?._caixa || aiStruct?.caixa || 0;
+  const ac = d?._ac || aiStruct?.ativo_circulante || 0;
+  const anc = d?._anc || aiStruct?.ativo_nao_circulante || 0;
 
   // Try to extract loan data from parsed balanco
   const findAbsValue = (keyword: string) => {
@@ -709,7 +761,7 @@ const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsed
   };
 
   const emprestimos = findAbsValue("empréstimos") || findAbsValue("financiamentos");
-  const fornecedores = d?._fornecedores || 0;
+  const fornecedores = d?._fornecedores || aiStruct?.fornecedores || 0;
   const dividaLiquida = emprestimos - caixa;
 
   const riscos = aiAnalysis?.riscosEndividamento || [
@@ -1908,7 +1960,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
    TAB: RELATÓRIO KANITZ EXPANDIDO v2.0
    Risk Intelligence Financial Report — 11 Módulos
    ══════════════════════════════════════════════════════ */
-const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void }) => {
+const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any }) => {
   const today = new Date().toLocaleDateString("pt-BR");
 
   const findValue = (keyword: string, year: string) => {
@@ -1967,6 +2019,29 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
     }
   }
 
+  // Fallback: use AI analysis kanitz data
+  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
+    const aiK = aiAnalysis.kanitz;
+    const comp = aiK.componentes || {};
+    const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
+    const fi = aiK.fatorInsolvencia || 0;
+    const classificacao: typeof kanitzResults[0]["classificacao"] =
+      fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
+    const ac = aiStruct.ativo_circulante || 0;
+    const anc = aiStruct.ativo_nao_circulante || 0;
+    const pc = aiStruct.passivo_circulante || 0;
+    const pnc = aiStruct.passivo_nao_circulante || 0;
+    const pl = aiStruct.patrimonio_liquido || 0;
+    const pt = pc + pnc;
+    const at = ac + anc;
+    kanitzResults.push({
+      year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
+      fi, classificacao, riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
+      ac, anc, pc, pnc, pl, estoque: aiStruct.estoques || 0, rlp: 0, pt, ll: aiStruct.lucro_liquido || 0, at,
+      rl: aiStruct.receita_liquida || 0, cpv: 0, fornecedores: aiStruct.fornecedores || 0, despFin: 0, lajir: 0, caixa: aiStruct.caixa || 0,
+    });
+  }
+
   const latest = kanitzResults[kanitzResults.length - 1];
   const previous = kanitzResults.length > 1 ? kanitzResults[kanitzResults.length - 2] : null;
   const fiDelta = previous ? (latest?.fi || 0) - previous.fi : 0;
@@ -1988,7 +2063,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
 
   const fmtDec = (n: number) => n.toFixed(4);
 
-  if (!parsedData || kanitzResults.length === 0) {
+  if (kanitzResults.length === 0) {
     return (
       <Card><CardContent className="py-12 text-center">
         <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -2793,7 +2868,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
 
         <TabsContent value="diagnostico"><TabDiagnostico data={activeDiagnostico} /></TabsContent>
         <TabsContent value="analise-tecnica"><TabAnaliseTecnica pendenciasData={activePendencias} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} /></TabsContent>
+        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
@@ -2802,7 +2877,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
           {reportType === "bex" ? (
             <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarKanitz} />
           ) : reportType === "kanitz" ? (
-            <TabRelatorioKanitz onBack={onBack} parsedData={parsedData} onSwitchToBex={handleGerarBex} />
+            <TabRelatorioKanitz onBack={onBack} parsedData={parsedData} onSwitchToBex={handleGerarBex} aiAnalysis={aiAnalysis} />
           ) : (
             <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} />
           )}
