@@ -241,8 +241,24 @@
 }
 
 @media print {
-  .platform-protected,
-  .print\:hidden {
+  /* Hide everything by default when printing report */
+  body.printing-report > *:not(#root),
+  body.printing-report .print\:hidden,
+  body.printing-report header,
+  body.printing-report footer,
+  body.printing-report nav {
+    display: none !important;
+  }
+
+  /* Hide platform layout chrome */
+  body.printing-report #root > div > header,
+  body.printing-report #root > div > footer {
+    display: none !important;
+  }
+
+  /* Hide all non-report content within the page */
+  body.printing-report .report-pages-container ~ *,
+  body.printing-report .print\:hidden {
     display: none !important;
   }
 
@@ -258,15 +274,20 @@
 
   .report-a4-page,
   .report-a4-cover {
-    box-shadow: none;
-    border: none;
-    border-radius: 0;
-    margin-bottom: 0;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin-bottom: 0 !important;
     page-break-after: always;
-    width: 100%;
-    min-height: auto;
+    width: 100% !important;
+    min-height: auto !important;
     height: 297mm;
     overflow: hidden;
+  }
+
+  .report-a4-page:last-child,
+  .report-a4-cover:last-child {
+    page-break-after: auto;
   }
 
   @page {
