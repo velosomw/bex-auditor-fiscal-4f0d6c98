@@ -11,8 +11,24 @@ export interface ParsedFinancialData {
 /**
  * Check if a file is a PDF
  */
+const SPREADSHEET_EXTENSIONS = [".xlsx", ".xls", ".csv", ".xlsm", ".xlsb", ".xltx", ".xltm"];
+const PDF_EXTENSIONS = [".pdf"];
+const DOCUMENT_EXTENSIONS = [".docx", ".doc", ".txt", ".rtf"];
+
+function getFileExtension(file: File): string {
+  return file.name.toLowerCase().substring(file.name.lastIndexOf("."));
+}
+
 export function isPDF(file: File): boolean {
-  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  return file.type === "application/pdf" || PDF_EXTENSIONS.includes(getFileExtension(file));
+}
+
+export function isSpreadsheet(file: File): boolean {
+  return SPREADSHEET_EXTENSIONS.includes(getFileExtension(file));
+}
+
+export function isDocument(file: File): boolean {
+  return DOCUMENT_EXTENSIONS.includes(getFileExtension(file));
 }
 
 /**
@@ -29,14 +45,34 @@ async function fileToBase64(file: File): Promise<string> {
 }
 
 /**
- * Parse a PDF file by sending it to the audit-parse-pdf edge function.
- * Supports all PDF formats: PDF/A, PDF/X, PDF/E, PDF/UA, PDF/VT, PAdES, OCR, etc.
+ * Parse a PDF or document file by sending it to the audit-parse-pdf edge function.
+ * Supports PDF (all types), Word (.docx/.doc), and text files (.txt/.rtf).
  */
-export async function parsePDF(file: File): Promise<ParsedFinancialData> {
+export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  const base64 = await fileToBase64(file);
+  let fileBase64: string;
+  let mimeType = file.type;
+
+  // For .txt files, read as text and encode
+  const ext = getFileExtension(file);
+  if (ext === ".txt") {
+    const text = await file.text();
+    fileBase64 = btoa(unescape(encodeURIComponent(text)));
+    mimeType = "text/plain";
+  } else {
+    fileBase64 = await fileToBase64(file);
+    if (!mimeType) {
+      const mimeMap: Record<string, string> = {
+        ".pdf": "application/pdf",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".doc": "application/msword",
+        ".rtf": "application/rtf",
+      };
+      mimeType = mimeMap[ext] || "application/octet-stream";
+    }
+  }
 
   const response = await fetch(`${SUPABASE_URL}/functions/v1/audit-parse-pdf`, {
     method: "POST",
@@ -45,9 +81,9 @@ export async function parsePDF(file: File): Promise<ParsedFinancialData> {
       Authorization: `Bearer ${SUPABASE_KEY}`,
     },
     body: JSON.stringify({
-      fileBase64: base64,
+      fileBase64,
       fileName: file.name,
-      mimeType: file.type || "application/pdf",
+      mimeType,
     }),
   });
 
@@ -69,11 +105,11 @@ export async function parsePDF(file: File): Promise<ParsedFinancialData> {
 }
 
 /**
- * Parse any supported file (spreadsheet or PDF)
+ * Parse any supported file (spreadsheet, PDF, Word, or text)
  */
 export async function parseFile(file: File): Promise<ParsedFinancialData> {
-  if (isPDF(file)) {
-    return parsePDF(file);
+  if (isPDF(file) || isDocument(file)) {
+    return parseDocumentAI(file);
   }
   return parseSpreadsheet(file);
 }

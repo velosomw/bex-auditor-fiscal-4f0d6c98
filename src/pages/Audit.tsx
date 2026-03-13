@@ -208,10 +208,10 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
                 <Upload className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-foreground">Arraste o documento ou clique para selecionar</p>
-              <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv, .pdf (todos os tipos)</p>
+              <p className="text-xs text-muted-foreground mt-1">Formatos: PDF, Excel (.xlsx, .xlsm, .xlsb, .xltx, .xltm, .xls), Word (.docx, .doc), CSV, TXT</p>
             </div>
           )}
-          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.pdf" onChange={(e) => handleFiles(e.target.files)} />
+          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.xltx,.xltm,.pdf,.docx,.doc,.txt,.rtf" onChange={(e) => handleFiles(e.target.files)} />
         </div>
 
         <div className="space-y-6">
