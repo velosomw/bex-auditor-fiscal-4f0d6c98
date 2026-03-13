@@ -2055,8 +2055,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
       {/* ── CAPA A4 ── */}
       <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
         {/* Header with logo */}
-        <div className="flex justify-end p-8 pb-0">
-          <img src={logoBrasilExpert} alt="Brasil Expert" className="h-14 object-contain" />
+        <div className="report-page-header">
+          <img src={logoBexBranco} alt="Brasil Expert" className="h-14 object-contain" />
         </div>
 
         {/* Center content */}
