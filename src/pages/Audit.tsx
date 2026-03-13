@@ -306,7 +306,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
           
           // If additional files, merge data
           for (let i = 1; i < files.length; i++) {
-            const additional = await parseSpreadsheet(files[i]);
+            const additional = await parseFile(files[i]);
             parsedData.balanco.push(...additional.balanco);
             parsedData.dre.push(...additional.dre);
             additional.years.forEach(y => {
