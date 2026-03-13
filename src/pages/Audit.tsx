@@ -1760,100 +1760,111 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
       </ReportPage>
 
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
-      <ReportPage>
-        <div className="space-y-4">
-          <SectionTitle num="6" title="BALANÇO PATRIMONIAL" />
+      {(() => {
+        const allRows = parsedData?.balanco || state.balancoRows;
+        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1"));
+        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2"));
+        const maxRows = Math.max(ativoRows.length, passivoRows.length);
 
-          <div className="text-center mb-2">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">DEMONSTRATIVOS FINANCEIROS CONSOLIDADOS</h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Balanço Patrimonial</p>
-          </div>
+        const isParent = (conta: string) => {
+          const parts = conta.replace(/\./g, "").length;
+          return conta === "1" || conta === "2" || conta === "1.01" || conta === "1.02" || conta === "2.01" || conta === "2.02" || conta === "2.03" || parts <= 3;
+        };
 
-          {(() => {
-            const allRows = parsedData?.balanco || state.balancoRows;
-            const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1"));
-            const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2"));
-            const maxRows = Math.max(ativoRows.length, passivoRows.length);
+        const getIndent = (conta: string) => {
+          const depth = (conta.match(/\./g) || []).length;
+          return depth > 0 ? `${depth * 12}px` : "0px";
+        };
 
-            const isParent = (conta: string) => {
-              const parts = conta.replace(/\./g, "").length;
-              return conta === "1" || conta === "2" || conta === "1.01" || conta === "1.02" || conta === "2.01" || conta === "2.02" || conta === "2.03" || parts <= 3;
-            };
+        // Rows per page: first page has title+header so fewer rows, continuation pages have more
+        const ROWS_FIRST_PAGE = 38;
+        const ROWS_PER_PAGE = 44;
 
-            const getIndent = (conta: string) => {
-              const depth = (conta.match(/\./g) || []).length;
-              return depth > 0 ? `${depth * 12}px` : "0px";
-            };
+        // Build array of pages with row ranges
+        const pages: Array<{ startIdx: number; endIdx: number; isFirst: boolean }> = [];
+        let cursor = 0;
+        let isFirst = true;
+        while (cursor < maxRows) {
+          const capacity = isFirst ? ROWS_FIRST_PAGE : ROWS_PER_PAGE;
+          const endIdx = Math.min(cursor + capacity, maxRows);
+          pages.push({ startIdx: cursor, endIdx, isFirst });
+          cursor = endIdx;
+          isFirst = false;
+        }
 
-            return (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[10px] border-collapse">
-                  <thead>
-                    <tr className="border-b-2 border-border">
-                      <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
-                      <th className="text-left p-1.5 text-muted-foreground font-semibold">ATIVO</th>
-                      {years.map(y => <th key={`a-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
-                      <th className="w-[16px]"></th>
-                      <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
-                      <th className="text-left p-1.5 text-muted-foreground font-semibold">PASSIVO + PL</th>
-                      {years.map(y => <th key={`p-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Array.from({ length: maxRows }).map((_, idx) => {
-                      const aRow = ativoRows[idx];
-                      const pRow = passivoRows[idx];
-                      const aParent = aRow && isParent(aRow.conta);
-                      const pParent = pRow && isParent(pRow.conta);
+        // Add validations to the last page
+        const validations = [
+          { check: "Ativo = Passivo + PL", status: true, detail: `Ativo Total: R$ ${fmt(ac + anc)} | Passivo + PL: R$ ${fmt(pc + pnc)}` },
+          { check: "Passivo a Descoberto", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
+          { check: "PL Negativo", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl || d?.patrimonioLiquido || 0))}` : "PL NEGATIVO identificado" },
+          { check: "Descasamento Estrutural", status: ac > pc, detail: "Capital de giro líquido " + (ac > pc ? "positivo" : "negativo") },
+        ];
 
-                      return (
-                        <tr key={idx} className="border-b border-border/40 hover:bg-muted/30">
-                          {/* ATIVO side */}
-                          <td className={`p-1.5 font-mono text-muted-foreground ${aParent ? "font-bold" : ""}`}>
-                            {aRow?.conta || ""}
-                          </td>
-                          <td className={`p-1.5 ${aParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: aRow ? `calc(6px + ${getIndent(aRow.conta)})` : "6px" }}>
-                            {aRow?.descricao || ""}
-                          </td>
-                          {years.map(y => (
-                            <td key={`a-${y}-${idx}`} className={`p-1.5 text-right font-mono ${aParent ? "font-bold text-foreground" : "text-foreground"}`}>
-                              {aRow ? fmt(aRow.values[y] || 0) : ""}
-                            </td>
-                          ))}
+        // Check if validations fit on the last page (need ~6 rows worth of space)
+        const lastPage = pages[pages.length - 1];
+        const lastPageRows = lastPage.endIdx - lastPage.startIdx;
+        const lastPageCapacity = lastPage.isFirst ? ROWS_FIRST_PAGE : ROWS_PER_PAGE;
+        const validationsFitOnLastPage = (lastPageCapacity - lastPageRows) >= 8;
 
-                          {/* Separator */}
-                          <td className="bg-border/20"></td>
+        const renderTableHeader = () => (
+          <thead>
+            <tr className="border-b-2 border-border">
+              <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
+              <th className="text-left p-1.5 text-muted-foreground font-semibold">ATIVO</th>
+              {years.map(y => <th key={`a-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
+              <th className="w-[16px]"></th>
+              <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
+              <th className="text-left p-1.5 text-muted-foreground font-semibold">PASSIVO + PL</th>
+              {years.map(y => <th key={`p-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
+            </tr>
+          </thead>
+        );
 
-                          {/* PASSIVO side */}
-                          <td className={`p-1.5 font-mono text-muted-foreground ${pParent ? "font-bold" : ""}`}>
-                            {pRow?.conta || ""}
-                          </td>
-                          <td className={`p-1.5 ${pParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: pRow ? `calc(6px + ${getIndent(pRow.conta)})` : "6px" }}>
-                            {pRow?.descricao || ""}
-                          </td>
-                          {years.map(y => (
-                            <td key={`p-${y}-${idx}`} className={`p-1.5 text-right font-mono ${pParent ? "font-bold text-foreground" : "text-foreground"}`}>
-                              {pRow ? fmt(pRow.values[y] || 0) : ""}
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })()}
+        const renderRows = (startIdx: number, endIdx: number) => (
+          <tbody>
+            {Array.from({ length: endIdx - startIdx }).map((_, i) => {
+              const idx = startIdx + i;
+              const aRow = ativoRows[idx];
+              const pRow = passivoRows[idx];
+              const aParent = aRow && isParent(aRow.conta);
+              const pParent = pRow && isParent(pRow.conta);
 
-          <div>
+              return (
+                <tr key={idx} className="border-b border-border/40 hover:bg-muted/30">
+                  <td className={`p-1.5 font-mono text-muted-foreground ${aParent ? "font-bold" : ""}`}>
+                    {aRow?.conta || ""}
+                  </td>
+                  <td className={`p-1.5 ${aParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: aRow ? `calc(6px + ${getIndent(aRow.conta)})` : "6px" }}>
+                    {aRow?.descricao || ""}
+                  </td>
+                  {years.map(y => (
+                    <td key={`a-${y}-${idx}`} className={`p-1.5 text-right font-mono ${aParent ? "font-bold text-foreground" : "text-foreground"}`}>
+                      {aRow ? fmt(aRow.values[y] || 0) : ""}
+                    </td>
+                  ))}
+                  <td className="bg-border/20"></td>
+                  <td className={`p-1.5 font-mono text-muted-foreground ${pParent ? "font-bold" : ""}`}>
+                    {pRow?.conta || ""}
+                  </td>
+                  <td className={`p-1.5 ${pParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: pRow ? `calc(6px + ${getIndent(pRow.conta)})` : "6px" }}>
+                    {pRow?.descricao || ""}
+                  </td>
+                  {years.map(y => (
+                    <td key={`p-${y}-${idx}`} className={`p-1.5 text-right font-mono ${pParent ? "font-bold text-foreground" : "text-foreground"}`}>
+                      {pRow ? fmt(pRow.values[y] || 0) : ""}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        );
+
+        const renderValidations = () => (
+          <div className="mt-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações</h3>
             <div className="space-y-2">
-              {[
-                { check: "Ativo = Passivo + PL", status: true, detail: `Ativo Total: R$ ${fmt(ac + anc)} | Passivo + PL: R$ ${fmt(pc + pnc)}` },
-                { check: "Passivo a Descoberto", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
-                { check: "PL Negativo", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl || d?.patrimonioLiquido || 0))}` : "PL NEGATIVO identificado" },
-                { check: "Descasamento Estrutural", status: ac > pc, detail: "Capital de giro líquido " + (ac > pc ? "positivo" : "negativo") },
-              ].map(v => (
+              {validations.map(v => (
                 <div key={v.check} className={`flex items-center justify-between p-3 rounded-lg ${v.status ? "bg-emerald-500/5 border border-emerald-500/20" : "bg-red-500/5 border border-red-500/20"}`}>
                   <div className="flex items-center gap-2">
                     {v.status ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertTriangle className="w-4 h-4 text-red-500" />}
@@ -1864,8 +1875,54 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               ))}
             </div>
           </div>
-        </div>
-      </ReportPage>
+        );
+
+        return (
+          <>
+            {pages.map((page, pageIdx) => (
+              <ReportPage key={`bp-page-${pageIdx}`}>
+                <div className="space-y-2">
+                  {page.isFirst ? (
+                    <>
+                      <SectionTitle num="6" title="BALANÇO PATRIMONIAL" />
+                      <div className="text-center mb-2">
+                        <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">DEMONSTRATIVOS FINANCEIROS CONSOLIDADOS</h3>
+                        <p className="text-[10px] text-muted-foreground mt-1">Balanço Patrimonial</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">6. Balanço Patrimonial — continuação ({pageIdx + 1}/{pages.length})</p>
+                    </div>
+                  )}
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[10px] border-collapse">
+                      {renderTableHeader()}
+                      {renderRows(page.startIdx, page.endIdx)}
+                    </table>
+                  </div>
+
+                  {/* Render validations on last page if they fit, otherwise they go on a separate page */}
+                  {pageIdx === pages.length - 1 && validationsFitOnLastPage && renderValidations()}
+                </div>
+              </ReportPage>
+            ))}
+
+            {/* Separate page for validations if they don't fit */}
+            {!validationsFitOnLastPage && (
+              <ReportPage>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">6. Balanço Patrimonial — Validações</p>
+                  </div>
+                  {renderValidations()}
+                </div>
+              </ReportPage>
+            )}
+          </>
+        );
+      })()}
 
       {/* ── SCORE FINAL ── */}
       <ReportPage>
