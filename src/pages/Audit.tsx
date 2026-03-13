@@ -2790,7 +2790,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 
       {/* Action buttons bottom */}
       <div className="flex justify-center gap-3 pt-4 print:hidden">
-        <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
+        <Button variant="outline" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-kanitz-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
         {onSwitchToBex && (
@@ -2798,7 +2798,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
             <BookOpen className="w-4 h-4" /> Relatório BEX
           </Button>
         )}
-        <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
+        <Button variant="outline" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-kanitz-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
         <Button variant="outline" onClick={onBack} className="gap-1.5">
