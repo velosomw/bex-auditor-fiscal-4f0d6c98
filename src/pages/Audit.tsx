@@ -2586,12 +2586,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MEMÓRIA DE CÁLCULO ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="★" title="MEMÓRIA DE CÁLCULO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
             <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
