@@ -274,15 +274,16 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
    PHASE 2: PROCESSING
    ══════════════════════════════════════════════════════ */
 const processingSteps = [
-  { label: "Validando estrutura do balancete...", duration: 1200 },
-  { label: "Identificando plano de contas...", duration: 1000 },
-  { label: "Mapeando Ativo, Passivo e PL...", duration: 1500 },
-  { label: "Executando testes de consistência contábil...", duration: 1300 },
-  { label: "Calculando indicadores financeiros...", duration: 1100 },
-  { label: "Analisando endividamento e solvência...", duration: 1400 },
-  { label: "Executando Score BEX-RJ...", duration: 1200 },
-  { label: "Classificando pendências contábeis...", duration: 1000 },
-  { label: "Gerando documento Avaliação Empresarial...", duration: 1500 },
+  { label: "📥 Upload — Recebendo arquivos...", duration: 800 },
+  { label: "🔍 Agente Parser — Identificando formato e tipo de documento...", duration: 1200 },
+  { label: "📊 Agente Parser — Extraindo dados contábeis...", duration: 1500 },
+  { label: "🏗️ Agente Estruturador — Classificando contas contábeis...", duration: 1300 },
+  { label: "🔎 Agente Auditor — Verificando inconsistências...", duration: 1400 },
+  { label: "📈 Agente Risk Engine — Calculando indicadores financeiros...", duration: 1200 },
+  { label: "📈 Agente Risk Engine — Executando Modelo Kanitz...", duration: 1000 },
+  { label: "📈 Agente Risk Engine — Calculando Score BEX-RJ...", duration: 1100 },
+  { label: "📝 Agente Relatório — Consolidando análise...", duration: 1000 },
+  { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
 const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: { 
