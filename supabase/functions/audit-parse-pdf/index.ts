@@ -154,24 +154,8 @@ serve(async (req) => {
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
-    // Parse the AI response
-    let extracted;
-    try {
-      extracted = JSON.parse(content);
-    } catch {
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        extracted = JSON.parse(jsonMatch[1].trim());
-      } else {
-        const braceStart = content.indexOf("{");
-        const braceEnd = content.lastIndexOf("}");
-        if (braceStart !== -1 && braceEnd !== -1) {
-          extracted = JSON.parse(content.slice(braceStart, braceEnd + 1));
-        } else {
-          throw new Error("Não foi possível extrair dados estruturados do PDF");
-        }
-      }
-    }
+    // Parse the AI response with robust JSON repair for truncated outputs
+    const extracted = extractAndRepairJson(content);
 
     console.log(`PDF parsed successfully: ${extracted.balanco?.length || 0} balanço rows, ${extracted.dre?.length || 0} DRE rows, type: ${extracted.pdfType}`);
 
