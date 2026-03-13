@@ -1847,14 +1847,14 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
       </Card>
 
       {/* ── ASSINATURA ── */}
-      <Card className="bg-muted/20">
-        <CardContent className="pt-6 text-center space-y-3">
+      <div className="report-a4-page p-8" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+        <div className="pt-12 text-center space-y-3">
           <div className="w-12 h-12 mx-auto rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
             <Shield className="w-6 h-6 text-[hsl(258,90%,66%)]" />
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">Documento gerado e assinado digitalmente</p>
-            <p className="text-xs text-muted-foreground">Agente IA — Auditor Contábil Sênior</p>
+            <p className="text-xs text-muted-foreground">Auditor Contábil Sênior IA</p>
             <p className="text-xs text-muted-foreground">Especialista em Recuperação Judicial e Análise Empresarial</p>
             <p className="text-xs text-muted-foreground mt-2">Plataforma BEX — {today}</p>
           </div>
@@ -1863,8 +1863,14 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="mt-auto">
+          <div className="report-footer-bar">
+            <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
+            <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
+          </div>
+        </div>
+      </div>
 
       {/* Action buttons bottom */}
       <div className="flex justify-center gap-3 pt-4 print:hidden">
