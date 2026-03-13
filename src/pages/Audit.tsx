@@ -181,6 +181,8 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
                       <FileText className="w-8 h-8 text-emerald-600" />
                     ) : (/\.(docx?|txt|rtf)$/i).test(f.fileName) ? (
                       <FileText className="w-8 h-8 text-emerald-600" />
+                    ) : (/\.(json|xml|ofx|sped)$/i).test(f.fileName) ? (
+                      <FileSearch className="w-8 h-8 text-emerald-600" />
                     ) : (
                       <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
                     )}
