@@ -2199,9 +2199,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
   const tendencia = previous && fiDelta > 0.5 ? "Melhora" : previous && fiDelta < -0.5 ? "Deterioração" : "Estável";
 
   return (
-    <div className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-kanitz-container">
+    <div ref={kanitzContainerRef} className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-kanitz-container">
       {/* Action buttons */}
-      <div className="flex justify-end gap-2 print:hidden mb-4">
+      <div className="flex items-center justify-end gap-2 print:hidden mb-4">
+        {totalPagesKanitz > 0 && (
+          <span className="text-xs font-medium text-muted-foreground mr-auto flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPagesKanitz}
+          </span>
+        )}
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-kanitz-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
