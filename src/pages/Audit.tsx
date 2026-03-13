@@ -2114,7 +2114,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
   const tendencia = previous && fiDelta > 0.5 ? "Melhora" : previous && fiDelta < -0.5 ? "Deterioração" : "Estável";
 
   return (
-    <div className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+    <div className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-kanitz-container">
       {/* Action buttons */}
       <div className="flex justify-end gap-2 print:hidden mb-4">
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
