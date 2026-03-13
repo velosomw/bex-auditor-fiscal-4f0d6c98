@@ -177,7 +177,9 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
               {state.config.files.map(f => (
                 <div key={f.id} className="relative border-2 border-dashed border-emerald-400/50 rounded-2xl p-8 text-center bg-emerald-50/30">
                   <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
-                    {f.fileName.toLowerCase().endsWith(".pdf") ? (
+                    {(/\.(pdf)$/i).test(f.fileName) ? (
+                      <FileText className="w-8 h-8 text-emerald-600" />
+                    ) : (/\.(docx?|txt|rtf)$/i).test(f.fileName) ? (
                       <FileText className="w-8 h-8 text-emerald-600" />
                     ) : (
                       <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
