@@ -2364,7 +2364,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-serif">Avaliação Empresarial</h1>
-          <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Agente IA Auditor Contábil Sênior</p>
+          <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
         </div>
       </div>
 
