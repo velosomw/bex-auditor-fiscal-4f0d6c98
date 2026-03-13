@@ -25,7 +25,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
             )}
             <Link to={role === "gestor_ia" ? "/gestor-ia" : role === "auditor_chefe" ? "/dashboard" : "/user"} className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-[hsl(217,91%,50%)]" />
-              <span className="font-bold text-white text-sm">Plataforma de Auditoria IA</span>
+              <span className="font-bold text-white text-sm">BEX Auditoria IA</span>
             </Link>
             <span className="hidden md:inline-flex text-[hsl(220,15%,45%)] text-xs gap-1.5 ml-3">
               <span>CPC</span>•<span>IFRS</span>•<span>NBC TA</span>
