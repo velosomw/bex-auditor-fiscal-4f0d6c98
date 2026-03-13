@@ -2044,6 +2044,15 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
    ══════════════════════════════════════════════════════ */
 const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any }) => {
   const today = new Date().toLocaleDateString("pt-BR");
+  const kanitzContainerRef = useRef<HTMLDivElement>(null);
+  const [totalPagesKanitz, setTotalPagesKanitz] = useState(0);
+
+  useEffect(() => {
+    if (kanitzContainerRef.current) {
+      const pages = kanitzContainerRef.current.querySelectorAll('.report-a4-page, .report-a4-cover');
+      setTotalPagesKanitz(pages.length);
+    }
+  });
 
   const findValue = (keyword: string, year: string) => {
     if (!parsedData) return 0;
