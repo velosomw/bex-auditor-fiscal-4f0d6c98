@@ -1405,7 +1405,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
   );
 
   return (
-    <div style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+    <div style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-bex-container">
       {/* Action buttons print:hidden - outside gray container */}
       <div className="flex justify-end gap-2 print:hidden mb-4">
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
