@@ -2273,12 +2273,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 4 — ESTRUTURA DE LIQUIDEZ ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="4" title="ESTRUTURA DE LIQUIDEZ" />
           <div className="grid sm:grid-cols-4 gap-3">
             {[
