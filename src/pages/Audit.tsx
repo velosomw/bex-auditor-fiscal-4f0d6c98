@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import folhaRostoBg from "@/assets/folha-rosto-bex.jpg";
 import logoBrasilExpert from "@/assets/logo-brasil-expert.jpg";
+import logoBexBranco from "@/assets/logo-bex-branco.jpeg";
 import {
   Upload, FileText, CheckCircle2, ArrowRight, ArrowLeft,
   Shield, MessageCircle, Send, AlertTriangle, Download, Printer,
@@ -1158,6 +1159,22 @@ const reportTopicsKanitz = [
   { num: "7", title: "Memória de Cálculo", desc: "Transparência completa das fórmulas, pesos e dados utilizados no cálculo do FI", icon: Calculator },
 ];
 
+/* ── Shared A4 Report Page Wrapper ── */
+const ReportPage = ({ children }: { children: React.ReactNode }) => (
+  <div className="report-a4-page" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+    <div className="report-page-header">
+      <img src={logoBexBranco} alt="Brasil Expert" className="h-14 object-contain" />
+    </div>
+    <div className="report-page-body">
+      {children}
+    </div>
+    <div className="report-footer-bar">
+      <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
+      <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
+    </div>
+  </div>
+);
+
 const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => void; onGerarKanitz: () => void }) => (
   <div className="space-y-6">
     <div className="text-center space-y-2 mb-2">
@@ -1355,8 +1372,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
       {/* ── CAPA A4 ── */}
       <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
         {/* Header with logo */}
-        <div className="flex justify-end p-8 pb-0">
-          <img src={logoBrasilExpert} alt="Brasil Expert" className="h-14 object-contain" />
+        <div className="report-page-header">
+          <img src={logoBexBranco} alt="Brasil Expert" className="h-14 object-contain" />
         </div>
 
         {/* Center content */}
@@ -1398,8 +1415,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
 
 
       {/* ── 1. DIAGNÓSTICO EXECUTIVO ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="1" title="DIAGNÓSTICO EXECUTIVO" />
           
           <div>
@@ -1439,12 +1456,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── 2. SOLVÊNCIA ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="2" title="SOLVÊNCIA" />
 
           <div>
@@ -1499,12 +1516,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── 3. ANÁLISE TÉCNICA — PENDÊNCIAS ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="3" title="ANÁLISE TÉCNICA — PENDÊNCIAS" />
 
           <div>
@@ -1566,12 +1583,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── 4. INDICADORES ECONÔMICO-FINANCEIROS ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="4" title="INDICADORES ECONÔMICO-FINANCEIROS" />
 
           {[
@@ -1627,12 +1644,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── 5. ENDIVIDAMENTO ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="5" title="ENDIVIDAMENTO" />
 
           <div>
@@ -1683,12 +1700,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="6" title="BALANÇO PATRIMONIAL" />
 
           <div className="text-center mb-2">
@@ -1791,12 +1808,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── SCORE FINAL ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="★" title="CLASSIFICAÇÃO FINAL — SCORE BEX DE SOLVÊNCIA" />
           
           <div className="text-center py-6">
@@ -1843,12 +1860,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── ASSINATURA ── */}
-      <div className="report-a4-page p-8" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
-        <div className="pt-12 text-center space-y-3">
+      <ReportPage>
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
           <div className="w-12 h-12 mx-auto rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
             <Shield className="w-6 h-6 text-[hsl(258,90%,66%)]" />
           </div>
@@ -1864,13 +1881,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
             ))}
           </div>
         </div>
-        <div className="mt-auto">
-          <div className="report-footer-bar">
-            <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
-            <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
-          </div>
-        </div>
-      </div>
+      </ReportPage>
 
       {/* Action buttons bottom */}
       <div className="flex justify-center gap-3 pt-4 print:hidden">
@@ -2044,8 +2055,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
       {/* ── CAPA A4 ── */}
       <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
         {/* Header with logo */}
-        <div className="flex justify-end p-8 pb-0">
-          <img src={logoBrasilExpert} alt="Brasil Expert" className="h-14 object-contain" />
+        <div className="report-page-header">
+          <img src={logoBexBranco} alt="Brasil Expert" className="h-14 object-contain" />
         </div>
 
         {/* Center content */}
@@ -2094,8 +2105,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
       </div>
 
       {/* ══ MÓDULO 1 — SUMÁRIO EXECUTIVO ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="1" title="SUMÁRIO EXECUTIVO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-sm text-foreground leading-relaxed">
@@ -2131,12 +2142,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               <p className={`text-[10px] font-semibold ${classColors[l.classificacao]?.color}`}>{classColors[l.classificacao]?.label}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 2 — SCORE KANITZ ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="2" title="SCORE KANITZ" />
           <div className="text-center py-6">
             <p className={`text-6xl font-bold ${classColors[l.classificacao]?.color}`}>{l.fi.toFixed(2)}</p>
@@ -2201,12 +2212,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 3 — DIAGNÓSTICO DE SOLVÊNCIA ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="3" title="DIAGNÓSTICO DE SOLVÊNCIA" />
           <p className="text-xs text-muted-foreground leading-relaxed">
             Análise dos componentes que determinam o score Kanitz, identificando qual variável está deteriorando o índice.
@@ -2262,12 +2273,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 4 — ESTRUTURA DE LIQUIDEZ ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="4" title="ESTRUTURA DE LIQUIDEZ" />
           <div className="grid sm:grid-cols-4 gap-3">
             {[
@@ -2298,12 +2309,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
                 : "Estrangulamento financeiro identificado. Capital de giro negativo indica incapacidade de financiar operações com recursos próprios de curto prazo."}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 5 — ESTRUTURA DE CAPITAL ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="5" title="ESTRUTURA DE CAPITAL" />
           <div className="grid sm:grid-cols-3 gap-3">
             {[
@@ -2336,12 +2347,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 6 — ANÁLISE DE PASSIVOS ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="6" title="ANÁLISE DE PASSIVOS" />
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="p-4 rounded-lg bg-muted/20 space-y-3">
@@ -2377,12 +2388,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 7 — FLUXO DE CAIXA ESTRUTURAL ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="7" title="FLUXO DE CAIXA ESTRUTURAL" />
           <p className="text-xs text-muted-foreground">
             Ampliação do modelo Kanitz tradicional com análise de geração de caixa — detectando risco de ruptura financeira.
@@ -2413,12 +2424,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
                 : "Risco elevado de ruptura. Cobertura de juros insuficiente — a empresa não gera caixa operacional suficiente para honrar despesas financeiras."}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 8 — CUSTOS OCULTOS ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="8" title="CUSTOS OCULTOS E INEFICIÊNCIAS" />
           <p className="text-xs text-muted-foreground">
             Análise de ineficiências que impactam diretamente o score Kanitz, com simulação do efeito sobre o FI.
@@ -2443,12 +2454,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 9 — RISK ENGINE DE INSOLVÊNCIA ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="9" title="RISK ENGINE DE INSOLVÊNCIA" />
           <div className="text-center py-4">
             <p className={`text-5xl font-bold font-mono ${riskEngineColor}`}>{riskEngineScore}</p>
@@ -2495,12 +2506,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 10 — SIMULAÇÃO FINANCEIRA ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="10" title="SIMULAÇÃO FINANCEIRA" />
           <p className="text-xs text-muted-foreground">
             Cenários simulados de melhoria do score Kanitz. Projeções estimadas com base nos indicadores atuais.
@@ -2547,12 +2558,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 11 — PARECER TÉCNICO ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="11" title="PARECER TÉCNICO" />
           <div className="space-y-4">
             {[
@@ -2575,12 +2586,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MEMÓRIA DE CÁLCULO ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="★" title="MEMÓRIA DE CÁLCULO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
             <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
@@ -2670,12 +2681,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </Table>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── ASSINATURA ── */}
-      <div className="report-a4-page p-8 flex flex-col min-h-[400px]" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
-        <div className="pt-12 text-center space-y-3 flex-1">
+      <ReportPage>
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
           <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center">
             <Scale className="w-6 h-6 text-amber-600" />
           </div>
@@ -2691,11 +2702,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
             ))}
           </div>
         </div>
-        <div className="report-footer-bar">
-          <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
-          <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
-        </div>
-      </div>
+      </ReportPage>
 
       {/* Action buttons bottom */}
       <div className="flex justify-center gap-3 pt-4 print:hidden">

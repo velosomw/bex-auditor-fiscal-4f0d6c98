@@ -142,33 +142,15 @@
 /* ── A4 Report Styles ── */
 .report-a4-page {
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;
   margin: 0 auto;
   background: white;
   position: relative;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 4px 24px -6px hsla(0, 0%, 0%, 0.12);
   overflow: hidden;
-}
-
-.report-a4-page::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: var(--report-watermark);
-  background-repeat: no-repeat;
-  background-position: center 55%;
-  background-size: 55%;
-  opacity: 0.04;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.report-a4-page > * {
-  position: relative;
-  z-index: 1;
+  color: hsl(220, 25%, 14%);
 }
 
 .report-a4-cover {
@@ -181,6 +163,7 @@
   flex-direction: column;
   box-shadow: 0 4px 24px -6px hsla(0, 0%, 0%, 0.12);
   overflow: hidden;
+  color: hsl(220, 25%, 14%);
 }
 
 .report-a4-cover::before {
@@ -204,18 +187,55 @@
   z-index: 1;
 }
 
+.report-page-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6mm 8mm 0;
+  flex-shrink: 0;
+}
+
+.report-page-body {
+  flex: 1;
+  margin: 3mm 16mm 0;
+  padding: 4mm 2mm;
+  position: relative;
+  overflow: hidden;
+}
+
+.report-page-body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: var(--report-watermark);
+  background-repeat: no-repeat;
+  background-position: center 50%;
+  background-size: 55%;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.report-page-body > * {
+  position: relative;
+  z-index: 1;
+}
+
 .report-footer-bar {
   border-top: 3px solid hsl(195, 53%, 50%);
-  padding: 12px 32px;
+  padding: 3mm 8mm;
   text-align: center;
-  font-size: 10px;
+  font-size: 9px;
   color: hsl(220, 10%, 46%);
-  line-height: 1.6;
+  line-height: 1.5;
+  flex-shrink: 0;
 }
 
 @media print {
   .platform-protected,
-  .print\\:hidden {
+  .print\:hidden {
     display: none !important;
   }
 
@@ -232,6 +252,6 @@
 
   @page {
     size: A4;
-    margin: 10mm;
+    margin: 0;
   }
 }
