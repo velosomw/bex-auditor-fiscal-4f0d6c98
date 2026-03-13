@@ -1628,8 +1628,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── 5. ENDIVIDAMENTO ── */}
       <Card>
