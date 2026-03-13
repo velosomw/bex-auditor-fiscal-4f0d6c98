@@ -241,35 +241,42 @@
 }
 
 @media print {
-  /* Hide everything by default when printing report */
-  body.printing-report > *:not(#root),
+  /* Hide EVERYTHING by default */
+  body.printing-report * {
+    visibility: hidden !important;
+  }
+
+  /* Show only report pages container and its children */
+  body.printing-report .report-pages-container,
+  body.printing-report .report-pages-container *,
+  body.printing-report .report-a4-cover,
+  body.printing-report .report-a4-cover *,
+  body.printing-report .report-a4-page,
+  body.printing-report .report-a4-page * {
+    visibility: visible !important;
+  }
+
+  /* Position report container as the only visible block */
+  body.printing-report .report-pages-container {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Force hide print:hidden elements even inside report */
   body.printing-report .print\:hidden,
-  body.printing-report header,
-  body.printing-report footer,
-  body.printing-report nav {
+  body.printing-report [class*="print:hidden"] {
     display: none !important;
-  }
-
-  /* Hide platform layout chrome */
-  body.printing-report #root > div > header,
-  body.printing-report #root > div > footer {
-    display: none !important;
-  }
-
-  /* Hide all non-report content within the page */
-  body.printing-report .report-pages-container ~ *,
-  body.printing-report .print\:hidden {
-    display: none !important;
+    visibility: hidden !important;
   }
 
   body {
     background: white !important;
-  }
-
-  .report-pages-container {
-    background: none !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
   }
 
   .report-a4-page,
@@ -279,6 +286,7 @@
     border-radius: 0 !important;
     margin-bottom: 0 !important;
     page-break-after: always;
+    page-break-inside: avoid;
     width: 100% !important;
     min-height: auto !important;
     height: 297mm;
