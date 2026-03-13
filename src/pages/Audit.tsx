@@ -1632,8 +1632,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
       </ReportPage>
 
       {/* ── 5. ENDIVIDAMENTO ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="5" title="ENDIVIDAMENTO" />
 
           <div>
