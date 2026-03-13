@@ -1416,7 +1416,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
   return (
     <div ref={reportContainerRef} style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-bex-container">
       {/* Action buttons print:hidden - outside gray container */}
-      <div className="flex justify-end gap-2 print:hidden mb-4">
+      <div className="flex items-center justify-end gap-2 print:hidden mb-4">
+        {totalPages > 0 && (
+          <span className="text-xs font-medium text-muted-foreground mr-auto flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPages}
+          </span>
+        )}
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-bex-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
