@@ -2347,12 +2347,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 6 — ANÁLISE DE PASSIVOS ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="6" title="ANÁLISE DE PASSIVOS" />
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="p-4 rounded-lg bg-muted/20 space-y-3">
