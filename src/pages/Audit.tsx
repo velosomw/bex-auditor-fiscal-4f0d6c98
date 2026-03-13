@@ -1567,8 +1567,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── 4. INDICADORES ECONÔMICO-FINANCEIROS ── */}
       <Card>
