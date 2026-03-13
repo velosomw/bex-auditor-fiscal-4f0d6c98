@@ -1404,8 +1404,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
   );
 
   return (
-    <div className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
-      {/* Action buttons */}
+    <div style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+      {/* Action buttons print:hidden - outside gray container */}
       <div className="flex justify-end gap-2 print:hidden mb-4">
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
           <Download className="w-4 h-4" /> Exportar
@@ -1423,6 +1423,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
         </Button>
       </div>
 
+      <div className="report-pages-container">
       {/* ── CAPA A4 ── */}
       <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
         {/* Header with logo */}
@@ -1937,6 +1938,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
         </div>
       </ReportPage>
 
+      </div>{/* end report-pages-container */}
+
       {/* Action buttons bottom */}
       <div className="flex justify-center gap-3 pt-4 print:hidden">
         <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
@@ -2129,6 +2132,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
         </Button>
       </div>
 
+      <div className="report-pages-container">
       {/* ── CAPA A4 ── */}
       <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
         {/* Header with logo */}
@@ -2780,6 +2784,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
           </div>
         </div>
       </ReportPage>
+
+      </div>{/* end report-pages-container */}
 
       {/* Action buttons bottom */}
       <div className="flex justify-center gap-3 pt-4 print:hidden">

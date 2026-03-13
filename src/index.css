@@ -139,33 +139,38 @@
   }
 }
 
+/* ── A4 Report Container ── */
+.report-pages-container {
+  background: hsl(220, 10%, 92%);
+  padding: 40px 0;
+  border-radius: 8px;
+}
+
 /* ── A4 Report Styles ── */
 .report-a4-page {
   width: 210mm;
   min-height: 297mm;
-  margin: 0 auto 80px;
+  margin: 0 auto 40px;
   background: white;
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 24px -6px hsla(0, 0%, 0%, 0.12);
+  box-shadow: 0 1px 3px hsla(0, 0%, 0%, 0.08);
+  border: 1px solid hsl(220, 15%, 85%);
   color: hsl(220, 25%, 14%);
-  border: 1px solid hsl(220, 18%, 90%);
-  border-radius: 2px;
 }
 
 .report-a4-cover {
   width: 210mm;
   min-height: 297mm;
-  margin: 0 auto 80px;
+  margin: 0 auto 40px;
   background: white;
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 24px -6px hsla(0, 0%, 0%, 0.12);
+  box-shadow: 0 1px 3px hsla(0, 0%, 0%, 0.08);
+  border: 1px solid hsl(220, 15%, 85%);
   color: hsl(220, 25%, 14%);
-  border: 1px solid hsl(220, 18%, 90%);
-  border-radius: 2px;
 }
 
 .report-a4-cover::before {
@@ -243,6 +248,12 @@
 
   body {
     background: white !important;
+  }
+
+  .report-pages-container {
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
   }
 
   .report-a4-page,
