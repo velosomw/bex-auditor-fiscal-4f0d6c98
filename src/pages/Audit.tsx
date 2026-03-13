@@ -205,9 +205,9 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
               }`}
             >
               <div className="w-14 h-14 mx-auto rounded-xl bg-muted/50 flex items-center justify-center mb-3">
-                <FileSpreadsheet className="w-8 h-8 text-muted-foreground" />
+                <Upload className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-sm font-medium text-foreground">Arraste o balancete ou clique para selecionar</p>
+              <p className="text-sm font-medium text-foreground">Arraste o documento ou clique para selecionar</p>
               <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv, .pdf (todos os tipos)</p>
             </div>
           )}
