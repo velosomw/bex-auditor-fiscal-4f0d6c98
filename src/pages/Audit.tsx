@@ -33,6 +33,17 @@ const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
 const fmtDays = (n: number) => `${Math.round(n)} dias`;
 
+const printReport = (containerId: string, reportTitle: string) => {
+  const prevTitle = document.title;
+  document.title = reportTitle;
+  document.body.classList.add('printing-report');
+  document.body.setAttribute('data-print-target', containerId);
+  window.print();
+  document.body.classList.remove('printing-report');
+  document.body.removeAttribute('data-print-target');
+  document.title = prevTitle;
+};
+
 /* ── Risk Colors ── */
 const riskBadge: Record<string, { bg: string; label: string }> = {
   baixo: { bg: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", label: "🟢 Baixo" },
