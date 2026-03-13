@@ -24,6 +24,8 @@ import PlatformLayout from "@/components/PlatformLayout";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import { toast } from "@/hooks/use-toast";
+import { saveAuditBatch, type AuditHistoryEntry } from "@/services/auditHistoryService";
+import { getFileFormat as getFormat } from "@/services/auditAIService";
 
 /* ── Helpers ── */
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
@@ -2901,7 +2903,23 @@ const AuditContent = () => {
   const handleAnalysisReady = useCallback((analysis: any, parsed: ParsedFinancialData | null) => {
     setAiAnalysis(analysis);
     setParsedData(parsed);
-  }, []);
+    
+    // Save to audit history for /user page
+    const riskLevel = analysis?.diagnostico?.riskLevel || "moderado";
+    const pendencias = analysis?.pendencias?.length || 0;
+    const entries: AuditHistoryEntry[] = uploadedFiles.map((f, i) => ({
+      id: `audit-${Date.now()}-${i}`,
+      fileName: f.name,
+      fileSize: f.size,
+      format: getFormat(f),
+      date: new Date().toISOString().split("T")[0],
+      status: "completed" as const,
+      conformidade: riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35,
+      riscos: pendencias,
+      riskLevel,
+    }));
+    saveAuditBatch(entries);
+  }, [uploadedFiles]);
 
   return (
     <PlatformLayout>
