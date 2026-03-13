@@ -2845,7 +2845,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
 
         <TabsContent value="diagnostico"><TabDiagnostico data={activeDiagnostico} /></TabsContent>
         <TabsContent value="analise-tecnica"><TabAnaliseTecnica pendenciasData={activePendencias} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} /></TabsContent>
+        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
