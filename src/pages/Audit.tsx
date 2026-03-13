@@ -578,12 +578,62 @@ const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => 
 };
 
 /* ── Tab 2: Indicadores Econômico-Financeiros ── */
-const TabIndicadores = ({ parsedData }: { parsedData?: ParsedFinancialData | null }) => {
+const TabIndicadores = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any }) => {
   const { state } = useAudit();
   const computedInd = computeIndicatorsFromParsed(parsedData || null);
   const hasComputed = Object.keys(computedInd).length > 0;
-  const ind = hasComputed ? computedInd : state.financialAnalysis.indicators;
-  const years = hasComputed ? Object.keys(computedInd).sort() : ["2021", "2022", "2023"];
+  
+  // Fallback: use AI analysis indicators when parsed data is empty
+  const aiInd = aiAnalysis?.indicadoresCalculados;
+  const aiStructure = aiAnalysis?.diagnostico?.estruturaFinanceira;
+  const hasAiInd = aiInd && Object.values(aiInd).some((v: any) => v !== 0);
+  
+  let ind: Record<string, any>;
+  let years: string[];
+  
+  if (hasComputed) {
+    ind = computedInd;
+    years = Object.keys(computedInd).sort();
+  } else if (hasAiInd) {
+    // Build indicator object from AI response
+    const ac = aiStructure?.ativo_circulante || 0;
+    const anc = aiStructure?.ativo_nao_circulante || 0;
+    const pc = aiStructure?.passivo_circulante || 0;
+    const pnc = aiStructure?.passivo_nao_circulante || 0;
+    const at = aiStructure?.ativo_total || (ac + anc) || 1;
+    const pt = aiStructure?.passivo_total || (pc + pnc) || 1;
+    const pl = aiStructure?.patrimonio_liquido || 0;
+    ind = {
+      "Análise IA": {
+        liquidezCorrente: aiInd.liquidezCorrente || 0,
+        liquidezSeca: aiInd.liquidezSeca || 0,
+        liquidezImediata: aiInd.liquidezImediata || 0,
+        liquidezGeral: aiInd.liquidezGeral || 0,
+        endividamentoGeral: aiInd.endividamentoTotal || 0,
+        composicaoEndividamento: aiInd.composicaoEndividamento || 0,
+        imobilizacaoPL: aiInd.imobilizacaoPL || 0,
+        coberturaJuros: aiInd.coberturaJuros || 0,
+        giroAtivo: aiInd.giroAtivo || 0,
+        pmr: aiInd.pmr || 0,
+        pmp: aiInd.pmp || 0,
+        idadeMediaEstoque: aiInd.giroEstoque ? 360 / aiInd.giroEstoque : 0,
+        margemLiquida: aiInd.margemLiquida || 0,
+        margemOperacional: aiInd.margemOperacional || 0,
+        roa: aiInd.roa || 0,
+        roe: aiInd.roe || 0,
+        _ac: ac, _anc: anc, _pc: pc, _pnc: pnc, _pl: pl,
+        _caixa: aiStructure?.caixa || 0,
+        _receita: aiStructure?.receita_liquida || 0,
+        _lucro: aiStructure?.lucro_liquido || 0,
+        _resOp: 0, _despFin: 0, _imob: 0, _estoque: aiStructure?.estoques || 0,
+        _fornecedores: aiStructure?.fornecedores || 0, _cmv: 0, _contasReceber: aiStructure?.clientes || 0,
+      }
+    };
+    years = ["Análise IA"];
+  } else {
+    ind = state.financialAnalysis.indicators;
+    years = ["2021", "2022", "2023"];
+  }
 
   const sections = [
     {
