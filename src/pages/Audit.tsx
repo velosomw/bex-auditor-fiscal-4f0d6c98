@@ -2142,12 +2142,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               <p className={`text-[10px] font-semibold ${classColors[l.classificacao]?.color}`}>{classColors[l.classificacao]?.label}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 2 — SCORE KANITZ ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="2" title="SCORE KANITZ" />
           <div className="text-center py-6">
             <p className={`text-6xl font-bold ${classColors[l.classificacao]?.color}`}>{l.fi.toFixed(2)}</p>
