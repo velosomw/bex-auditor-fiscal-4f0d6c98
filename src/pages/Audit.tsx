@@ -1938,6 +1938,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
         </div>
       </ReportPage>
 
+      </div>{/* end report-pages-container */}
+
       {/* Action buttons bottom */}
       <div className="flex justify-center gap-3 pt-4 print:hidden">
         <Button variant="outline" className="gap-1.5" onClick={() => window.print()}>
