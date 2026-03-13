@@ -2681,12 +2681,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </Table>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── ASSINATURA ── */}
-      <div className="report-a4-page p-8 flex flex-col min-h-[400px]" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
-        <div className="pt-12 text-center space-y-3 flex-1">
+      <ReportPage>
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
           <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 flex items-center justify-center">
             <Scale className="w-6 h-6 text-amber-600" />
           </div>
@@ -2702,11 +2702,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
             ))}
           </div>
         </div>
-        <div className="report-footer-bar">
-          <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
-          <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
-        </div>
-      </div>
+      </ReportPage>
 
       {/* Action buttons bottom */}
       <div className="flex justify-center gap-3 pt-4 print:hidden">
