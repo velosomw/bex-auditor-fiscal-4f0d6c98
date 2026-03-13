@@ -2454,12 +2454,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 9 — RISK ENGINE DE INSOLVÊNCIA ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="9" title="RISK ENGINE DE INSOLVÊNCIA" />
           <div className="text-center py-4">
             <p className={`text-5xl font-bold font-mono ${riskEngineColor}`}>{riskEngineScore}</p>
