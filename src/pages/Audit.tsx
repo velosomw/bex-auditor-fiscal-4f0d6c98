@@ -1341,6 +1341,15 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
 const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
+  const reportContainerRef = useRef<HTMLDivElement>(null);
+  const [totalPages, setTotalPages] = useState(0);
+
+  useEffect(() => {
+    if (reportContainerRef.current) {
+      const pages = reportContainerRef.current.querySelectorAll('.report-a4-page, .report-a4-cover');
+      setTotalPages(pages.length);
+    }
+  });
   const today = new Date().toLocaleDateString("pt-BR");
   
   const computedInd = computeIndicatorsFromParsed(parsedData || null);
