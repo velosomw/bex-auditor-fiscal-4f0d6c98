@@ -214,7 +214,7 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
               <p className="text-[10px] text-muted-foreground mt-0.5">Upload simultâneo de até 20 arquivos</p>
             </div>
           )}
-          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.xltx,.xltm,.pdf,.docx,.doc,.txt,.rtf" onChange={(e) => handleFiles(e.target.files)} />
+          <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.xltx,.xltm,.pdf,.docx,.doc,.txt,.rtf,.json,.xml,.ofx,.sped" onChange={(e) => handleFiles(e.target.files)} />
         </div>
 
         <div className="space-y-6">
