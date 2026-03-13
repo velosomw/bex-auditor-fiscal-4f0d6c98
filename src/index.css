@@ -156,15 +156,14 @@
 .report-a4-cover {
   width: 210mm;
   min-height: 297mm;
-  margin: 0 auto 80px;
+  margin: 0 auto 40px;
   background: white;
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 24px -6px hsla(0, 0%, 0%, 0.12);
+  box-shadow: 0 1px 3px hsla(0, 0%, 0%, 0.08);
+  border: 1px solid hsl(220, 15%, 85%);
   color: hsl(220, 25%, 14%);
-  border: 1px solid hsl(220, 18%, 90%);
-  border-radius: 2px;
 }
 
 .report-a4-cover::before {
