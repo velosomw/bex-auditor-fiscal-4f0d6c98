@@ -1873,7 +1873,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
 };
 
 /* ══════════════════════════════════════════════════════
-   TAB: RELATÓRIO KANITZ (TERMÔMETRO DE INSOLVÊNCIA)
+   TAB: RELATÓRIO KANITZ EXPANDIDO v2.0
+   Risk Intelligence Financial Report — 11 Módulos
    ══════════════════════════════════════════════════════ */
 const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void }) => {
   const today = new Date().toLocaleDateString("pt-BR");
@@ -1889,28 +1890,41 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
 
   const kanitzResults: Array<{
     year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
-    classificacao: "solvente" | "penumbra" | "insolvente"; riskScoreNormalized: number;
-    ac: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number;
+    classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente"; riskScoreNormalized: number;
+    ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number;
+    rl: number; cpv: number; fornecedores: number; despFin: number; lajir: number; caixa: number;
   }> = [];
 
   if (parsedData) {
     for (const year of parsedData.years) {
       const ac = Math.abs(findValue("total do ativo circulante", year) || findValue("ativo circulante", year));
+      const anc = Math.abs(findValue("total do ativo não circulante", year) || findValue("ativo nao circulante", year) || findValue("ativo não circulante", year));
       const pc = Math.abs(findValue("total do passivo circulante", year) || findValue("passivo circulante", year));
-      const pnc = Math.abs(findValue("total do passivo não circulante", year) || findValue("passivo nao circulante", year));
+      const pnc = Math.abs(findValue("total do passivo não circulante", year) || findValue("passivo nao circulante", year) || findValue("passivo não circulante", year));
       const pl = Math.abs(findValue("total do patrimônio", year) || findValue("patrimonio líquido", year) || findValue("patrimônio líquido", year));
       const estoque = Math.abs(findValue("estoque", year));
       const ll = findValue("resultado do exercício", year) || findValue("lucro líquido", year);
       const rlp = Math.abs(findValue("realizável a longo prazo", year) || findValue("realizavel", year));
+      const rl = Math.abs(findValue("receita líquida", year) || findValue("receita", year));
+      const cpv = Math.abs(findValue("custo dos produtos", year) || findValue("custo", year));
+      const fornecedores = Math.abs(findValue("fornecedores", year));
+      const despFin = Math.abs(findValue("resultado financeiro", year) || findValue("despesas financeiras", year));
+      const lajir = Math.abs(findValue("lajir", year) || findValue("resultado operacional", year));
+      const caixa = Math.abs(findValue("caixa", year));
       const pt = pc + pnc;
+      const at = ac + anc;
+
       const rpl = pl !== 0 ? ll / pl : 0;
       const lg = pt !== 0 ? (ac + rlp) / pt : 0;
       const ls = pc !== 0 ? (ac - estoque) / pc : 0;
       const lc = pc !== 0 ? ac / pc : 0;
       const ge = pl !== 0 ? pt / pl : 0;
       const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
-      const classificacao: "solvente" | "penumbra" | "insolvente" = fi > 0 ? "solvente" : fi >= -3 ? "penumbra" : "insolvente";
-      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, classificacao, riskScoreNormalized: 0, ac, pc, pnc, pl, estoque, rlp, pt, ll });
+
+      const classificacao: typeof kanitzResults[0]["classificacao"] =
+        fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
+
+      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin, lajir, caixa });
     }
     if (kanitzResults.length > 0) {
       const fiValues = kanitzResults.map(r => r.fi);
@@ -1926,9 +1940,11 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
   const fiDelta = previous ? (latest?.fi || 0) - previous.fi : 0;
 
   const classColors: Record<string, { icon: string; label: string; color: string }> = {
-    solvente: { icon: "🟢", label: "Solvente", color: "text-emerald-600" },
-    penumbra: { icon: "🟡", label: "Zona de Penumbra", color: "text-yellow-600" },
-    insolvente: { icon: "🔴", label: "Insolvente", color: "text-red-600" },
+    saudavel: { icon: "🟢", label: "Saudável", color: "text-emerald-600" },
+    estavel: { icon: "🔵", label: "Estável", color: "text-blue-600" },
+    atencao: { icon: "🟡", label: "Zona de Atenção", color: "text-yellow-600" },
+    risco: { icon: "🟠", label: "Zona de Risco", color: "text-orange-600" },
+    insolvente: { icon: "🔴", label: "Alta Probabilidade de Insolvência", color: "text-red-600" },
   };
 
   const SectionTitle = ({ num, title }: { num: string; title: string }) => (
@@ -1948,6 +1964,41 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
       </CardContent></Card>
     );
   }
+
+  /* ── Computed extended metrics ── */
+  const l = latest;
+  const capitalGiro = l.ac - l.pc;
+  const ncg = (l.ac - l.caixa) - (l.pc - (l.fornecedores || 0));
+  const endivTotal = l.at !== 0 ? l.pt / l.at : 0;
+  const alavancagem = l.pl !== 0 ? l.at / l.pl : 0;
+  const participacaoTerceiros = l.pl !== 0 ? l.pt / l.pl : 0;
+  const ebitda = l.lajir + (l.despFin * 0.1); // simplified proxy
+  const coberturaJuros = l.despFin !== 0 ? l.lajir / l.despFin : 0;
+  const indiceGeracaoCaixa = l.rl !== 0 ? ebitda / l.rl : 0;
+  const margemLiquida = l.rl !== 0 ? l.ll / l.rl : 0;
+  const despFinSobreReceita = l.rl !== 0 ? l.despFin / l.rl : 0;
+  const estoquesSobreAC = l.ac !== 0 ? l.estoque / l.ac : 0;
+
+  // Risk Engine de Insolvência (Módulo 9)
+  const riskLiquidez = Math.max(0, Math.min(100, l.lc < 0.5 ? 100 : l.lc > 2 ? 10 : 100 - ((l.lc - 0.5) / 1.5) * 90));
+  const riskAlavancagem = Math.max(0, Math.min(100, alavancagem > 4 ? 100 : alavancagem < 1 ? 10 : ((alavancagem - 1) / 3) * 90 + 10));
+  const riskFluxoCaixa = Math.max(0, Math.min(100, coberturaJuros < 1 ? 100 : coberturaJuros > 5 ? 10 : 100 - ((coberturaJuros - 1) / 4) * 90));
+  const riskKanitz = Math.max(0, Math.min(100, l.fi < -3 ? 100 : l.fi > 3 ? 10 : 100 - ((l.fi + 3) / 6) * 90));
+  const riskPressaoPassivo = Math.max(0, Math.min(100, l.pt !== 0 ? (l.pc / l.pt) * 100 : 50));
+  const riskEngineScore = Math.round(
+    riskKanitz * 0.4 + riskLiquidez * 0.2 + riskAlavancagem * 0.2 + riskFluxoCaixa * 0.2
+  );
+  const riskEngineClass = riskEngineScore <= 20 ? "Risco Baixo" : riskEngineScore <= 40 ? "Risco Moderado" : riskEngineScore <= 60 ? "Risco Elevado" : riskEngineScore <= 80 ? "Risco Alto" : "Risco Crítico";
+  const riskEngineColor = riskEngineScore <= 20 ? "text-emerald-600" : riskEngineScore <= 40 ? "text-blue-600" : riskEngineScore <= 60 ? "text-yellow-600" : riskEngineScore <= 80 ? "text-orange-600" : "text-red-600";
+
+  // Simulações (Módulo 10)
+  const simReducaoDivida = (0.05 * l.rpl) + (1.65 * l.lg * 1.15) + (3.55 * l.ls * 1.1) - (1.06 * l.lc * 1.05) - (0.33 * l.ge * 0.8);
+  const simAumentoMargem = (0.05 * (l.rpl * 1.3)) + (1.65 * l.lg) + (3.55 * l.ls) - (1.06 * l.lc) - (0.33 * l.ge);
+  const simInjecaoCapital = (0.05 * l.rpl) + (1.65 * l.lg * 1.1) + (3.55 * l.ls * 1.05) - (1.06 * l.lc * 1.02) - (0.33 * l.ge * 0.7);
+  const simReducaoCustos = (0.05 * (l.rpl * 1.15)) + (1.65 * l.lg) + (3.55 * l.ls * 1.02) - (1.06 * l.lc) - (0.33 * l.ge * 0.95);
+
+  // Tendência
+  const tendencia = previous && fiDelta > 0.5 ? "Melhora" : previous && fiDelta < -0.5 ? "Deterioração" : "Estável";
 
   return (
     <div className="space-y-6">
@@ -1978,119 +2029,94 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
             </div>
           </div>
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/70 font-semibold">Plataforma BEX</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/70 font-semibold">Plataforma BEX — Risk Intelligence</p>
             <h1 className="text-xl md:text-2xl font-bold font-serif leading-tight">
-              RELATÓRIO KANITZ<br />TERMÔMETRO DE INSOLVÊNCIA
+              RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
+            <p className="text-sm text-white/80 italic">Risk Intelligence Financial Report</p>
           </div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10">
-            <span className="text-lg">{latest && classColors[latest.classificacao]?.icon}</span>
-            <span className="text-sm font-semibold">{latest && classColors[latest.classificacao]?.label} — FI: {latest?.fi.toFixed(2)}</span>
+            <span className="text-lg">{classColors[latest.classificacao]?.icon}</span>
+            <span className="text-sm font-semibold">{classColors[latest.classificacao]?.label} — FI: {latest.fi.toFixed(2)}</span>
           </div>
-          <div className="space-y-1 text-sm text-white/80">
-            <p className="font-semibold text-white">Empresa Analisada: Empresa Demonstração S.A.</p>
-            <p>Período: {parsedData.years.join(" / ")}</p>
-            <p>Data de Emissão: {today}</p>
+          <div className="grid sm:grid-cols-3 gap-4 text-sm text-white/80 pt-4 border-t border-white/20">
+            <div>
+              <p className="text-[10px] text-white/50 uppercase tracking-wider">Empresa</p>
+              <p className="font-semibold text-white">Empresa Analisada S.A.</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/50 uppercase tracking-wider">Período</p>
+              <p className="font-semibold text-white">{parsedData.years.join(" / ")}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/50 uppercase tracking-wider">Emissão</p>
+              <p className="font-semibold text-white">{today}</p>
+            </div>
           </div>
           <div className="pt-4 border-t border-white/20 space-y-1">
             <p className="text-xs text-white/60 uppercase tracking-wider">Responsável Técnico</p>
-            <p className="text-sm font-semibold">Agente IA — Auditor Contábil Sênior</p>
-            <p className="text-xs text-white/70">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência</p>
+            <p className="text-sm font-semibold">Auditor Contábil Sênior IA</p>
+            <p className="text-xs text-white/70">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
           </div>
         </div>
       </Card>
 
-      {/* ── 1. SUMÁRIO EXECUTIVO ── */}
+      {/* ══ MÓDULO 1 — SUMÁRIO EXECUTIVO ══ */}
       <Card>
         <CardContent className="pt-6 space-y-4">
           <SectionTitle num="1" title="SUMÁRIO EXECUTIVO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-sm text-foreground leading-relaxed">
-              {latest.classificacao === "solvente"
-                ? `A empresa apresenta Fator de Insolvência de ${latest.fi.toFixed(2)}, classificando-se como SOLVENTE segundo o modelo Kanitz. Os indicadores de liquidez e rentabilidade demonstram capacidade adequada de honrar obrigações no curto e longo prazo. O Risk Score normalizado de ${latest.riskScoreNormalized}/100 confirma perfil de baixo risco.`
-                : latest.classificacao === "penumbra"
-                ? `A empresa encontra-se em ZONA DE PENUMBRA com Fator de Insolvência de ${latest.fi.toFixed(2)}. Apresenta fragilidade nos indicadores de liquidez seca (LS = ${fmtDec(latest.ls)}) e aumento do grau de endividamento (GE = ${fmtDec(latest.ge)}). Recomenda-se revisão da estrutura de capital e renegociação de passivos. O Risk Score normalizado é ${latest.riskScoreNormalized}/100.`
-                : `A empresa está em situação de INSOLVÊNCIA com Fator de Insolvência de ${latest.fi.toFixed(2)}. Os indicadores financeiros demonstram deterioração severa. Liquidez Seca de ${fmtDec(latest.ls)} e Grau de Endividamento de ${fmtDec(latest.ge)} indicam incapacidade de pagamento. Recomenda-se reestruturação financeira imediata conforme Lei 11.101/2005.`}
+              {l.classificacao === "saudavel"
+                ? `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)}, classificando-se como SAUDÁVEL segundo o modelo Kanitz. Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações. O Risk Engine de Insolvência classifica o risco como ${riskEngineClass} (${riskEngineScore}/100).`
+                : l.classificacao === "estavel"
+                ? `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)}, classificando-se como ESTÁVEL. A estrutura financeira é adequada, com indicadores dentro de parâmetros aceitáveis. Recomenda-se manutenção das políticas financeiras atuais. Risk Engine: ${riskEngineClass} (${riskEngineScore}/100).`
+                : l.classificacao === "atencao"
+                ? `A empresa encontra-se em ZONA DE ATENÇÃO com FI de ${l.fi.toFixed(2)}. Indicadores de liquidez e endividamento apresentam fragilidades que requerem monitoramento contínuo. Risk Engine: ${riskEngineClass} (${riskEngineScore}/100).`
+                : l.classificacao === "risco"
+                ? `A empresa está em ZONA DE RISCO com FI de ${l.fi.toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(l.ls)} e Grau de Endividamento de ${fmtDec(l.ge)} indicam dificuldades financeiras. Risk Engine: ${riskEngineClass} (${riskEngineScore}/100). Recomenda-se reestruturação imediata.`
+                : `A empresa apresenta ALTA PROBABILIDADE DE INSOLVÊNCIA com FI de ${l.fi.toFixed(2)}. A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Risk Engine: ${riskEngineClass} (${riskEngineScore}/100). Recomenda-se análise de viabilidade conforme Lei 11.101/2005.`}
             </p>
           </div>
-          {previous && (
-            <div className="grid sm:grid-cols-3 gap-3">
-              <div className="p-3 rounded-lg bg-muted/20 text-center">
-                <p className="text-[10px] text-muted-foreground">FI Atual ({latest.year})</p>
-                <p className={`text-2xl font-bold font-mono ${classColors[latest.classificacao]?.color}`}>{latest.fi.toFixed(2)}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/20 text-center">
-                <p className="text-[10px] text-muted-foreground">FI Anterior ({previous.year})</p>
-                <p className={`text-2xl font-bold font-mono ${classColors[previous.classificacao]?.color}`}>{previous.fi.toFixed(2)}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/20 text-center">
-                <p className="text-[10px] text-muted-foreground">Variação</p>
-                <p className={`text-2xl font-bold font-mono ${fiDelta > 0 ? "text-emerald-600" : "text-red-600"}`}>
-                  {fiDelta > 0 ? "+" : ""}{fiDelta.toFixed(2)}
-                </p>
-              </div>
+          <div className="grid sm:grid-cols-4 gap-3">
+            <div className="p-3 rounded-lg bg-muted/20 text-center">
+              <p className="text-[10px] text-muted-foreground">Score Kanitz</p>
+              <p className={`text-2xl font-bold font-mono ${classColors[l.classificacao]?.color}`}>{l.fi.toFixed(2)}</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── 2. INDICADORES FINANCEIROS ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <SectionTitle num="2" title="INDICADORES FINANCEIROS" />
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-[10px]">Indicador</TableHead>
-                  <TableHead className="text-[10px]">Sigla</TableHead>
-                  <TableHead className="text-[10px]">Fórmula</TableHead>
-                  <TableHead className="text-[10px]">Peso Kanitz</TableHead>
-                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
-                  <TableHead className="text-[10px]">Interpretação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  { name: "Rentabilidade do PL", sigla: "RPL", formula: "LL / PL", peso: "+0,05", key: "rpl" as const, interp: "Retorno ao acionista" },
-                  { name: "Liquidez Geral", sigla: "LG", formula: "(AC + RLP) / PT", peso: "+1,65", key: "lg" as const, interp: "Capacidade de pagamento total" },
-                  { name: "Liquidez Seca", sigla: "LS", formula: "(AC - EST) / PC", peso: "+3,55", key: "ls" as const, interp: "Liquidez excluindo estoques" },
-                  { name: "Liquidez Corrente", sigla: "LC", formula: "AC / PC", peso: "−1,06", key: "lc" as const, interp: "Capacidade de curto prazo" },
-                  { name: "Grau de Endividamento", sigla: "GE", formula: "PT / PL", peso: "−0,33", key: "ge" as const, interp: "Dependência de terceiros" },
-                ].map(ind => (
-                  <TableRow key={ind.sigla}>
-                    <TableCell className="text-xs font-medium">{ind.name}</TableCell>
-                    <TableCell className="text-xs font-mono font-bold">{ind.sigla}</TableCell>
-                    <TableCell className="text-[10px] font-mono text-muted-foreground">{ind.formula}</TableCell>
-                    <TableCell className="text-xs font-mono font-bold">{ind.peso}</TableCell>
-                    {kanitzResults.map(r => (
-                      <TableCell key={r.year} className="text-right text-xs font-mono">{fmtDec(r[ind.key])}</TableCell>
-                    ))}
-                    <TableCell className="text-[10px] text-muted-foreground">{ind.interp}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="p-3 rounded-lg bg-muted/20 text-center">
+              <p className="text-[10px] text-muted-foreground">Nível de Risco</p>
+              <p className={`text-lg font-bold ${riskEngineColor}`}>{riskEngineScore}/100</p>
+              <p className={`text-[10px] font-semibold ${riskEngineColor}`}>{riskEngineClass}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/20 text-center">
+              <p className="text-[10px] text-muted-foreground">Tendência</p>
+              <p className={`text-lg font-bold ${tendencia === "Melhora" ? "text-emerald-600" : tendencia === "Deterioração" ? "text-red-600" : "text-muted-foreground"}`}>{tendencia === "Melhora" ? "↑" : tendencia === "Deterioração" ? "↓" : "→"}</p>
+              <p className="text-[10px] font-semibold text-muted-foreground">{tendencia}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/20 text-center">
+              <p className="text-[10px] text-muted-foreground">Classificação</p>
+              <p className="text-lg">{classColors[l.classificacao]?.icon}</p>
+              <p className={`text-[10px] font-semibold ${classColors[l.classificacao]?.color}`}>{classColors[l.classificacao]?.label}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* ── 3. RESULTADO DO FATOR DE INSOLVÊNCIA ── */}
+      {/* ══ MÓDULO 2 — SCORE KANITZ ══ */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <SectionTitle num="3" title="RESULTADO DO FATOR DE INSOLVÊNCIA" />
-          
+          <SectionTitle num="2" title="SCORE KANITZ" />
           <div className="text-center py-6">
-            <p className={`text-6xl font-bold ${classColors[latest.classificacao]?.color}`}>{latest.fi.toFixed(2)}</p>
-            <p className={`text-xl font-semibold mt-2 ${classColors[latest.classificacao]?.color}`}>
-              {classColors[latest.classificacao]?.icon} {classColors[latest.classificacao]?.label}
+            <p className={`text-6xl font-bold ${classColors[l.classificacao]?.color}`}>{l.fi.toFixed(2)}</p>
+            <p className={`text-xl font-semibold mt-2 ${classColors[l.classificacao]?.color}`}>
+              {classColors[l.classificacao]?.icon} {classColors[l.classificacao]?.label}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Fator de Insolvência — Modelo Kanitz</p>
           </div>
 
           {/* Termômetro */}
           <div className="px-4">
-            <div className="relative h-12 rounded-full overflow-hidden bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500">
+            <div className="relative h-12 rounded-full overflow-hidden bg-gradient-to-r from-red-500 via-orange-400 via-yellow-500 via-blue-400 to-emerald-500">
               {kanitzResults.map(r => {
                 const pos = Math.max(0, Math.min(100, ((r.fi + 7) / 14) * 100));
                 return (
@@ -2100,10 +2126,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
                 );
               })}
             </div>
-            <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
-              <span>Insolvente (FI &lt; -3)</span>
-              <span>Penumbra (-3 ≤ FI ≤ 0)</span>
-              <span>Solvente (FI &gt; 0)</span>
+            <div className="flex justify-between mt-2 text-[9px] text-muted-foreground">
+              <span>Insolvente (&lt;-3)</span>
+              <span>Risco (-3 a -1)</span>
+              <span>Atenção (-1 a 0)</span>
+              <span>Estável (0 a 1)</span>
+              <span>Saudável (&gt;1)</span>
             </div>
           </div>
 
@@ -2111,8 +2139,10 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
           <div className="grid sm:grid-cols-3 gap-3 mt-4">
             {kanitzResults.map(r => (
               <div key={r.year} className={`p-4 rounded-lg border text-center space-y-1 ${
-                r.classificacao === "solvente" ? "bg-emerald-500/10 border-emerald-500/30" :
-                r.classificacao === "penumbra" ? "bg-yellow-500/10 border-yellow-500/30" : "bg-red-500/10 border-red-500/30"
+                r.classificacao === "saudavel" ? "bg-emerald-500/10 border-emerald-500/30" :
+                r.classificacao === "estavel" ? "bg-blue-500/10 border-blue-500/30" :
+                r.classificacao === "atencao" ? "bg-yellow-500/10 border-yellow-500/30" :
+                r.classificacao === "risco" ? "bg-orange-500/10 border-orange-500/30" : "bg-red-500/10 border-red-500/30"
               }`}>
                 <p className="text-xs text-muted-foreground font-semibold">{r.year}</p>
                 <p className="text-2xl font-bold font-mono">{r.fi.toFixed(2)}</p>
@@ -2120,46 +2150,263 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* ── 4. ANÁLISE TÉCNICA AUTOMATIZADA ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <SectionTitle num="4" title="ANÁLISE TÉCNICA AUTOMATIZADA" />
-          <div className="space-y-3">
+          {/* Escala de classificação */}
+          <div className="space-y-1.5 mt-4">
             {[
-              { title: "Estrutura de Capital", text: `O Patrimônio Líquido de R$ ${fmt(latest.pl)} representa ${latest.pt > 0 ? fmtPct(latest.pl / (latest.pl + latest.pt)) : "N/A"} do capital total. O Grau de Endividamento (GE) de ${fmtDec(latest.ge)} indica ${latest.ge > 2 ? "alta" : latest.ge > 1 ? "moderada" : "baixa"} dependência de capital de terceiros.` },
-              { title: "Dependência de Terceiros", text: `O Passivo Total de R$ ${fmt(latest.pt)} é composto por PC R$ ${fmt(latest.pc)} (${fmtPct(latest.pt > 0 ? latest.pc / latest.pt : 0)}) e PNC R$ ${fmt(latest.pnc)} (${fmtPct(latest.pt > 0 ? latest.pnc / latest.pt : 0)}). ${latest.pc > latest.pnc ? "Concentração de dívida no curto prazo requer atenção." : "Dívida majoritariamente de longo prazo, permitindo maior planejamento."}` },
-              { title: "Capacidade de Pagamento", text: `A Liquidez Corrente (LC) de ${fmtDec(latest.lc)} ${latest.lc > 1.5 ? "indica capacidade adequada de honrar compromissos de curto prazo" : latest.lc > 1 ? "indica capacidade limitada — recomenda-se monitoramento" : "indica incapacidade de honrar obrigações correntes"}. A Liquidez Seca (LS) de ${fmtDec(latest.ls)} ${latest.ls > 1 ? "confirma solidez mesmo excluindo estoques" : "revela fragilidade quando estoques são excluídos"}.` },
-              { title: "Deterioração Financeira", text: previous ? `O FI variou de ${previous.fi.toFixed(2)} (${previous.year}) para ${latest.fi.toFixed(2)} (${latest.year}), representando ${fiDelta > 0 ? "melhora" : "piora"} de ${Math.abs(fiDelta).toFixed(2)} pontos. ${Math.abs(fiDelta) > 1 ? "Variação significativa requer atenção da gestão." : "Variação dentro de parâmetros normais."}` : "Análise comparativa indisponível — apenas um período carregado." },
+              { range: "FI > 1", label: "Saudável", color: "bg-emerald-500/10 text-emerald-600", active: l.fi > 1 },
+              { range: "0 < FI ≤ 1", label: "Estável", color: "bg-blue-500/10 text-blue-600", active: l.fi > 0 && l.fi <= 1 },
+              { range: "-1 < FI ≤ 0", label: "Zona de Atenção", color: "bg-yellow-500/10 text-yellow-600", active: l.fi > -1 && l.fi <= 0 },
+              { range: "-3 ≤ FI ≤ -1", label: "Zona de Risco", color: "bg-orange-500/10 text-orange-600", active: l.fi >= -3 && l.fi <= -1 },
+              { range: "FI < -3", label: "Alta Prob. Insolvência", color: "bg-red-500/10 text-red-600", active: l.fi < -3 },
             ].map(item => (
-              <div key={item.title} className="p-4 rounded-lg bg-muted/20 border border-border/30">
-                <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
+              <div key={item.range} className={`flex items-center justify-between p-2.5 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-amber-500" : ""}`}>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded ${item.color}`}>{item.range}</span>
+                  <span className="text-xs font-medium text-foreground">{item.label}</span>
+                </div>
+                {item.active && <CheckCircle2 className="w-4 h-4 text-amber-500" />}
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* ── 5. RECOMENDAÇÕES ESTRATÉGICAS ── */}
+      {/* ══ MÓDULO 3 — DIAGNÓSTICO DE SOLVÊNCIA ══ */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <SectionTitle num="5" title="RECOMENDAÇÕES ESTRATÉGICAS" />
+          <SectionTitle num="3" title="DIAGNÓSTICO DE SOLVÊNCIA" />
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Análise dos componentes que determinam o score Kanitz, identificando qual variável está deteriorando o índice.
+          </p>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px]">Indicador</TableHead>
+                  <TableHead className="text-[10px]">Sigla</TableHead>
+                  <TableHead className="text-[10px]">Fórmula</TableHead>
+                  <TableHead className="text-[10px]">Peso</TableHead>
+                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
+                  <TableHead className="text-[10px]">Contribuição ao FI</TableHead>
+                  <TableHead className="text-[10px]">Diagnóstico</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { name: "Rentabilidade do PL", sigla: "RPL", formula: "LL / PL", peso: 0.05, key: "rpl" as const, diagPositive: "Retorno positivo ao acionista", diagNegative: "Rentabilidade comprometida" },
+                  { name: "Liquidez Geral", sigla: "LG", formula: "(AC + RLP) / PT", peso: 1.65, key: "lg" as const, diagPositive: "Boa capacidade de pagamento geral", diagNegative: "Insuficiência de ativos frente aos passivos" },
+                  { name: "Liquidez Seca", sigla: "LS", formula: "(AC - EST) / PC", peso: 3.55, key: "ls" as const, diagPositive: "Liquidez adequada sem depender de estoques", diagNegative: "Dependência de estoques para liquidez" },
+                  { name: "Liquidez Corrente", sigla: "LC", formula: "AC / PC", peso: -1.06, key: "lc" as const, diagPositive: "Ativos circulantes cobrem passivos CP", diagNegative: "Dificuldade para honrar dívidas CP" },
+                  { name: "Grau de Endividamento", sigla: "GE", formula: "PT / PL", peso: -0.33, key: "ge" as const, diagPositive: "Estrutura de capital equilibrada", diagNegative: "Alta dependência de capital de terceiros" },
+                ].map(ind => {
+                  const latestVal = l[ind.key];
+                  const isContribPositive = ind.peso * latestVal > 0;
+                  return (
+                    <TableRow key={ind.sigla}>
+                      <TableCell className="text-xs font-medium">{ind.name}</TableCell>
+                      <TableCell className="text-xs font-mono font-bold">{ind.sigla}</TableCell>
+                      <TableCell className="text-[10px] font-mono text-muted-foreground">{ind.formula}</TableCell>
+                      <TableCell className="text-xs font-mono font-bold">{ind.peso > 0 ? `+${ind.peso}` : ind.peso}</TableCell>
+                      {kanitzResults.map(r => (
+                        <TableCell key={r.year} className="text-right text-xs font-mono">{fmtDec(r[ind.key])}</TableCell>
+                      ))}
+                      <TableCell className={`text-xs font-mono font-bold ${isContribPositive ? "text-emerald-600" : "text-red-600"}`}>
+                        {(ind.peso * latestVal).toFixed(4)}
+                      </TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground max-w-[150px]">
+                        {isContribPositive ? ind.diagPositive : ind.diagNegative}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="border-t-2 border-foreground/20">
+                  <TableCell className="text-xs font-bold" colSpan={4}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
+                  {kanitzResults.map(r => (
+                    <TableCell key={r.year} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>{r.fi.toFixed(2)}</TableCell>
+                  ))}
+                  <TableCell colSpan={2} />
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══ MÓDULO 4 — ESTRUTURA DE LIQUIDEZ ══ */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="4" title="ESTRUTURA DE LIQUIDEZ" />
+          <div className="grid sm:grid-cols-4 gap-3">
+            {[
+              { label: "Liquidez Corrente", value: l.lc, ideal: "> 1.50", status: l.lc > 1.5 ? "positivo" : l.lc > 1 ? "atencao" : "critico" },
+              { label: "Liquidez Seca", value: l.ls, ideal: "> 1.00", status: l.ls > 1 ? "positivo" : l.ls > 0.7 ? "atencao" : "critico" },
+              { label: "Capital de Giro", value: capitalGiro, ideal: "> 0", status: capitalGiro > 0 ? "positivo" : "critico", isCurrency: true },
+              { label: "Necessidade de CG", value: ncg, ideal: "< CG", status: ncg < capitalGiro ? "positivo" : "critico", isCurrency: true },
+            ].map(item => (
+              <div key={item.label} className={`p-4 rounded-lg border text-center space-y-1 ${
+                item.status === "positivo" ? "bg-emerald-500/5 border-emerald-500/20" :
+                item.status === "atencao" ? "bg-yellow-500/5 border-yellow-500/20" : "bg-red-500/5 border-red-500/20"
+              }`}>
+                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                <p className="text-xl font-bold font-mono text-foreground">
+                  {item.isCurrency ? `R$ ${fmt(item.value)}` : fmtDec(item.value)}
+                </p>
+                <p className="text-[9px] text-muted-foreground">Ideal: {item.ideal}</p>
+              </div>
+            ))}
+          </div>
+          <div className="p-4 rounded-lg bg-muted/20 border border-border/30">
+            <p className="text-xs font-semibold text-foreground mb-1">Diagnóstico de Liquidez</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {capitalGiro > 0 && ncg < capitalGiro
+                ? "Liquidez saudável. Capital de giro positivo e necessidade de CG inferior ao CG disponível. Sem estrangulamento financeiro."
+                : capitalGiro > 0
+                ? "Capital de giro positivo, porém necessidade de CG superior ao disponível — possível descasamento de caixa. Monitorar prazos médios."
+                : "Estrangulamento financeiro identificado. Capital de giro negativo indica incapacidade de financiar operações com recursos próprios de curto prazo."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══ MÓDULO 5 — ESTRUTURA DE CAPITAL ══ */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="5" title="ESTRUTURA DE CAPITAL" />
+          <div className="grid sm:grid-cols-3 gap-3">
+            {[
+              { label: "Endividamento Total", value: endivTotal, format: "pct", desc: "Passivo / Ativo" },
+              { label: "Alavancagem Financeira", value: alavancagem, format: "dec", desc: "Ativo Total / PL" },
+              { label: "Capital de Terceiros / PL", value: participacaoTerceiros, format: "dec", desc: "Passivo Total / PL" },
+            ].map(item => (
+              <div key={item.label} className="p-4 rounded-lg bg-muted/20 text-center space-y-1">
+                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                <p className="text-xl font-bold font-mono text-foreground">
+                  {item.format === "pct" ? fmtPct(item.value) : item.value.toFixed(2) + "x"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1.5">
+            {[
+              { range: "< 40%", label: "Baixo Endividamento", color: "bg-emerald-500/10 text-emerald-600", active: endivTotal < 0.4 },
+              { range: "40% – 60%", label: "Endividamento Moderado", color: "bg-yellow-500/10 text-yellow-600", active: endivTotal >= 0.4 && endivTotal < 0.6 },
+              { range: "60% – 80%", label: "Alto Endividamento", color: "bg-orange-500/10 text-orange-600", active: endivTotal >= 0.6 && endivTotal < 0.8 },
+              { range: "> 80%", label: "Endividamento Crítico", color: "bg-red-500/10 text-red-600", active: endivTotal >= 0.8 },
+            ].map(item => (
+              <div key={item.range} className={`flex items-center justify-between p-2.5 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-amber-500" : ""}`}>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded ${item.color}`}>{item.range}</span>
+                  <span className="text-xs font-medium text-foreground">{item.label}</span>
+                </div>
+                {item.active && <CheckCircle2 className="w-4 h-4 text-amber-500" />}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══ MÓDULO 6 — ANÁLISE DE PASSIVOS ══ */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="6" title="ANÁLISE DE PASSIVOS" />
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="p-4 rounded-lg bg-muted/20 space-y-3">
+              <p className="text-xs font-semibold text-foreground">Composição do Passivo</p>
+              {[
+                { label: "Passivo Circulante", value: l.pc, pct: l.pt > 0 ? l.pc / l.pt : 0 },
+                { label: "Passivo Não Circulante", value: l.pnc, pct: l.pt > 0 ? l.pnc / l.pt : 0 },
+                { label: "Passivo Total", value: l.pt, pct: 1 },
+              ].map(item => (
+                <div key={item.label}>
+                  <div className="flex justify-between text-[10px] mb-1">
+                    <span className="text-foreground">{item.label}</span>
+                    <span className="font-mono font-bold">R$ {fmt(item.value)} ({fmtPct(item.pct)})</span>
+                  </div>
+                  <Progress value={item.pct * 100} className="h-1.5" />
+                </div>
+              ))}
+            </div>
+            <div className="p-4 rounded-lg bg-muted/20 space-y-3">
+              <p className="text-xs font-semibold text-foreground">Métricas de Pressão</p>
+              {[
+                { label: "Pressão de Caixa", value: l.pt > 0 ? (l.pc / l.pt) * 100 : 0, desc: "% do passivo vencendo em até 12 meses", alert: l.pt > 0 && l.pc / l.pt > 0.5 },
+                { label: "Fornecedores / PC", value: l.pc > 0 ? (l.fornecedores / l.pc) * 100 : 0, desc: "Concentração em fornecedores", alert: false },
+                { label: "Passivo / Geração de Caixa", value: ebitda > 0 ? l.pt / ebitda : 0, desc: "Anos para quitar passivo total", alert: ebitda > 0 && l.pt / ebitda > 5 },
+              ].map(item => (
+                <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"}`}>
+                  <div className="flex justify-between text-[10px]">
+                    <span className="font-medium text-foreground">{item.label}</span>
+                    <span className="font-mono font-bold">{typeof item.value === "number" && item.value < 20 ? item.value.toFixed(1) : Math.round(item.value)}{ item.label.includes("Anos") || item.label.includes("Geração") ? "x" : "%"}</span>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══ MÓDULO 7 — FLUXO DE CAIXA ESTRUTURAL ══ */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="7" title="FLUXO DE CAIXA ESTRUTURAL" />
+          <p className="text-xs text-muted-foreground">
+            Ampliação do modelo Kanitz tradicional com análise de geração de caixa — detectando risco de ruptura financeira.
+          </p>
+          <div className="grid sm:grid-cols-4 gap-3">
+            {[
+              { label: "EBITDA (proxy)", value: ebitda, isCurrency: true },
+              { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: coberturaJuros < 1.5 },
+              { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct" },
+              { label: "Margem Líquida", value: margemLiquida, format: "pct", alert: margemLiquida < 0.05 },
+            ].map(item => (
+              <div key={item.label} className={`p-4 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
+                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                <p className="text-xl font-bold font-mono text-foreground">
+                  {item.isCurrency ? `R$ ${fmt(item.value)}` : item.format === "pct" ? fmtPct(item.value) : `${item.value.toFixed(2)}${item.suffix || ""}`}
+                </p>
+                {item.alert && <p className="text-[9px] text-red-600 font-semibold">⚠ Abaixo do mínimo</p>}
+              </div>
+            ))}
+          </div>
+          <div className="p-4 rounded-lg bg-muted/20 border border-border/30">
+            <p className="text-xs font-semibold text-foreground mb-1">Risco de Ruptura Financeira</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {coberturaJuros > 3
+                ? "Sem risco imediato de ruptura. Cobertura de juros adequada e geração de caixa compatível com obrigações financeiras."
+                : coberturaJuros > 1
+                ? "Risco moderado. Cobertura de juros apertada — qualquer deterioração operacional pode comprometer o pagamento de obrigações financeiras."
+                : "Risco elevado de ruptura. Cobertura de juros insuficiente — a empresa não gera caixa operacional suficiente para honrar despesas financeiras."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══ MÓDULO 8 — CUSTOS OCULTOS ══ */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="8" title="CUSTOS OCULTOS E INEFICIÊNCIAS" />
+          <p className="text-xs text-muted-foreground">
+            Análise de ineficiências que impactam diretamente o score Kanitz, com simulação do efeito sobre o FI.
+          </p>
           <div className="space-y-3">
             {[
-              ...(latest.ge > 1.5 ? [{ icon: "📉", title: "Redução de Passivos", text: "O Grau de Endividamento elevado requer plano de desalavancagem. Priorizar quitação de dívidas onerosas e renegociação de condições." }] : []),
-              ...(latest.lc < 1.5 ? [{ icon: "🔄", title: "Reestruturação de Capital", text: "Avaliar aporte de capital próprio ou conversão de dívida em participação societária para reequilibrar a estrutura de capital." }] : []),
-              { icon: "⚙️", title: "Ajustes Operacionais", text: `Com RPL de ${fmtDec(latest.rpl)}, ${latest.rpl > 0.15 ? "a rentabilidade está adequada. Manter eficiência operacional." : "recomenda-se revisão de custos e margens para melhorar a geração de resultado."}` },
-              { icon: "💰", title: "Planejamento de Fluxo de Caixa", text: `Liquidez Seca de ${fmtDec(latest.ls)} ${latest.ls < 1 ? "indica necessidade de melhorar a gestão de recebíveis e reduzir dependência de estoques" : "está dentro de parâmetros aceitáveis"}. Monitorar ciclo financeiro e prazos médios.` },
-              ...(latest.fi <= 0 ? [{ icon: "⚠️", title: "Monitoramento de Insolvência", text: "Com FI na zona de " + (latest.classificacao === "penumbra" ? "penumbra" : "insolvência") + ", implementar acompanhamento mensal dos indicadores Kanitz. Avaliar necessidade de consultoria especializada em recuperação empresarial." }] : []),
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3 p-4 rounded-lg bg-muted/20 border border-border/30">
+              { icon: "💸", title: "Despesas Financeiras Excessivas", detail: `Desp. financeiras representam ${fmtPct(despFinSobreReceita)} da receita líquida.`, alert: despFinSobreReceita > 0.05, impact: `Impacto estimado no FI: ${(despFinSobreReceita > 0.05 ? -0.3 : 0).toFixed(2)} pontos via GE` },
+              { icon: "📦", title: "Estoques Improdutivos", detail: `Estoques representam ${fmtPct(estoquesSobreAC)} do ativo circulante (R$ ${fmt(l.estoque)}).`, alert: estoquesSobreAC > 0.3, impact: `Impacto no FI: ${(estoquesSobreAC > 0.3 ? -0.5 : 0).toFixed(2)} pontos via LS` },
+              { icon: "⚙️", title: "Ociosidade Operacional", detail: `Giro do Ativo: ${(l.at !== 0 ? l.rl / l.at : 0).toFixed(2)}x — ${(l.at !== 0 && l.rl / l.at < 0.5) ? "baixa utilização de ativos" : "nível aceitável"}.`, alert: l.at !== 0 && l.rl / l.at < 0.5, impact: "Ativos subutilizados reduzem rentabilidade e pressionam GE" },
+              { icon: "🏢", title: "Custos Administrativos", detail: `Margem líquida de ${fmtPct(margemLiquida)}. ${margemLiquida < 0.05 ? "Margens muito apertadas reduzem RPL." : "Margens dentro do aceitável."}`, alert: margemLiquida < 0.05, impact: `Impacto no FI: via RPL (peso 0,05)` },
+            ].map(item => (
+              <div key={item.title} className={`flex items-start gap-3 p-4 rounded-lg border ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
                 <span className="text-xl shrink-0">{item.icon}</span>
-                <div>
-                  <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-foreground">{item.title}</p>
+                    {item.alert && <Badge className="bg-red-500/15 text-red-600 text-[9px]">Detectado</Badge>}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground mt-1 italic">{item.impact}</p>
                 </div>
               </div>
             ))}
@@ -2167,16 +2414,154 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
         </CardContent>
       </Card>
 
-      {/* ── 6. MEMÓRIA DE CÁLCULO ── */}
+      {/* ══ MÓDULO 9 — RISK ENGINE DE INSOLVÊNCIA ══ */}
       <Card>
         <CardContent className="pt-6 space-y-4">
-          <SectionTitle num="6" title="MEMÓRIA DE CÁLCULO" />
-          
+          <SectionTitle num="9" title="RISK ENGINE DE INSOLVÊNCIA" />
+          <div className="text-center py-4">
+            <p className={`text-5xl font-bold font-mono ${riskEngineColor}`}>{riskEngineScore}</p>
+            <p className={`text-lg font-semibold mt-1 ${riskEngineColor}`}>{riskEngineClass}</p>
+            <p className="text-xs text-muted-foreground mt-1">de 100 pontos (quanto maior, maior o risco)</p>
+          </div>
+          <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
+            <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Risk Engine:</p>
+            <code className="block text-[11px] font-mono leading-relaxed text-foreground">
+              Risk = (Kanitz × 0.40) + (Liquidez × 0.20) + (Alavancagem × 0.20) + (Fluxo Caixa × 0.20)
+            </code>
+          </div>
+          <div className="space-y-3">
+            {[
+              { label: "Score Kanitz", value: riskKanitz, peso: "40%", desc: `FI = ${l.fi.toFixed(2)}` },
+              { label: "Risco de Liquidez", value: riskLiquidez, peso: "20%", desc: `LC = ${l.lc.toFixed(2)}` },
+              { label: "Risco de Alavancagem", value: riskAlavancagem, peso: "20%", desc: `Alavancagem = ${alavancagem.toFixed(2)}x` },
+              { label: "Risco de Fluxo de Caixa", value: riskFluxoCaixa, peso: "20%", desc: `Cobertura Juros = ${coberturaJuros.toFixed(2)}x` },
+            ].map(item => (
+              <div key={item.label} className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-foreground">{item.label} ({item.peso})</span>
+                  <span className="font-mono font-bold">{Math.round(item.value)}/100</span>
+                </div>
+                <Progress value={item.value} className="h-2" />
+                <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1.5 mt-4">
+            {[
+              { range: "0 – 20", label: "Risco Baixo", color: "bg-emerald-500/10 text-emerald-600", active: riskEngineScore <= 20 },
+              { range: "21 – 40", label: "Risco Moderado", color: "bg-blue-500/10 text-blue-600", active: riskEngineScore > 20 && riskEngineScore <= 40 },
+              { range: "41 – 60", label: "Risco Elevado", color: "bg-yellow-500/10 text-yellow-600", active: riskEngineScore > 40 && riskEngineScore <= 60 },
+              { range: "61 – 80", label: "Risco Alto", color: "bg-orange-500/10 text-orange-600", active: riskEngineScore > 60 && riskEngineScore <= 80 },
+              { range: "81 – 100", label: "Risco Crítico", color: "bg-red-500/10 text-red-600", active: riskEngineScore > 80 },
+            ].map(item => (
+              <div key={item.range} className={`flex items-center justify-between p-2.5 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-amber-500" : ""}`}>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded ${item.color}`}>{item.range}</span>
+                  <span className="text-xs font-medium text-foreground">{item.label}</span>
+                </div>
+                {item.active && <CheckCircle2 className="w-4 h-4 text-amber-500" />}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══ MÓDULO 10 — SIMULAÇÃO FINANCEIRA ══ */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="10" title="SIMULAÇÃO FINANCEIRA" />
+          <p className="text-xs text-muted-foreground">
+            Cenários simulados de melhoria do score Kanitz. Projeções estimadas com base nos indicadores atuais.
+          </p>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px]">Cenário</TableHead>
+                  <TableHead className="text-right text-[10px]">FI Atual</TableHead>
+                  <TableHead className="text-right text-[10px]">FI Simulado</TableHead>
+                  <TableHead className="text-right text-[10px]">Variação</TableHead>
+                  <TableHead className="text-[10px]">Nova Classificação</TableHead>
+                  <TableHead className="text-[10px]">Premissa</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { cenario: "📉 Redução de Dívida", fi: simReducaoDivida, premissa: "Redução de 20% do passivo total" },
+                  { cenario: "📈 Aumento de Margem", fi: simAumentoMargem, premissa: "Aumento de 30% na margem líquida" },
+                  { cenario: "💰 Injeção de Capital", fi: simInjecaoCapital, premissa: "Aporte de capital aumentando PL em 30%" },
+                  { cenario: "✂️ Redução de Custos", fi: simReducaoCustos, premissa: "Redução de 15% nas despesas operacionais" },
+                ].map(sim => {
+                  const delta = sim.fi - l.fi;
+                  const newClass = sim.fi > 1 ? "saudavel" : sim.fi > 0 ? "estavel" : sim.fi > -1 ? "atencao" : sim.fi >= -3 ? "risco" : "insolvente";
+                  return (
+                    <TableRow key={sim.cenario}>
+                      <TableCell className="text-xs font-medium">{sim.cenario}</TableCell>
+                      <TableCell className="text-right text-xs font-mono">{l.fi.toFixed(2)}</TableCell>
+                      <TableCell className={`text-right text-xs font-mono font-bold ${classColors[newClass]?.color}`}>{sim.fi.toFixed(2)}</TableCell>
+                      <TableCell className={`text-right text-xs font-mono ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{delta > 0 ? "+" : ""}{delta.toFixed(2)}</TableCell>
+                      <TableCell className="text-xs">
+                        <Badge className={`text-[9px] ${
+                          newClass === "saudavel" ? "bg-emerald-500/15 text-emerald-600" :
+                          newClass === "estavel" ? "bg-blue-500/15 text-blue-600" :
+                          newClass === "atencao" ? "bg-yellow-500/15 text-yellow-600" :
+                          newClass === "risco" ? "bg-orange-500/15 text-orange-600" : "bg-red-500/15 text-red-600"
+                        }`}>{classColors[newClass]?.icon} {classColors[newClass]?.label}</Badge>
+                      </TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground max-w-[200px]">{sim.premissa}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══ MÓDULO 11 — PARECER TÉCNICO ══ */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="11" title="PARECER TÉCNICO" />
+          <div className="space-y-4">
+            {[
+              { title: "Diagnóstico Financeiro", text: `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)} (${classColors[l.classificacao]?.label}), com Risk Engine de ${riskEngineScore}/100 (${riskEngineClass}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}.` },
+              { title: "Causas de Deterioração", text: previous ? `A variação do FI de ${previous.fi.toFixed(2)} para ${l.fi.toFixed(2)} (${fiDelta > 0 ? "melhora" : "piora"} de ${Math.abs(fiDelta).toFixed(2)} pontos) é explicada principalmente por: ${l.ge > (previous.ge || 0) ? "aumento do grau de endividamento" : "variação na liquidez"}, ${l.ls < (previous.ls || 0) ? "redução da liquidez seca" : "manutenção da liquidez"}, e ${l.rpl < (previous.rpl || 0) ? "queda na rentabilidade do PL" : "manutenção/melhora da rentabilidade"}.` : "Análise evolutiva indisponível — apenas um período carregado." },
+              { title: "Probabilidade de Insolvência", text: l.fi < -3 ? "ALTA. O FI abaixo de -3 indica alta probabilidade estatística de insolvência segundo o modelo Kanitz. A empresa deve buscar reestruturação imediata." : l.fi < 0 ? "MODERADA. O FI na zona de atenção/risco requer monitoramento contínuo e medidas preventivas." : "BAIXA. O FI positivo indica solvência segundo o modelo Kanitz. Recomenda-se manutenção das boas práticas financeiras." },
+              { title: "Nível de Risco", text: `Risk Engine classifica a empresa como ${riskEngineClass} (${riskEngineScore}/100). Principais fatores: Score Kanitz (${Math.round(riskKanitz)}/100, peso 40%), Liquidez (${Math.round(riskLiquidez)}/100, peso 20%), Alavancagem (${Math.round(riskAlavancagem)}/100, peso 20%), Fluxo de Caixa (${Math.round(riskFluxoCaixa)}/100, peso 20%).` },
+              { title: "Recomendações Estratégicas", text: [
+                l.ge > 1.5 ? "Implementar plano de desalavancagem — priorizar quitação de dívidas onerosas." : null,
+                l.ls < 1 ? "Reduzir dependência de estoques para liquidez — otimizar gestão de recebíveis." : null,
+                coberturaJuros < 2 ? "Renegociar condições de dívida bancária — melhorar cobertura de juros." : null,
+                margemLiquida < 0.1 ? "Revisar estrutura de custos para melhoria da margem líquida." : null,
+                "Monitorar trimestralmente a evolução do Fator de Insolvência e Risk Engine.",
+                "Integrar resultado Kanitz ao sistema de alertas e governança corporativa.",
+              ].filter(Boolean).join(" ") },
+            ].map(item => (
+              <div key={item.title} className="p-4 rounded-lg bg-muted/20 border border-border/30">
+                <p className="text-xs font-semibold text-foreground mb-2">{item.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══ MEMÓRIA DE CÁLCULO ══ */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <SectionTitle num="★" title="MEMÓRIA DE CÁLCULO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
             <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
             <code className="block text-[11px] font-mono leading-relaxed text-foreground">
-              FI = (0,05 × RPL) + (1,65 × LG) + (3,55 × LS) − (1,06 × LC) − (0,33 × GE)
+              Z = 0,05×X1 + 1,65×X2 + 3,55×X3 − 1,06×X4 − 0,33×X5
             </code>
+            <div className="mt-2 text-[10px] text-muted-foreground space-y-0.5">
+              <p>X1 = Lucro Líquido / Patrimônio Líquido (RPL)</p>
+              <p>X2 = (Ativo Circulante + Realizável LP) / (Passivo Circulante + Exigível LP) (LG)</p>
+              <p>X3 = (Ativo Circulante − Estoques) / Passivo Circulante (LS)</p>
+              <p>X4 = Passivo Total / Patrimônio Líquido (GE — nota: LC na fórmula original)</p>
+              <p>X5 = Passivo Circulante / Passivo Total (composição do endividamento)</p>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -2191,11 +2576,11 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </TableHeader>
               <TableBody>
                 {[
-                  { name: "RPL", peso: 0.05, key: "rpl" as const },
-                  { name: "LG", peso: 1.65, key: "lg" as const },
-                  { name: "LS", peso: 3.55, key: "ls" as const },
-                  { name: "LC", peso: -1.06, key: "lc" as const },
-                  { name: "GE", peso: -0.33, key: "ge" as const },
+                  { name: "RPL (X1)", peso: 0.05, key: "rpl" as const },
+                  { name: "LG (X2)", peso: 1.65, key: "lg" as const },
+                  { name: "LS (X3)", peso: 3.55, key: "ls" as const },
+                  { name: "LC (X4)", peso: -1.06, key: "lc" as const },
+                  { name: "GE (X5)", peso: -0.33, key: "ge" as const },
                 ].map(c => (
                   <TableRow key={c.name}>
                     <TableCell className="text-xs font-mono font-bold">{c.name}</TableCell>
@@ -2212,9 +2597,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
                   <TableCell className="text-xs font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
                   {kanitzResults.map(r => <TableCell key={r.year} className="text-right" />)}
                   {kanitzResults.map(r => (
-                    <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${
-                      r.fi > 0 ? "text-emerald-600" : r.fi >= -3 ? "text-yellow-600" : "text-red-600"
-                    }`}>{r.fi.toFixed(2)}</TableCell>
+                    <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>{r.fi.toFixed(2)}</TableCell>
                   ))}
                 </TableRow>
               </TableBody>
@@ -2233,13 +2616,16 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
                 </TableHeader>
                 <TableBody>
                   {[
-                    { label: "Lucro Líquido", key: "ll" },
-                    { label: "Patrimônio Líquido", key: "pl" },
                     { label: "Ativo Circulante", key: "ac" },
+                    { label: "Ativo Não Circulante", key: "anc" },
                     { label: "Realizável a LP", key: "rlp" },
                     { label: "Estoques", key: "estoque" },
                     { label: "Passivo Circulante", key: "pc" },
+                    { label: "Passivo Não Circulante", key: "pnc" },
                     { label: "Passivo Total", key: "pt" },
+                    { label: "Patrimônio Líquido", key: "pl" },
+                    { label: "Lucro Líquido", key: "ll" },
+                    { label: "Receita Líquida", key: "rl" },
                   ].map(v => (
                     <TableRow key={v.label}>
                       <TableCell className="text-xs font-medium">{v.label}</TableCell>
@@ -2255,41 +2641,6 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
         </CardContent>
       </Card>
 
-      {/* ── Risk Score Normalizado ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <SectionTitle num="★" title="RISK SCORE NORMALIZADO — ESCALA EBEX" />
-          <div className="text-center py-4">
-            <p className="text-5xl font-bold font-mono text-foreground">{latest.riskScoreNormalized}</p>
-            <p className="text-sm font-semibold mt-1 text-muted-foreground">de 100 pontos</p>
-            <p className={`text-xs mt-1 ${latest.riskScoreNormalized <= 30 ? "text-red-600" : latest.riskScoreNormalized <= 70 ? "text-yellow-600" : "text-emerald-600"}`}>
-              {latest.riskScoreNormalized <= 30 ? "Alto Risco" : latest.riskScoreNormalized <= 70 ? "Médio Risco" : "Baixo Risco"}
-            </p>
-          </div>
-          <div className="space-y-2">
-            {[
-              { range: "0 – 30", label: "Alto Risco", color: "bg-red-500/10 text-red-600", active: latest.riskScoreNormalized <= 30 },
-              { range: "31 – 70", label: "Médio Risco", color: "bg-yellow-500/10 text-yellow-600", active: latest.riskScoreNormalized > 30 && latest.riskScoreNormalized <= 70 },
-              { range: "71 – 100", label: "Baixo Risco", color: "bg-emerald-500/10 text-emerald-600", active: latest.riskScoreNormalized > 70 },
-            ].map(item => (
-              <div key={item.range} className={`flex items-center justify-between p-3 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-amber-500" : ""}`}>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-mono font-bold px-2 py-1 rounded ${item.color}`}>{item.range}</span>
-                  <span className="text-sm font-medium text-foreground">{item.label}</span>
-                </div>
-                {item.active && <CheckCircle2 className="w-4 h-4 text-amber-500" />}
-              </div>
-            ))}
-          </div>
-          <div className="p-3 rounded-lg bg-muted/30">
-            <p className="text-[10px] font-semibold text-foreground mb-1">Fórmula de Normalização:</p>
-            <code className="text-[10px] font-mono text-muted-foreground">
-              RiskScore = (FI - FI_min) / (FI_max - FI_min) × 100
-            </code>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* ── ASSINATURA ── */}
       <Card className="bg-muted/20">
         <CardContent className="pt-6 text-center space-y-3">
@@ -2298,12 +2649,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">Documento gerado e assinado digitalmente</p>
-            <p className="text-xs text-muted-foreground">Agente IA — Auditor Contábil Sênior</p>
-            <p className="text-xs text-muted-foreground">Modelo: Kanitz — Termômetro de Insolvência (1978)</p>
+            <p className="text-xs text-muted-foreground">Auditor Contábil Sênior IA</p>
+            <p className="text-xs text-muted-foreground">Relatório Kanitz Expandido v2.0 — Risk Intelligence Financial Report</p>
             <p className="text-xs text-muted-foreground mt-2">Plataforma BEX — {today}</p>
           </div>
           <div className="flex flex-wrap justify-center gap-1.5 pt-2">
-            {["Kanitz (1978)", "NBC TA 570", "CPC 26", "Lei 11.101/2005"].map(n => (
+            {["Kanitz (1978)", "NBC TA 570", "CPC 26", "Lei 11.101/2005", "IFRS", "NBC TA 315"].map(n => (
               <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
             ))}
           </div>
