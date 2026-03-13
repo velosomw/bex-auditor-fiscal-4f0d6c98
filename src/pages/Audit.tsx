@@ -1396,8 +1396,9 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
         </div>
       </div>
 
+
       {/* ── 1. DIAGNÓSTICO EXECUTIVO ── */}
-      <Card>
+      <div className="report-a4-page p-8" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
         <CardContent className="pt-6 space-y-4">
           <SectionTitle num="1" title="DIAGNÓSTICO EXECUTIVO" />
           
