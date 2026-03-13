@@ -1440,8 +1440,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ── 2. SOLVÊNCIA ── */}
       <Card>
