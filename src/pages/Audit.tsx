@@ -2117,7 +2117,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
     <div className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-kanitz-container">
       {/* Action buttons */}
       <div className="flex justify-end gap-2 print:hidden mb-4">
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-kanitz-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
         {onSwitchToBex && (
@@ -2125,7 +2125,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
             <BookOpen className="w-4 h-4" /> Relatório BEX
           </Button>
         )}
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-kanitz-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
         <Button variant="outline" size="sm" onClick={onBack} className="gap-1.5">
