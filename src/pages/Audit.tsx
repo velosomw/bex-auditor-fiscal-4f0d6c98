@@ -742,12 +742,14 @@ const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsed
   const latestYear = years[years.length - 1];
   const d = latestYear ? computedInd[latestYear] : null;
 
-  const pc = d?._pc || 0;
-  const pnc = d?._pnc || 0;
+  // Fallback to AI structure data
+  const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira;
+  const pc = d?._pc || aiStruct?.passivo_circulante || 0;
+  const pnc = d?._pnc || aiStruct?.passivo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
-  const caixa = d?._caixa || 0;
-  const ac = d?._ac || 0;
-  const anc = d?._anc || 0;
+  const caixa = d?._caixa || aiStruct?.caixa || 0;
+  const ac = d?._ac || aiStruct?.ativo_circulante || 0;
+  const anc = d?._anc || aiStruct?.ativo_nao_circulante || 0;
 
   // Try to extract loan data from parsed balanco
   const findAbsValue = (keyword: string) => {
@@ -759,7 +761,7 @@ const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsed
   };
 
   const emprestimos = findAbsValue("empréstimos") || findAbsValue("financiamentos");
-  const fornecedores = d?._fornecedores || 0;
+  const fornecedores = d?._fornecedores || aiStruct?.fornecedores || 0;
   const dividaLiquida = emprestimos - caixa;
 
   const riscos = aiAnalysis?.riscosEndividamento || [
