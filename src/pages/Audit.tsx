@@ -1218,7 +1218,7 @@ const reportTopicsKanitz = [
 const ReportPage = ({ children }: { children: React.ReactNode }) => (
   <div className="report-a4-page" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
     <div className="report-page-header">
-      <img src={logoBexBranco} alt="Brasil Expert" className="h-14 object-contain" />
+      <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
     </div>
     <div className="report-page-body">
       {children}
