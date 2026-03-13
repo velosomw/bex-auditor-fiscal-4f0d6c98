@@ -1341,6 +1341,15 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
 const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
+  const reportContainerRef = useRef<HTMLDivElement>(null);
+  const [totalPages, setTotalPages] = useState(0);
+
+  useEffect(() => {
+    if (reportContainerRef.current) {
+      const pages = reportContainerRef.current.querySelectorAll('.report-a4-page, .report-a4-cover');
+      setTotalPages(pages.length);
+    }
+  });
   const today = new Date().toLocaleDateString("pt-BR");
   
   const computedInd = computeIndicatorsFromParsed(parsedData || null);
@@ -1405,9 +1414,14 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
   );
 
   return (
-    <div style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-bex-container">
+    <div ref={reportContainerRef} style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-bex-container">
       {/* Action buttons print:hidden - outside gray container */}
-      <div className="flex justify-end gap-2 print:hidden mb-4">
+      <div className="flex items-center justify-end gap-2 print:hidden mb-4">
+        {totalPages > 0 && (
+          <span className="text-xs font-medium text-muted-foreground mr-auto flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPages}
+          </span>
+        )}
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-bex-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
@@ -1999,7 +2013,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
       </div>{/* end report-pages-container */}
 
       {/* Action buttons bottom */}
-      <div className="flex justify-center gap-3 pt-4 print:hidden">
+      <div className="flex items-center justify-center gap-3 pt-4 print:hidden">
+        {totalPages > 0 && (
+          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPages}
+          </span>
+        )}
         <Button variant="outline" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-bex-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
@@ -2025,6 +2044,15 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
    ══════════════════════════════════════════════════════ */
 const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any }) => {
   const today = new Date().toLocaleDateString("pt-BR");
+  const kanitzContainerRef = useRef<HTMLDivElement>(null);
+  const [totalPagesKanitz, setTotalPagesKanitz] = useState(0);
+
+  useEffect(() => {
+    if (kanitzContainerRef.current) {
+      const pages = kanitzContainerRef.current.querySelectorAll('.report-a4-page, .report-a4-cover');
+      setTotalPagesKanitz(pages.length);
+    }
+  });
 
   const findValue = (keyword: string, year: string) => {
     if (!parsedData) return 0;
@@ -2171,9 +2199,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
   const tendencia = previous && fiDelta > 0.5 ? "Melhora" : previous && fiDelta < -0.5 ? "Deterioração" : "Estável";
 
   return (
-    <div className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-kanitz-container">
+    <div ref={kanitzContainerRef} className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-kanitz-container">
       {/* Action buttons */}
-      <div className="flex justify-end gap-2 print:hidden mb-4">
+      <div className="flex items-center justify-end gap-2 print:hidden mb-4">
+        {totalPagesKanitz > 0 && (
+          <span className="text-xs font-medium text-muted-foreground mr-auto flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPagesKanitz}
+          </span>
+        )}
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-kanitz-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
@@ -2846,7 +2879,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
       </div>{/* end report-pages-container */}
 
       {/* Action buttons bottom */}
-      <div className="flex justify-center gap-3 pt-4 print:hidden">
+      <div className="flex items-center justify-center gap-3 pt-4 print:hidden">
+        {totalPagesKanitz > 0 && (
+          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPagesKanitz}
+          </span>
+        )}
         <Button variant="outline" className="gap-1.5" onClick={() => { document.body.classList.add('printing-report'); document.body.setAttribute('data-print-target', 'report-kanitz-container'); window.print(); document.body.classList.remove('printing-report'); document.body.removeAttribute('data-print-target'); }}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
