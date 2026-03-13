@@ -955,7 +955,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData }: { pendenciasData?: an
   const [selectedId, setSelectedId] = useState(activePendencias[0]?.id || "");
   const selected = activePendencias.find((p: any) => p.id === selectedId);
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([
-    { role: "assistant", text: "Sou o Agente IA Auditor Contábil Sênior. Selecione uma pendência ao lado e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
+    { role: "assistant", text: "Sou o Auditor Contábil Sênior IA. Selecione uma pendência ao lado e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
