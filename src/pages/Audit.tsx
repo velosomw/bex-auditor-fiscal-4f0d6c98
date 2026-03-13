@@ -1688,8 +1688,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
       </ReportPage>
 
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="6" title="BALANÇO PATRIMONIAL" />
 
           <div className="text-center mb-2">
