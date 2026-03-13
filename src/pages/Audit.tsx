@@ -2388,12 +2388,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 7 — FLUXO DE CAIXA ESTRUTURAL ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="7" title="FLUXO DE CAIXA ESTRUTURAL" />
           <p className="text-xs text-muted-foreground">
             Ampliação do modelo Kanitz tradicional com análise de geração de caixa — detectando risco de ruptura financeira.
