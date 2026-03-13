@@ -1159,6 +1159,22 @@ const reportTopicsKanitz = [
   { num: "7", title: "Memória de Cálculo", desc: "Transparência completa das fórmulas, pesos e dados utilizados no cálculo do FI", icon: Calculator },
 ];
 
+/* ── Shared A4 Report Page Wrapper ── */
+const ReportPage = ({ children }: { children: React.ReactNode }) => (
+  <div className="report-a4-page" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+    <div className="report-page-header">
+      <img src={logoBexBranco} alt="Brasil Expert" className="h-14 object-contain" />
+    </div>
+    <div className="report-page-body">
+      {children}
+    </div>
+    <div className="report-footer-bar">
+      <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
+      <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
+    </div>
+  </div>
+);
+
 const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => void; onGerarKanitz: () => void }) => (
   <div className="space-y-6">
     <div className="text-center space-y-2 mb-2">
