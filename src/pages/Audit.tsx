@@ -156,7 +156,7 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
       <div className="text-center space-y-2 mb-2">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(258,90%,66%)]/10 border border-[hsl(258,90%,66%)]/20 mb-2">
           <Shield className="w-4 h-4 text-[hsl(258,90%,66%)]" />
-          <span className="text-xs font-semibold text-[hsl(258,90%,66%)]">Agente IA Auditor Contábil Sênior</span>
+          <span className="text-xs font-semibold text-[hsl(258,90%,66%)]">Auditor Contábil Sênior IA</span>
         </div>
         <h1 className="text-2xl font-bold text-foreground font-serif">
           {hasFiles ? "Carregamento" : "Configuração"}
@@ -409,7 +409,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
           </div>
           <h2 className="text-xl font-bold text-foreground font-serif">Processando Análise</h2>
           <p className="text-sm text-muted-foreground">
-            O Agente IA Auditor Contábil Sênior está analisando seus documentos em tempo real...
+            O Auditor Contábil Sênior IA está analisando seus documentos em tempo real...
           </p>
         </div>
         <div className="space-y-3">
@@ -955,7 +955,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData }: { pendenciasData?: an
   const [selectedId, setSelectedId] = useState(activePendencias[0]?.id || "");
   const selected = activePendencias.find((p: any) => p.id === selectedId);
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([
-    { role: "assistant", text: "Sou o Agente IA Auditor Contábil Sênior. Selecione uma pendência ao lado e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
+    { role: "assistant", text: "Sou o Auditor Contábil Sênior IA. Selecione uma pendência ao lado e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -2364,7 +2364,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-serif">Avaliação Empresarial</h1>
-          <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Agente IA Auditor Contábil Sênior</p>
+          <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
         </div>
       </div>
 
