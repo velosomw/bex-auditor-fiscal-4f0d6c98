@@ -1429,7 +1429,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
       <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
         {/* Header with logo */}
         <div className="report-page-header">
-          <img src={logoBexBranco} alt="Brasil Expert" className="h-14 object-contain" />
+          <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
         </div>
 
         {/* Center content */}
