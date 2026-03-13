@@ -2063,7 +2063,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 
   const fmtDec = (n: number) => n.toFixed(4);
 
-  if (!parsedData || kanitzResults.length === 0) {
+  if (kanitzResults.length === 0) {
     return (
       <Card><CardContent className="py-12 text-center">
         <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
