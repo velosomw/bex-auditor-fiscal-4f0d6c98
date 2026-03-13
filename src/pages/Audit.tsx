@@ -302,43 +302,46 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
 
     const runRealAnalysis = async () => {
       try {
-        // Step 1: Parse files
+        // Step 0: Upload received
         setCurrentStep(0);
         setProgress(5);
         
         let parsedData: ParsedFinancialData | null = null;
         if (files.length > 0) {
+          // Step 1: Parser agent - identify format
           setCurrentStep(1);
+          setProgress(10);
+
+          // Step 2: Parser agent - extract data
+          setCurrentStep(2);
           setProgress(15);
-          parsedData = await parseFile(files[0]);
+
+          const { parsed, fileResults } = await parseMultipleFiles(files);
+          parsedData = parsed;
           
-          // If additional files, merge data
-          for (let i = 1; i < files.length; i++) {
-            const additional = await parseFile(files[i]);
-            parsedData.balanco.push(...additional.balanco);
-            parsedData.dre.push(...additional.dre);
-            additional.years.forEach(y => {
-              if (!parsedData!.years.includes(y)) parsedData!.years.push(y);
-            });
+          const failedFiles = fileResults.filter(f => !f.success);
+          if (failedFiles.length > 0) {
+            console.warn("Some files failed:", failedFiles);
           }
-          parsedData.years.sort();
+          console.log("Files parsed:", fileResults.map(f => `${f.fileName} (${f.format} - ${f.type})`));
         }
 
-        // Steps 2-5: Visual progress while waiting
-        setCurrentStep(2);
-        setProgress(25);
-        
-        // Step 6: Call AI
+        // Step 3: Structurer agent
         setCurrentStep(3);
-        setProgress(35);
+        setProgress(30);
+        
+        // Step 4: Auditor agent
+        setCurrentStep(4);
+        setProgress(40);
         
         const dataToAnalyze = parsedData || {
           balanco: [],
           dre: [],
           years: [],
         };
-        
-        setCurrentStep(4);
+
+        // Step 5-7: Risk Engine
+        setCurrentStep(5);
         setProgress(50);
 
         const analysis = await analyzeFinancialData(dataToAnalyze, {
@@ -346,17 +349,18 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
           purpose: "externa",
         });
 
-        setCurrentStep(5);
-        setProgress(70);
-
-        // Step 7-8: Final processing
         setCurrentStep(6);
-        setProgress(85);
+        setProgress(70);
         
         setCurrentStep(7);
-        setProgress(95);
-        
+        setProgress(80);
+
+        // Step 8: Report agent
         setCurrentStep(8);
+        setProgress(90);
+        
+        // Step 9: Final
+        setCurrentStep(9);
         setProgress(100);
 
         onAnalysisReady(analysis, parsedData);
