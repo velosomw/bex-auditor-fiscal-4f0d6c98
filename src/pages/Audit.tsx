@@ -2019,6 +2019,29 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
     }
   }
 
+  // Fallback: use AI analysis kanitz data
+  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
+    const aiK = aiAnalysis.kanitz;
+    const comp = aiK.componentes || {};
+    const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
+    const fi = aiK.fatorInsolvencia || 0;
+    const classificacao: typeof kanitzResults[0]["classificacao"] =
+      fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
+    const ac = aiStruct.ativo_circulante || 0;
+    const anc = aiStruct.ativo_nao_circulante || 0;
+    const pc = aiStruct.passivo_circulante || 0;
+    const pnc = aiStruct.passivo_nao_circulante || 0;
+    const pl = aiStruct.patrimonio_liquido || 0;
+    const pt = pc + pnc;
+    const at = ac + anc;
+    kanitzResults.push({
+      year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
+      fi, classificacao, riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
+      ac, anc, pc, pnc, pl, estoque: aiStruct.estoques || 0, rlp: 0, pt, ll: aiStruct.lucro_liquido || 0, at,
+      rl: aiStruct.receita_liquida || 0, cpv: 0, fornecedores: aiStruct.fornecedores || 0, despFin: 0, lajir: 0, caixa: aiStruct.caixa || 0,
+    });
+  }
+
   const latest = kanitzResults[kanitzResults.length - 1];
   const previous = kanitzResults.length > 1 ? kanitzResults[kanitzResults.length - 2] : null;
   const fiDelta = previous ? (latest?.fi || 0) - previous.fi : 0;
