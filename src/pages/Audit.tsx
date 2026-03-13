@@ -2022,9 +2022,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
   const tendencia = previous && fiDelta > 0.5 ? "Melhora" : previous && fiDelta < -0.5 ? "Deterioração" : "Estável";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
       {/* Action buttons */}
-      <div className="flex justify-end gap-2 print:hidden">
+      <div className="flex justify-end gap-2 print:hidden mb-4">
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
           <Download className="w-4 h-4" /> Exportar
         </Button>
@@ -2041,46 +2041,57 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
         </Button>
       </div>
 
-      {/* ── CAPA ── */}
-      <Card className="overflow-hidden">
-        <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-amber-800 text-white p-8 md:p-12 text-center space-y-6">
-          <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
-              <Scale className="w-10 h-10 text-white" />
-            </div>
+      {/* ── CAPA A4 ── */}
+      <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+        {/* Header with logo */}
+        <div className="flex justify-end p-8 pb-0">
+          <img src={logoBrasilExpert} alt="Brasil Expert" className="h-14 object-contain" />
+        </div>
+
+        {/* Center content */}
+        <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
+            <Scale className="w-10 h-10 text-amber-600" />
           </div>
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/70 font-semibold">Plataforma BEX — Risk Intelligence</p>
-            <h1 className="text-xl md:text-2xl font-bold font-serif leading-tight">
-              RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
-            </h1>
-            <p className="text-sm text-white/80 italic">Risk Intelligence Financial Report</p>
-          </div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX — Risk Intelligence</p>
+          <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
+            RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
+          </h1>
+          <p className="text-sm text-muted-foreground mt-3 italic">Risk Intelligence Financial Report</p>
+
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-500/30 bg-amber-500/5 mt-8">
             <span className="text-lg">{classColors[latest.classificacao]?.icon}</span>
-            <span className="text-sm font-semibold">{classColors[latest.classificacao]?.label} — FI: {latest.fi.toFixed(2)}</span>
+            <span className="text-sm font-semibold text-foreground">{classColors[latest.classificacao]?.label} — FI: {latest.fi.toFixed(2)}</span>
           </div>
-          <div className="grid sm:grid-cols-3 gap-4 text-sm text-white/80 pt-4 border-t border-white/20">
+
+          <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
             <div>
-              <p className="text-[10px] text-white/50 uppercase tracking-wider">Empresa</p>
-              <p className="font-semibold text-white">Empresa Analisada S.A.</p>
+              <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p>
+              <p className="font-semibold text-foreground">Empresa Analisada S.A.</p>
             </div>
             <div>
-              <p className="text-[10px] text-white/50 uppercase tracking-wider">Período</p>
-              <p className="font-semibold text-white">{parsedData.years.join(" / ")}</p>
+              <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p>
+              <p className="font-semibold text-foreground">{parsedData.years.join(" / ")}</p>
             </div>
             <div>
-              <p className="text-[10px] text-white/50 uppercase tracking-wider">Emissão</p>
-              <p className="font-semibold text-white">{today}</p>
+              <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Emissão</p>
+              <p className="font-semibold text-foreground">{today}</p>
             </div>
           </div>
-          <div className="pt-4 border-t border-white/20 space-y-1">
-            <p className="text-xs text-white/60 uppercase tracking-wider">Responsável Técnico</p>
-            <p className="text-sm font-semibold">Auditor Contábil Sênior IA</p>
-            <p className="text-xs text-white/70">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
+
+          <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-1">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
+            <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
+            <p className="text-xs text-muted-foreground">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
           </div>
         </div>
-      </Card>
+
+        {/* Footer */}
+        <div className="report-footer-bar">
+          <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
+          <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
+        </div>
+      </div>
 
       {/* ══ MÓDULO 1 — SUMÁRIO EXECUTIVO ══ */}
       <Card>
