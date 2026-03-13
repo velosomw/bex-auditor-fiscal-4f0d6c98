@@ -204,7 +204,7 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
                 <FileSpreadsheet className="w-8 h-8 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-foreground">Arraste o balancete ou clique para selecionar</p>
-              <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv</p>
+              <p className="text-xs text-muted-foreground mt-1">Formatos aceitos: .xlsx, .xls, .csv, .pdf (todos os tipos)</p>
             </div>
           )}
           <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv" onChange={(e) => handleFiles(e.target.files)} />
