@@ -2506,12 +2506,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 10 — SIMULAÇÃO FINANCEIRA ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="10" title="SIMULAÇÃO FINANCEIRA" />
           <p className="text-xs text-muted-foreground">
             Cenários simulados de melhoria do score Kanitz. Projeções estimadas com base nos indicadores atuais.
