@@ -2424,12 +2424,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
                 : "Risco elevado de ruptura. Cobertura de juros insuficiente — a empresa não gera caixa operacional suficiente para honrar despesas financeiras."}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </ReportPage>
 
       {/* ══ MÓDULO 8 — CUSTOS OCULTOS ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="8" title="CUSTOS OCULTOS E INEFICIÊNCIAS" />
           <p className="text-xs text-muted-foreground">
             Análise de ineficiências que impactam diretamente o score Kanitz, com simulação do efeito sobre o FI.
