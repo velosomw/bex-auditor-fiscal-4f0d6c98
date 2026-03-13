@@ -77,7 +77,6 @@ REGRAS:
 - Para documentos Word, interprete formatação de tabelas e dados tabulados
 - Para arquivos TXT, identifique padrões tabulares (separados por tab, espaços ou delimitadores)
 - Responda APENAS com JSON, sem texto adicional`;
-- Responda APENAS com JSON, sem texto adicional`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
