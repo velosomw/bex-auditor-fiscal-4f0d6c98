@@ -1423,6 +1423,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
         </Button>
       </div>
 
+      <div className="report-pages-container">
       {/* ── CAPA A4 ── */}
       <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
         {/* Header with logo */}
