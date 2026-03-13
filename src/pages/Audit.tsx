@@ -2105,8 +2105,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex }: { onBack: () 
       </div>
 
       {/* ══ MÓDULO 1 — SUMÁRIO EXECUTIVO ══ */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <ReportPage>
+        <div className="space-y-4">
           <SectionTitle num="1" title="SUMÁRIO EXECUTIVO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-sm text-foreground leading-relaxed">
