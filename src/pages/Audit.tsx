@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import folhaRostoBg from "@/assets/folha-rosto-bex.jpg";
 import logoBrasilExpert from "@/assets/logo-brasil-expert.jpg";
+import logoBexBranco from "@/assets/logo-bex-branco.jpeg";
 import {
   Upload, FileText, CheckCircle2, ArrowRight, ArrowLeft,
   Shield, MessageCircle, Send, AlertTriangle, Download, Printer,
