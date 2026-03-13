@@ -302,7 +302,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
         if (files.length > 0) {
           setCurrentStep(1);
           setProgress(15);
-          parsedData = await parseSpreadsheet(files[0]);
+          parsedData = await parseFile(files[0]);
           
           // If additional files, merge data
           for (let i = 1; i < files.length; i++) {
