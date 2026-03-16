@@ -13,13 +13,7 @@ import ConsultoriaCompleta from "./pages/ConsultoriaCompleta";
 import Insights from "./pages/Insights";
 import Sobre from "./pages/Sobre";
 import Contato from "./pages/Contato";
-import Login from "./pages/Login";
-import RoleSelection from "./pages/RoleSelection";
-import Dashboard from "./pages/Dashboard";
-import UserDashboard from "./pages/UserDashboard";
-import Audit from "./pages/Audit";
-import ModeloMatematico from "./pages/ModeloMatematico";
-import GestorIA from "./pages/GestorIA";
+import Manutencao from "./pages/Manutencao";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
 
@@ -44,14 +38,14 @@ const App = () => (
             <Route path="/sobre" element={<Layout><Sobre /></Layout>} />
             <Route path="/contato" element={<Layout><Contato /></Layout>} />
 
-            {/* Plataforma de Auditoria */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/select-role" element={<RoleSelection />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/user" element={<UserDashboard />} />
-            <Route path="/audit" element={<Audit />} />
-            <Route path="/gestor-ia" element={<GestorIA />} />
-            <Route path="/modelo-matematico" element={<ModeloMatematico />} />
+            {/* Plataforma suspensa — modo manutenção */}
+            <Route path="/login" element={<Manutencao />} />
+            <Route path="/select-role" element={<Manutencao />} />
+            <Route path="/dashboard" element={<Manutencao />} />
+            <Route path="/user" element={<Manutencao />} />
+            <Route path="/audit" element={<Manutencao />} />
+            <Route path="/gestor-ia" element={<Manutencao />} />
+            <Route path="/modelo-matematico" element={<Manutencao />} />
 
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>
