@@ -86,7 +86,7 @@ const Contato = () => {
                   </div>
                   <div className="flex gap-4">
                     <Mail className="w-5 h-5 text-accent shrink-0" />
-                    <p className="text-sm text-foreground">contato@bexauditoria.com.br</p>
+                    <p className="text-sm text-foreground"><p className="text-sm text-foreground">contato@brasilexpert.com.br</p></p>
                   </div>
                   <div className="flex gap-4">
                     <Clock className="w-5 h-5 text-accent shrink-0" />
