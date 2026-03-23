@@ -81,13 +81,6 @@ const Contato = () => {
                     </div>
                   </div>
                   <div className="flex gap-4">
-                    <MapPin className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">​</p>
-                      <p className="text-sm text-muted-foreground">​</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
                     <Phone className="w-5 h-5 text-accent shrink-0" />
                     <p className="text-sm text-foreground">(11) 3285-4472</p>
                   </div>
