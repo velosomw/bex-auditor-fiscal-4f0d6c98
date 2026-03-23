@@ -1,5 +1,10 @@
 import { useState } from "react";
 import PlatformLayout from "@/components/PlatformLayout";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -456,46 +461,243 @@ const TabGovernanca = () => (
 );
 
 // ─── Tab: Logs & Auditoria ───────────────────────────────────
-const TabLogs = () => (
-  <div className="space-y-6">
-    <div className="flex items-center justify-between">
-      <p className="text-sm text-muted-foreground">Registro de todas as interações dos agentes de IA.</p>
-      <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-        <Download className="w-3.5 h-3.5" /> Exportar Logs
-      </Button>
-    </div>
-    <div className="bg-card rounded-xl border border-border overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Agente</th>
-            <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Usuário</th>
-            <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ação</th>
-            <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Confiança</th>
-            <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Tempo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((log, i) => (
-            <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-              <td className="px-4 py-3 font-medium text-foreground">{log.agent}</td>
-              <td className="px-4 py-3 text-muted-foreground">{log.user}</td>
-              <td className="px-4 py-3 text-foreground">{log.action}</td>
-              <td className="px-4 py-3">
-                <span className={`font-semibold ${log.confidence >= 90 ? "text-[hsl(152,70%,45%)]" : "text-[hsl(38,90%,55%)]"}`}>
-                  {log.confidence}%
-                </span>
-              </td>
-              <td className="px-4 py-3 text-muted-foreground text-xs">{log.time}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
 
-// ─── Tab: Risk Engine Consolidado ─────────────────────────────
+interface ManagedUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastAccess: string;
+}
+
+const initialUsers: ManagedUser[] = [
+  { id: 1, name: "Admin BEX", email: "admin@bex.com", role: "auditor_chefe", status: "active", lastAccess: "há 5 min" },
+  { id: 2, name: "Analista Financeiro", email: "analista@bex.com", role: "usuario", status: "active", lastAccess: "há 12 min" },
+  { id: 3, name: "Gestor IA", email: "gestor@bex.com", role: "gestor_ia", status: "active", lastAccess: "há 28 min" },
+  { id: 4, name: "Empresa ABC", email: "contato@empresaabc.com", role: "empresa", status: "inactive", lastAccess: "há 3 dias" },
+];
+
+const roleLabels: Record<string, string> = {
+  auditor_chefe: "Auditor Chefe",
+  usuario: "Usuário",
+  empresa: "Empresa",
+  gestor_ia: "Gestor IA",
+};
+
+const TabLogs = () => {
+  const [users, setUsers] = useState<ManagedUser[]>(initialUsers);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPassword, setFormPassword] = useState("");
+  const [formRole, setFormRole] = useState("usuario");
+  const [formStatus, setFormStatus] = useState("active");
+
+  const openCreate = () => {
+    setEditingUser(null);
+    setFormName("");
+    setFormEmail("");
+    setFormPassword("");
+    setFormRole("usuario");
+    setFormStatus("active");
+    setDialogOpen(true);
+  };
+
+  const openEdit = (user: ManagedUser) => {
+    setEditingUser(user);
+    setFormName(user.name);
+    setFormEmail(user.email);
+    setFormPassword("");
+    setFormRole(user.role);
+    setFormStatus(user.status);
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formName || !formEmail) {
+      toast.error("Preencha nome e e-mail.");
+      return;
+    }
+    if (!editingUser && !formPassword) {
+      toast.error("Defina uma senha para o novo usuário.");
+      return;
+    }
+
+    if (editingUser) {
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? { ...u, name: formName, email: formEmail, role: formRole, status: formStatus } : u));
+      toast.success("Usuário atualizado com sucesso!");
+    } else {
+      const newUser: ManagedUser = {
+        id: Date.now(),
+        name: formName,
+        email: formEmail,
+        role: formRole,
+        status: formStatus,
+        lastAccess: "nunca",
+      };
+      setUsers(prev => [...prev, newUser]);
+      toast.success("Novo acesso criado com sucesso!");
+    }
+    setDialogOpen(false);
+  };
+
+  const toggleStatus = (id: number) => {
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, status: u.status === "active" ? "inactive" : "active" } : u));
+    toast.success("Status atualizado.");
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* User Management Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
+              <span className="w-1 h-5 rounded-full bg-[hsl(258,90%,66%)]" /> Gestão de Acessos
+            </h3>
+            <p className="text-sm text-muted-foreground">Crie, edite e gerencie logins e perfis de acesso à plataforma.</p>
+          </div>
+          <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={openCreate}>
+            <Plus className="w-3.5 h-3.5" /> Novo Acesso
+          </Button>
+        </div>
+
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">E-mail</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Último Acesso</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 font-medium text-foreground">{user.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
+                  <td className="px-4 py-3">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[hsl(258,90%,66%)]/10 text-[hsl(258,90%,66%)]">
+                      {roleLabels[user.role] || user.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3"><StatusBadge status={user.status} /></td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{user.lastAccess}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(user)} title="Editar">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStatus(user.id)} title={user.status === "active" ? "Desativar" : "Ativar"}>
+                        {user.status === "active" ? <Pause className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Logs Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
+            <span className="w-1 h-5 rounded-full bg-[hsl(38,90%,55%)]" /> Logs de Atividade
+          </h3>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+            <Download className="w-3.5 h-3.5" /> Exportar Logs
+          </Button>
+        </div>
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Agente</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Usuário</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ação</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Confiança</th>
+                <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Tempo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log, i) => (
+                <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 font-medium text-foreground">{log.agent}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{log.user}</td>
+                  <td className="px-4 py-3 text-foreground">{log.action}</td>
+                  <td className="px-4 py-3">
+                    <span className={`font-semibold ${log.confidence >= 90 ? "text-[hsl(152,70%,45%)]" : "text-[hsl(38,90%,55%)]"}`}>
+                      {log.confidence}%
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{log.time}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Create / Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">{editingUser ? "Editar Acesso" : "Criar Novo Acesso"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-sm text-muted-foreground">Nome</Label>
+              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Nome completo" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm text-muted-foreground">E-mail</Label>
+              <Input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="email@exemplo.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm text-muted-foreground">{editingUser ? "Nova Senha (deixe vazio para manter)" : "Senha"}</Label>
+              <Input type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm text-muted-foreground">Perfil de Acesso</Label>
+              <Select value={formRole} onValueChange={setFormRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auditor_chefe">Auditor Chefe</SelectItem>
+                  <SelectItem value="usuario">Usuário</SelectItem>
+                  <SelectItem value="empresa">Empresa</SelectItem>
+                  <SelectItem value="gestor_ia">Gestor IA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm text-muted-foreground">Status</Label>
+              <Select value={formStatus} onValueChange={setFormStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="inactive">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white" onClick={handleSave}>
+              {editingUser ? "Salvar Alterações" : "Criar Acesso"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
 const TabRiskEngineDash = () => {
   // Mock consolidated scores
   const SA = 0.517;
