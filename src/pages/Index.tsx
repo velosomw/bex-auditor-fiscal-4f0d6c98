@@ -221,7 +221,7 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {[
             {
-              tag: "Pacote Básico",
+              tag: "",
               title: "Diagnóstico Rápido",
               desc: "Ideal para empresas que começam a sentir o peso das dívidas. Relatório Técnico-Financeiro com prioridades e oportunidades imediatas.",
               href: "/solucoes/diagnostico-rapido",

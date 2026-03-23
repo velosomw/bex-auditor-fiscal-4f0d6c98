@@ -8,7 +8,7 @@ import imgConsultoria from "@/assets/solution-consultoria.jpg";
 
 const solutions = [
   {
-    tag: "Pacote Básico",
+    tag: "",
     title: "Diagnóstico Rápido",
     desc: "Ideal para empresas que começam a sentir o peso das dívidas. Relatório Técnico-Financeiro com prioridades e oportunidades imediatas de renegociação.",
     href: "/solucoes/diagnostico-rapido",
