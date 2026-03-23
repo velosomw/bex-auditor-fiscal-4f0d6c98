@@ -75,7 +75,7 @@ const Sobre = () => {
       <section className="section-padding bg-background">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-display font-bold text-foreground mb-12">Nossos Escritórios</h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="flex justify-center">
             <div className="bg-card rounded-lg p-8 border border-border">
               <h3 className="font-display font-bold text-foreground mb-2">São Paulo/SP</h3>
               <p className="text-sm text-muted-foreground">Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso</p>
