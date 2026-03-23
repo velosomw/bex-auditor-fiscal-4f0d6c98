@@ -9,8 +9,8 @@ const Contato = () => {
       <HeroBanner
         title="Contato"
         subtitle="Entre em contato com nossos especialistas para uma avaliação inicial sem compromisso."
-        videoSrc={videoContato}
-      />
+        videoSrc={videoContato} />
+      
 
       <section className="section-padding bg-background">
         <div className="max-w-7xl mx-auto">
@@ -19,8 +19,8 @@ const Contato = () => {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+              viewport={{ once: true }}>
+              
               <h2 className="text-2xl font-display font-bold text-foreground mb-6">Envie sua mensagem</h2>
               <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
                 <div className="grid md:grid-cols-2 gap-5">
@@ -68,8 +68,8 @@ const Contato = () => {
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="space-y-8"
-            >
+              className="space-y-8">
+              
               <div>
                 <h2 className="text-2xl font-display font-bold text-foreground mb-6">Informações de Contato</h2>
                 <div className="space-y-6">
@@ -83,8 +83,8 @@ const Contato = () => {
                   <div className="flex gap-4">
                     <MapPin className="w-5 h-5 text-accent shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-sm text-foreground">Santana de Parnaíba/SP</p>
-                      <p className="text-sm text-muted-foreground">Av. Yojiro Takaoka, n. 4384, Cj. 702, Alphaville, CEP: 06541-038</p>
+                      <p className="font-semibold text-sm text-foreground">​</p>
+                      <p className="text-sm text-muted-foreground">​</p>
                     </div>
                   </div>
                   <div className="flex gap-4">
@@ -112,8 +112,8 @@ const Contato = () => {
           </div>
         </div>
       </section>
-    </>
-  );
+    </>);
+
 };
 
 export default Contato;
