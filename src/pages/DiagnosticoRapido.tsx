@@ -144,7 +144,7 @@ const DiagnosticoRapido = () => {
               </p>
               <div className="mb-8">
                 <h3 className="font-semibold text-primary-foreground mb-2">Prazo estimado</h3>
-                <p className="text-sm text-primary-foreground/60">Relatório imediato </p>
+                <p className="text-sm text-primary-foreground/60"></p>
               </div>
               <Link
                 to="/contato"
