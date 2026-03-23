@@ -888,21 +888,6 @@ const GestorIA = () => {
           ))}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Nova Auditoria
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <Download className="w-3.5 h-3.5" /> Exportar Relatório
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <BarChart3 className="w-3.5 h-3.5" /> Gerar Dashboard
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <Settings className="w-3.5 h-3.5" /> Configurações
-          </Button>
-        </div>
 
         {/* Tabs */}
         <Tabs defaultValue="visao-geral">
