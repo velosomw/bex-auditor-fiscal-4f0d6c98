@@ -82,11 +82,6 @@ const Sobre = () => {
               <p className="text-sm text-muted-foreground">CEP: 04003-003</p>
               <p className="text-sm text-accent mt-2">Tel.: (11) 3285-4472</p>
             </div>
-            <div className="bg-card rounded-lg p-8 border border-border">
-              <h3 className="font-display font-bold text-foreground mb-2">Santana de Parnaíba/SP</h3>
-              <p className="text-sm text-muted-foreground">Av. Yojiro Takaoka, n. 4384, Cj. 702, Alphaville</p>
-              <p className="text-sm text-muted-foreground">CEP: 06541-038</p>
-            </div>
           </div>
         </div>
       </section>
