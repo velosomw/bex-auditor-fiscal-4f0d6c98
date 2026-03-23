@@ -63,7 +63,6 @@ const DiagnosticoRapido = () => {
       <HeroBanner
         title="Diagnóstico Rápido"
         subtitle="Ideal para empresas que começam a sentir o peso das dívidas e precisam de clareza sobre suas prioridades financeiras."
-        tag="Pacote Básico"
         videoSrc={videoDiagnostico}
         breadcrumbs={[
           { label: "🏠", href: "/" },
