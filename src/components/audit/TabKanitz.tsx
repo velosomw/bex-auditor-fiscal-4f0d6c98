@@ -53,14 +53,14 @@ const computeKanitz = (parsedData: ParsedFinancialData | null): KanitzResult[] =
 
     const pt = pc + pnc;
 
-    // Indicadores
-    const rpl = pl !== 0 ? lucroLiquido / pl : 0;             // Rentabilidade do PL
-    const lg = pt !== 0 ? (ac + rlp) / pt : 0;                 // Liquidez Geral
-    const ls = pc !== 0 ? (ac - estoque) / pc : 0;             // Liquidez Seca
-    const lc = pc !== 0 ? ac / pc : 0;                          // Liquidez Corrente
-    const ge = pl !== 0 ? pt / pl : 0;                          // Grau de Endividamento
+    // Indicadores (Modelo Kanitz — Planilha Giannini)
+    const rpl = pl !== 0 ? lucroLiquido / pl : 0;             // X1 — Rentabilidade do PL
+    const lg = pt !== 0 ? (ac + rlp) / pt : 0;                 // X2 — Liquidez Geral
+    const ls = pc !== 0 ? (ac - estoque) / pc : 0;             // X3 — Liquidez Seca
+    const lc = pc !== 0 ? ac / pc : 0;                          // X4 — Liquidez Corrente
+    const ge = pl !== 0 ? -((pc + pnc) / pl) : 0;              // X5 — Grau de Endividamento (NEGATIVO conforme Giannini)
 
-    // Fator de Insolvência
+    // Fator de Insolvência: FI = 0,05·X1 + 1,65·X2 + 3,55·X3 − 1,06·X4 − 0,33·X5
     const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
 
     // Classificação
@@ -237,10 +237,13 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
                   ponderados para gerar o Fator de Insolvência (FI), classificando a empresa em três zonas de risco.
                 </p>
                 <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                  <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
+                  <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência (Modelo Giannini):</p>
                   <code className="block text-[11px] font-mono leading-relaxed text-foreground">
                     FI = (0,05 × RPL) + (1,65 × LG) + (3,55 × LS) − (1,06 × LC) − (0,33 × GE)
                   </code>
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    Onde GE = −((PC + ELP) / PL) — o grau de endividamento entra com sinal negativo.
+                  </p>
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
@@ -303,10 +306,10 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
                 <TableBody>
                   {[
                     { name: "Rentabilidade do PL", sigla: "RPL", formula: "LL / PL", origem: "DRE + BP", peso: "0,05", key: "rpl" as const },
-                    { name: "Liquidez Geral", sigla: "LG", formula: "(AC + RLP) / PT", origem: "BP", peso: "1,65", key: "lg" as const },
+                    { name: "Liquidez Geral", sigla: "LG", formula: "(AC + RLP) / (PC + ELP)", origem: "BP", peso: "1,65", key: "lg" as const },
                     { name: "Liquidez Seca", sigla: "LS", formula: "(AC - EST) / PC", origem: "BP", peso: "3,55", key: "ls" as const },
                     { name: "Liquidez Corrente", sigla: "LC", formula: "AC / PC", origem: "BP", peso: "-1,06", key: "lc" as const },
-                    { name: "Grau de Endividamento", sigla: "GE", formula: "PT / PL", origem: "BP", peso: "-0,33", key: "ge" as const },
+                    { name: "Grau de Endividamento", sigla: "GE", formula: "−((PC + ELP) / PL)", origem: "BP", peso: "-0,33", key: "ge" as const },
                   ].map(ind => (
                     <TableRow key={ind.sigla}>
                       <TableCell className="text-xs font-medium">{ind.name}</TableCell>
