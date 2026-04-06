@@ -913,12 +913,12 @@ const ModeloMatematico = () => {
   const insolvencyScore = lg * 0.4 + roa * 0.3 - eg * 0.3;
   const insolvencyClass = insolvencyScore < 0 ? "Insolvência" : insolvencyScore <= 1 ? "Atenção" : "Solidez";
 
-  const cg = d.ativoCirculante - d.passivoCirculante;
-  const x1 = at ? cg / at : 0;
-  const x2 = at ? d.lucroLiquido / at : 0;
-  const x3 = d.patrimonioLiquido ? d.lucroLiquido / d.patrimonioLiquido : 0;
-  const x4 = at ? pt / at : 0;
-  const x5 = at ? d.receitaLiquida / at : 0;
+  // Modelo Kanitz — Planilha Giannini
+  const x1 = d.patrimonioLiquido ? d.lucroLiquido / d.patrimonioLiquido : 0;  // RPL
+  const x2 = pt ? (d.ativoCirculante + (d.ativoNaoCirculante * 0.1)) / pt : 0; // LG
+  const x3 = d.passivoCirculante ? (d.ativoCirculante - d.estoques) / d.passivoCirculante : 0; // LS
+  const x4 = d.passivoCirculante ? d.ativoCirculante / d.passivoCirculante : 0; // LC
+  const x5 = d.patrimonioLiquido ? -((d.passivoCirculante + d.passivoNaoCirculante) / d.patrimonioLiquido) : 0; // GE (negativo)
   const kanitz = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
 
   const ptAdj = pt + d.duplicatasDescontadas;

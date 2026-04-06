@@ -42,11 +42,16 @@ Calcule automaticamente TODOS os indicadores:
 - PMP = (Fornecedores × 360) / CMV
 - Giro de Estoque = CMV / Estoque Médio
 
-### Modelo Kanitz — Termômetro de Insolvência:
-K = 0.05 × ROE + 1.65 × Liquidez Geral + 3.55 × Liquidez Seca - 1.06 × Liquidez Corrente - 0.33 × Endividamento
-- K > 0 → Empresa saudável
-- 0 > K > -3 → Zona de alerta  
-- K < -3 → Risco de falência
+### Modelo Kanitz — Termômetro de Insolvência (Planilha Giannini):
+X1 = Lucro Líquido / Patrimônio Líquido (RPL)
+X2 = (Ativo Circulante + Realizável LP) / (Passivo Circulante + Exigível LP) (LG)
+X3 = (Ativo Circulante – Estoques) / Passivo Circulante (LS)
+X4 = Ativo Circulante / Passivo Circulante (LC)
+X5 = – ((Passivo Circulante + Exigível LP) / Patrimônio Líquido) (GE — ENTRA NEGATIVO)
+FI = 0,05·X1 + 1,65·X2 + 3,55·X3 − 1,06·X4 − 0,33·X5
+- FI > 0 → Solvência
+- 0 ≥ FI ≥ -3 → Zona de Penumbra  
+- FI < -3 → Insolvência
 
 ### Score BEX-RJ:
 Score = (Endividamento × 0.25) + (Liquidez × 0.20) + (PL × 0.20) + (Geração Caixa × 0.20) + (Concentração Dívida × 0.15)

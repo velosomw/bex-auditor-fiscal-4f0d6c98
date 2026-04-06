@@ -303,10 +303,10 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
                 <TableBody>
                   {[
                     { name: "Rentabilidade do PL", sigla: "RPL", formula: "LL / PL", origem: "DRE + BP", peso: "0,05", key: "rpl" as const },
-                    { name: "Liquidez Geral", sigla: "LG", formula: "(AC + RLP) / PT", origem: "BP", peso: "1,65", key: "lg" as const },
+                    { name: "Liquidez Geral", sigla: "LG", formula: "(AC + RLP) / (PC + ELP)", origem: "BP", peso: "1,65", key: "lg" as const },
                     { name: "Liquidez Seca", sigla: "LS", formula: "(AC - EST) / PC", origem: "BP", peso: "3,55", key: "ls" as const },
                     { name: "Liquidez Corrente", sigla: "LC", formula: "AC / PC", origem: "BP", peso: "-1,06", key: "lc" as const },
-                    { name: "Grau de Endividamento", sigla: "GE", formula: "PT / PL", origem: "BP", peso: "-0,33", key: "ge" as const },
+                    { name: "Grau de Endividamento", sigla: "GE", formula: "−((PC + ELP) / PL)", origem: "BP", peso: "-0,33", key: "ge" as const },
                   ].map(ind => (
                     <TableRow key={ind.sigla}>
                       <TableCell className="text-xs font-medium">{ind.name}</TableCell>
