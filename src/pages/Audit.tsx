@@ -1427,26 +1427,35 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
   return (
     <div ref={reportContainerRef} style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-bex-container">
       {/* Action buttons print:hidden - outside gray container */}
-      <div className="flex items-center justify-end gap-2 print:hidden mb-4">
-        {totalPages > 0 && (
-          <span className="text-xs font-medium text-muted-foreground mr-auto flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPages}
-          </span>
-        )}
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
-          <Download className="w-4 h-4" /> Exportar
-        </Button>
-        {onSwitchToKanitz && (
-          <Button size="sm" className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white" onClick={onSwitchToKanitz}>
-            <Scale className="w-4 h-4" /> Relatório Kanitz
+      <div className="flex items-center justify-between gap-2 print:hidden mb-4 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          {totalPages > 0 && (
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mr-3">
+              <FileText className="w-3.5 h-3.5" /> Total de páginas: {totalPages}
+            </span>
+          )}
+          {onSwitchToKanitz && (
+            <div className="inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5">
+              <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(258,90%,66%)] text-white shadow-sm">
+                <BookOpen className="w-3.5 h-3.5" /> Relatório BEX
+              </button>
+              <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-background transition-colors" onClick={onSwitchToKanitz}>
+                <Scale className="w-3.5 h-3.5" /> Relatório Kanitz
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
+            <Download className="w-4 h-4" /> Exportar
           </Button>
-        )}
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
-          <Printer className="w-4 h-4" /> Imprimir
-        </Button>
-        <Button variant="outline" size="sm" onClick={onBack} className="gap-1.5">
-          <ArrowLeft className="w-4 h-4" /> Nova Análise
-        </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
+            <Printer className="w-4 h-4" /> Imprimir
+          </Button>
+          <Button variant="outline" size="sm" onClick={onBack} className="gap-1.5">
+            <ArrowLeft className="w-4 h-4" /> Nova Análise
+          </Button>
+        </div>
       </div>
 
       <div className="report-pages-container">
