@@ -237,9 +237,13 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
                   ponderados para gerar o Fator de Insolvência (FI), classificando a empresa em três zonas de risco.
                 </p>
                 <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                  <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
+                  <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência (Modelo Giannini):</p>
                   <code className="block text-[11px] font-mono leading-relaxed text-foreground">
                     FI = (0,05 × RPL) + (1,65 × LG) + (3,55 × LS) − (1,06 × LC) − (0,33 × GE)
+                  </code>
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    Onde GE = −((PC + ELP) / PL) — o grau de endividamento entra com sinal negativo.
+                  </p>
                   </code>
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
