@@ -53,14 +53,14 @@ const computeKanitz = (parsedData: ParsedFinancialData | null): KanitzResult[] =
 
     const pt = pc + pnc;
 
-    // Indicadores
-    const rpl = pl !== 0 ? lucroLiquido / pl : 0;             // Rentabilidade do PL
-    const lg = pt !== 0 ? (ac + rlp) / pt : 0;                 // Liquidez Geral
-    const ls = pc !== 0 ? (ac - estoque) / pc : 0;             // Liquidez Seca
-    const lc = pc !== 0 ? ac / pc : 0;                          // Liquidez Corrente
-    const ge = pl !== 0 ? pt / pl : 0;                          // Grau de Endividamento
+    // Indicadores (Modelo Kanitz — Planilha Giannini)
+    const rpl = pl !== 0 ? lucroLiquido / pl : 0;             // X1 — Rentabilidade do PL
+    const lg = pt !== 0 ? (ac + rlp) / pt : 0;                 // X2 — Liquidez Geral
+    const ls = pc !== 0 ? (ac - estoque) / pc : 0;             // X3 — Liquidez Seca
+    const lc = pc !== 0 ? ac / pc : 0;                          // X4 — Liquidez Corrente
+    const ge = pl !== 0 ? -((pc + pnc) / pl) : 0;              // X5 — Grau de Endividamento (NEGATIVO conforme Giannini)
 
-    // Fator de Insolvência
+    // Fator de Insolvência: FI = 0,05·X1 + 1,65·X2 + 3,55·X3 − 1,06·X4 − 0,33·X5
     const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
 
     // Classificação
