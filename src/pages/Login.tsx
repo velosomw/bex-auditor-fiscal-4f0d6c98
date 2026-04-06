@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 const USERS = [
-  { email: "auditor@auditor.com.br", password: "auditor@150213", role: "auditor_chefe" as const },
-  { email: "usuario@usuario.com.br", password: "usuario@150213", role: "usuario" as const },
-  { email: "empresa@empresa.com.br", password: "empresa@150213", role: "empresa" as const },
-  { email: "gestor@gestor.com.br", password: "gestor@150213", role: "gestor_ia" as const },
+  { email: "auditor@auditor.com.br", password: "Aud!t0r8", role: "auditor_chefe" as const },
+  { email: "usuario@usuario.com.br", password: "Us3r@Bx1", role: "usuario" as const },
+  { email: "empresa@empresa.com.br", password: "Emp#2k4Z", role: "empresa" as const },
+  { email: "gestor@gestor.com.br", password: "Gs7!aM9x", role: "gestor_ia" as const },
 ];
 
 const Login = () => {
