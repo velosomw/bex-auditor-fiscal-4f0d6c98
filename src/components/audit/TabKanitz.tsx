@@ -244,7 +244,6 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
                   <p className="text-[10px] text-muted-foreground mt-2">
                     Onde GE = −((PC + ELP) / PL) — o grau de endividamento entra com sinal negativo.
                   </p>
-                  </code>
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
