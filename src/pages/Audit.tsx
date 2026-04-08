@@ -1453,7 +1453,10 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
-            <Download className="w-4 h-4" /> Exportar
+            <Download className="w-4 h-4" /> Exportar PDF
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
+            <FileText className="w-4 h-4" /> Exportar .doc
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
             <Printer className="w-4 h-4" /> Imprimir
@@ -2062,7 +2065,10 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
           </div>
         )}
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
-          <Download className="w-4 h-4" /> Exportar
+          <Download className="w-4 h-4" /> Exportar PDF
+        </Button>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
+          <FileText className="w-4 h-4" /> Exportar .doc
         </Button>
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
           <Printer className="w-4 h-4" /> Imprimir
@@ -2264,7 +2270,10 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
-            <Download className="w-4 h-4" /> Exportar
+            <Download className="w-4 h-4" /> Exportar PDF
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
+            <FileText className="w-4 h-4" /> Exportar .doc
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
             <Printer className="w-4 h-4" /> Imprimir
@@ -2954,7 +2963,10 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
           </div>
         )}
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
-          <Download className="w-4 h-4" /> Exportar
+          <Download className="w-4 h-4" /> Exportar PDF
+        </Button>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
+          <FileText className="w-4 h-4" /> Exportar .doc
         </Button>
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
           <Printer className="w-4 h-4" /> Imprimir
