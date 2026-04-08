@@ -44,6 +44,56 @@ const printReport = (containerId: string, reportTitle: string) => {
   document.title = prevTitle;
 };
 
+const exportDocx = (containerId: string, reportTitle: string) => {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const pages = container.querySelectorAll('.report-a4-page, .report-a4-cover');
+  let htmlContent = '';
+
+  pages.forEach((page) => {
+    htmlContent += page.innerHTML + '<br clear="all" style="page-break-before:always" />';
+  });
+
+  const docContent = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <title>${reportTitle}</title>
+      <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.5; }
+        h1 { font-size: 18pt; font-weight: bold; color: #0d0d0d; margin-bottom: 8pt; }
+        h2 { font-size: 14pt; font-weight: bold; color: #1e1e5a; margin-bottom: 6pt; }
+        h3 { font-size: 12pt; font-weight: bold; color: #333; margin-bottom: 4pt; }
+        table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
+        td, th { border: 1px solid #ccc; padding: 6px 8px; font-size: 10pt; }
+        th { background: #f0f0f0; font-weight: bold; }
+        .text-emerald-600 { color: #059669; }
+        .text-red-600 { color: #dc2626; }
+        .text-yellow-600 { color: #ca8a04; }
+        .text-orange-600 { color: #ea580c; }
+      </style>
+    </head>
+    <body>
+      ${htmlContent}
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob([docContent], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${reportTitle}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 /* ── Risk Colors ── */
 const riskBadge: Record<string, { bg: string; label: string }> = {
   baixo: { bg: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", label: "🟢 Baixo" },
@@ -1453,7 +1503,10 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
-            <Download className="w-4 h-4" /> Exportar
+            <Download className="w-4 h-4" /> Exportar PDF
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
+            <FileText className="w-4 h-4" /> Exportar .doc
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
             <Printer className="w-4 h-4" /> Imprimir
@@ -2062,7 +2115,10 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz }:
           </div>
         )}
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
-          <Download className="w-4 h-4" /> Exportar
+          <Download className="w-4 h-4" /> Exportar PDF
+        </Button>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
+          <FileText className="w-4 h-4" /> Exportar .doc
         </Button>
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
           <Printer className="w-4 h-4" /> Imprimir
@@ -2264,7 +2320,10 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
-            <Download className="w-4 h-4" /> Exportar
+            <Download className="w-4 h-4" /> Exportar PDF
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
+            <FileText className="w-4 h-4" /> Exportar .doc
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
             <Printer className="w-4 h-4" /> Imprimir
@@ -2954,7 +3013,10 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
           </div>
         )}
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
-          <Download className="w-4 h-4" /> Exportar
+          <Download className="w-4 h-4" /> Exportar PDF
+        </Button>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
+          <FileText className="w-4 h-4" /> Exportar .doc
         </Button>
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
           <Printer className="w-4 h-4" /> Imprimir
