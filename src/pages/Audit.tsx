@@ -51,39 +51,283 @@ const exportDocx = (containerId: string, reportTitle: string) => {
   const pages = container.querySelectorAll('.report-a4-page, .report-a4-cover');
   let htmlContent = '';
 
-  pages.forEach((page) => {
-    htmlContent += page.innerHTML + '<br clear="all" style="page-break-before:always" />';
+  pages.forEach((page, index) => {
+    // Clone the page to manipulate without affecting the DOM
+    const clone = page.cloneNode(true) as HTMLElement;
+    
+    // Remove print:hidden elements
+    clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"]').forEach(el => el.remove());
+    
+    // Process SVG icons - replace with text equivalents
+    clone.querySelectorAll('svg').forEach(svg => {
+      const span = document.createElement('span');
+      span.textContent = '';
+      svg.replaceWith(span);
+    });
+
+    const pageHtml = clone.innerHTML;
+    
+    if (index > 0) {
+      htmlContent += '<br clear="all" style="mso-special-character:line-break;page-break-before:always" />';
+    }
+    htmlContent += `<div class="page-container">${pageHtml}</div>`;
   });
 
-  const docContent = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office"
-          xmlns:w="urn:schemas-microsoft-com:office:word"
-          xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-      <meta charset="utf-8">
-      <title>${reportTitle}</title>
-      <style>
-        @page { size: A4; margin: 20mm; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.5; }
-        h1 { font-size: 18pt; font-weight: bold; color: #0d0d0d; margin-bottom: 8pt; }
-        h2 { font-size: 14pt; font-weight: bold; color: #1e1e5a; margin-bottom: 6pt; }
-        h3 { font-size: 12pt; font-weight: bold; color: #333; margin-bottom: 4pt; }
-        table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
-        td, th { border: 1px solid #ccc; padding: 6px 8px; font-size: 10pt; }
-        th { background: #f0f0f0; font-weight: bold; }
-        .text-emerald-600 { color: #059669; }
-        .text-red-600 { color: #dc2626; }
-        .text-yellow-600 { color: #ca8a04; }
-        .text-orange-600 { color: #ea580c; }
-      </style>
-    </head>
-    <body>
-      ${htmlContent}
-    </body>
-    </html>
-  `;
+  const docContent = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <meta name="ProgId" content="Word.Document">
+  <meta name="Generator" content="Microsoft Word 15">
+  <title>${reportTitle}</title>
+  <!--[if gte mso 9]>
+  <xml>
+    <o:OfficeDocumentSettings>
+      <o:AllowPNG/>
+    </o:OfficeDocumentSettings>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+  <style>
+    /* ── Page Setup ── */
+    @page {
+      size: 210mm 297mm;
+      margin: 16mm 16mm 12mm 16mm;
+      mso-header-margin: 8mm;
+      mso-footer-margin: 6mm;
+    }
 
-  const blob = new Blob([docContent], { type: 'application/msword' });
+    @page Section1 {
+      size: 210mm 297mm;
+      margin: 16mm 16mm 12mm 16mm;
+    }
+
+    div.Section1 { page: Section1; }
+
+    /* ── Base Typography ── */
+    body {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, Helvetica, sans-serif;
+      font-size: 10.5pt;
+      color: #1c2541;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      background: white;
+    }
+
+    /* ── Headings ── */
+    h1 {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif;
+      font-size: 22pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 0;
+      margin-bottom: 12pt;
+      letter-spacing: -0.5pt;
+      line-height: 1.2;
+    }
+
+    h2 {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif;
+      font-size: 15pt;
+      font-weight: 700;
+      color: #1e3a5f;
+      margin-top: 16pt;
+      margin-bottom: 8pt;
+      padding-bottom: 4pt;
+      border-bottom: 2px solid #2563eb;
+      line-height: 1.3;
+    }
+
+    h3 {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif;
+      font-size: 12pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 12pt;
+      margin-bottom: 6pt;
+      line-height: 1.3;
+    }
+
+    h4 {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif;
+      font-size: 11pt;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 10pt;
+      margin-bottom: 4pt;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 6pt;
+      text-align: justify;
+    }
+
+    /* ── Page container ── */
+    .page-container {
+      padding: 0;
+    }
+
+    /* ── Tables ── */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 10pt 0;
+      font-size: 9.5pt;
+    }
+
+    td, th {
+      border: 1px solid #d1d5db;
+      padding: 6px 10px;
+      font-size: 9.5pt;
+      vertical-align: top;
+      line-height: 1.4;
+    }
+
+    th {
+      background-color: #1e3a5f;
+      color: white;
+      font-weight: 700;
+      text-align: left;
+      font-size: 9.5pt;
+      padding: 8px 10px;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    /* ── Status Colors ── */
+    .text-emerald-600, .text-emerald-700, [class*="text-emerald"] { color: #059669 !important; }
+    .text-red-600, .text-red-700, [class*="text-red"] { color: #dc2626 !important; }
+    .text-yellow-600, .text-yellow-700, [class*="text-yellow"] { color: #ca8a04 !important; }
+    .text-orange-600, .text-orange-700, [class*="text-orange"] { color: #ea580c !important; }
+    .text-blue-600, .text-blue-700, [class*="text-blue"] { color: #2563eb !important; }
+    .text-gray-600, .text-gray-500, [class*="text-gray"] { color: #6b7280 !important; }
+    .text-amber-600, .text-amber-700, [class*="text-amber"] { color: #d97706 !important; }
+
+    /* ── Background Colors ── */
+    .bg-emerald-50, [class*="bg-emerald"] { background-color: #ecfdf5 !important; }
+    .bg-red-50, [class*="bg-red"] { background-color: #fef2f2 !important; }
+    .bg-yellow-50, [class*="bg-yellow"] { background-color: #fefce8 !important; }
+    .bg-orange-50, [class*="bg-orange"] { background-color: #fff7ed !important; }
+    .bg-blue-50, [class*="bg-blue"] { background-color: #eff6ff !important; }
+    .bg-amber-50, [class*="bg-amber"] { background-color: #fffbeb !important; }
+
+    /* ── Badge/Tag styles ── */
+    [class*="rounded-full"], [class*="rounded-lg"] {
+      border-radius: 4px;
+    }
+
+    [class*="badge"], [class*="px-2"][class*="py-0"], [class*="px-3"][class*="py-1"] {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 9pt;
+      font-weight: 600;
+    }
+
+    /* ── Cover page ── */
+    .report-a4-cover, [class*="report-a4-cover"] {
+      text-align: center;
+    }
+
+    /* ── Footer bar ── */
+    .report-footer-bar, [class*="report-footer-bar"] {
+      border-top: 3px solid #3b9ec0;
+      padding: 8pt 16pt;
+      text-align: center;
+      font-size: 8pt;
+      color: #64748b;
+      line-height: 1.5;
+      margin-top: 24pt;
+    }
+
+    /* ── Lists ── */
+    ul {
+      margin: 4pt 0 8pt 0;
+      padding-left: 18pt;
+    }
+
+    li {
+      margin-bottom: 3pt;
+      line-height: 1.5;
+    }
+
+    /* ── Cards/Sections ── */
+    [class*="border"][class*="rounded"] {
+      border: 1px solid #e2e8f0;
+      padding: 10pt;
+      margin: 6pt 0;
+      border-radius: 4px;
+    }
+
+    /* ── Font weights ── */
+    .font-bold, [class*="font-bold"] { font-weight: 700; }
+    .font-semibold, [class*="font-semibold"] { font-weight: 600; }
+    .font-medium, [class*="font-medium"] { font-weight: 500; }
+
+    /* ── Spacing ── */
+    .mb-2, [class*="mb-2"] { margin-bottom: 4pt; }
+    .mb-4, [class*="mb-4"] { margin-bottom: 8pt; }
+    .mb-6, [class*="mb-6"] { margin-bottom: 12pt; }
+    .mt-4, [class*="mt-4"] { margin-top: 8pt; }
+    .mt-6, [class*="mt-6"] { margin-top: 12pt; }
+
+    /* ── Grid to block ── */
+    [class*="grid"], [class*="flex"] {
+      display: block;
+    }
+
+    [class*="grid-cols"] > * {
+      display: inline-block;
+      vertical-align: top;
+      width: 48%;
+      margin-right: 2%;
+    }
+
+    /* ── Hide non-printable elements ── */
+    button, [class*="cursor-pointer"], [role="button"] {
+      display: none !important;
+    }
+
+    /* ── Watermark simulation ── */
+    .report-page-body {
+      position: relative;
+    }
+
+    /* ── Strong emphasis ── */
+    strong, b {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* ── Code/monospace ── */
+    code, [class*="font-mono"] {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 9pt;
+      background-color: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="Section1">
+    ${htmlContent}
+  </div>
+</body>
+</html>`;
+
+  const blob = new Blob(['\ufeff' + docContent], { type: 'application/msword;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
