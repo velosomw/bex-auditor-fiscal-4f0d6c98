@@ -70,6 +70,12 @@ const Dashboard = () => {
             <Button size="sm" className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5" onClick={() => navigate("/audit")}>
               <Plus className="w-4 h-4" /> Nova Auditoria
             </Button>
+            {role === "coordenadora" && (
+              <UserManagementDialog
+                allowedRoles={["consultor", "magistrado", "recuperanda"]}
+                buttonLabel="Cadastrar Usuário"
+              />
+            )}
           </div>
         </div>
 
