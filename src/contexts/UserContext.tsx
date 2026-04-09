@@ -16,6 +16,23 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType>({} as UserContextType);
 
+async function fetchUserRole(userId: string): Promise<UserRole | null> {
+  const { data: roles, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (error) {
+    console.error("Error fetching user role:", error);
+    return null;
+  }
+  if (roles && roles.length > 0) {
+    return roles[0].role as UserRole;
+  }
+  return null;
+}
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRoleState] = useState<UserRole | null>(
     () => localStorage.getItem("userRole") as UserRole | null
@@ -27,55 +44,49 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // IMPORTANT: Set up listener BEFORE getSession to avoid race conditions
+    // Do NOT await inside onAuthStateChange callback to prevent deadlocks
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state change:", event, session?.user?.email);
+
       if (session?.user) {
         setSupabaseUser(session.user);
         setAuthenticated(true);
         localStorage.setItem("authenticated", "true");
 
-        // Fetch user role
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .limit(1);
-
-        if (roles && roles.length > 0) {
-          const userRole = roles[0].role as UserRole;
-          setRoleState(userRole);
-          localStorage.setItem("userRole", userRole);
-        }
+        // Use setTimeout to avoid deadlock - fetch role outside the callback
+        setTimeout(async () => {
+          const userRole = await fetchUserRole(session.user.id);
+          if (userRole) {
+            setRoleState(userRole);
+            localStorage.setItem("userRole", userRole);
+          }
+          setLoading(false);
+        }, 0);
       } else {
         setSupabaseUser(null);
         setAuthenticated(false);
         setRoleState(null);
         localStorage.removeItem("authenticated");
         localStorage.removeItem("userRole");
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         setSupabaseUser(session.user);
         setAuthenticated(true);
         localStorage.setItem("authenticated", "true");
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .limit(1)
-          .then(({ data: roles }) => {
-            if (roles && roles.length > 0) {
-              const userRole = roles[0].role as UserRole;
-              setRoleState(userRole);
-              localStorage.setItem("userRole", userRole);
-            }
-            setLoading(false);
-          });
-      } else {
-        setLoading(false);
+
+        const userRole = await fetchUserRole(session.user.id);
+        if (userRole) {
+          setRoleState(userRole);
+          localStorage.setItem("userRole", userRole);
+        }
       }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
