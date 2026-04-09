@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import UserManagementDialog from "@/components/UserManagementDialog";
+
 import { useUser } from "@/contexts/UserContext";
 import { FileText, CheckCircle2, Clock, Award, Plus, Download, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Eye, Calculator, Building2, Activity, Scale, AlertOctagon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -71,10 +71,9 @@ const Dashboard = () => {
               <Plus className="w-4 h-4" /> Nova Auditoria
             </Button>
             {role === "coordenadora" && (
-              <UserManagementDialog
-                allowedRoles={["consultor", "magistrado", "recuperanda"]}
-                buttonLabel="Cadastrar Usuário"
-              />
+              <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={() => navigate("/usuarios")}>
+                <Plus className="w-4 h-4" /> Cadastrar Usuário
+              </Button>
             )}
           </div>
         </div>
