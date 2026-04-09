@@ -19,8 +19,11 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
         <div className="max-w-[1600px] mx-auto flex items-center justify-between px-4 md:px-6 h-14">
           <div className="flex items-center gap-3">
             {showBack && (
-              <button onClick={() => navigate(-1)} className="text-[hsl(220,15%,55%)] hover:text-white transition-colors mr-1">
-                <ArrowLeft className="w-5 h-5" />
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center justify-center w-8 h-8 rounded-lg bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white transition-colors mr-1"
+              >
+                <ArrowLeft className="w-4 h-4" />
               </button>
             )}
             <Link to={role === "gestor_ia" ? "/gestor-ia" : role === "auditor_chefe" ? "/dashboard" : "/user"} className="flex items-center gap-2">
