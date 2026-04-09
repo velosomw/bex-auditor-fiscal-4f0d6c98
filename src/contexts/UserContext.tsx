@@ -34,59 +34,42 @@ async function fetchUserRole(userId: string): Promise<UserRole | null> {
 }
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [role, setRoleState] = useState<UserRole | null>(
-    () => localStorage.getItem("userRole") as UserRole | null
-  );
-  const [authenticated, setAuthenticated] = useState(
-    () => localStorage.getItem("authenticated") === "true"
-  );
+  const [role, setRoleState] = useState<UserRole | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
   const [supabaseUser, setSupabaseUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // IMPORTANT: Set up listener BEFORE getSession to avoid race conditions
-    // Do NOT await inside onAuthStateChange callback to prevent deadlocks
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state change:", event, session?.user?.email);
-
-      if (session?.user) {
-        setSupabaseUser(session.user);
-        setAuthenticated(true);
-        localStorage.setItem("authenticated", "true");
-
-        // Use setTimeout to avoid deadlock - fetch role outside the callback
-        setTimeout(async () => {
-          const userRole = await fetchUserRole(session.user.id);
-          if (userRole) {
-            setRoleState(userRole);
-            localStorage.setItem("userRole", userRole);
-          }
-          setLoading(false);
-        }, 0);
-      } else {
+    const applySession = async (sessionUser: SupaUser | null) => {
+      if (!sessionUser) {
         setSupabaseUser(null);
         setAuthenticated(false);
         setRoleState(null);
         localStorage.removeItem("authenticated");
         localStorage.removeItem("userRole");
         setLoading(false);
+        return;
       }
+
+      setSupabaseUser(sessionUser);
+      setAuthenticated(true);
+      localStorage.setItem("authenticated", "true");
+
+      const userRole = await fetchUserRole(sessionUser.id);
+      setRoleState(userRole);
+
+      if (userRole) localStorage.setItem("userRole", userRole);
+      else localStorage.removeItem("userRole");
+
+      setLoading(false);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      void applySession(session?.user ?? null);
     });
 
-    // Check existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setSupabaseUser(session.user);
-        setAuthenticated(true);
-        localStorage.setItem("authenticated", "true");
-
-        const userRole = await fetchUserRole(session.user.id);
-        if (userRole) {
-          setRoleState(userRole);
-          localStorage.setItem("userRole", userRole);
-        }
-      }
-      setLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      void applySession(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
@@ -100,6 +83,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const clearRole = useCallback(() => {
     setRoleState(null);
     setAuthenticated(false);
+    setSupabaseUser(null);
     localStorage.removeItem("userRole");
     localStorage.removeItem("authenticated");
   }, []);
