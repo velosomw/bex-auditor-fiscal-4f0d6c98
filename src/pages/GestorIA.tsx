@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PlatformLayout from "@/components/PlatformLayout";
+import UserManagementDialog from "@/components/UserManagementDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -874,9 +875,12 @@ const GestorIA = () => {
             <h1 className="text-2xl font-bold font-serif text-foreground">Dashboard de Auditoria IA</h1>
             <p className="text-sm text-muted-foreground">Visão consolidada com inteligência artificial</p>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <RefreshCw className="w-3.5 h-3.5" /> Atualizar Dados
-          </Button>
+          <div className="flex items-center gap-2">
+            <UserManagementDialog allowedRoles={["coordenadora"]} buttonLabel="Cadastrar Usuário" />
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" /> Atualizar Dados
+            </Button>
+          </div>
         </div>
 
         {/* Filters Bar */}

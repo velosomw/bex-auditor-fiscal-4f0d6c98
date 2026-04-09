@@ -21,6 +21,7 @@ import Audit from "./pages/Audit";
 import ModeloMatematico from "./pages/ModeloMatematico";
 import GestorIA from "./pages/GestorIA";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/audit" element={<Audit />} />
             <Route path="/gestor-ia" element={<GestorIA />} />
             <Route path="/modelo-matematico" element={<ModeloMatematico />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>

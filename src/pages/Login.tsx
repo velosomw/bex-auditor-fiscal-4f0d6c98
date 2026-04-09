@@ -6,41 +6,68 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import logoBEx from "@/assets/marca_logo_BEx.jpeg";
-
-const USERS = [
-  { email: "auditor@auditor.com.br", password: "Hm4dR92x@bex2025#Aud$", role: "auditor_chefe" as const },
-  { email: "usuario@usuario.com.br", password: "Tp7kW31z@bex2025#Usr$", role: "usuario" as const },
-  { email: "empresa@empresa.com.br", password: "Qn9fL85v@bex2025#Emp$", role: "empresa" as const },
-  { email: "gestor@gestor.com.br", password: "Jx6mB42s@bex2025#Gia$", role: "gestor_ia" as const },
-];
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"login" | "forgot">("login");
   const navigate = useNavigate();
-  const { login, setRole } = useUser();
+  const { setRole } = useUser();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
-      const user = USERS.find(u => u.email === email && u.password === password);
-      if (user) {
-        login();
-        setRole(user.role);
-        if (user.role === "auditor_chefe") navigate("/dashboard");
-        else if (user.role === "gestor_ia") navigate("/gestor-ia");
-        else navigate("/user");
-        toast.success("Login realizado com sucesso!");
-      } else {
-        toast.error("Credenciais inválidas. Verifique e-mail e senha.");
-      }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      toast.error("Credenciais inválidas. Verifique e-mail e senha.");
       setLoading(false);
-    }, 800);
+      return;
+    }
+
+    if (data.user) {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .limit(1);
+
+      if (roles && roles.length > 0) {
+        const role = roles[0].role as any;
+        setRole(role);
+        toast.success("Login realizado com sucesso!");
+        if (role === "auditor_chefe") navigate("/dashboard");
+        else if (role === "gestor_ia") navigate("/gestor-ia");
+        else if (role === "coordenadora") navigate("/dashboard");
+        else navigate("/user");
+      } else {
+        toast.error("Nenhum perfil atribuído. Contate o administrador.");
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Informe seu e-mail.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast.error("Erro ao enviar e-mail de recuperação.");
+    } else {
+      toast.success("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+    }
+    setLoading(false);
   };
 
   return (
@@ -79,48 +106,93 @@ const Login = () => {
 
           {/* Card */}
           <div className="bg-white border border-[hsl(220,20%,90%)] rounded-2xl p-8 shadow-lg">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="auditor@auditor.com.br"
-                  className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[hsl(220,15%,40%)] text-sm">Senha</Label>
-                <div className="relative">
+            {mode === "login" ? (
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
                   <Input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)] pr-10"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com.br"
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(220,15%,55%)] hover:text-[hsl(222,25%,18%)] transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
                 </div>
-              </div>
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
-              >
-                {loading ? "Autenticando..." : "Entrar"}
-              </Button>
-            </form>
+                <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)] pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(220,15%,55%)] hover:text-[hsl(222,25%,18%)] transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
+                >
+                  {loading ? "Autenticando..." : "Entrar"}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode("forgot")}
+                  className="w-full text-center text-sm text-[hsl(220,15%,50%)] hover:text-[hsl(217,91%,50%)] transition-colors"
+                >
+                  Esqueci minha senha
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-5">
+                <div className="text-center mb-2">
+                  <h3 className="text-lg font-semibold text-[hsl(222,25%,18%)]">Recuperar Senha</h3>
+                  <p className="text-sm text-[hsl(220,15%,50%)]">Informe seu e-mail para receber o link de recuperação.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com.br"
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
+                    required
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
+                >
+                  {loading ? "Enviando..." : "Enviar Link de Recuperação"}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className="w-full text-center text-sm text-[hsl(220,15%,50%)] hover:text-[hsl(217,91%,50%)] transition-colors"
+                >
+                  Voltar para o login
+                </button>
+              </form>
+            )}
           </div>
 
           {/* Normas */}

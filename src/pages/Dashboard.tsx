@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import UserManagementDialog from "@/components/UserManagementDialog";
+import { useUser } from "@/contexts/UserContext";
 import { FileText, CheckCircle2, Clock, Award, Plus, Download, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Eye, Calculator, Building2, Activity, Scale, AlertOctagon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +43,7 @@ const severityStyle: Record<string, string> = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { role } = useUser();
   const [period, setPeriod] = useState("6m");
 
   return (
@@ -67,6 +70,12 @@ const Dashboard = () => {
             <Button size="sm" className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5" onClick={() => navigate("/audit")}>
               <Plus className="w-4 h-4" /> Nova Auditoria
             </Button>
+            {role === "coordenadora" && (
+              <UserManagementDialog
+                allowedRoles={["consultor", "magistrado", "recuperanda"]}
+                buttonLabel="Cadastrar Usuário"
+              />
+            )}
           </div>
         </div>
 
