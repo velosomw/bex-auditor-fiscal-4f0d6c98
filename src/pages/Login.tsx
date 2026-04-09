@@ -18,6 +18,12 @@ const Login = () => {
   const navigate = useNavigate();
   const { setRole } = useUser();
 
+  const getRedirectPath = (role: string) => {
+    if (role === "gestor_ia") return "/gestor-ia";
+    if (role === "auditor_chefe" || role === "coordenadora") return "/dashboard";
+    return "/user";
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -31,22 +37,25 @@ const Login = () => {
     }
 
     if (data.user) {
-      const { data: roles } = await supabase
+      const { data: roles, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", data.user.id)
         .limit(1);
 
+      if (roleError) {
+        toast.error("Login realizado, mas houve erro ao carregar o perfil de acesso.");
+        setLoading(false);
+        return;
+      }
+
       if (roles && roles.length > 0) {
-        const role = roles[0].role as any;
-        setRole(role);
+        const role = roles[0].role as string;
+        setRole(role as any);
         toast.success("Login realizado com sucesso!");
-        if (role === "auditor_chefe") navigate("/dashboard");
-        else if (role === "gestor_ia") navigate("/gestor-ia");
-        else if (role === "coordenadora") navigate("/dashboard");
-        else navigate("/user");
+        navigate(getRedirectPath(role));
       } else {
-        toast.error("Nenhum perfil atribuído. Contate o administrador.");
+        toast.error("Login autenticado, mas este usuário está sem perfil vinculado no sistema.");
       }
     }
     setLoading(false);
