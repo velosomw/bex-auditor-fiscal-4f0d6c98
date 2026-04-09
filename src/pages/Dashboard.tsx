@@ -43,6 +43,7 @@ const severityStyle: Record<string, string> = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { role } = useUser();
   const [period, setPeriod] = useState("6m");
 
   return (
