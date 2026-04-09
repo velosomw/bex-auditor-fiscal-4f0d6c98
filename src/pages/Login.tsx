@@ -43,80 +43,89 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(222,40%,12%)] via-[hsl(220,45%,18%)] to-[hsl(217,40%,15%)] px-4 relative">
-      <button
-        onClick={() => navigate("/")}
-        className="absolute top-6 left-6 flex items-center gap-2 text-[hsl(220,20%,60%)] hover:text-white transition-colors text-sm"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Voltar para Home
-      </button>
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[hsl(217,91%,50%)] mb-4">
-            <Shield className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Plataforma de</h1>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-[hsl(217,91%,50%)] to-[hsl(200,98%,60%)] bg-clip-text text-transparent">
-            Auditoria IA
-          </h2>
-        </div>
+    <div className="min-h-screen flex flex-col bg-[hsl(220,30%,96%)]">
+      {/* Top bar with back button */}
+      <div className="px-6 py-4">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-[hsl(217,91%,50%)] hover:text-[hsl(217,91%,40%)] transition-colors text-sm"
+        >
+          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[hsl(217,91%,50%)] text-white">
+            <ArrowLeft className="w-4 h-4" />
+          </span>
+          Voltar para Home
+        </button>
+      </div>
 
-        {/* Card */}
-        <div className="bg-[hsl(222,25%,18%)]/80 backdrop-blur-sm border border-[hsl(222,20%,25%)] rounded-2xl p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label className="text-[hsl(220,20%,70%)] text-sm">E-mail</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="auditor@auditor.com.br"
-                className="bg-[hsl(222,25%,14%)] border-[hsl(222,20%,25%)] text-white placeholder:text-[hsl(220,15%,40%)] focus-visible:ring-[hsl(217,91%,50%)]"
-                required
-              />
+      {/* Centered content */}
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[hsl(217,91%,50%)] mb-4">
+              <Shield className="w-8 h-8 text-white" />
             </div>
+            <h1 className="text-2xl font-bold text-[hsl(222,25%,18%)]">Plataforma de</h1>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-[hsl(217,91%,50%)] to-[hsl(200,98%,60%)] bg-clip-text text-transparent">
+              Auditoria IA
+            </h2>
+          </div>
 
-            <div className="space-y-2">
-              <Label className="text-[hsl(220,20%,70%)] text-sm">Senha</Label>
-              <div className="relative">
+          {/* Card */}
+          <div className="bg-white border border-[hsl(220,20%,90%)] rounded-2xl p-8 shadow-lg">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
                 <Input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="bg-[hsl(222,25%,14%)] border-[hsl(222,20%,25%)] text-white placeholder:text-[hsl(220,15%,40%)] focus-visible:ring-[hsl(217,91%,50%)] pr-10"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="auditor@auditor.com.br"
+                  className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(220,15%,50%)] hover:text-white transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-[hsl(220,15%,40%)] text-sm">Senha</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)] pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(220,15%,55%)] hover:text-[hsl(222,25%,18%)] transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
+              >
+                {loading ? "Autenticando..." : "Entrar"}
+              </Button>
+            </form>
+          </div>
+
+          {/* Normas */}
+          <div className="text-center mt-6">
+            <div className="flex items-center justify-center gap-3 text-[hsl(220,15%,55%)] text-xs">
+              <span className="px-2 py-1 rounded bg-white border border-[hsl(220,20%,90%)]">CPC</span>
+              <span>•</span>
+              <span className="px-2 py-1 rounded bg-white border border-[hsl(220,20%,90%)]">IFRS</span>
+              <span>•</span>
+              <span className="px-2 py-1 rounded bg-white border border-[hsl(220,20%,90%)]">NBC TA</span>
             </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
-            >
-              {loading ? "Autenticando..." : "Entrar"}
-            </Button>
-          </form>
-        </div>
-
-        {/* Normas */}
-        <div className="text-center mt-6">
-          <div className="flex items-center justify-center gap-3 text-[hsl(220,15%,45%)] text-xs">
-            <span className="px-2 py-1 rounded bg-[hsl(222,25%,18%)] border border-[hsl(222,20%,25%)]">CPC</span>
-            <span>•</span>
-            <span className="px-2 py-1 rounded bg-[hsl(222,25%,18%)] border border-[hsl(222,20%,25%)]">IFRS</span>
-            <span>•</span>
-            <span className="px-2 py-1 rounded bg-[hsl(222,25%,18%)] border border-[hsl(222,20%,25%)]">NBC TA</span>
           </div>
         </div>
       </div>
