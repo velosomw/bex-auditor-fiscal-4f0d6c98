@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import logoBEx from "@/assets/marca_logo_BEx.jpeg";
 
 const USERS = [
   { email: "auditor@auditor.com.br", password: "Hm4dR92x@bex2025#Aud$", role: "auditor_chefe" as const },
@@ -44,7 +45,12 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[hsl(220,30%,96%)]">
-      {/* Top bar with back button */}
+      {/* Header with brand only */}
+      <header className="bg-white border-b border-[hsl(220,20%,90%)] px-6 py-3">
+        <img src={logoBEx} alt="Brasil Expert" className="h-10 w-auto object-contain" />
+      </header>
+
+      {/* Back button */}
       <div className="px-6 py-4">
         <button
           onClick={() => navigate("/")}
