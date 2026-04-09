@@ -22,6 +22,7 @@ import ModeloMatematico from "./pages/ModeloMatematico";
 import GestorIA from "./pages/GestorIA";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import UserManagement from "./pages/UserManagement";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/gestor-ia" element={<GestorIA />} />
             <Route path="/modelo-matematico" element={<ModeloMatematico />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/usuarios" element={<UserManagement />} />
 
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>

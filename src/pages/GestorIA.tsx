@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PlatformLayout from "@/components/PlatformLayout";
-import UserManagementDialog from "@/components/UserManagementDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -866,6 +866,7 @@ const TabRiskEngineDash = () => {
 
 // ─── Main Page ───────────────────────────────────────────────
 const GestorIA = () => {
+  const navigate = useNavigate();
   return (
     <PlatformLayout>
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
@@ -876,7 +877,9 @@ const GestorIA = () => {
             <p className="text-sm text-muted-foreground">Visão consolidada com inteligência artificial</p>
           </div>
           <div className="flex items-center gap-2">
-            <UserManagementDialog allowedRoles={["coordenadora"]} buttonLabel="Cadastrar Usuário" />
+            <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={() => navigate("/usuarios")}>
+              <Plus className="w-3.5 h-3.5" /> Cadastrar Usuário
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5">
               <RefreshCw className="w-3.5 h-3.5" /> Atualizar Dados
             </Button>
