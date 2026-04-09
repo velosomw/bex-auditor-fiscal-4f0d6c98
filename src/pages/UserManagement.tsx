@@ -68,7 +68,7 @@ const UserManagement = () => {
   const allowedRoles: UserRole[] = role === "gestor_ia"
     ? ["coordenadora"]
     : role === "coordenadora"
-      ? ["consultor", "magistrado", "recuperanda"]
+      ? ["empresa", "usuario"]
       : [];
 
   const loadUsers = async () => {
