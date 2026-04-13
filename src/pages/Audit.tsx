@@ -537,7 +537,6 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
               {[
                 { id: "executivo", title: "Executivo", desc: "Visão sintética focada em riscos relevantes e impactos financeiros" },
                 { id: "tecnico", title: "Técnico Detalhado", desc: "Análise aprofundada com identificação de inconsistências" },
-                { id: "parecer", title: "Parecer Formal", desc: "Estrutura completa com linguagem normativa NBC TA" },
               ].map(opt => (
                 <button key={opt.id} onClick={() => setDepth(opt.id as any)}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
