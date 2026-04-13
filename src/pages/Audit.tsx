@@ -1550,7 +1550,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
               <BookOpen className="w-5 h-5 text-[hsl(258,90%,66%)]" />
             </div>
             <div>
-              <CardTitle className="text-base">Relatório BEX</CardTitle>
+              <CardTitle className="text-base">Relatório BEx_Resumido_Kanitz</CardTitle>
               <CardDescription className="text-xs">Avaliação Contábil e Solvência Empresarial</CardDescription>
             </div>
           </div>
@@ -1597,7 +1597,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
               <Scale className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <CardTitle className="text-base">Relatório Kanitz</CardTitle>
+              <CardTitle className="text-base">Relatório BEx_Completo_Kanitz</CardTitle>
               <CardDescription className="text-xs">Termômetro de Insolvência — Stephen C. Kanitz</CardDescription>
             </div>
           </div>
