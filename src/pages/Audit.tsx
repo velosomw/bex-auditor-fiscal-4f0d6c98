@@ -3654,9 +3654,9 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="relatorio-final">
           {reportType === "bex" ? (
-            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarKanitz} />
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarKanitz} variant="resumido" />
           ) : reportType === "kanitz" ? (
-            <TabRelatorioKanitz onBack={onBack} parsedData={parsedData} onSwitchToBex={handleGerarBex} aiAnalysis={aiAnalysis} />
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarBex} variant="completo" />
           ) : (
             <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} />
           )}
