@@ -2409,6 +2409,215 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
         </div>
       </ReportPage>
 
+      {/* ── 7. RELATÓRIO KANITZ — CAPA ── */}
+      {latestKanitz && (
+        <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+          <div className="report-page-header">
+            <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
+              <Scale className="w-10 h-10 text-amber-600" />
+            </div>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX — Inteligência de Risco</p>
+            <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
+              RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
+            </h1>
+            <p className="text-sm text-muted-foreground mt-3 italic">Relatório Financeiro de Inteligência de Risco</p>
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-500/30 bg-amber-500/5 mt-8">
+              <span className="text-lg">{kanitzClassColors[latestKanitz.classificacao]?.icon}</span>
+              <span className="text-sm font-semibold text-foreground">{kanitzClassColors[latestKanitz.classificacao]?.label} — FI: {latestKanitz.fi.toFixed(2)}</span>
+            </div>
+            <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
+              <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">Empresa Analisada S.A.</p></div>
+              <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p><p className="font-semibold text-foreground">{parsedData?.years?.join(" / ") || latestYear}</p></div>
+              <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Emissão</p><p className="font-semibold text-foreground">{today}</p></div>
+            </div>
+            <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-1">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
+              <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
+              <p className="text-xs text-muted-foreground">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
+            </div>
+          </div>
+          <div className="report-footer-bar">
+            <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
+            <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── 7. SUMÁRIO EXECUTIVO KANITZ + TERMÔMETRO ── */}
+      {latestKanitz && (
+        <ReportPage>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 py-3 border-b-2 border-amber-500/30 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm font-bold">7</div>
+              <h2 className="text-lg font-bold text-foreground font-serif">SUMÁRIO EXECUTIVO</h2>
+            </div>
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-sm text-foreground leading-relaxed">
+                A empresa apresenta Fator de Insolvência de {latestKanitz.fi.toFixed(2)}, classificando-se como {kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. {latestKanitz.fi > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : latestKanitz.fi > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg bg-muted/20 text-center">
+                <p className="text-[10px] text-muted-foreground">Pontuação Kanitz</p>
+                <p className={`text-2xl font-bold font-mono ${kanitzClassColors[latestKanitz.classificacao]?.color}`}>{latestKanitz.fi.toFixed(2)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/20 text-center">
+                <p className="text-[10px] text-muted-foreground">Classificação</p>
+                <p className="text-lg">{kanitzClassColors[latestKanitz.classificacao]?.icon}</p>
+                <p className={`text-xs font-semibold ${kanitzClassColors[latestKanitz.classificacao]?.color}`}>{kanitzClassColors[latestKanitz.classificacao]?.label}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/20 text-center">
+                <p className="text-[10px] text-muted-foreground">Tendência</p>
+                <p className="text-lg text-muted-foreground">→</p>
+                <p className="text-xs font-semibold text-muted-foreground">Estável</p>
+              </div>
+            </div>
+
+            {/* Termômetro visual */}
+            {kanitzResults.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-foreground mb-3">TERMÔMETRO DE KANITZ</h3>
+                <div className="h-[180px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(r.fi.toFixed(2)) }))}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} />
+                      <Tooltip formatter={(v: number) => [v.toFixed(2), "Fator de Insolvência"]} />
+                      <Bar dataKey="FI" radius={[4, 4, 0, 0]}>
+                        {kanitzResults.map((r, i) => (
+                          <Cell key={i} fill={r.fi > 1 ? "#10b981" : r.fi > 0 ? "#3b82f6" : r.fi > -1 ? "#eab308" : r.fi >= -3 ? "#f97316" : "#ef4444"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
+        </ReportPage>
+      )}
+
+      {/* ── 8. MEMÓRIA DE CÁLCULO KANITZ ── */}
+      {latestKanitz && (
+        <ReportPage>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 py-3 border-b-2 border-amber-500/30 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm font-bold">8</div>
+              <h2 className="text-lg font-bold text-foreground font-serif">MEMÓRIA DE CÁLCULO</h2>
+            </div>
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
+              <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
+              <code className="block text-[11px] font-mono leading-relaxed text-foreground">
+                Z = 0,05×X1 + 1,65×X2 + 3,55×X3 − 1,06×X4 − 0,33×X5
+              </code>
+              <div className="mt-2 text-[10px] text-muted-foreground space-y-0.5">
+                <p>X1 = Lucro Líquido / Patrimônio Líquido (RPL)</p>
+                <p>X2 = (Ativo Circulante + Realizável LP) / (Passivo Circulante + Exigível LP) (LG)</p>
+                <p>X3 = (Ativo Circulante − Estoques) / Passivo Circulante (LS)</p>
+                <p>X4 = Passivo Total / Patrimônio Líquido (GE)</p>
+                <p>X5 = Passivo Circulante / Passivo Total</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">Componente</TableHead>
+                    <TableHead className="text-[10px]">Peso</TableHead>
+                    {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year} (Valor)</TableHead>)}
+                    {kanitzResults.map(r => <TableHead key={`w-${r.year}`} className="text-right text-[10px]">{r.year} (Ponderado)</TableHead>)}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { name: "RPL (X1)", peso: 0.05, key: "rpl" as const },
+                    { name: "LG (X2)", peso: 1.65, key: "lg" as const },
+                    { name: "LS (X3)", peso: 3.55, key: "ls" as const },
+                    { name: "LC (X4)", peso: -1.06, key: "lc" as const },
+                    { name: "GE (X5)", peso: -0.33, key: "ge" as const },
+                  ].map(c => (
+                    <TableRow key={c.name}>
+                      <TableCell className="text-xs font-mono font-bold">{c.name}</TableCell>
+                      <TableCell className="text-xs font-mono">{c.peso > 0 ? `+${c.peso}` : c.peso}</TableCell>
+                      {kanitzResults.map(r => (
+                        <TableCell key={r.year} className="text-right text-xs font-mono">{fmtKDec(r[c.key])}</TableCell>
+                      ))}
+                      {kanitzResults.map(r => (
+                        <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * r[c.key]).toFixed(4)}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 border-foreground/20">
+                    <TableCell className="text-xs font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
+                    {kanitzResults.map(r => <TableCell key={r.year} className="text-right" />)}
+                    {kanitzResults.map(r => (
+                      <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${kanitzClassColors[r.classificacao]?.color}`}>{r.fi.toFixed(2)}</TableCell>
+                    ))}
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">8.1 Dados Utilizados</h3>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-[10px]">Variável</TableHead>
+                      {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[
+                      { label: "Ativo Circulante", key: "ac" }, { label: "Ativo Não Circulante", key: "anc" },
+                      { label: "Realizável a LP", key: "rlp" }, { label: "Estoques", key: "estoque" },
+                      { label: "Passivo Circulante", key: "pc" }, { label: "Passivo Não Circulante", key: "pnc" },
+                      { label: "Passivo Total", key: "pt" }, { label: "Patrimônio Líquido", key: "pl" },
+                      { label: "Lucro Líquido", key: "ll" }, { label: "Receita Líquida", key: "rl" },
+                    ].map(v => (
+                      <TableRow key={v.label}>
+                        <TableCell className="text-xs font-medium">{v.label}</TableCell>
+                        {kanitzResults.map(r => (
+                          <TableCell key={r.year} className="text-right text-xs font-mono">R$ {fmt((r as any)[v.key])}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        </ReportPage>
+      )}
+
+      {/* ── 9. CONCLUSÃO (apenas Completo) ── */}
+      {variant === "completo" && (
+        <ReportPage>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)] text-white flex items-center justify-center text-sm font-bold">9</div>
+              <h2 className="text-lg font-bold text-foreground font-serif">CONCLUSÃO</h2>
+            </div>
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
+              <p className="text-sm text-foreground leading-relaxed">
+                {aiAnalysis?.diagnostico?.resumo || "A análise das demonstrações contábeis evidencia a estrutura financeira da empresa no período analisado, com base nos dados do balancete processado."}
+              </p>
+              <p className="text-sm text-foreground leading-relaxed">
+                Os indicadores de liquidez {latestInd?.liquidezCorrente && latestInd.liquidezCorrente > 1 ? "apontam capacidade adequada para honrar compromissos de curto prazo" : "indicam fragilidade na capacidade de pagamento de curto prazo"}, {latestInd?.liquidezGeral && latestInd.liquidezGeral < 1 ? "embora a liquidez geral permaneça inferior à unidade, refletindo elevada dependência de capital de terceiros." : "com liquidez geral compatível com a operação."}
+              </p>
+              <p className="text-sm text-foreground leading-relaxed">
+                {latestKanitz ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${latestKanitz.fi.toFixed(2)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : ""}
+              </p>
+            </div>
+          </div>
+        </ReportPage>
+      )}
+
       {/* ── ASSINATURA ── */}
       <ReportPage>
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
@@ -2420,9 +2629,10 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
             <p className="text-xs text-muted-foreground">Auditor Contábil Sênior IA</p>
             <p className="text-xs text-muted-foreground">Especialista em Recuperação Judicial e Análise Empresarial</p>
             <p className="text-xs text-muted-foreground mt-2">Plataforma BEX — {today}</p>
+            {latestKanitz && <p className="text-xs text-muted-foreground">Kanitz (1978)</p>}
           </div>
           <div className="flex flex-wrap justify-center gap-1.5 pt-2">
-            {["NBC TA 700", "NBC TA 705", "CPC 26", "Lei 11.101/2005", "IFRS"].map(n => (
+            {["NBC TA 700", "NBC TA 705", "CPC 26", "Lei 11.101/2005", "IFRS", "Kanitz (1978)"].map(n => (
               <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
             ))}
           </div>
