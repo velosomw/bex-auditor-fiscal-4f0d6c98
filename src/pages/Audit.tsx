@@ -543,16 +543,25 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
                   className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                     depth === opt.id ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5" : "border-border hover:border-[hsl(258,90%,66%)]/30 hover:bg-muted/20"
                   }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{opt.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
-                    </div>
-                    {depth === opt.id && (
-                      <div className="w-5 h-5 rounded-full border-2 border-[hsl(258,90%,66%)] flex items-center justify-center shrink-0">
-                        <div className="w-2.5 h-2.5 rounded-full bg-[hsl(258,90%,66%)]" />
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between">
+                     <div>
+                       <div className="flex items-center gap-2">
+                         <p className="text-sm font-semibold text-foreground">{opt.title}</p>
+                         {depth === opt.id && (
+                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                             opt.id === "executivo" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                           }`}>
+                             {opt.id === "executivo" ? "Versão Gratuita" : "Versão Paga"}
+                           </span>
+                         )}
+                       </div>
+                       <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                     </div>
+                     {depth === opt.id && (
+                       <div className="w-5 h-5 rounded-full border-2 border-[hsl(258,90%,66%)] flex items-center justify-center shrink-0">
+                         <div className="w-2.5 h-2.5 rounded-full bg-[hsl(258,90%,66%)]" />
+                       </div>
+                     )}
                   </div>
                 </button>
               ))}
