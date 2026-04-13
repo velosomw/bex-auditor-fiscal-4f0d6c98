@@ -100,12 +100,20 @@ const Header = () => {
         </nav>
 
         {/* CTA Desktop */}
-        <Link
-          to="/contato"
-          className="hidden lg:inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
-        >
-          Fale Conosco
-        </Link>
+        <div className="hidden lg:flex items-center gap-3">
+          <Link
+            to="/contato"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
+          >
+            Fale Conosco
+          </Link>
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
+          >
+            Acessar Solução
+          </Link>
+        </div>
 
         {/* Mobile Toggle */}
         <button
