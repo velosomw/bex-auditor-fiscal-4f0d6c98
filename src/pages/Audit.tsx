@@ -1717,6 +1717,71 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
     { name: "Solvência Total", result: fmtPct((ac + anc) / ptotal), param: "> 1,0", classification: (ac + anc) / ptotal > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
 
+  /* ── Kanitz computation for abbreviated section ── */
+  const kanitzFindValue = (keyword: string, year: string) => {
+    if (!parsedData) return 0;
+    const allRows = [...parsedData.balanco, ...parsedData.dre];
+    const row = allRows.find(r => r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword));
+    return row?.values[year] || 0;
+  };
+
+  const kanitzResults: Array<{
+    year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
+    classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente";
+    ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
+  }> = [];
+
+  if (parsedData) {
+    for (const year of parsedData.years) {
+      const kAc = Math.abs(kanitzFindValue("total do ativo circulante", year) || kanitzFindValue("ativo circulante", year));
+      const kAnc = Math.abs(kanitzFindValue("total do ativo não circulante", year) || kanitzFindValue("ativo nao circulante", year) || kanitzFindValue("ativo não circulante", year));
+      const kPc = Math.abs(kanitzFindValue("total do passivo circulante", year) || kanitzFindValue("passivo circulante", year));
+      const kPnc = Math.abs(kanitzFindValue("total do passivo não circulante", year) || kanitzFindValue("passivo nao circulante", year) || kanitzFindValue("passivo não circulante", year));
+      const kPl = Math.abs(kanitzFindValue("total do patrimônio", year) || kanitzFindValue("patrimonio líquido", year) || kanitzFindValue("patrimônio líquido", year));
+      const kEstoque = Math.abs(kanitzFindValue("estoque", year));
+      const kLl = kanitzFindValue("resultado do exercício", year) || kanitzFindValue("lucro líquido", year);
+      const kRlp = Math.abs(kanitzFindValue("realizável a longo prazo", year) || kanitzFindValue("realizavel", year));
+      const kRl = Math.abs(kanitzFindValue("receita líquida", year) || kanitzFindValue("receita", year));
+      const kPt = kPc + kPnc;
+      const kAt = kAc + kAnc;
+      const rpl = kPl !== 0 ? kLl / kPl : 0;
+      const lg = kPt !== 0 ? (kAc + kRlp) / kPt : 0;
+      const ls = kPc !== 0 ? (kAc - kEstoque) / kPc : 0;
+      const lc = kPc !== 0 ? kAc / kPc : 0;
+      const ge = kPl !== 0 ? kPt / kPl : 0;
+      const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
+      const classificacao: typeof kanitzResults[0]["classificacao"] =
+        fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
+      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, classificacao, ac: kAc, anc: kAnc, pc: kPc, pnc: kPnc, pl: kPl, estoque: kEstoque, rlp: kRlp, pt: kPt, ll: kLl, at: kAt, rl: kRl });
+    }
+  }
+
+  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
+    const aiK = aiAnalysis.kanitz;
+    const comp = aiK.componentes || {};
+    const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
+    const fi = aiK.fatorInsolvencia || 0;
+    const classificacao: typeof kanitzResults[0]["classificacao"] =
+      fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
+    kanitzResults.push({
+      year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
+      fi, classificacao, ac: aiStruct.ativo_circulante || 0, anc: aiStruct.ativo_nao_circulante || 0,
+      pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: aiStruct.patrimonio_liquido || 0,
+      estoque: aiStruct.estoques || 0, rlp: 0, pt: (aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0),
+      ll: aiStruct.lucro_liquido || 0, at: (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0), rl: aiStruct.receita_liquida || 0,
+    });
+  }
+
+  const latestKanitz = kanitzResults[kanitzResults.length - 1];
+  const kanitzClassColors: Record<string, { icon: string; label: string; color: string }> = {
+    saudavel: { icon: "🟢", label: "Saudável", color: "text-emerald-600" },
+    estavel: { icon: "🔵", label: "Estável", color: "text-blue-600" },
+    atencao: { icon: "🟡", label: "Zona de Atenção", color: "text-yellow-600" },
+    risco: { icon: "🟠", label: "Zona de Risco", color: "text-orange-600" },
+    insolvente: { icon: "🔴", label: "Alta Probabilidade de Insolvência", color: "text-red-600" },
+  };
+  const fmtKDec = (n: number) => n.toFixed(4);
+
   const SectionTitle = ({ num, title }: { num: string; title: string }) => (
     <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
       <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)] text-white flex items-center justify-center text-sm font-bold">{num}</div>
