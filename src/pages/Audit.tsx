@@ -1558,7 +1558,10 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
         <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
             Relatório técnico completo com diagnóstico executivo, solvência, pendências contábeis, indicadores financeiros, endividamento, balanço patrimonial e Score BEX de Solvência.
-          </p>
+           </p>
+           <div className="flex justify-center">
+             <Badge className="bg-green-500/15 text-green-600 border-green-500/30 text-xs font-semibold px-3 py-1">Versão Gratuita</Badge>
+           </div>
           <div className="space-y-2">
             {reportTopicsBex.map(t => {
               const Icon = t.icon;
@@ -1605,7 +1608,10 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
         <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
             Relatório de análise preditiva de falência com cálculo do Fator de Insolvência (FI), classificação de risco, análise técnica automatizada e recomendações estratégicas.
-          </p>
+           </p>
+           <div className="flex justify-center">
+             <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30 text-xs font-semibold px-3 py-1">Versão Paga</Badge>
+           </div>
           <div className="space-y-2">
             {reportTopicsKanitz.map(t => {
               const Icon = t.icon;
