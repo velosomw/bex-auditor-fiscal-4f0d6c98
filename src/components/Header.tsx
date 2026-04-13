@@ -103,7 +103,7 @@ const Header = () => {
         <div className="hidden lg:flex items-center gap-3">
           <Link
             to="/contato"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md font-semibold transition-all border border-primary-foreground/30 text-primary-foreground/80 bg-transparent hover:[background:var(--btn-gradient)] hover:text-white hover:border-transparent"
           >
             Fale Conosco
           </Link>
