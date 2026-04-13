@@ -535,8 +535,8 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
             <h3 className="text-sm font-semibold text-foreground">Nível de Profundidade Técnica</h3>
             <div className="space-y-2">
               {[
-                { id: "executivo", title: "Executivo", desc: "Visão sintética focada em riscos relevantes e impactos financeiros" },
-                { id: "tecnico", title: "Técnico Detalhado", desc: "Análise aprofundada com identificação de inconsistências" },
+                { id: "executivo", title: "Relatório BEx_Resumido_Kanitz", desc: "Visão sintética focada em riscos relevantes e impactos financeiros" },
+                { id: "tecnico", title: "Relatório BEx_Completo_Kanitz", desc: "Análise aprofundada com identificação de inconsistências" },
               ].map(opt => (
                 <button key={opt.id} onClick={() => setDepth(opt.id as any)}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
