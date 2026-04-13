@@ -2080,49 +2080,205 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
         <div className="space-y-4">
           <SectionTitle num="4" title="INDICADORES ECONÔMICO-FINANCEIROS" />
 
-          {[
-            { title: "4.1 Indicadores de Liquidez", items: [
-              { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
-              { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
-              { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
-            ]},
-            { title: "4.2 Indicadores de Endividamento", items: [
-              { name: "Endividamento Total", formula: "PT / AT", value: latestInd?.endividamentoGeral, interp: "Grau de comprometimento do ativo com terceiros" },
-              { name: "Composição do Endividamento", formula: "PC / PT", value: latestInd?.composicaoEndividamento, interp: "Concentração da dívida no curto prazo" },
-              { name: "Imobilização do PL", formula: "Imob / PL", value: latestInd?.imobilizacaoPL, interp: "Grau de imobilização do capital próprio" },
-            ]},
-            { title: "4.3 Indicadores de Rentabilidade", items: [
-              { name: "Margem Operacional", formula: "LAJIR / Receita", value: latestInd?.margemOperacional, interp: "Eficiência operacional da empresa" },
-              { name: "ROA", formula: "LL / AT", value: latestInd?.roa, interp: "Retorno gerado pelo ativo total" },
-              { name: "ROE", formula: "LL / PL", value: latestInd?.roe, interp: "Retorno ao acionista sobre capital investido" },
-            ]},
-          ].map(sec => (
-            <div key={sec.title}>
-              <h3 className="text-sm font-semibold text-foreground mb-3">{sec.title}</h3>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-[10px]">Indicador</TableHead>
-                      <TableHead className="text-[10px]">Fórmula</TableHead>
-                      <TableHead className="text-right text-[10px]">Resultado</TableHead>
-                      <TableHead className="text-[10px]">Interpretação</TableHead>
+          {/* 4.1 Liquidez */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">4.1 Indicadores de Liquidez</h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">Indicador</TableHead>
+                    <TableHead className="text-[10px]">Fórmula</TableHead>
+                    <TableHead className="text-right text-[10px]">Resultado</TableHead>
+                    <TableHead className="text-[10px]">Interpretação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
+                    { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
+                    { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
+                  ].map(item => (
+                    <TableRow key={item.name}>
+                      <TableCell className="text-xs font-medium">{item.name}</TableCell>
+                      <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
+                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtPct(item.value) : "—"}</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">{item.interp}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sec.items.map(item => (
-                      <TableRow key={item.name}>
-                        <TableCell className="text-xs font-medium">{item.name}</TableCell>
-                        <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
-                        <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtPct(item.value) : "—"}</TableCell>
-                        <TableCell className="text-[10px] text-muted-foreground">{item.interp}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          ))}
+
+            {/* Gráfico de Barras — Liquidez */}
+            {latestInd && (
+              <div className="mt-4">
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { name: "Liq. Corrente", value: parseFloat((latestInd.liquidezCorrente * 100).toFixed(1)), ref: 150 },
+                      { name: "Liq. Seca", value: parseFloat((latestInd.liquidezSeca * 100).toFixed(1)), ref: 100 },
+                      { name: "Liq. Geral", value: parseFloat((latestInd.liquidezGeral * 100).toFixed(1)), ref: 100 },
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 9 }} unit="%" />
+                      <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, "Resultado"]} />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      <Bar dataKey="value" name="Resultado" radius={[4, 4, 0, 0]}>
+                        {[0, 1, 2].map(i => (
+                          <Cell key={i} fill={["hsl(258,90%,66%)", "hsl(258,70%,60%)", "hsl(258,50%,55%)"][i]} />
+                        ))}
+                      </Bar>
+                      <Bar dataKey="ref" name="Parâmetro Mín." radius={[4, 4, 0, 0]} fill="#94a3b8" opacity={0.3} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Texto analítico Liquidez */}
+            <div className="mt-3 p-4 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-xs font-semibold text-foreground mb-1">Análise Técnica — Liquidez</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {latestInd ? (
+                  latestInd.liquidezCorrente > 1.5
+                    ? `A empresa apresenta liquidez corrente de ${fmtPct(latestInd.liquidezCorrente)}, acima do parâmetro mínimo de 1,50, demonstrando capacidade adequada para honrar compromissos de curto prazo. A liquidez seca de ${fmtPct(latestInd.liquidezSeca)} indica baixa dependência de estoques para geração de caixa. A liquidez geral de ${fmtPct(latestInd.liquidezGeral)} ${latestInd.liquidezGeral > 1 ? "confirma equilíbrio patrimonial global" : "revela que os ativos totais são insuficientes para cobrir o passivo exigível total, sinalizando dependência de geração futura de caixa"}.`
+                    : latestInd.liquidezCorrente > 1
+                    ? `A empresa apresenta liquidez corrente de ${fmtPct(latestInd.liquidezCorrente)}, acima da unidade mas abaixo do parâmetro ideal de 1,50. Isso indica capacidade marginal de pagamento no curto prazo. A liquidez seca de ${fmtPct(latestInd.liquidezSeca)} sugere ${latestInd.liquidezSeca > 0.8 ? "razoável independência de estoques" : "forte dependência de estoques para composição dos ativos circulantes"}. Recomenda-se acompanhamento mensal dos prazos médios.`
+                    : `A empresa apresenta liquidez corrente inferior a 1,00 (${fmtPct(latestInd.liquidezCorrente)}), evidenciando insuficiência de ativos circulantes para cobertura das obrigações de curto prazo. Situação de alerta conforme NBC TA 570 — Continuidade Operacional.`
+                ) : "Dados insuficientes para análise de liquidez."}
+              </p>
+            </div>
+          </div>
+
+          {/* 4.2 Endividamento */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">4.2 Indicadores de Endividamento</h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">Indicador</TableHead>
+                    <TableHead className="text-[10px]">Fórmula</TableHead>
+                    <TableHead className="text-right text-[10px]">Resultado</TableHead>
+                    <TableHead className="text-[10px]">Interpretação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { name: "Endividamento Total", formula: "PT / AT", value: latestInd?.endividamentoGeral, interp: "Grau de comprometimento do ativo com terceiros" },
+                    { name: "Composição do Endividamento", formula: "PC / PT", value: latestInd?.composicaoEndividamento, interp: "Concentração da dívida no curto prazo" },
+                    { name: "Imobilização do PL", formula: "Imob / PL", value: latestInd?.imobilizacaoPL, interp: "Grau de imobilização do capital próprio" },
+                  ].map(item => (
+                    <TableRow key={item.name}>
+                      <TableCell className="text-xs font-medium">{item.name}</TableCell>
+                      <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
+                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtPct(item.value) : "—"}</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">{item.interp}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Gráfico de Barras Empilhadas — Evolução do Endividamento */}
+            {years.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-xs font-semibold text-foreground mb-2">Evolução do Endividamento</h4>
+                <div className="h-[220px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={years.map(y => {
+                      const yInd = ind[y];
+                      const yPc = yInd?._pc || 0;
+                      const yPnc = yInd?._pnc || 0;
+                      const yPl = yInd?._pl || 0;
+                      return { name: y, "Passivo Circulante": Math.abs(yPc), "Passivo Não Circulante": Math.abs(yPnc), "Patrimônio Líquido": Math.abs(yPl) };
+                    })}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
+                      <Tooltip formatter={(v: number) => [`R$ ${fmt(v)}`, ""]} />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      <Bar dataKey="Passivo Circulante" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="Passivo Não Circulante" stackId="a" fill="#f97316" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="Patrimônio Líquido" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Texto analítico Endividamento */}
+            <div className="mt-3 p-4 rounded-lg bg-muted/30 border border-border/50">
+              <p className="text-xs font-semibold text-foreground mb-1">Análise Técnica — Endividamento</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {latestInd ? (
+                  `O endividamento total atinge ${fmtPct(latestInd.endividamentoGeral)}, ${latestInd.endividamentoGeral > 0.6 ? "acima do limite prudencial de 60%, indicando elevada dependência de capital de terceiros" : "dentro de parâmetros aceitáveis de dependência de capital de terceiros"}. A composição do endividamento revela que ${fmtPct(latestInd.composicaoEndividamento)} do passivo exigível vence no curto prazo, ${latestInd.composicaoEndividamento > 0.5 ? "configurando pressão sobre o fluxo de caixa operacional e risco de refinanciamento" : "demonstrando perfil de dívida alongado e menor pressão sobre o caixa de curto prazo"}. A imobilização do PL de ${fmtPct(latestInd.imobilizacaoPL)} ${latestInd.imobilizacaoPL > 1 ? "supera a unidade, indicando que a totalidade do capital próprio está comprometida com ativos permanentes, sem margem para financiar operações correntes" : "permanece em nível administrável"}.`
+                ) : "Dados insuficientes para análise de endividamento."}
+              </p>
+            </div>
+          </div>
+
+          {/* 4.3 Rentabilidade */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">4.3 Indicadores de Rentabilidade</h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">Indicador</TableHead>
+                    <TableHead className="text-[10px]">Fórmula</TableHead>
+                    <TableHead className="text-right text-[10px]">Resultado</TableHead>
+                    <TableHead className="text-[10px]">Interpretação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { name: "Margem Operacional", formula: "LAJIR / Receita", value: latestInd?.margemOperacional, interp: "Eficiência operacional da empresa" },
+                    { name: "ROA", formula: "LL / AT", value: latestInd?.roa, interp: "Retorno gerado pelo ativo total" },
+                    { name: "ROE", formula: "LL / PL", value: latestInd?.roe, interp: "Retorno ao acionista sobre capital investido" },
+                  ].map(item => (
+                    <TableRow key={item.name}>
+                      <TableCell className="text-xs font-medium">{item.name}</TableCell>
+                      <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
+                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtPct(item.value) : "—"}</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">{item.interp}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Gráfico CMV + Despesas x Receita */}
+            {years.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-xs font-semibold text-foreground mb-2">CMV + Despesas vs Receita Líquida</h4>
+                <div className="h-[220px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={years.map(y => {
+                      const yInd = ind[y];
+                      const receita = Math.abs(yInd?._rl || yInd?.receitaLiquida || 0);
+                      const cmv = Math.abs(yInd?._cpv || yInd?.custosProdutos || 0);
+                      const despOp = Math.abs(yInd?._despOp || yInd?.despesasOperacionais || 0);
+                      const despFin = Math.abs(yInd?._despFin || yInd?.despesasFinanceiras || 0);
+                      return { name: y, "Receita Líquida": receita, CMV: cmv, "Desp. Operacionais": despOp, "Desp. Financeiras": despFin };
+                    })}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
+                      <Tooltip formatter={(v: number) => [`R$ ${fmt(v)}`, ""]} />
+                      <Legend wrapperStyle={{ fontSize: 10 }} />
+                      <Bar dataKey="Receita Líquida" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="CMV" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Desp. Operacionais" fill="#f97316" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Desp. Financeiras" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
 
           {d && (
             <div>
