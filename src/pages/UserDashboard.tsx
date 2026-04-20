@@ -101,8 +101,42 @@ const UserDashboard = () => {
     ? Math.round(history.reduce((sum, h) => sum + h.conformidade, 0) / history.length * 10) / 10
     : 0;
 
-  const lastDocs = history.slice(0, 5);
-  const lastReports = reports.slice(0, 5);
+  // Agrupa documentos por batchId; documentos sem batch ficam em "orfãos"
+  const docsByBatch = new Map<string, AuditHistoryEntry[]>();
+  const orphanDocs: AuditHistoryEntry[] = [];
+  history.forEach(d => {
+    if (d.batchId) {
+      const arr = docsByBatch.get(d.batchId) || [];
+      arr.push(d);
+      docsByBatch.set(d.batchId, arr);
+    } else {
+      orphanDocs.push(d);
+    }
+  });
+
+  // Constrói pares (relatório → documentos correspondentes)
+  type ReportGroup = {
+    report: GeneratedReportEntry;
+    docs: AuditHistoryEntry[] | { fileName: string; fileSize: number; format: string; date: string }[];
+  };
+  const groups: ReportGroup[] = reports.slice(0, 5).map(r => {
+    let docs: any[] = [];
+    if (r.batchId && docsByBatch.has(r.batchId)) {
+      docs = docsByBatch.get(r.batchId)!;
+    } else if (r.sourceDocuments && r.sourceDocuments.length) {
+      docs = r.sourceDocuments.map(s => ({ ...s, date: r.date }));
+    }
+    return { report: r, docs };
+  });
+
+  // Documentos que não têm relatório gerado ainda
+  const usedBatchIds = new Set(reports.map(r => r.batchId).filter(Boolean) as string[]);
+  const unmatchedDocs = [
+    ...Array.from(docsByBatch.entries())
+      .filter(([bid]) => !usedBatchIds.has(bid))
+      .flatMap(([, docs]) => docs),
+    ...orphanDocs,
+  ].slice(0, 5);
 
   const kpis = [
     { label: "Total de Auditorias", value: history.length, icon: FileText, bgClass: "bg-[hsl(217,91%,50%)]/10", colorClass: "text-[hsl(217,91%,50%)]" },
@@ -116,6 +150,8 @@ const UserDashboard = () => {
     setHistory([]);
     setReports([]);
   };
+
+  const hasGroups = groups.length > 0;
 
   return (
     <PlatformLayout>
@@ -152,118 +188,145 @@ const UserDashboard = () => {
           ))}
         </div>
 
-        {/* Two-column: Documents | Reports */}
-        <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Documentos Analisados */}
+        {/* Section header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Documentos & Relatórios Correspondentes</h2>
+            <p className="text-xs text-muted-foreground">Cada relatório gerado é gerado a partir de um ou mais documentos analisados (relação N:1).</p>
+          </div>
+          {history.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleClear} className="text-xs text-muted-foreground gap-1">
+              <Trash2 className="w-3 h-3" /> Limpar
+            </Button>
+          )}
+        </div>
+
+        {/* Pares: Documentos Analisados ↔ Relatório Gerado */}
+        {!hasGroups && unmatchedDocs.length === 0 ? (
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[hsl(217,91%,50%)]" />
-                  <CardTitle className="text-lg">Documentos Analisados</CardTitle>
-                </div>
-                {history.length > 0 && (
-                  <Button variant="ghost" size="sm" onClick={handleClear} className="text-xs text-muted-foreground gap-1">
-                    <Trash2 className="w-3 h-3" /> Limpar
-                  </Button>
-                )}
-              </div>
-              <CardDescription>
-                {lastDocs.length > 0
-                  ? `${lastDocs.length} documento${lastDocs.length > 1 ? "s" : ""} processado${lastDocs.length > 1 ? "s" : ""} na auditoria`
-                  : "Nenhum documento analisado ainda."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {lastDocs.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Nenhum documento encontrado</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {lastDocs.map((d) => (
-                    <DocCard
-                      key={d.id}
-                      title={d.fileName}
-                      status={d.status}
-                      format={d.format}
-                      riskLevel={d.riskLevel}
-                      date={d.date}
-                      size={d.fileSize}
-                      conformidade={d.conformidade}
-                      riscos={d.riscos}
-                      onClick={() => navigate("/audit")}
-                    />
-                  ))}
-                </div>
-              )}
+            <CardContent className="text-center py-16">
+              <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">Nenhuma auditoria encontrada. Clique em "Nova Auditoria" para começar.</p>
             </CardContent>
           </Card>
-
-          {/* Relatórios Gerados */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
-                <CardTitle className="text-lg">Relatórios Gerados</CardTitle>
-              </div>
-              {lastReports.length > 0 && (
-                <CardDescription>
-                  {`${lastReports.length} relatório${lastReports.length > 1 ? "s" : ""} disponível${lastReports.length > 1 ? "is" : ""} para visualização ou impressão`}
-                </CardDescription>
-              )}
-            </CardHeader>
-            <CardContent>
-              {lastReports.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Nenhum relatório gerado</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {lastReports.map((r) => (
-                    <div
-                      key={r.id}
-                      onClick={() => navigate(`/user/report/${r.id}`)}
-                      className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                        <p className="text-sm font-medium text-foreground truncate flex-1 min-w-0">{r.title}</p>
-                        <Badge className={`text-xs border shrink-0 ${statusConfig.completed.className}`}>Concluída</Badge>
-                        <Badge variant="outline" className="text-[10px] shrink-0">{r.format}</Badge>
-                        <Badge className={`text-[10px] border shrink-0 ${(riskBadge[r.riskLevel] || riskBadge.moderado).className}`}>
-                          Risco: {(riskBadge[r.riskLevel] || riskBadge.moderado).label}
+        ) : (
+          <div className="space-y-4">
+            {groups.map(({ report, docs }) => {
+              const rb = riskBadge[report.riskLevel] || riskBadge.moderado;
+              return (
+                <div key={report.id} className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-stretch">
+                  {/* Documentos analisados */}
+                  <Card className="border-l-4 border-l-[hsl(217,91%,50%)]">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-[hsl(217,91%,50%)]" />
+                        <CardTitle className="text-sm">Documentos Analisados</CardTitle>
+                        <Badge variant="outline" className="text-[10px] ml-auto">
+                          {docs.length} doc{docs.length > 1 ? "s" : ""} → 1 relatório
                         </Badge>
                       </div>
-                      <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground flex-wrap">
-                        <div className="flex items-center gap-4 flex-wrap">
-                          <span>{r.date}</span>
-                          <span className="flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3" /> {r.conformidade}%
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> {r.riscos} pendências
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {docs.map((d: any, idx: number) => (
+                        <div
+                          key={(d.id || d.fileName) + idx}
+                          onClick={() => navigate("/audit")}
+                          className="p-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">{d.fileName}</p>
+                            <Badge variant="outline" className="text-[10px] shrink-0">{d.format}</Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                            <span>{d.date}</span>
+                            <span>{formatFileSize(d.fileSize)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  {/* Conector visual */}
+                  <div className="hidden lg:flex items-center justify-center px-2">
+                    <div className="flex flex-col items-center gap-1">
+                      <ChevronsRight className="w-6 h-6 text-[hsl(217,91%,50%)]" />
+                      <span className="text-[10px] text-muted-foreground font-medium">gera</span>
+                    </div>
+                  </div>
+
+                  {/* Relatório gerado */}
+                  <Card
+                    className="border-l-4 border-l-[hsl(258,90%,66%)] cursor-pointer hover:bg-muted/20 transition-colors group"
+                    onClick={() => navigate(`/user/report/${report.id}`)}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+                        <CardTitle className="text-sm">Relatório Gerado</CardTitle>
+                        <Badge className={`text-[10px] border ml-auto ${statusConfig.completed.className}`}>Concluído</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="p-3 rounded-md bg-muted/30">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">{report.title}</p>
+                          <Badge variant="outline" className="text-[10px] shrink-0">{report.format}</Badge>
+                          <Badge className={`text-[10px] border shrink-0 ${rb.className}`}>Risco: {rb.label}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground flex-wrap">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span>{report.date}</span>
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" /> {report.conformidade}%
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> {report.riscos} pendências
+                            </span>
+                          </div>
+                          <span className="flex items-center gap-1 text-[hsl(258,90%,66%)] opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Eye className="w-3 h-3" /> Visualizar
                           </span>
                         </div>
-                        <span className="flex items-center gap-1 text-[hsl(258,90%,66%)] opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Eye className="w-3 h-3" /> Visualizar
-                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
+
+            {/* Documentos sem relatório gerado */}
+            {unmatchedDocs.length > 0 && (
+              <Card className="border-dashed">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <CardTitle className="text-sm">Documentos Analisados sem Relatório</CardTitle>
+                    <Badge variant="outline" className="text-[10px] ml-auto">aguardando geração</Badge>
+                  </div>
+                  <CardDescription className="text-xs">Documentos analisados que ainda não originaram um relatório.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {unmatchedDocs.map(d => (
+                    <div
+                      key={d.id}
+                      onClick={() => navigate("/audit")}
+                      className="p-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">{d.fileName}</p>
+                        <Badge variant="outline" className="text-[10px] shrink-0">{d.format}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                        <span>{d.date}</span>
+                        <span>{formatFileSize(d.fileSize)}</span>
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Decorative arrows between columns (desktop only) */}
-          {lastDocs.length > 0 && lastReports.length > 0 && (
-            <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <ChevronsRight className="w-7 h-7 text-[hsl(217,91%,50%)]/40" />
-            </div>
-          )}
-        </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
 
         {/* Resumo de Conformidade */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

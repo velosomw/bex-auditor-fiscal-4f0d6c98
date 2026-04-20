@@ -3801,10 +3801,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: { 
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
+  batchId?: string;
+  sourceDocs?: { fileName: string; fileSize: number; format: string }[];
 }) => {
   const navigate = useNavigate();
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
@@ -3837,6 +3839,8 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
       riskLevel,
       aiAnalysis,
       parsedData,
+      batchId,
+      sourceDocuments: sourceDocs,
     };
     saveGeneratedReport(entry);
   };
@@ -3923,14 +3927,19 @@ const AuditContent = () => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [parsedData, setParsedData] = useState<ParsedFinancialData | null>(null);
+  const [batchId, setBatchId] = useState<string>("");
+  const [sourceDocs, setSourceDocs] = useState<{ fileName: string; fileSize: number; format: string }[]>([]);
 
   const handleAnalysisReady = useCallback((analysis: any, parsed: ParsedFinancialData | null) => {
     setAiAnalysis(analysis);
     setParsedData(parsed);
     
-    // Save to audit history for /user page
     const riskLevel = analysis?.diagnostico?.riskLevel || "moderado";
     const pendencias = analysis?.pendencias?.length || 0;
+    const newBatchId = `batch-${Date.now()}`;
+    setBatchId(newBatchId);
+    const docs = uploadedFiles.map(f => ({ fileName: f.name, fileSize: f.size, format: getFormat(f) }));
+    setSourceDocs(docs);
     const entries: AuditHistoryEntry[] = uploadedFiles.map((f, i) => ({
       id: `audit-${Date.now()}-${i}`,
       fileName: f.name,
@@ -3941,6 +3950,7 @@ const AuditContent = () => {
       conformidade: riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35,
       riscos: pendencias,
       riskLevel,
+      batchId: newBatchId,
     }));
     saveAuditBatch(entries);
   }, [uploadedFiles]);
@@ -3963,9 +3973,11 @@ const AuditContent = () => {
         )}
         {phase === "results" && (
           <ResultsPhase 
-            onBack={() => { setPhase("upload"); setAiAnalysis(null); setParsedData(null); }} 
+            onBack={() => { setPhase("upload"); setAiAnalysis(null); setParsedData(null); setBatchId(""); setSourceDocs([]); }} 
             aiAnalysis={aiAnalysis}
             parsedData={parsedData}
+            batchId={batchId}
+            sourceDocs={sourceDocs}
           />
         )}
       </div>
