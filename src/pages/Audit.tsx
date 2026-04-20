@@ -585,7 +585,7 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
       <div className="flex justify-center pt-2">
         <Button onClick={handleContinue} disabled={!hasFiles}
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
-          Continuar <ArrowRight className="w-5 h-5" />
+          Fazer Auditoria <ArrowRight className="w-5 h-5" />
         </Button>
       </div>
     </div>
