@@ -2399,8 +2399,18 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
       {(() => {
         const allRows = parsedData?.balanco || state.balancoRows;
-        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1"));
-        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2"));
+        // Filtra apenas contas analíticas consolidadas (remove subtotais/contas-pai em negrito para reduzir páginas)
+        const isAnalytical = (r: any) => {
+          const conta = (r?.conta || "").trim();
+          if (!conta) return false;
+          const desc = (r?.descricao || "").toLowerCase();
+          // Exclui sintéticas: 1, 2, 1.01, 1.02, 2.01, 2.02, 2.03, 2.04 e qualquer "Total ..."
+          if (/^[12](\.\d{2})?$/.test(conta)) return false;
+          if (desc.startsWith("total ")) return false;
+          return true;
+        };
+        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && isAnalytical(r));
+        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && isAnalytical(r));
         const maxRows = Math.max(ativoRows.length, passivoRows.length);
 
         const isParent = (conta: string) => {
