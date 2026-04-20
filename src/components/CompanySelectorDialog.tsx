@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Plus, Loader2 } from "lucide-react";
 import { listCompanies, createCompany, type Company } from "@/services/companiesService";
+import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
@@ -39,6 +40,15 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
   const handleConfirmSelect = () => {
     const c = companies.find(c => c.id === selectedId);
     if (!c) return;
+    const { allowed, used, limit } = canGenerateForCompany(c.id);
+    if (!allowed) {
+      toast({
+        title: "Limite de relatórios atingido",
+        description: `${c.name} já emitiu ${used}/${limit} relatórios. Solicite ao Gestor IA aumento do limite.`,
+        variant: "destructive",
+      });
+      return;
+    }
     onConfirm(c);
     onOpenChange(false);
   };
