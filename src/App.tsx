@@ -23,6 +23,7 @@ import GestorIA from "./pages/GestorIA";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
+import ReportView from "./pages/ReportView";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/select-role" element={<RoleSelection />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/user" element={<UserDashboard />} />
+            <Route path="/user/report/:id" element={<ReportView />} />
             <Route path="/audit" element={<Audit />} />
             <Route path="/gestor-ia" element={<GestorIA />} />
             <Route path="/modelo-matematico" element={<ModeloMatematico />} />
