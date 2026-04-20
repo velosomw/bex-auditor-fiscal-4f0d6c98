@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend, LineChart, Line, LabelList, ComposedChart } from "recharts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useUser } from "@/contexts/UserContext";
+import { getCompany, type Company } from "@/services/companiesService";
 import folhaRostoBg from "@/assets/folha-rosto-bex.jpg";
 import logoBrasilExpert from "@/assets/logo-brasil-expert.jpg";
 import logoBrasilExpertFull from "@/assets/marca_logo_BEx.jpeg";
@@ -3811,12 +3813,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs }: { 
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
   batchId?: string;
   sourceDocs?: { fileName: string; fileSize: number; format: string }[];
+  company?: Company | null;
+  source?: "auditor_chefe" | "usuario" | "empresa";
 }) => {
   const navigate = useNavigate();
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
@@ -3851,6 +3855,9 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs }: {
       parsedData,
       batchId,
       sourceDocuments: sourceDocs,
+      companyId: company?.id,
+      companyName: company?.name,
+      source,
     };
     saveGeneratedReport(entry);
   };
@@ -3933,12 +3940,29 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs }: {
 type AuditPhase = "upload" | "processing" | "results";
 
 const AuditContent = () => {
+  const [searchParams] = useSearchParams();
+  const { role } = useUser();
   const [phase, setPhase] = useState<AuditPhase>("upload");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [parsedData, setParsedData] = useState<ParsedFinancialData | null>(null);
   const [batchId, setBatchId] = useState<string>("");
   const [sourceDocs, setSourceDocs] = useState<{ fileName: string; fileSize: number; format: string }[]>([]);
+  const [company, setCompany] = useState<Company | null>(null);
+
+  const reportSource: "auditor_chefe" | "usuario" | "empresa" =
+    role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
+      ? "auditor_chefe"
+      : role === "empresa" || role === "recuperanda"
+        ? "empresa"
+        : "usuario";
+
+  useEffect(() => {
+    const cid = searchParams.get("company");
+    if (cid) {
+      getCompany(cid).then(setCompany).catch(() => setCompany(null));
+    }
+  }, [searchParams]);
 
   const handleAnalysisReady = useCallback((analysis: any, parsed: ParsedFinancialData | null) => {
     setAiAnalysis(analysis);
@@ -3961,13 +3985,23 @@ const AuditContent = () => {
       riscos: pendencias,
       riskLevel,
       batchId: newBatchId,
+      companyId: company?.id,
+      companyName: company?.name,
+      source: reportSource,
     }));
     saveAuditBatch(entries);
-  }, [uploadedFiles]);
+  }, [uploadedFiles, company, reportSource]);
 
   return (
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-4 md:p-6">
+        {company && (
+          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-[hsl(217,91%,50%)]/5 border border-[hsl(217,91%,50%)]/20">
+            <Building2 className="w-4 h-4 text-[hsl(217,91%,50%)]" />
+            <span className="text-xs text-muted-foreground">Auditoria vinculada à empresa:</span>
+            <span className="text-sm font-semibold text-foreground">{company.name}</span>
+          </div>
+        )}
         {phase === "upload" && (
           <UploadPhase 
             onProcess={() => setPhase("processing")} 
@@ -3988,6 +4022,8 @@ const AuditContent = () => {
             parsedData={parsedData}
             batchId={batchId}
             sourceDocs={sourceDocs}
+            company={company}
+            source={reportSource}
           />
         )}
       </div>
