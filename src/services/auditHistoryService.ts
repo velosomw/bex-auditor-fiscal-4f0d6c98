@@ -8,6 +8,13 @@ export interface AuditHistoryEntry {
   conformidade: number;
   riscos: number;
   riskLevel: string;
+  batchId?: string;
+}
+
+export interface SourceDocumentRef {
+  fileName: string;
+  fileSize: number;
+  format: string;
 }
 
 export interface GeneratedReportEntry {
@@ -24,6 +31,8 @@ export interface GeneratedReportEntry {
   riskLevel: string;
   aiAnalysis: any;
   parsedData: any;
+  batchId?: string;
+  sourceDocuments?: SourceDocumentRef[];
 }
 
 const STORAGE_KEY = "bex_audit_history";
