@@ -193,19 +193,7 @@
 }
 
 .report-page-body::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: var(--report-watermark);
-  background-repeat: no-repeat;
-  background-position: center 50%;
-  background-size: 55%;
-  opacity: 0.04;
-  pointer-events: none;
-  z-index: 0;
+  content: none;
 }
 
 .report-page-body > * {
