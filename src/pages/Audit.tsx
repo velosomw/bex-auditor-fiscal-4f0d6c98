@@ -3047,8 +3047,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
         </div>
 
         {/* Center content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
+        <div className="flex-1 flex flex-col items-center px-12 text-center">
+          <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mt-4 mb-10">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
           </h1>
