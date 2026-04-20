@@ -172,36 +172,7 @@ const UserDashboard = () => {
             <h1 className="text-2xl font-bold text-foreground">Minha Área de Auditoria</h1>
             <p className="text-muted-foreground">Resumo das suas auditorias e documentos analisados</p>
           </div>
-          <div className="flex items-center gap-2 relative">
-            <div className="relative">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setCompanyMenuOpen(v => !v)}
-                className="gap-1.5"
-              >
-                <Building2 className="w-4 h-4" /> Ver Empresa
-              </Button>
-              {companyMenuOpen && companies.length > 0 && (
-                <div className="absolute right-0 top-full mt-1 z-20 w-64 bg-popover border border-border rounded-lg shadow-lg max-h-72 overflow-auto">
-                  {companies.map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => { setCompanyMenuOpen(false); navigate(`/empresa/${c.id}`); }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
-                    >
-                      <p className="font-medium text-foreground truncate">{c.name}</p>
-                      {c.cnpj && <p className="text-[11px] text-muted-foreground">{c.cnpj}</p>}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {companyMenuOpen && companies.length === 0 && (
-                <div className="absolute right-0 top-full mt-1 z-20 w-64 bg-popover border border-border rounded-lg shadow-lg p-3">
-                  <p className="text-xs text-muted-foreground">Nenhuma empresa cadastrada. Clique em "+ Nova Auditoria" para cadastrar.</p>
-                </div>
-              )}
-            </div>
+          <div className="flex items-center gap-2">
             <Button
               size="sm"
               onClick={() => setSelectorOpen(true)}
