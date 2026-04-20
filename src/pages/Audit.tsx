@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend, LineChart, Line, LabelList, ComposedChart } from "recharts";
 import { useNavigate } from "react-router-dom";
 import folhaRostoBg from "@/assets/folha-rosto-bex.jpg";
 import logoBrasilExpert from "@/assets/logo-brasil-expert.jpg";
@@ -1850,8 +1850,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
         </div>
 
         {/* Center content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
+        <div className="flex-1 flex flex-col items-center px-12 text-center">
+          <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mt-4 mb-10">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
           </h1>
@@ -2114,28 +2114,40 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               </Table>
             </div>
 
-            {/* Gráfico de Barras — Liquidez */}
-            {latestInd && (
+            {/* Gráfico de Linhas — Índices de Liquidez (estilo gr1) */}
+            {years.length > 0 && (
               <div className="mt-4">
-                <div className="h-[200px] w-full">
+                <h4 className="text-xs font-semibold text-foreground mb-2 text-center">ÍNDICES DE LIQUIDEZ</h4>
+                <div className="h-[240px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[
-                      { name: "Liq. Corrente", value: parseFloat((latestInd.liquidezCorrente * 100).toFixed(1)), ref: 150 },
-                      { name: "Liq. Seca", value: parseFloat((latestInd.liquidezSeca * 100).toFixed(1)), ref: 100 },
-                      { name: "Liq. Geral", value: parseFloat((latestInd.liquidezGeral * 100).toFixed(1)), ref: 100 },
-                    ]}>
+                    <LineChart data={years.map(y => {
+                      const yInd = ind[y];
+                      return {
+                        name: y,
+                        "LIQUIDEZ IMEDIATA": yInd?.liquidezImediata != null ? parseFloat(yInd.liquidezImediata.toFixed(2)) : 0,
+                        "LIQUIDEZ CORRENTE": yInd?.liquidezCorrente != null ? parseFloat(yInd.liquidezCorrente.toFixed(2)) : 0,
+                        "LIQUIDEZ SECA": yInd?.liquidezSeca != null ? parseFloat(yInd.liquidezSeca.toFixed(2)) : 0,
+                        "LIQUIDEZ GERAL": yInd?.liquidezGeral != null ? parseFloat(yInd.liquidezGeral.toFixed(2)) : 0,
+                      };
+                    })} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} unit="%" />
-                      <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, "Resultado"]} />
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                      <Bar dataKey="value" name="Resultado" radius={[4, 4, 0, 0]}>
-                        {[0, 1, 2].map(i => (
-                          <Cell key={i} fill={["hsl(258,90%,66%)", "hsl(258,70%,60%)", "hsl(258,50%,55%)"][i]} />
-                        ))}
-                      </Bar>
-                      <Bar dataKey="ref" name="Parâmetro Mín." radius={[4, 4, 0, 0]} fill="#94a3b8" opacity={0.3} />
-                    </BarChart>
+                      <YAxis tick={{ fontSize: 9 }} />
+                      <Tooltip formatter={(v: number) => v.toFixed(2)} />
+                      <Legend wrapperStyle={{ fontSize: 10 }} iconType="plainline" />
+                      <Line type="linear" dataKey="LIQUIDEZ IMEDIATA" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }}>
+                        <LabelList dataKey="LIQUIDEZ IMEDIATA" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                      <Line type="linear" dataKey="LIQUIDEZ CORRENTE" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }}>
+                        <LabelList dataKey="LIQUIDEZ CORRENTE" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                      <Line type="linear" dataKey="LIQUIDEZ SECA" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }}>
+                        <LabelList dataKey="LIQUIDEZ SECA" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                      <Line type="linear" dataKey="LIQUIDEZ GERAL" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }}>
+                        <LabelList dataKey="LIQUIDEZ GERAL" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -2186,28 +2198,48 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               </Table>
             </div>
 
-            {/* Gráfico de Barras Empilhadas — Evolução do Endividamento */}
+            {/* Gráfico Evolução do Endividamento (estilo gr2) — barras empilhadas + linha de total */}
             {years.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-xs font-semibold text-foreground mb-2">Evolução do Endividamento</h4>
-                <div className="h-[220px] w-full">
+                <h4 className="text-xs font-semibold text-foreground mb-2 text-center">EVOLUÇÃO DO ENDIVIDAMENTO<br /><span className="font-normal text-[9px]">(Em milhares de reais)</span></h4>
+                <div className="h-[260px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={years.map(y => {
+                    <ComposedChart data={years.slice(-4).map(y => {
                       const yInd = ind[y];
-                      const yPc = yInd?._pc || 0;
-                      const yPnc = yInd?._pnc || 0;
-                      const yPl = yInd?._pl || 0;
-                      return { name: y, "Passivo Circulante": Math.abs(yPc), "Passivo Não Circulante": Math.abs(yPnc), "Patrimônio Líquido": Math.abs(yPl) };
-                    })}>
+                      const tributarias = Math.abs(yInd?._tributos || 0);
+                      const trabalhistas = Math.abs(yInd?._trabalhistas || 0);
+                      const emprestimos = Math.abs(yInd?._emprestimos || 0);
+                      const fornecedores = Math.abs(yInd?._fornecedores || 0);
+                      const credoresRJ = Math.abs(yInd?._credoresRJ || 0);
+                      const outras = Math.abs(yInd?._outrasObrig || ((yInd?._pc || 0) + (yInd?._pnc || 0) - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ)) || 0;
+                      const total = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
+                      return {
+                        name: y,
+                        "OBRIG. TRIBUTÁRIAS": tributarias / 1000,
+                        "OBRIG. TRABALHISTAS": trabalhistas / 1000,
+                        "EMPR. E FINANCIAMENTOS": emprestimos / 1000,
+                        "FORNECEDORES": fornecedores / 1000,
+                        "CREDORES RJ": credoresRJ / 1000,
+                        "OUTRAS OBRIGAÇÕES": outras / 1000,
+                        "TOTAL": total / 1000,
+                      };
+                    })} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
-                      <Tooltip formatter={(v: number) => [`R$ ${fmt(v)}`, ""]} />
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                      <Bar dataKey="Passivo Circulante" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Passivo Não Circulante" stackId="a" fill="#f97316" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Patrimônio Líquido" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    </BarChart>
+                      <YAxis yAxisId="left" tick={{ fontSize: 9 }} tickFormatter={(v) => v.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} tickFormatter={(v) => v.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} />
+                      <Tooltip formatter={(v: number) => `R$ ${(v * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`} />
+                      <Legend wrapperStyle={{ fontSize: 9 }} />
+                      <Bar yAxisId="left" dataKey="OBRIG. TRIBUTÁRIAS" stackId="a" fill="#5b9bd5" />
+                      <Bar yAxisId="left" dataKey="OBRIG. TRABALHISTAS" stackId="a" fill="#ed7d31" />
+                      <Bar yAxisId="left" dataKey="EMPR. E FINANCIAMENTOS" stackId="a" fill="#a5a5a5" />
+                      <Bar yAxisId="left" dataKey="FORNECEDORES" stackId="a" fill="#70ad47" />
+                      <Bar yAxisId="left" dataKey="CREDORES RJ" stackId="a" fill="#ffc000" />
+                      <Bar yAxisId="left" dataKey="OUTRAS OBRIGAÇÕES" stackId="a" fill="#264478" />
+                      <Line yAxisId="right" type="linear" dataKey="TOTAL" stroke="#c00000" strokeWidth={2.5} dot={{ r: 4, fill: "#c00000" }}>
+                        <LabelList dataKey="TOTAL" position="top" fontSize={9} fill="#c00000" formatter={(v: number) => (v * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} />
+                      </Line>
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -2218,7 +2250,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               <p className="text-xs font-semibold text-foreground mb-1">Análise Técnica — Endividamento</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {latestInd ? (
-                  `O endividamento total atinge ${fmtPct(latestInd.endividamentoGeral)}, ${latestInd.endividamentoGeral > 0.6 ? "acima do limite prudencial de 60%, indicando elevada dependência de capital de terceiros" : "dentro de parâmetros aceitáveis de dependência de capital de terceiros"}. A composição do endividamento revela que ${fmtPct(latestInd.composicaoEndividamento)} do passivo exigível vence no curto prazo, ${latestInd.composicaoEndividamento > 0.5 ? "configurando pressão sobre o fluxo de caixa operacional e risco de refinanciamento" : "demonstrando perfil de dívida alongado e menor pressão sobre o caixa de curto prazo"}. A imobilização do PL de ${fmtPct(latestInd.imobilizacaoPL)} ${latestInd.imobilizacaoPL > 1 ? "supera a unidade, indicando que a totalidade do capital próprio está comprometida com ativos permanentes, sem margem para financiar operações correntes" : "permanece em nível administrável"}.`
+                  `O endividamento total atinge ${fmtPct(latestInd.endividamentoGeral)}, ${latestInd.endividamentoGeral > 0.6 ? "acima do limite prudencial de 60%, indicando elevada dependência de capital de terceiros" : "dentro de parâmetros aceitáveis de dependência de capital de terceiros"}. A composição do endividamento revela que ${fmtPct(latestInd.composicaoEndividamento)} do passivo exigível vence no curto prazo, ${latestInd.composicaoEndividamento > 0.5 ? "configurando pressão sobre o fluxo de caixa operacional e risco de refinanciamento" : "demonstrando perfil de dívida alongado e menor pressão sobre o caixa de curto prazo"}. A imobilização do PL de ${fmtPct(latestInd.imobilizacaoPL)} ${latestInd.imobilizacaoPL > 1 ? "supera a unidade, indicando que a totalidade do capital próprio está comprometida com ativos permanentes, sin margem para financiar operações correntes" : "permanece em nível administrável"}.`
                 ) : "Dados insuficientes para análise de endividamento."}
               </p>
             </div>
@@ -2254,30 +2286,42 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               </Table>
             </div>
 
-            {/* Gráfico CMV + Despesas x Receita */}
+            {/* Gráfico CMV + Despesa x Receita Líquida (estilo gr3) */}
             {years.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-xs font-semibold text-foreground mb-2">CMV + Despesas vs Receita Líquida</h4>
-                <div className="h-[220px] w-full">
+                <h4 className="text-xs font-semibold text-foreground mb-2 text-center">CMV + DESPESA X RECEITA LÍQUIDA<br /><span className="font-normal text-[9px]">(R$ x 1000)</span></h4>
+                <div className="h-[260px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={years.map(y => {
+                    <ComposedChart data={years.map(y => {
                       const yInd = ind[y];
-                      const receita = Math.abs(yInd?._rl || yInd?.receitaLiquida || 0);
+                      const receita = Math.abs(yInd?._rl || yInd?.receitaLiquida || 0) / 1000;
                       const cmv = Math.abs(yInd?._cpv || yInd?.custosProdutos || 0);
                       const despOp = Math.abs(yInd?._despOp || yInd?.despesasOperacionais || 0);
                       const despFin = Math.abs(yInd?._despFin || yInd?.despesasFinanceiras || 0);
-                      return { name: y, "Receita Líquida": receita, CMV: cmv, "Desp. Operacionais": despOp, "Desp. Financeiras": despFin };
-                    })}>
+                      const cmvDesp = -((cmv + despOp + despFin) / 1000);
+                      const pct = receita > 0 ? (Math.abs(cmvDesp) / receita) * 100 : 0;
+                      return {
+                        name: y,
+                        "Receita Líquida": parseFloat(receita.toFixed(0)),
+                        "CMV + DESPESA / RECEITA LÍQUIDA": parseFloat(cmvDesp.toFixed(0)),
+                        pct: parseFloat(pct.toFixed(2)),
+                      };
+                    })} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
-                      <Tooltip formatter={(v: number) => [`R$ ${fmt(v)}`, ""]} />
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                      <Bar dataKey="Receita Líquida" fill="#10b981" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="CMV" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Desp. Operacionais" fill="#f97316" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Desp. Financeiras" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                    </BarChart>
+                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => v.toLocaleString('pt-BR')} />
+                      <Tooltip formatter={(v: number, n: string) => n === "pct" ? `${v.toFixed(2)}%` : `R$ ${(v * 1000).toLocaleString('pt-BR')}`} />
+                      <Legend wrapperStyle={{ fontSize: 9 }} />
+                      <Bar dataKey="Receita Líquida" fill="#5b9bd5">
+                        <LabelList dataKey="Receita Líquida" position="top" fontSize={9} formatter={(v: number) => v.toLocaleString('pt-BR')} />
+                      </Bar>
+                      <Bar dataKey="CMV + DESPESA / RECEITA LÍQUIDA" fill="#c00000">
+                        <LabelList dataKey="CMV + DESPESA / RECEITA LÍQUIDA" position="bottom" fontSize={9} formatter={(v: number) => `(${Math.abs(v).toLocaleString('pt-BR')})`} />
+                      </Bar>
+                      <Line type="linear" dataKey="pct" name="CMV + DESPESA / RECEITA LÍQUIDA (%)" stroke="#c00000" strokeWidth={0} dot={false}>
+                        <LabelList dataKey="pct" position="top" fontSize={9} fill="#c00000" formatter={(v: number) => `${v.toFixed(2)}%`} />
+                      </Line>
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -2355,8 +2399,18 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
       {(() => {
         const allRows = parsedData?.balanco || state.balancoRows;
-        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1"));
-        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2"));
+        // Filtra apenas contas analíticas consolidadas (remove subtotais/contas-pai em negrito para reduzir páginas)
+        const isAnalytical = (r: any) => {
+          const conta = (r?.conta || "").trim();
+          if (!conta) return false;
+          const desc = (r?.descricao || "").toLowerCase();
+          // Exclui sintéticas: 1, 2, 1.01, 1.02, 2.01, 2.02, 2.03, 2.04 e qualquer "Total ..."
+          if (/^[12](\.\d{2})?$/.test(conta)) return false;
+          if (desc.startsWith("total ")) return false;
+          return true;
+        };
+        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && isAnalytical(r));
+        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && isAnalytical(r));
         const maxRows = Math.max(ativoRows.length, passivoRows.length);
 
         const isParent = (conta: string) => {
@@ -2575,8 +2629,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
           <div className="report-page-header">
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-            <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
+          <div className="flex-1 flex flex-col items-center px-12 text-center">
+            <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mt-4 mb-10">BRASIL EXPERT</p>
             <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
@@ -2633,23 +2687,21 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               </div>
             </div>
 
-            {/* Termômetro visual */}
+            {/* Termômetro de Kanitz (estilo gr4) — linha laranja */}
             {kanitzResults.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">TERMÔMETRO DE KANITZ</h3>
-                <div className="h-[180px] w-full">
+                <h3 className="text-sm font-semibold text-foreground mb-3 text-center">TERMÔMETRO DE KANITZ</h3>
+                <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(r.fi.toFixed(2)) }))}>
+                    <LineChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(r.fi.toFixed(2)) }))} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} />
+                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} tickFormatter={(v) => v.toFixed(2)} />
                       <Tooltip formatter={(v: number) => [v.toFixed(2), "Fator de Insolvência"]} />
-                      <Bar dataKey="FI" radius={[4, 4, 0, 0]}>
-                        {kanitzResults.map((r, i) => (
-                          <Cell key={i} fill={r.fi > 1 ? "#10b981" : r.fi > 0 ? "#3b82f6" : r.fi > -1 ? "#eab308" : r.fi >= -3 ? "#f97316" : "#ef4444"} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                      <Line type="linear" dataKey="FI" stroke="#ed7d31" strokeWidth={2.5} dot={{ r: 4, fill: "#ed7d31" }}>
+                        <LabelList dataKey="FI" position="top" fontSize={10} fill="#ed7d31" formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -3047,8 +3099,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
         </div>
 
         {/* Center content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
+        <div className="flex-1 flex flex-col items-center px-12 text-center">
+          <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mt-4 mb-10">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
           </h1>
