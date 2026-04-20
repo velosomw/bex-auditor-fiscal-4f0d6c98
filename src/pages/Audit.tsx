@@ -3801,10 +3801,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: { 
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
+  batchId?: string;
+  sourceDocs?: { fileName: string; fileSize: number; format: string }[];
 }) => {
   const navigate = useNavigate();
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
@@ -3837,6 +3839,8 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
       riskLevel,
       aiAnalysis,
       parsedData,
+      batchId,
+      sourceDocuments: sourceDocs,
     };
     saveGeneratedReport(entry);
   };
