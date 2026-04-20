@@ -218,28 +218,36 @@ const UserDashboard = () => {
                   {/* Documentos analisados */}
                   <Card className="border-l-4 border-l-[hsl(217,91%,50%)]">
                     <CardHeader className="pb-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <FileText className="w-4 h-4 text-[hsl(217,91%,50%)]" />
                         <CardTitle className="text-sm">Documentos Analisados</CardTitle>
                         <Badge variant="outline" className="text-[10px] ml-auto">
                           {docs.length} doc{docs.length > 1 ? "s" : ""} → 1 relatório
                         </Badge>
                       </div>
+                      <CardDescription className="text-[11px]">
+                        Arquivos carregados e processados nesta auditoria
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {docs.map((d: any, idx: number) => (
                         <div
                           key={(d.id || d.fileName) + idx}
                           onClick={() => navigate("/audit")}
-                          className="p-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                          className="p-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex items-start gap-3"
                         >
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">{d.fileName}</p>
-                            <Badge variant="outline" className="text-[10px] shrink-0">{d.format}</Badge>
+                          <div className="w-6 h-6 rounded-full bg-[hsl(217,91%,50%)]/10 text-[hsl(217,91%,50%)] text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                            {idx + 1}
                           </div>
-                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                            <span>{d.date}</span>
-                            <span>{formatFileSize(d.fileSize)}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <p className="text-xs font-medium text-foreground truncate flex-1 min-w-0">{d.fileName}</p>
+                              <Badge variant="outline" className="text-[10px] shrink-0">{d.format}</Badge>
+                            </div>
+                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                              <span>{d.date}</span>
+                              <span>{formatFileSize(d.fileSize)}</span>
+                            </div>
                           </div>
                         </div>
                       ))}
