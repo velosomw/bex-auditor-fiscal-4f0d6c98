@@ -178,10 +178,7 @@ const UserDashboard = () => {
               {lastDocs.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground mb-4">Nenhum documento encontrado</p>
-                  <Button size="sm" onClick={() => navigate("/audit")} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5">
-                    <Plus className="w-4 h-4" /> Iniciar Auditoria
-                  </Button>
+                  <p className="text-sm text-muted-foreground">Nenhum documento encontrado</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -221,10 +218,7 @@ const UserDashboard = () => {
               {lastReports.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground mb-4">Nenhum relatório gerado</p>
-                  <Button size="sm" onClick={() => navigate("/audit")} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white gap-1.5">
-                    <Plus className="w-4 h-4" /> Gerar Relatório
-                  </Button>
+                  <p className="text-sm text-muted-foreground">Nenhum relatório gerado</p>
                 </div>
               ) : (
                 <div className="space-y-3">
