@@ -294,6 +294,45 @@ const UserDashboard = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Conformidade por Documento */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+                <CardTitle className="text-base">Conformidade por Documento</CardTitle>
+              </div>
+              <CardDescription>Percentual de conformidade individual de cada documento analisado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {history.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Nenhum documento analisado</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {history.slice(0, 5).map((d) => (
+                    <div key={d.id} className="p-3 rounded-lg bg-muted/30">
+                      <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{d.fileName}</p>
+                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
+                            <span>{d.date}</span>
+                            <span className="flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> {d.riscos} pendências
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-2xl font-bold text-[hsl(217,91%,50%)] shrink-0">{d.conformidade}%</p>
+                      </div>
+                      <Progress value={d.conformidade} className="h-1.5" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </PlatformLayout>
