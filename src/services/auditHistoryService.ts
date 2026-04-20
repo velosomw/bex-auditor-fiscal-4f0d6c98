@@ -1,3 +1,5 @@
+export type ReportSource = "auditor_chefe" | "usuario" | "empresa";
+
 export interface AuditHistoryEntry {
   id: string;
   fileName: string;
@@ -9,6 +11,9 @@ export interface AuditHistoryEntry {
   riscos: number;
   riskLevel: string;
   batchId?: string;
+  companyId?: string;
+  companyName?: string;
+  source?: ReportSource;
 }
 
 export interface SourceDocumentRef {
