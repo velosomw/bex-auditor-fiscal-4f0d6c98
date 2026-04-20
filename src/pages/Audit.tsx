@@ -1851,9 +1851,6 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
 
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center mb-6">
-            <Shield className="w-10 h-10 text-[hsl(258,90%,66%)]" />
-          </div>
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
@@ -2581,9 +2578,6 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
           </div>
           <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
-              <Scale className="w-10 h-10 text-amber-600" />
-            </div>
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX — Inteligência de Risco</p>
             <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
@@ -2786,9 +2780,6 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
       {/* ── ASSINATURA ── */}
       <ReportPage>
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
-          <div className="w-12 h-12 mx-auto rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
-            <Shield className="w-6 h-6 text-[hsl(258,90%,66%)]" />
-          </div>
           <div>
             <p className="text-sm font-semibold text-foreground">Documento gerado e assinado digitalmente</p>
             <p className="text-xs text-muted-foreground">Auditor Contábil Sênior IA</p>
@@ -3059,9 +3050,6 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
-            <Scale className="w-10 h-10 text-amber-600" />
-          </div>
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX — Risk Intelligence</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
