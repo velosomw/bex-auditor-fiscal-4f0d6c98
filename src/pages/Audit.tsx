@@ -26,7 +26,7 @@ import PlatformLayout from "@/components/PlatformLayout";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import { toast } from "@/hooks/use-toast";
-import { saveAuditBatch, type AuditHistoryEntry } from "@/services/auditHistoryService";
+import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
 import { getFileFormat as getFormat } from "@/services/auditAIService";
 
 /* ── Helpers ── */
@@ -1658,7 +1658,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido" }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo" }) => {
+export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido" }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo" }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const reportContainerRef = useRef<HTMLDivElement>(null);
@@ -3799,12 +3799,40 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData }: {
   const activePendencias = aiAnalysis?.pendencias || pendencias;
   const activeScoreRJ = aiAnalysis?.scoreRJ || scoreRJData;
 
+  const persistReport = (variant: "resumido" | "completo") => {
+    const riskLevel = aiAnalysis?.diagnostico?.riskLevel || "moderado";
+    const pendencias = aiAnalysis?.pendencias?.length || 0;
+    const conformidade = riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35;
+    const baseName = (parsedData as any)?.fileName || aiAnalysis?.fileName || "Auditoria";
+    const title = variant === "completo"
+      ? `Relatório Kanitz - Ref. (${baseName})`
+      : `Relatório BEX - Ref. (${baseName})`;
+    const entry: GeneratedReportEntry = {
+      id: `report-${Date.now()}-${variant}`,
+      title,
+      variant,
+      date: new Date().toISOString().split("T")[0],
+      fileName: title,
+      fileSize: 0,
+      format: variant === "completo" ? "Kanitz" : "BEX",
+      status: "completed",
+      conformidade,
+      riscos: pendencias,
+      riskLevel,
+      aiAnalysis,
+      parsedData,
+    };
+    saveGeneratedReport(entry);
+  };
+
   const handleGerarBex = () => {
     setReportType("bex");
+    persistReport("resumido");
   };
 
   const handleGerarKanitz = () => {
     setReportType("kanitz");
+    persistReport("completo");
   };
 
   return (
