@@ -2114,28 +2114,40 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               </Table>
             </div>
 
-            {/* Gráfico de Barras — Liquidez */}
-            {latestInd && (
+            {/* Gráfico de Linhas — Índices de Liquidez (estilo gr1) */}
+            {years.length > 0 && (
               <div className="mt-4">
-                <div className="h-[200px] w-full">
+                <h4 className="text-xs font-semibold text-foreground mb-2 text-center">ÍNDICES DE LIQUIDEZ</h4>
+                <div className="h-[240px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[
-                      { name: "Liq. Corrente", value: parseFloat((latestInd.liquidezCorrente * 100).toFixed(1)), ref: 150 },
-                      { name: "Liq. Seca", value: parseFloat((latestInd.liquidezSeca * 100).toFixed(1)), ref: 100 },
-                      { name: "Liq. Geral", value: parseFloat((latestInd.liquidezGeral * 100).toFixed(1)), ref: 100 },
-                    ]}>
+                    <LineChart data={years.map(y => {
+                      const yInd = ind[y];
+                      return {
+                        name: y,
+                        "LIQUIDEZ IMEDIATA": yInd?.liquidezImediata != null ? parseFloat(yInd.liquidezImediata.toFixed(2)) : 0,
+                        "LIQUIDEZ CORRENTE": yInd?.liquidezCorrente != null ? parseFloat(yInd.liquidezCorrente.toFixed(2)) : 0,
+                        "LIQUIDEZ SECA": yInd?.liquidezSeca != null ? parseFloat(yInd.liquidezSeca.toFixed(2)) : 0,
+                        "LIQUIDEZ GERAL": yInd?.liquidezGeral != null ? parseFloat(yInd.liquidezGeral.toFixed(2)) : 0,
+                      };
+                    })} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} unit="%" />
-                      <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, "Resultado"]} />
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                      <Bar dataKey="value" name="Resultado" radius={[4, 4, 0, 0]}>
-                        {[0, 1, 2].map(i => (
-                          <Cell key={i} fill={["hsl(258,90%,66%)", "hsl(258,70%,60%)", "hsl(258,50%,55%)"][i]} />
-                        ))}
-                      </Bar>
-                      <Bar dataKey="ref" name="Parâmetro Mín." radius={[4, 4, 0, 0]} fill="#94a3b8" opacity={0.3} />
-                    </BarChart>
+                      <YAxis tick={{ fontSize: 9 }} />
+                      <Tooltip formatter={(v: number) => v.toFixed(2)} />
+                      <Legend wrapperStyle={{ fontSize: 10 }} iconType="plainline" />
+                      <Line type="linear" dataKey="LIQUIDEZ IMEDIATA" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }}>
+                        <LabelList dataKey="LIQUIDEZ IMEDIATA" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                      <Line type="linear" dataKey="LIQUIDEZ CORRENTE" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }}>
+                        <LabelList dataKey="LIQUIDEZ CORRENTE" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                      <Line type="linear" dataKey="LIQUIDEZ SECA" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }}>
+                        <LabelList dataKey="LIQUIDEZ SECA" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                      <Line type="linear" dataKey="LIQUIDEZ GERAL" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }}>
+                        <LabelList dataKey="LIQUIDEZ GERAL" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
