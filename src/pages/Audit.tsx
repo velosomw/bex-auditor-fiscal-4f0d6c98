@@ -1850,8 +1850,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </div>
 
         {/* Center content */}
-        <div className="flex-1 flex flex-col items-center px-12 text-center">
-          <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mt-4 mb-10">BRASIL EXPERT</p>
+        <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
+          <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground mb-8">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
           </h1>
@@ -2399,18 +2399,34 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
       {(() => {
         const allRows = parsedData?.balanco || state.balancoRows;
-        // Filtra apenas contas analíticas consolidadas (remove subtotais/contas-pai em negrito para reduzir páginas)
-        const isAnalytical = (r: any) => {
-          const conta = (r?.conta || "").trim();
-          if (!conta) return false;
-          const desc = (r?.descricao || "").toLowerCase();
-          // Exclui sintéticas: 1, 2, 1.01, 1.02, 2.01, 2.02, 2.03, 2.04 e qualquer "Total ..."
-          if (/^[12](\.\d{2})?$/.test(conta)) return false;
-          if (desc.startsWith("total ")) return false;
-          return true;
+        // Whitelist de contas analíticas consolidadas (subtopicos em negrito da planilha)
+        const ATIVO_WHITELIST = [
+          "ativo circulante",
+          "bens e numerários", "bens e numerarios",
+          "outros valores a receber",
+          "valores a recuperar",
+          "outros créditos a longo prazo", "outros creditos a longo prazo",
+          "ativo permanente",
+        ];
+        const PASSIVO_WHITELIST = [
+          "passivo circulante",
+          "fornecedores",
+          "contas a pagar",
+          "salarios e encargos sociais", "salários e encargos sociais",
+          "tributos e contribuições a recolher", "tributos e contribuicoes a recolher",
+          "instituições financeiras", "instituicoes financeiras",
+          "outras contas a pagar",
+          "nao circulante - longo prazo", "não circulante - longo prazo",
+          "patrimonio liquido", "patrimônio líquido",
+        ];
+        const _norm = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
+        const _inList = (r: any, list: string[]) => {
+          const d = _norm(r?.descricao || "");
+          if (!d) return false;
+          return list.some(w => d === w || d.startsWith(w));
         };
-        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && isAnalytical(r));
-        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && isAnalytical(r));
+        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && _inList(r, ATIVO_WHITELIST));
+        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && _inList(r, PASSIVO_WHITELIST));
         const maxRows = Math.max(ativoRows.length, passivoRows.length);
 
         const isParent = (conta: string) => {
@@ -2629,8 +2645,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <div className="report-page-header">
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
           </div>
-          <div className="flex-1 flex flex-col items-center px-12 text-center">
-            <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mt-4 mb-10">BRASIL EXPERT</p>
+          <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
+            <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground mb-8">BRASIL EXPERT</p>
             <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
@@ -3099,8 +3115,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
         </div>
 
         {/* Center content */}
-        <div className="flex-1 flex flex-col items-center px-12 text-center">
-          <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mt-4 mb-10">BRASIL EXPERT</p>
+        <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
+          <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground mb-8">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
           </h1>
