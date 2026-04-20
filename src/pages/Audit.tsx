@@ -2650,10 +2650,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
           </div>
           <div className="px-12 text-center mt-8">
-            <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground">BRASIL EXPERT</p>
+            <p className="text-2xl md:text-3xl font-bold font-sans text-foreground">BRASIL EXPERT</p>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-            <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold font-sans leading-tight text-foreground">
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
             <p className="text-sm text-muted-foreground mt-3 italic">Relatório Financeiro de Inteligência de Risco</p>
