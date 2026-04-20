@@ -2286,30 +2286,42 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               </Table>
             </div>
 
-            {/* Gráfico CMV + Despesas x Receita */}
+            {/* Gráfico CMV + Despesa x Receita Líquida (estilo gr3) */}
             {years.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-xs font-semibold text-foreground mb-2">CMV + Despesas vs Receita Líquida</h4>
-                <div className="h-[220px] w-full">
+                <h4 className="text-xs font-semibold text-foreground mb-2 text-center">CMV + DESPESA X RECEITA LÍQUIDA<br /><span className="font-normal text-[9px]">(R$ x 1000)</span></h4>
+                <div className="h-[260px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={years.map(y => {
+                    <ComposedChart data={years.map(y => {
                       const yInd = ind[y];
-                      const receita = Math.abs(yInd?._rl || yInd?.receitaLiquida || 0);
+                      const receita = Math.abs(yInd?._rl || yInd?.receitaLiquida || 0) / 1000;
                       const cmv = Math.abs(yInd?._cpv || yInd?.custosProdutos || 0);
                       const despOp = Math.abs(yInd?._despOp || yInd?.despesasOperacionais || 0);
                       const despFin = Math.abs(yInd?._despFin || yInd?.despesasFinanceiras || 0);
-                      return { name: y, "Receita Líquida": receita, CMV: cmv, "Desp. Operacionais": despOp, "Desp. Financeiras": despFin };
-                    })}>
+                      const cmvDesp = -((cmv + despOp + despFin) / 1000);
+                      const pct = receita > 0 ? (Math.abs(cmvDesp) / receita) * 100 : 0;
+                      return {
+                        name: y,
+                        "Receita Líquida": parseFloat(receita.toFixed(0)),
+                        "CMV + DESPESA / RECEITA LÍQUIDA": parseFloat(cmvDesp.toFixed(0)),
+                        pct: parseFloat(pct.toFixed(2)),
+                      };
+                    })} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
-                      <Tooltip formatter={(v: number) => [`R$ ${fmt(v)}`, ""]} />
-                      <Legend wrapperStyle={{ fontSize: 10 }} />
-                      <Bar dataKey="Receita Líquida" fill="#10b981" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="CMV" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Desp. Operacionais" fill="#f97316" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Desp. Financeiras" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                    </BarChart>
+                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => v.toLocaleString('pt-BR')} />
+                      <Tooltip formatter={(v: number, n: string) => n === "pct" ? `${v.toFixed(2)}%` : `R$ ${(v * 1000).toLocaleString('pt-BR')}`} />
+                      <Legend wrapperStyle={{ fontSize: 9 }} />
+                      <Bar dataKey="Receita Líquida" fill="#5b9bd5">
+                        <LabelList dataKey="Receita Líquida" position="top" fontSize={9} formatter={(v: number) => v.toLocaleString('pt-BR')} />
+                      </Bar>
+                      <Bar dataKey="CMV + DESPESA / RECEITA LÍQUIDA" fill="#c00000">
+                        <LabelList dataKey="CMV + DESPESA / RECEITA LÍQUIDA" position="bottom" fontSize={9} formatter={(v: number) => `(${Math.abs(v).toLocaleString('pt-BR')})`} />
+                      </Bar>
+                      <Line type="linear" dataKey="pct" name="CMV + DESPESA / RECEITA LÍQUIDA (%)" stroke="#c00000" strokeWidth={0} dot={false}>
+                        <LabelList dataKey="pct" position="top" fontSize={9} fill="#c00000" formatter={(v: number) => `${v.toFixed(2)}%`} />
+                      </Line>
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </div>
