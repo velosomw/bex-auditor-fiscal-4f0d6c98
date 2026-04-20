@@ -1967,9 +1967,31 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
                 </TableBody>
               </Table>
             </div>
-          </div>
 
-          <div>
+            {/* Gráfico de Barras — Índices de Solvência */}
+            {solvencyIndicators.length > 0 && (
+              <div className="mt-4">
+                <div className="h-[220px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map(si => ({
+                      name: si.name.replace("Liquidez ", "Liq. ").replace("Solvência ", "Solv. "),
+                      value: parseFloat(si.result.replace("%", "").replace(",", ".")) || 0,
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 9 }} unit="%" />
+                      <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, "Resultado"]} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map((_, i) => (
+                          <Cell key={i} fill={["hsl(258,90%,66%)", "hsl(258,70%,60%)", "hsl(258,50%,55%)", "hsl(258,90%,50%)"][i % 4]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
             <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
             <div className="space-y-3">
               {[
