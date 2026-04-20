@@ -1992,6 +1992,8 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               </div>
             )}
           </div>
+
+          <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
             <div className="space-y-3">
               {[
