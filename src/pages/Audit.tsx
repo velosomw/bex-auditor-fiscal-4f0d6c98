@@ -1851,12 +1851,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
         {/* BRASIL EXPERT — posicionado logo abaixo da logo */}
         <div className="px-12 text-center mt-8">
-          <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground">BRASIL EXPERT</p>
+          <p className="text-2xl md:text-3xl font-bold font-sans text-foreground">BRASIL EXPERT</p>
         </div>
 
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold font-sans leading-tight text-foreground">
             RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
           </h1>
           <p className="text-sm text-muted-foreground mt-3 italic">Business Extended Analysis</p>
@@ -2650,10 +2650,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
           </div>
           <div className="px-12 text-center mt-8">
-            <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground">BRASIL EXPERT</p>
+            <p className="text-2xl md:text-3xl font-bold font-sans text-foreground">BRASIL EXPERT</p>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-            <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold font-sans leading-tight text-foreground">
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
             <p className="text-sm text-muted-foreground mt-3 italic">Relatório Financeiro de Inteligência de Risco</p>
@@ -3122,12 +3122,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 
         {/* BRASIL EXPERT — posicionado logo abaixo da logo */}
         <div className="px-12 text-center mt-8">
-          <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground">BRASIL EXPERT</p>
+          <p className="text-2xl md:text-3xl font-bold font-sans text-foreground">BRASIL EXPERT</p>
         </div>
 
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold font-sans leading-tight text-foreground">
             RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
           </h1>
           <p className="text-sm text-muted-foreground mt-3 italic">Risk Intelligence Financial Report</p>
