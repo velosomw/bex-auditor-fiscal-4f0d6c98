@@ -13,6 +13,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { mockStats, mockCompliance, mockRisks, mockNormativeReferences, mockCriticalAreas, mockTrendData, mockAuditDistribution } from "@/data/dashboardMockData";
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
+import CompanyRegisterDialog from "@/components/CompanyRegisterDialog";
 import { listCompanies, type Company } from "@/services/companiesService";
 
 const COLORS = ["hsl(217,91%,50%)", "hsl(200,98%,55%)", "hsl(142,76%,36%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)"];
@@ -49,9 +50,12 @@ const Dashboard = () => {
   const [period, setPeriod] = useState("6m");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
 
-  useEffect(() => { listCompanies().then(setCompanies).catch(() => {}); }, []);
+  const refreshCompanies = () => listCompanies().then(setCompanies).catch(() => {});
+
+  useEffect(() => { refreshCompanies(); }, []);
 
   const handleStartNewAudit = (company: Company) => navigate(`/audit?company=${company.id}`);
 
@@ -94,6 +98,9 @@ const Dashboard = () => {
                 </div>
               )}
             </div>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs border-[hsl(217,91%,50%)]/40 text-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,50%)]/10" onClick={() => setRegisterOpen(true)}>
+              <Building2 className="w-4 h-4" /> Cadastrar Empresa
+            </Button>
             <Button size="sm" className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5" onClick={() => setSelectorOpen(true)}>
               <Plus className="w-4 h-4" /> Nova Auditoria
             </Button>
@@ -105,6 +112,7 @@ const Dashboard = () => {
           </div>
         </div>
         <CompanySelectorDialog open={selectorOpen} onOpenChange={setSelectorOpen} onConfirm={handleStartNewAudit} />
+        <CompanyRegisterDialog open={registerOpen} onOpenChange={setRegisterOpen} onCreated={refreshCompanies} />
 
         {/* ── Audit Overview Panel ── */}
         <Card className="border-2 border-[hsl(258,90%,66%)]/20 bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent">

@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.audit-parse-pdf]
 verify_jwt = false
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.bootstrap-companies]
+verify_jwt = false
