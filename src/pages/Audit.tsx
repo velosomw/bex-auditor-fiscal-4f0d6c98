@@ -1849,9 +1849,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
         </div>
 
+        {/* BRASIL EXPERT — posicionado logo abaixo da logo */}
+        <div className="px-12 text-center mt-8">
+          <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground">BRASIL EXPERT</p>
+        </div>
+
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <p className="text-2xl md:text-3xl font-bold tracking-[0.25em] text-foreground mb-8">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
           </h1>
