@@ -14,8 +14,9 @@ import {
   Plus, Download, Settings, CheckCircle2, XCircle, Pause,
   FileText, Upload, Search, Trash2, Edit, Brain, BarChart3,
   Activity, Zap, Database, Globe, Webhook, CreditCard, Scale,
-  MessageSquare, Thermometer, Cpu, Eye, Send, SlidersHorizontal
+  MessageSquare, Thermometer, Cpu, Eye, Send, SlidersHorizontal, Gauge
 } from "lucide-react";
+import TabReportLimits from "@/components/gestor/TabReportLimits";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 
 // ─── Mock Data ───────────────────────────────────────────────
@@ -920,6 +921,9 @@ const GestorIA = () => {
             <TabsTrigger value="risk-engine" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <Activity className="w-3.5 h-3.5" /> Risk Engine
             </TabsTrigger>
+            <TabsTrigger value="limites" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <Gauge className="w-3.5 h-3.5" /> Limite de Relatórios
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
@@ -929,6 +933,7 @@ const GestorIA = () => {
           <TabsContent value="governanca"><TabGovernanca /></TabsContent>
           <TabsContent value="logs"><TabLogs /></TabsContent>
           <TabsContent value="risk-engine"><TabRiskEngineDash /></TabsContent>
+          <TabsContent value="limites"><TabReportLimits /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
