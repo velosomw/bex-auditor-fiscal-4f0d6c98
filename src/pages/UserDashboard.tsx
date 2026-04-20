@@ -89,11 +89,19 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const [history, setHistory] = useState<AuditHistoryEntry[]>([]);
   const [reports, setReports] = useState<GeneratedReportEntry[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
 
   useEffect(() => {
     setHistory(getAuditHistory());
     setReports(getGeneratedReports());
+    listCompanies().then(setCompanies).catch(() => {});
   }, []);
+
+  const handleStartNewAudit = (company: Company) => {
+    navigate(`/audit?company=${company.id}`);
+  };
 
   const completed = history.filter(h => h.status === "completed").length;
   const inProgress = history.filter(h => h.status === "in_progress").length;
