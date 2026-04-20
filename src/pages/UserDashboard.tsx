@@ -208,11 +208,11 @@ const UserDashboard = () => {
                 <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
                 <CardTitle className="text-lg">Relatórios Gerados</CardTitle>
               </div>
-              <CardDescription>
-                {lastReports.length > 0
-                  ? `${lastReports.length} relatório${lastReports.length > 1 ? "s" : ""} disponível${lastReports.length > 1 ? "is" : ""} para visualização ou impressão`
-                  : "Gere um relatório em /audit para visualizá-lo aqui."}
-              </CardDescription>
+              {lastReports.length > 0 && (
+                <CardDescription>
+                  {`${lastReports.length} relatório${lastReports.length > 1 ? "s" : ""} disponível${lastReports.length > 1 ? "is" : ""} para visualização ou impressão`}
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               {lastReports.length === 0 ? (
