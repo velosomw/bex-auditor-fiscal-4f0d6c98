@@ -1851,7 +1851,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
 
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX</p>
+          <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
           </h1>
