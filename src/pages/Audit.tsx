@@ -1850,12 +1850,12 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
         </div>
 
         {/* Center content */}
-        <div className="flex-1 flex flex-col items-start justify-start px-12 text-center pt-4">
-          <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mb-4 self-center">BRASIL EXPERT</p>
-          <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground self-center">
+        <div className="flex-1 flex flex-col items-center px-12 text-center">
+          <p className="text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground mt-4 mb-10">BRASIL EXPERT</p>
+          <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
           </h1>
-          <p className="text-sm text-muted-foreground mt-3 italic self-center">Business Extended Analysis</p>
+          <p className="text-sm text-muted-foreground mt-3 italic">Business Extended Analysis</p>
 
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[hsl(258,90%,66%)]/30 bg-[hsl(258,90%,66%)]/5 mt-8">
             <span className="text-lg">{riskIcon}</span>
