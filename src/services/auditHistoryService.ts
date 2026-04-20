@@ -1,3 +1,5 @@
+export type ReportSource = "auditor_chefe" | "usuario" | "empresa";
+
 export interface AuditHistoryEntry {
   id: string;
   fileName: string;
@@ -9,6 +11,9 @@ export interface AuditHistoryEntry {
   riscos: number;
   riskLevel: string;
   batchId?: string;
+  companyId?: string;
+  companyName?: string;
+  source?: ReportSource;
 }
 
 export interface SourceDocumentRef {
@@ -33,6 +38,17 @@ export interface GeneratedReportEntry {
   parsedData: any;
   batchId?: string;
   sourceDocuments?: SourceDocumentRef[];
+  companyId?: string;
+  companyName?: string;
+  source?: ReportSource;
+}
+
+export function getReportsByCompany(companyId: string): GeneratedReportEntry[] {
+  return getGeneratedReports().filter(r => r.companyId === companyId);
+}
+
+export function getDocsByCompany(companyId: string): AuditHistoryEntry[] {
+  return getAuditHistory().filter(d => d.companyId === companyId);
 }
 
 const STORAGE_KEY = "bex_audit_history";

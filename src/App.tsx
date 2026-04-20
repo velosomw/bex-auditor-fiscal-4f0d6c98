@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
 import ReportView from "./pages/ReportView";
+import CompanyPage from "./pages/CompanyPage";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/modelo-matematico" element={<ModeloMatematico />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/usuarios" element={<UserManagement />} />
+            <Route path="/empresa/:id" element={<CompanyPage />} />
 
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>

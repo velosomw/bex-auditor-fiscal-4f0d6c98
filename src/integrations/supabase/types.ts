@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          sector: string | null
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          sector?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          sector?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

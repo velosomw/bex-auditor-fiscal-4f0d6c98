@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp, Trash2, ChevronsRight } from "lucide-react";
+import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp, Trash2, ChevronsRight, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import PlatformLayout from "@/components/PlatformLayout";
+import CompanySelectorDialog from "@/components/CompanySelectorDialog";
 import {
   getAuditHistory,
   getGeneratedReports,
@@ -13,6 +14,7 @@ import {
   type AuditHistoryEntry,
   type GeneratedReportEntry,
 } from "@/services/auditHistoryService";
+import { listCompanies, type Company } from "@/services/companiesService";
 
 const statusConfig = {
   completed: { label: "Concluída", className: "bg-[hsl(142,76%,36%)]/20 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30" },
@@ -87,11 +89,19 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const [history, setHistory] = useState<AuditHistoryEntry[]>([]);
   const [reports, setReports] = useState<GeneratedReportEntry[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
 
   useEffect(() => {
     setHistory(getAuditHistory());
     setReports(getGeneratedReports());
+    listCompanies().then(setCompanies).catch(() => {});
   }, []);
+
+  const handleStartNewAudit = (company: Company) => {
+    navigate(`/audit?company=${company.id}`);
+  };
 
   const completed = history.filter(h => h.status === "completed").length;
   const inProgress = history.filter(h => h.status === "in_progress").length;
@@ -162,14 +172,47 @@ const UserDashboard = () => {
             <h1 className="text-2xl font-bold text-foreground">Minha Área de Auditoria</h1>
             <p className="text-muted-foreground">Resumo das suas auditorias e documentos analisados</p>
           </div>
-          <Button
-            size="sm"
-            onClick={() => navigate("/audit")}
-            className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-          >
-            <Plus className="w-4 h-4" /> Nova Auditoria
-          </Button>
+          <div className="flex items-center gap-2 relative">
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCompanyMenuOpen(v => !v)}
+                className="gap-1.5"
+              >
+                <Building2 className="w-4 h-4" /> Ver Empresa
+              </Button>
+              {companyMenuOpen && companies.length > 0 && (
+                <div className="absolute right-0 top-full mt-1 z-20 w-64 bg-popover border border-border rounded-lg shadow-lg max-h-72 overflow-auto">
+                  {companies.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setCompanyMenuOpen(false); navigate(`/empresa/${c.id}`); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+                    >
+                      <p className="font-medium text-foreground truncate">{c.name}</p>
+                      {c.cnpj && <p className="text-[11px] text-muted-foreground">{c.cnpj}</p>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {companyMenuOpen && companies.length === 0 && (
+                <div className="absolute right-0 top-full mt-1 z-20 w-64 bg-popover border border-border rounded-lg shadow-lg p-3">
+                  <p className="text-xs text-muted-foreground">Nenhuma empresa cadastrada. Clique em "+ Nova Auditoria" para cadastrar.</p>
+                </div>
+              )}
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setSelectorOpen(true)}
+              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> Nova Auditoria
+            </Button>
+          </div>
         </div>
+
+        <CompanySelectorDialog open={selectorOpen} onOpenChange={setSelectorOpen} onConfirm={handleStartNewAudit} />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
