@@ -173,22 +173,6 @@
   color: hsl(220, 25%, 14%);
 }
 
-.report-a4-cover::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: var(--report-watermark);
-  background-repeat: no-repeat;
-  background-position: center 55%;
-  background-size: 60%;
-  opacity: 0.06;
-  pointer-events: none;
-  z-index: 0;
-}
-
 .report-a4-cover > * {
   position: relative;
   z-index: 1;
