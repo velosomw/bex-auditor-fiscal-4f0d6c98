@@ -2677,23 +2677,21 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
               </div>
             </div>
 
-            {/* Termômetro visual */}
+            {/* Termômetro de Kanitz (estilo gr4) — linha laranja */}
             {kanitzResults.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">TERMÔMETRO DE KANITZ</h3>
-                <div className="h-[180px] w-full">
+                <h3 className="text-sm font-semibold text-foreground mb-3 text-center">TERMÔMETRO DE KANITZ</h3>
+                <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(r.fi.toFixed(2)) }))}>
+                    <LineChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(r.fi.toFixed(2)) }))} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} />
+                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} tickFormatter={(v) => v.toFixed(2)} />
                       <Tooltip formatter={(v: number) => [v.toFixed(2), "Fator de Insolvência"]} />
-                      <Bar dataKey="FI" radius={[4, 4, 0, 0]}>
-                        {kanitzResults.map((r, i) => (
-                          <Cell key={i} fill={r.fi > 1 ? "#10b981" : r.fi > 0 ? "#3b82f6" : r.fi > -1 ? "#eab308" : r.fi >= -3 ? "#f97316" : "#ef4444"} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                      <Line type="linear" dataKey="FI" stroke="#ed7d31" strokeWidth={2.5} dot={{ r: 4, fill: "#ed7d31" }}>
+                        <LabelList dataKey="FI" position="top" fontSize={10} fill="#ed7d31" formatter={(v: number) => v.toFixed(2)} />
+                      </Line>
+                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               </div>
