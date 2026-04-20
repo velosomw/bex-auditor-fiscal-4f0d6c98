@@ -1851,7 +1851,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
 
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX</p>
+          <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO TÉCNICO DE AVALIAÇÃO<br />CONTÁBIL E SOLVÊNCIA EMPRESARIAL
           </h1>
@@ -1879,35 +1879,9 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
         {/* Footer */}
         <div className="report-footer-bar">
           <p>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
-          <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
+        <p>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
           </div>
           </div>
-
-          {/* Gráfico de Barras — Índices de Solvência */}
-          {solvencyIndicators.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-3">Índices de Solvência</h3>
-              <div className="h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map(si => ({
-                    name: si.name.replace("Liquidez ", "Liq. ").replace("Solvência ", "Solv. "),
-                    value: parseFloat(si.result.replace("%", "").replace(",", ".")) || 0,
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                    <YAxis tick={{ fontSize: 9 }} unit="%" />
-                    <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, "Resultado"]} />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      {solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map((_, i) => (
-                        <Cell key={i} fill={["hsl(258,90%,66%)", "hsl(258,70%,60%)", "hsl(258,50%,55%)", "hsl(258,90%,50%)"][i % 4]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
 
       {/* ── 1. DIAGNÓSTICO EXECUTIVO ── */}
       <ReportPage>
@@ -1993,6 +1967,30 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
                 </TableBody>
               </Table>
             </div>
+
+            {/* Gráfico de Barras — Índices de Solvência */}
+            {solvencyIndicators.length > 0 && (
+              <div className="mt-4">
+                <div className="h-[220px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map(si => ({
+                      name: si.name.replace("Liquidez ", "Liq. ").replace("Solvência ", "Solv. "),
+                      value: parseFloat(si.result.replace("%", "").replace(",", ".")) || 0,
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 9 }} unit="%" />
+                      <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, "Resultado"]} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map((_, i) => (
+                          <Cell key={i} fill={["hsl(258,90%,66%)", "hsl(258,70%,60%)", "hsl(258,50%,55%)", "hsl(258,90%,50%)"][i % 4]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -2578,7 +2576,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
           </div>
           <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX — Inteligência de Risco</p>
+            <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
             <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
@@ -3050,7 +3048,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX — Risk Intelligence</p>
+          <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
           </h1>
