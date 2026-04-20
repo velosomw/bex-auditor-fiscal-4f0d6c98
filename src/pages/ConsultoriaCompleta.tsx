@@ -74,10 +74,10 @@ const ConsultoriaCompleta = () => {
                 <p className="text-sm text-primary-foreground/60">6 a 12 meses de acompanhamento integral.</p>
               </div>
               <Link
-                to="/contato"
+                to="/solicitar-cadastro"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-primary-foreground/30 text-primary-foreground font-semibold hover:bg-accent hover:text-accent-foreground hover:border-accent transition-colors"
               >
-                Solicitar Consultoria <ArrowRight className="w-4 h-4" />
+                Solicitar Cadastro <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
             <div className="hidden md:flex items-center justify-center p-14 relative overflow-hidden">
