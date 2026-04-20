@@ -2576,7 +2576,7 @@ const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, v
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
           </div>
           <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX — Inteligência de Risco</p>
+            <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
             <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
@@ -3048,7 +3048,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 
         {/* Center content */}
         <div className="flex-1 flex flex-col items-center justify-center px-12 text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground font-semibold mb-3">Plataforma BEX — Risk Intelligence</p>
+          <p className="text-base font-semibold tracking-[0.2em] text-foreground mb-6">BRASIL EXPERT</p>
           <h1 className="text-2xl md:text-3xl font-bold font-serif leading-tight text-foreground">
             RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
           </h1>
