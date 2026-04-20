@@ -25,6 +25,8 @@ import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
 import ReportView from "./pages/ReportView";
 import CompanyPage from "./pages/CompanyPage";
+import Empresas from "./pages/Empresas";
+import SolicitarCadastro from "./pages/SolicitarCadastro";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -47,6 +49,7 @@ const App = () => (
             <Route path="/insights" element={<Layout><Insights /></Layout>} />
             <Route path="/sobre" element={<Layout><Sobre /></Layout>} />
             <Route path="/contato" element={<Layout><Contato /></Layout>} />
+            <Route path="/solicitar-cadastro" element={<Layout><SolicitarCadastro /></Layout>} />
 
             {/* Plataforma de Auditoria */}
             <Route path="/login" element={<Login />} />
@@ -60,6 +63,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/usuarios" element={<UserManagement />} />
             <Route path="/empresa/:id" element={<CompanyPage />} />
+            <Route path="/empresas" element={<Empresas />} />
 
             <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>

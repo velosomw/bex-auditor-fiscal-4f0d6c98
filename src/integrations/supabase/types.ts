@@ -16,31 +16,70 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          address: string | null
+          city: string | null
+          cnae: string | null
           cnpj: string | null
+          contact_name: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
+          email: string | null
           id: string
           name: string
+          notes: string | null
+          payment_due_date: string | null
+          payment_status: string
+          phone: string | null
           sector: string | null
+          source: string
+          status: string
+          uf: string | null
           updated_at: string
+          zip: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
+          cnae?: string | null
           cnpj?: string | null
+          contact_name?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string | null
+          email?: string | null
           id?: string
           name: string
+          notes?: string | null
+          payment_due_date?: string | null
+          payment_status?: string
+          phone?: string | null
           sector?: string | null
+          source?: string
+          status?: string
+          uf?: string | null
           updated_at?: string
+          zip?: string | null
         }
         Update: {
+          address?: string | null
+          city?: string | null
+          cnae?: string | null
           cnpj?: string | null
+          contact_name?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
+          email?: string | null
           id?: string
           name?: string
+          notes?: string | null
+          payment_due_date?: string | null
+          payment_status?: string
+          phone?: string | null
           sector?: string | null
+          source?: string
+          status?: string
+          uf?: string | null
           updated_at?: string
+          zip?: string | null
         }
         Relationships: []
       }

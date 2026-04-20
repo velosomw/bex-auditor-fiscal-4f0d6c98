@@ -13,7 +13,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { mockStats, mockCompliance, mockRisks, mockNormativeReferences, mockCriticalAreas, mockTrendData, mockAuditDistribution } from "@/data/dashboardMockData";
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
-import CompanyRegisterDialog from "@/components/CompanyRegisterDialog";
 import { listCompanies, type Company } from "@/services/companiesService";
 
 const COLORS = ["hsl(217,91%,50%)", "hsl(200,98%,55%)", "hsl(142,76%,36%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)"];
@@ -50,8 +49,6 @@ const Dashboard = () => {
   const [period, setPeriod] = useState("6m");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const [registerOpen, setRegisterOpen] = useState(false);
-  const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
 
   const refreshCompanies = () => listCompanies().then(setCompanies).catch(() => {});
 
@@ -80,26 +77,8 @@ const Dashboard = () => {
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => navigate("/modelo-matematico")}>
               <Calculator className="w-4 h-4" /> Modelo Matemático
             </Button>
-            <div className="relative">
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setCompanyMenuOpen(v => !v)}>
-                <Building2 className="w-4 h-4" /> Ver Empresa
-              </Button>
-              {companyMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 z-20 w-64 bg-popover border border-border rounded-lg shadow-lg max-h-72 overflow-auto">
-                  {companies.length === 0 ? (
-                    <div className="p-3"><p className="text-xs text-muted-foreground">Nenhuma empresa cadastrada. Inicie uma nova auditoria para cadastrar.</p></div>
-                  ) : companies.map(c => (
-                    <button key={c.id} onClick={() => { setCompanyMenuOpen(false); navigate(`/empresa/${c.id}`); }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0">
-                      <p className="font-medium text-foreground truncate">{c.name}</p>
-                      {c.cnpj && <p className="text-[11px] text-muted-foreground">{c.cnpj}</p>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs border-[hsl(217,91%,50%)]/40 text-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,50%)]/10" onClick={() => setRegisterOpen(true)}>
-              <Building2 className="w-4 h-4" /> Cadastrar Empresa
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => navigate("/empresas")}>
+              <Building2 className="w-4 h-4" /> Ver Empresas
             </Button>
             <Button size="sm" className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5" onClick={() => setSelectorOpen(true)}>
               <Plus className="w-4 h-4" /> Nova Auditoria
@@ -112,7 +91,6 @@ const Dashboard = () => {
           </div>
         </div>
         <CompanySelectorDialog open={selectorOpen} onOpenChange={setSelectorOpen} onConfirm={handleStartNewAudit} />
-        <CompanyRegisterDialog open={registerOpen} onOpenChange={setRegisterOpen} onCreated={refreshCompanies} />
 
         {/* ── Audit Overview Panel ── */}
         <Card className="border-2 border-[hsl(258,90%,66%)]/20 bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent">
