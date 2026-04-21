@@ -26,6 +26,7 @@ import UserManagement from "./pages/UserManagement";
 import ReportView from "./pages/ReportView";
 import CompanyPage from "./pages/CompanyPage";
 import Empresas from "./pages/Empresas";
+import UserEmpresas from "./pages/UserEmpresas";
 import SolicitarCadastro from "./pages/SolicitarCadastro";
 import ScrollToTop from "./components/ScrollToTop";
 
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/select-role" element={<RoleSelection />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/user" element={<UserDashboard />} />
+            <Route path="/user/empresas" element={<UserEmpresas />} />
             <Route path="/user/report/:id" element={<ReportView />} />
             <Route path="/audit" element={<Audit />} />
             <Route path="/gestor-ia" element={<GestorIA />} />
