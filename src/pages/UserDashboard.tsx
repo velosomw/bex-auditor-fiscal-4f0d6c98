@@ -175,15 +175,21 @@ const UserDashboard = () => {
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              onClick={() => setSelectorOpen(true)}
+              variant="outline"
+              onClick={() => navigate("/user/empresas")}
+              className="gap-1.5"
+            >
+              <Building2 className="w-4 h-4" /> Empresas
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => navigate("/user/empresas")}
               className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
             >
               <Plus className="w-4 h-4" /> Nova Auditoria
             </Button>
           </div>
         </div>
-
-        <CompanySelectorDialog open={selectorOpen} onOpenChange={setSelectorOpen} onConfirm={handleStartNewAudit} />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
