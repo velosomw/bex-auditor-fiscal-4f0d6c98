@@ -71,6 +71,7 @@ export interface CreateCompanyInput {
   notes?: string;
   status?: CompanyStatus;
   source?: CompanySource;
+  phone_fixed?: string;
 }
 
 export async function createCompany(input: CreateCompanyInput): Promise<Company> {
@@ -84,6 +85,7 @@ export async function createCompany(input: CreateCompanyInput): Promise<Company>
     sector: input.sector || null,
     cnae: input.cnae || null,
     phone: input.phone || null,
+    phone_fixed: input.phone_fixed || null,
     email: input.email || null,
     contact_name: input.contact_name || null,
     address: input.address || null,
