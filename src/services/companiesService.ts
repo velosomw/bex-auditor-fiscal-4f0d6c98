@@ -17,6 +17,7 @@ export interface Company {
   payment_due_date: string | null;
   cnae: string | null;
   phone: string | null;
+  phone_fixed: string | null;
   email: string | null;
   contact_name: string | null;
   address: string | null;
@@ -27,11 +28,20 @@ export interface Company {
   source: CompanySource;
 }
 
-export async function listCompanies(): Promise<Company[]> {
-  const { data, error } = await supabase
-    .from("companies")
-    .select("*")
-    .order("name", { ascending: true });
+/**
+ * Lista empresas. Por padrão lista todas (uso de gestores/auditores).
+ * Passe { ownedOnly: true } para listar apenas as empresas criadas pelo usuário logado
+ * (uso do login Empresa, que vê apenas suas próprias empresas cadastradas).
+ */
+export async function listCompanies(opts?: { ownedOnly?: boolean }): Promise<Company[]> {
+  let query = supabase.from("companies").select("*").order("name", { ascending: true });
+  if (opts?.ownedOnly) {
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) return [];
+    query = query.eq("created_by", uid);
+  }
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []) as Company[];
 }
@@ -61,6 +71,7 @@ export interface CreateCompanyInput {
   notes?: string;
   status?: CompanyStatus;
   source?: CompanySource;
+  phone_fixed?: string;
 }
 
 export async function createCompany(input: CreateCompanyInput): Promise<Company> {
@@ -74,6 +85,7 @@ export async function createCompany(input: CreateCompanyInput): Promise<Company>
     sector: input.sector || null,
     cnae: input.cnae || null,
     phone: input.phone || null,
+    phone_fixed: input.phone_fixed || null,
     email: input.email || null,
     contact_name: input.contact_name || null,
     address: input.address || null,
