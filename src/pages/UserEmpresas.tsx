@@ -153,6 +153,18 @@ const UserEmpresas = () => {
     if (fixedDigits && fixedDigits.length !== 10) { toast({ title: "Telefone fixo inválido", description: "Use o formato (00) 0000-0000.", variant: "destructive" }); return; }
     if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { toast({ title: "E-mail inválido", variant: "destructive" }); return; }
 
+    // Verifica sessão antes de tentar gravar (evita falha silenciosa por RLS)
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session?.user?.id) {
+      toast({
+        title: "Sessão não encontrada",
+        description: "Você precisa estar autenticado para cadastrar uma empresa. Faça login novamente.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
     setSaving(true);
     try {
       const sectorComposed = [sector, uf && city ? `${city}/${uf}` : uf].filter(Boolean).join(" — ");
