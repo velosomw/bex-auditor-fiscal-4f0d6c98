@@ -79,6 +79,7 @@ const UserEmpresas = () => {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
+  const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
 
   // Form state
   const [name, setName] = useState("");
