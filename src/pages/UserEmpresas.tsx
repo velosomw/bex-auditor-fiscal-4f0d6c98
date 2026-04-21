@@ -17,6 +17,7 @@ import {
 } from "@/services/auditHistoryService";
 import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const SECTORS = ["Indústria", "Varejo", "Serviços", "Tecnologia", "Construção", "Agro", "Saúde", "Financeiro", "Educação", "Outro"];
 const UF = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -151,6 +152,18 @@ const UserEmpresas = () => {
     const fixedDigits = contactPhoneFixed.replace(/\D/g, "");
     if (fixedDigits && fixedDigits.length !== 10) { toast({ title: "Telefone fixo inválido", description: "Use o formato (00) 0000-0000.", variant: "destructive" }); return; }
     if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { toast({ title: "E-mail inválido", variant: "destructive" }); return; }
+
+    // Verifica sessão antes de tentar gravar (evita falha silenciosa por RLS)
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session?.user?.id) {
+      toast({
+        title: "Sessão não encontrada",
+        description: "Você precisa estar autenticado para cadastrar uma empresa. Faça login novamente.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
 
     setSaving(true);
     try {
