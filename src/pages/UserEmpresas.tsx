@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Plus, Search, FileText, Eye, TrendingUp, AlertTriangle, Loader2, X } from "lucide-react";
+import { ArrowLeft, Building2, Plus, Search, FileText, Eye, TrendingUp, AlertTriangle, Loader2, X, List, LayoutGrid } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,7 @@ const UserEmpresas = () => {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
+  const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
 
   // Form state
   const [name, setName] = useState("");
@@ -225,14 +227,25 @@ const UserEmpresas = () => {
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            onClick={() => { setShowRegister(v => !v); setSelectedId(null); }}
-            className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-          >
-            {showRegister ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showRegister ? "Fechar Cadastro" : "Cadastrar Nova Empresa"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setViewMode(v => v === "table" ? "detail" : "table"); setShowRegister(false); setSelectedId(null); }}
+              className="gap-1.5"
+            >
+              {viewMode === "table" ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
+              {viewMode === "table" ? "Visão Detalhada" : "Lista de Empresas"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => { setShowRegister(v => !v); setSelectedId(null); setViewMode("detail"); }}
+              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+            >
+              {showRegister ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {showRegister ? "Fechar Cadastro" : "Cadastrar Nova Empresa"}
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -347,7 +360,100 @@ const UserEmpresas = () => {
           </Card>
         )}
 
+        {/* Visão em Tabela: lista todas as empresas cadastradas pelo login */}
+        {viewMode === "table" && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <List className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Lista de Empresas Cadastradas
+                  </CardTitle>
+                  <CardDescription>Todas as empresas vinculadas ao seu login.</CardDescription>
+                </div>
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, CNPJ, cidade..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="pl-8 h-9 text-sm"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="text-center py-10 px-4">
+                  <Building2 className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {companies.length === 0 ? "Nenhuma empresa cadastrada." : "Nenhuma empresa encontrada."}
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Razão Social</TableHead>
+                      <TableHead>CNPJ</TableHead>
+                      <TableHead>Setor</TableHead>
+                      <TableHead>Cidade/UF</TableHead>
+                      <TableHead>Contato</TableHead>
+                      <TableHead className="text-center">Relatórios</TableHead>
+                      <TableHead className="text-center">Docs</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(a => (
+                      <TableRow key={a.company.id}>
+                        <TableCell className="font-medium text-foreground">{a.company.name}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.company.cnpj || "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.company.sector || "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {a.company.city && a.company.uf ? `${a.company.city}/${a.company.uf}` : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.company.contact_name || "—"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px]">{a.reports.length}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px]">{a.docs.length}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => { setSelectedId(a.company.id); setViewMode("detail"); }}
+                              className="h-8 gap-1"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Detalhes
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleNewAudit(a.company)}
+                              className="h-8 bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Auditoria
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Layout: Lista + Detalhe */}
+        {viewMode === "detail" && (
         <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
           {/* Lista */}
           <Card className="h-fit">
@@ -546,6 +652,7 @@ const UserEmpresas = () => {
             )}
           </div>
         </div>
+        )}
       </div>
     </PlatformLayout>
   );
