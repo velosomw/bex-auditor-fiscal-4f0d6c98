@@ -75,9 +75,13 @@ export interface CreateCompanyInput {
 }
 
 export async function createCompany(input: CreateCompanyInput): Promise<Company> {
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
   const isAuthenticated = !!userId;
+
+  if (!isAuthenticated && input.source !== "site") {
+    throw new Error("Sessão expirada. Faça login novamente para cadastrar a empresa.");
+  }
 
   const payload: any = {
     name: input.name,
