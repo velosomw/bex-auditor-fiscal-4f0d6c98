@@ -28,6 +28,16 @@ const riskBadge: Record<string, { className: string; label: string }> = {
   critico: { className: "bg-foreground/15 text-foreground border-border", label: "Crítico" },
 };
 
+const formatCNPJ = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  let out = digits;
+  if (digits.length > 2) out = digits.slice(0, 2) + "." + digits.slice(2);
+  if (digits.length > 5) out = out.slice(0, 6) + "." + out.slice(6);
+  if (digits.length > 8) out = out.slice(0, 10) + "/" + out.slice(10);
+  if (digits.length > 12) out = out.slice(0, 15) + "-" + out.slice(15);
+  return out;
+};
+
 const formatFileSize = (bytes: number) => {
   if (!bytes) return "—";
   if (bytes < 1024) return `${bytes} B`;
@@ -219,7 +229,14 @@ const UserEmpresas = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="rcnpj">CNPJ</Label>
-                  <Input id="rcnpj" value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
+                  <Input
+                    id="rcnpj"
+                    value={cnpj}
+                    onChange={e => setCnpj(formatCNPJ(e.target.value))}
+                    placeholder="00.000.000/0000-00"
+                    maxLength={18}
+                    inputMode="numeric"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Setor</Label>
