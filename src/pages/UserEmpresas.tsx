@@ -298,8 +298,26 @@ const UserEmpresas = () => {
                   <Input id="remail" type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="contato@empresa.com.br" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="rphone">Telefone</Label>
-                  <Input id="rphone" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="(11) 99999-9999" />
+                  <Label htmlFor="rphone">Telefone Celular</Label>
+                  <Input
+                    id="rphone"
+                    value={contactPhone}
+                    onChange={e => setContactPhone(formatPhoneMobile(e.target.value))}
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
+                    inputMode="numeric"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rphonefix">Telefone Fixo</Label>
+                  <Input
+                    id="rphonefix"
+                    value={contactPhoneFixed}
+                    onChange={e => setContactPhoneFixed(formatPhoneLandline(e.target.value))}
+                    placeholder="(00) 0000-0000"
+                    maxLength={14}
+                    inputMode="numeric"
+                  />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
                   <Label htmlFor="rnotes">Observações</Label>
