@@ -227,14 +227,25 @@ const UserEmpresas = () => {
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            onClick={() => { setShowRegister(v => !v); setSelectedId(null); }}
-            className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-          >
-            {showRegister ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showRegister ? "Fechar Cadastro" : "Cadastrar Nova Empresa"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setViewMode(v => v === "table" ? "detail" : "table"); setShowRegister(false); setSelectedId(null); }}
+              className="gap-1.5"
+            >
+              {viewMode === "table" ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
+              {viewMode === "table" ? "Visão Detalhada" : "Lista de Empresas"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => { setShowRegister(v => !v); setSelectedId(null); setViewMode("detail"); }}
+              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+            >
+              {showRegister ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {showRegister ? "Fechar Cadastro" : "Cadastrar Nova Empresa"}
+            </Button>
+          </div>
         </div>
 
         {/* KPIs */}
