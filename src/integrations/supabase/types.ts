@@ -30,6 +30,7 @@ export type Database = {
           payment_due_date: string | null
           payment_status: string
           phone: string | null
+          phone_fixed: string | null
           sector: string | null
           source: string
           status: string
@@ -52,6 +53,7 @@ export type Database = {
           payment_due_date?: string | null
           payment_status?: string
           phone?: string | null
+          phone_fixed?: string | null
           sector?: string | null
           source?: string
           status?: string
@@ -74,6 +76,7 @@ export type Database = {
           payment_due_date?: string | null
           payment_status?: string
           phone?: string | null
+          phone_fixed?: string | null
           sector?: string | null
           source?: string
           status?: string
