@@ -360,7 +360,100 @@ const UserEmpresas = () => {
           </Card>
         )}
 
+        {/* Visão em Tabela: lista todas as empresas cadastradas pelo login */}
+        {viewMode === "table" && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <List className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Lista de Empresas Cadastradas
+                  </CardTitle>
+                  <CardDescription>Todas as empresas vinculadas ao seu login.</CardDescription>
+                </div>
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, CNPJ, cidade..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="pl-8 h-9 text-sm"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="text-center py-10 px-4">
+                  <Building2 className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {companies.length === 0 ? "Nenhuma empresa cadastrada." : "Nenhuma empresa encontrada."}
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Razão Social</TableHead>
+                      <TableHead>CNPJ</TableHead>
+                      <TableHead>Setor</TableHead>
+                      <TableHead>Cidade/UF</TableHead>
+                      <TableHead>Contato</TableHead>
+                      <TableHead className="text-center">Relatórios</TableHead>
+                      <TableHead className="text-center">Docs</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(a => (
+                      <TableRow key={a.company.id}>
+                        <TableCell className="font-medium text-foreground">{a.company.name}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.company.cnpj || "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.company.sector || "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {a.company.city && a.company.uf ? `${a.company.city}/${a.company.uf}` : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.company.contact_name || "—"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px]">{a.reports.length}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[10px]">{a.docs.length}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => { setSelectedId(a.company.id); setViewMode("detail"); }}
+                              className="h-8 gap-1"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Detalhes
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleNewAudit(a.company)}
+                              className="h-8 bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Auditoria
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Layout: Lista + Detalhe */}
+        {viewMode === "detail" && (
         <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
           {/* Lista */}
           <Card className="h-fit">
