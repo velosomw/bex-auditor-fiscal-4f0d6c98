@@ -38,6 +38,22 @@ const formatCNPJ = (value: string) => {
   return out;
 };
 
+// Celular: (00) 00000-0000  — 11 dígitos
+const formatPhoneMobile = (value: string) => {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
+// Fixo: (00) 0000-0000 — 10 dígitos
+const formatPhoneLandline = (value: string) => {
+  const d = value.replace(/\D/g, "").slice(0, 10);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+};
+
 const formatFileSize = (bytes: number) => {
   if (!bytes) return "—";
   if (bytes < 1024) return `${bytes} B`;
@@ -71,13 +87,14 @@ const UserEmpresas = () => {
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [contactPhoneFixed, setContactPhoneFixed] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const reload = () => {
     setLoading(true);
-    listCompanies()
+    listCompanies({ ownedOnly: true })
       .then(setCompanies)
       .catch(e => toast({ title: "Erro ao carregar empresas", description: e.message, variant: "destructive" }))
       .finally(() => setLoading(false));
@@ -119,25 +136,37 @@ const UserEmpresas = () => {
 
   const resetForm = () => {
     setName(""); setCnpj(""); setSector(""); setUf(""); setCity("");
-    setContactName(""); setContactEmail(""); setContactPhone(""); setAddress(""); setNotes("");
+    setContactName(""); setContactEmail(""); setContactPhone(""); setContactPhoneFixed("");
+    setAddress(""); setNotes("");
   };
 
   const handleSave = async () => {
-    if (!name.trim()) { toast({ title: "Nome é obrigatório", variant: "destructive" }); return; }
+    const trimmedName = name.trim();
+    if (!trimmedName) { toast({ title: "Razão Social é obrigatória", variant: "destructive" }); return; }
+    if (trimmedName.length > 200) { toast({ title: "Razão Social muito longa (máx. 200)", variant: "destructive" }); return; }
+    const cnpjDigits = cnpj.replace(/\D/g, "");
+    if (cnpjDigits && cnpjDigits.length !== 14) { toast({ title: "CNPJ inválido", description: "Informe os 14 dígitos.", variant: "destructive" }); return; }
+    const mobileDigits = contactPhone.replace(/\D/g, "");
+    if (mobileDigits && mobileDigits.length !== 11) { toast({ title: "Telefone celular inválido", description: "Use o formato (00) 00000-0000.", variant: "destructive" }); return; }
+    const fixedDigits = contactPhoneFixed.replace(/\D/g, "");
+    if (fixedDigits && fixedDigits.length !== 10) { toast({ title: "Telefone fixo inválido", description: "Use o formato (00) 0000-0000.", variant: "destructive" }); return; }
+    if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { toast({ title: "E-mail inválido", variant: "destructive" }); return; }
+
     setSaving(true);
     try {
       const sectorComposed = [sector, uf && city ? `${city}/${uf}` : uf].filter(Boolean).join(" — ");
       const c = await createCompany({
-        name: name.trim(),
+        name: trimmedName,
         cnpj: cnpj.trim() || undefined,
         sector: sectorComposed || undefined,
         city: city || undefined,
         uf: uf || undefined,
-        address: address || undefined,
-        contact_name: contactName || undefined,
-        email: contactEmail || undefined,
+        address: address.trim() || undefined,
+        contact_name: contactName.trim() || undefined,
+        email: contactEmail.trim() || undefined,
         phone: contactPhone || undefined,
-        notes: notes || undefined,
+        phone_fixed: contactPhoneFixed || undefined,
+        notes: notes.trim() || undefined,
       });
       toast({ title: "Empresa cadastrada", description: c.name });
       resetForm();
