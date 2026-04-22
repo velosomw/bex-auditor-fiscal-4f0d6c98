@@ -1,15 +1,24 @@
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from "react";
 import { UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
 interface UserContextType {
   role: UserRole | null;
+  /** Real role from DB (never overridden by impersonation) */
+  realRole: UserRole | null;
+  /** Effective role used by the UI (= viewAsRole when set, else realRole) */
+  effectiveRole: UserRole | null;
+  /** When set, the current user is impersonating this role (read-only). */
+  viewAsRole: UserRole | null;
+  /** True when impersonating: writes/edits must be blocked in the UI. */
+  isReadOnly: boolean;
   authenticated: boolean;
   supabaseUser: SupaUser | null;
   loading: boolean;
   setRole: (role: UserRole) => void;
   clearRole: () => void;
+  setViewAsRole: (role: UserRole | null) => void;
   login: () => void;
   logout: () => void;
 }
@@ -38,6 +47,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [authenticated, setAuthenticated] = useState(false);
   const [supabaseUser, setSupabaseUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewAsRole, setViewAsRoleState] = useState<UserRole | null>(() => {
+    const v = localStorage.getItem("viewAsRole");
+    return (v as UserRole) || null;
+  });
 
   useEffect(() => {
     const applySession = async (sessionUser: SupaUser | null) => {
@@ -45,8 +58,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         setSupabaseUser(null);
         setAuthenticated(false);
         setRoleState(null);
+        setViewAsRoleState(null);
         localStorage.removeItem("authenticated");
         localStorage.removeItem("userRole");
+        localStorage.removeItem("viewAsRole");
         setLoading(false);
         return;
       }
@@ -84,8 +99,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setRoleState(null);
     setAuthenticated(false);
     setSupabaseUser(null);
+    setViewAsRoleState(null);
     localStorage.removeItem("userRole");
     localStorage.removeItem("authenticated");
+    localStorage.removeItem("viewAsRole");
+  }, []);
+
+  const setViewAsRole = useCallback((r: UserRole | null) => {
+    setViewAsRoleState(r);
+    if (r) localStorage.setItem("viewAsRole", r);
+    else localStorage.removeItem("viewAsRole");
   }, []);
 
   const login = useCallback(() => {
@@ -98,8 +121,29 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     clearRole();
   }, [clearRole]);
 
+  // Only auditor_chefe is allowed to impersonate (read-only "view as").
+  const effectiveViewAs = role === "auditor_chefe" ? viewAsRole : null;
+  const effectiveRole: UserRole | null = effectiveViewAs ?? role;
+  const isReadOnly = !!effectiveViewAs;
+
+  const value = useMemo<UserContextType>(() => ({
+    role: effectiveRole,
+    realRole: role,
+    effectiveRole,
+    viewAsRole: effectiveViewAs,
+    isReadOnly,
+    authenticated,
+    supabaseUser,
+    loading,
+    setRole,
+    clearRole,
+    setViewAsRole,
+    login,
+    logout,
+  }), [effectiveRole, role, effectiveViewAs, isReadOnly, authenticated, supabaseUser, loading, setRole, clearRole, setViewAsRole, login, logout]);
+
   return (
-    <UserContext.Provider value={{ role, authenticated, supabaseUser, loading, setRole, clearRole, login, logout }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );
