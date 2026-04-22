@@ -102,6 +102,13 @@ export async function createCompany(input: CreateCompanyInput): Promise<Company>
     created_by: userId || null,
   };
 
+  // Anonymous (site) inserts cannot SELECT back due to RLS — only insert.
+  if (!isAuthenticated) {
+    const { error } = await supabase.from("companies").insert(payload);
+    if (error) throw error;
+    return { ...payload, id: "", created_at: "", updated_at: "" } as Company;
+  }
+
   const { data, error } = await supabase
     .from("companies")
     .insert(payload)
