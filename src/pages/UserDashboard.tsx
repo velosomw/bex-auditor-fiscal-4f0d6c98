@@ -15,6 +15,7 @@ import {
   type GeneratedReportEntry,
 } from "@/services/auditHistoryService";
 import { listCompanies, type Company } from "@/services/companiesService";
+import { useUser } from "@/contexts/UserContext";
 
 const statusConfig = {
   completed: { label: "Concluída", className: "bg-[hsl(142,76%,36%)]/20 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30" },
@@ -87,6 +88,7 @@ const DocCard = ({
 
 const UserDashboard = () => {
   const navigate = useNavigate();
+  const { isReadOnly } = useUser();
   const [history, setHistory] = useState<AuditHistoryEntry[]>([]);
   const [reports, setReports] = useState<GeneratedReportEntry[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -181,13 +183,15 @@ const UserDashboard = () => {
             >
               <Building2 className="w-4 h-4" /> Empresas
             </Button>
-            <Button
-              size="sm"
-              onClick={() => navigate("/user/empresas")}
-              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-            >
-              <Plus className="w-4 h-4" /> Nova Auditoria
-            </Button>
+            {!isReadOnly && (
+              <Button
+                size="sm"
+                onClick={() => navigate("/user/empresas")}
+                className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+              >
+                <Plus className="w-4 h-4" /> Nova Auditoria
+              </Button>
+            )}
           </div>
         </div>
 

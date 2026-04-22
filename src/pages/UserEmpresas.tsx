@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PlatformLayout from "@/components/PlatformLayout";
 import { listCompanies, createCompany, type Company } from "@/services/companiesService";
+import { useUser } from "@/contexts/UserContext";
 import {
   getReportsByCompany,
   getDocsByCompany,
@@ -74,6 +75,7 @@ interface CompanyAggregate {
 
 const UserEmpresas = () => {
   const navigate = useNavigate();
+  const { isReadOnly } = useUser();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -237,14 +239,16 @@ const UserEmpresas = () => {
               {viewMode === "table" ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
               {viewMode === "table" ? "Visão Detalhada" : "Lista de Empresas"}
             </Button>
-            <Button
-              size="sm"
-              onClick={() => { setShowRegister(v => !v); setSelectedId(null); setViewMode("detail"); }}
-              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-            >
-              {showRegister ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              {showRegister ? "Fechar Cadastro" : "Cadastrar Nova Empresa"}
-            </Button>
+            {!isReadOnly && (
+              <Button
+                size="sm"
+                onClick={() => { setShowRegister(v => !v); setSelectedId(null); setViewMode("detail"); }}
+                className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+              >
+                {showRegister ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {showRegister ? "Fechar Cadastro" : "Cadastrar Nova Empresa"}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -434,13 +438,15 @@ const UserEmpresas = () => {
                             >
                               <Eye className="w-3.5 h-3.5" /> Detalhes
                             </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleNewAudit(a.company)}
-                              className="h-8 bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1"
-                            >
-                              <Plus className="w-3.5 h-3.5" /> Auditoria
-                            </Button>
+                            {!isReadOnly && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleNewAudit(a.company)}
+                                className="h-8 bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> Auditoria
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -544,13 +550,15 @@ const UserEmpresas = () => {
                           {selected.company.contact_name && <span>• Contato: {selected.company.contact_name}</span>}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleNewAudit(selected.company)}
-                        className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-                      >
-                        <Plus className="w-4 h-4" /> Nova Auditoria
-                      </Button>
+                      {!isReadOnly && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleNewAudit(selected.company)}
+                          className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                        >
+                          <Plus className="w-4 h-4" /> Nova Auditoria
+                        </Button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
