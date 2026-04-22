@@ -23,16 +23,10 @@ const CompanyRegisterDialog = ({ open, onOpenChange, onCreated }: Props) => {
   const [sector, setSector] = useState("");
   const [uf, setUf] = useState("");
   const [city, setCity] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
     setName(""); setCnpj(""); setSector(""); setUf(""); setCity("");
-    setContactName(""); setContactEmail(""); setContactPhone(""); setAddress(""); setNotes("");
   };
 
   const handleSave = async () => {
@@ -45,7 +39,7 @@ const CompanyRegisterDialog = ({ open, onOpenChange, onCreated }: Props) => {
       try {
         const key = "bex_company_meta";
         const meta = JSON.parse(localStorage.getItem(key) || "{}");
-        meta[c.id] = { uf, city, contactName, contactEmail, contactPhone, address, notes };
+        meta[c.id] = { uf, city };
         localStorage.setItem(key, JSON.stringify(meta));
       } catch {}
       toast({ title: "Empresa cadastrada", description: c.name });
@@ -68,7 +62,7 @@ const CompanyRegisterDialog = ({ open, onOpenChange, onCreated }: Props) => {
             Cadastrar Empresa
           </DialogTitle>
           <DialogDescription>
-            Cadastro completo da empresa no portal. Ela ficará disponível para auditorias e relatórios.
+            Cadastro rápido da empresa interna. Os dados completos são preenchidos pela própria empresa no cadastro público.
           </DialogDescription>
         </DialogHeader>
 
@@ -102,26 +96,6 @@ const CompanyRegisterDialog = ({ open, onOpenChange, onCreated }: Props) => {
           <div className="space-y-1.5">
             <Label htmlFor="rcity">Cidade</Label>
             <Input id="rcity" value={city} onChange={e => setCity(e.target.value)} placeholder="Ex: São Paulo" />
-          </div>
-          <div className="space-y-1.5 md:col-span-2">
-            <Label htmlFor="raddr">Endereço</Label>
-            <Input id="raddr" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, número, bairro, CEP" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="rcontact">Responsável</Label>
-            <Input id="rcontact" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Nome do contato" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="remail">E-mail de contato</Label>
-            <Input id="remail" type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="contato@empresa.com.br" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="rphone">Telefone</Label>
-            <Input id="rphone" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="(11) 99999-9999" />
-          </div>
-          <div className="space-y-1.5 md:col-span-2">
-            <Label htmlFor="rnotes">Observações</Label>
-            <Input id="rnotes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notas internas sobre a empresa (opcional)" />
           </div>
         </div>
 
