@@ -51,6 +51,24 @@ const Dashboard = () => {
   const [period, setPeriod] = useState("6m");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const onlyDigits = (s: string) => (s || "").replace(/\D/g, "");
+  const searchResults = (() => {
+    const q = searchTerm.trim();
+    if (!q) return [] as Company[];
+    const qn = norm(q);
+    const qd = onlyDigits(q);
+    return companies
+      .filter((c) =>
+        norm(c.name).includes(qn) ||
+        (c.cnpj && qd && onlyDigits(c.cnpj).includes(qd)) ||
+        (c.id && c.id.toLowerCase().includes(q.toLowerCase())) ||
+        (c.sector && norm(c.sector).includes(qn))
+      )
+      .slice(0, 8);
+  })();
 
   const refreshCompanies = () => listCompanies().then(setCompanies).catch(() => {});
 
