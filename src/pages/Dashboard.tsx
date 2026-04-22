@@ -98,11 +98,6 @@ const Dashboard = () => {
             <Button size="sm" className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5" onClick={() => setSelectorOpen(true)}>
               <Plus className="w-4 h-4" /> Nova Auditoria
             </Button>
-            {role === "coordenadora" && (
-              <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={() => navigate("/usuarios")}>
-                <Plus className="w-4 h-4" /> Cadastrar Usuário
-              </Button>
-            )}
           </div>
         </div>
         <CompanySelectorDialog open={selectorOpen} onOpenChange={setSelectorOpen} onConfirm={handleStartNewAudit} />
