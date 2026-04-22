@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useUser } from "@/contexts/UserContext";
-import { FileText, CheckCircle2, Clock, Award, Plus, Download, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Eye, Calculator, Building2, Activity, Scale, AlertOctagon } from "lucide-react";
+import { FileText, CheckCircle2, Clock, Award, Plus, Download, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Eye, Calculator, Building2, Activity, Scale, AlertOctagon, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,6 +51,24 @@ const Dashboard = () => {
   const [period, setPeriod] = useState("6m");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const onlyDigits = (s: string) => (s || "").replace(/\D/g, "");
+  const searchResults = (() => {
+    const q = searchTerm.trim();
+    if (!q) return [] as Company[];
+    const qn = norm(q);
+    const qd = onlyDigits(q);
+    return companies
+      .filter((c) =>
+        norm(c.name).includes(qn) ||
+        (c.cnpj && qd && onlyDigits(c.cnpj).includes(qd)) ||
+        (c.id && c.id.toLowerCase().includes(q.toLowerCase())) ||
+        (c.sector && norm(c.sector).includes(qn))
+      )
+      .slice(0, 8);
+  })();
 
   const refreshCompanies = () => listCompanies().then(setCompanies).catch(() => {});
 
@@ -101,6 +120,70 @@ const Dashboard = () => {
           </div>
         </div>
         <CompanySelectorDialog open={selectorOpen} onOpenChange={setSelectorOpen} onConfirm={handleStartNewAudit} />
+
+        {/* ── Quick Search ── */}
+        <Card className="border-border/60">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 h-9 rounded-md bg-[hsl(217,91%,50%)]/10 text-[hsl(217,91%,50%)] text-xs font-medium shrink-0">
+                <Search className="w-3.5 h-3.5" /> Buscar Empresa
+              </div>
+              <div className="relative flex-1">
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Pesquise por empresa, ID, CNPJ ou setor para abrir a visão 360°..."
+                  className="h-9 text-sm pr-8"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {searchTerm && (
+              <div className="mt-3 border border-border/60 rounded-lg overflow-hidden">
+                {searchResults.length === 0 ? (
+                  <div className="p-4 text-xs text-muted-foreground text-center">
+                    Nenhuma empresa encontrada para "{searchTerm}".
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-border/60 max-h-72 overflow-y-auto">
+                    {searchResults.map((c) => (
+                      <li key={c.id}>
+                        <button
+                          onClick={() => navigate(`/empresa/${c.id}`)}
+                          className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-muted/50 transition text-left"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-md bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
+                              <Building2 className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {c.cnpj ? `CNPJ ${c.cnpj}` : "CNPJ não informado"}
+                                {c.sector ? ` · ${c.sector}` : ""}
+                                {` · ID ${c.id.slice(0, 8)}`}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] shrink-0">Abrir 360°</Badge>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* ── Audit Overview Panel ── */}
         <Card className="border-2 border-[hsl(258,90%,66%)]/20 bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent">
