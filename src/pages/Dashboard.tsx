@@ -13,6 +13,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { mockStats, mockCompliance, mockRisks, mockNormativeReferences, mockCriticalAreas, mockTrendData, mockAuditDistribution } from "@/data/dashboardMockData";
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
+import CoordinatorDashboard from "@/components/coordinator/CoordinatorDashboard";
 import { listCompanies, type Company } from "@/services/companiesService";
 
 const COLORS = ["hsl(217,91%,50%)", "hsl(200,98%,55%)", "hsl(142,76%,36%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)"];
@@ -56,6 +57,20 @@ const Dashboard = () => {
 
   const handleStartNewAudit = (company: Company) => navigate(`/audit?company=${company.id}`);
 
+  if (role === "coordenadora") {
+    return (
+      <PlatformLayout>
+        <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard da Coordenadora</h1>
+            <p className="text-sm text-muted-foreground">Cockpit consolidado de governança e supervisão</p>
+          </div>
+          <CoordinatorDashboard />
+        </div>
+      </PlatformLayout>
+    );
+  }
+
   return (
     <PlatformLayout>
       <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
@@ -83,11 +98,6 @@ const Dashboard = () => {
             <Button size="sm" className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5" onClick={() => setSelectorOpen(true)}>
               <Plus className="w-4 h-4" /> Nova Auditoria
             </Button>
-            {role === "coordenadora" && (
-              <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={() => navigate("/usuarios")}>
-                <Plus className="w-4 h-4" /> Cadastrar Usuário
-              </Button>
-            )}
           </div>
         </div>
         <CompanySelectorDialog open={selectorOpen} onOpenChange={setSelectorOpen} onConfirm={handleStartNewAudit} />
