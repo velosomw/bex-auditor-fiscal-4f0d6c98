@@ -57,6 +57,20 @@ const Dashboard = () => {
 
   const handleStartNewAudit = (company: Company) => navigate(`/audit?company=${company.id}`);
 
+  if (role === "coordenadora") {
+    return (
+      <PlatformLayout>
+        <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard da Coordenadora</h1>
+            <p className="text-sm text-muted-foreground">Cockpit consolidado de governança e supervisão</p>
+          </div>
+          <CoordinatorDashboard />
+        </div>
+      </PlatformLayout>
+    );
+  }
+
   return (
     <PlatformLayout>
       <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6">
