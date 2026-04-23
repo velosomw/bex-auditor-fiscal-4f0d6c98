@@ -121,14 +121,14 @@ const PIPELINE_KEY = "bex.gestor-ia.ai-pipeline";
 // ─── Defaults ────────────────────────────────────────────────
 const DEFAULT_CONFIGS: Record<ProviderId, ProviderConfig> = {
   lovable_cloud: { id: "lovable_cloud", enabled: true, apiKey: "", model: "google/gemini-2.5-flash" },
-  google_document_ai: { id: "google_document_ai", enabled: false, apiKey: "", projectId: "", location: "us", processorId: "" },
+  google_document_ai: { id: "google_document_ai", enabled: true, apiKey: "••• armazenada como secret •••", projectId: "", location: "us", processorId: "" },
   gemini: { id: "gemini", enabled: false, apiKey: "", model: "gemini-2.5-flash" },
   vertex_ai: { id: "vertex_ai", enabled: false, apiKey: "", projectId: "", location: "us-central1", model: "gemini-2.5-pro" },
   openai_gpt: { id: "openai_gpt", enabled: false, apiKey: "", model: "gpt-5-mini" },
 };
 
 const DEFAULT_PIPELINE: PipelineConfig = {
-  ocr: "lovable_cloud",
+  ocr: "google_document_ai",
   reasoning: "lovable_cloud",
   report: "lovable_cloud",
 };
@@ -299,6 +299,12 @@ const AIProvidersConfig = () => {
                   {provider.managed && (
                     <div className="text-xs text-muted-foreground bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20 rounded-md p-3">
                       ✨ Esta opção usa a chave <code className="bg-muted px-1 rounded">LOVABLE_API_KEY</code> já provisionada. Não requer cadastro.
+                    </div>
+                  )}
+
+                  {provider.id === "google_document_ai" && (
+                    <div className="text-xs text-muted-foreground bg-[hsl(200,90%,50%)]/5 border border-[hsl(200,90%,50%)]/20 rounded-md p-3">
+                      🔐 A API Key já está armazenada com segurança como secret <code className="bg-muted px-1 rounded">GOOGLE_DOCUMENT_AI_API_KEY</code>. Preencha apenas <strong>Project ID</strong>, <strong>Location</strong> e <strong>Processor ID</strong> abaixo para ativar o pipeline OCR.
                     </div>
                   )}
 

@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.bootstrap-companies]
 verify_jwt = false
+
+[functions.document-ai-process]
+verify_jwt = false
