@@ -9,6 +9,7 @@ import {
   Cloud, FileSearch, Sparkles, Brain, Cpu, CheckCircle2,
   XCircle, Eye, EyeOff, KeyRound, Settings2, Zap,
 } from "lucide-react";
+import DocumentAITester from "./DocumentAITester";
 
 // ─── Types ───────────────────────────────────────────────────
 type ProviderId = "lovable_cloud" | "google_document_ai" | "gemini" | "vertex_ai" | "openai_gpt";
