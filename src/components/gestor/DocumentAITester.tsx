@@ -57,11 +57,12 @@ const DocumentAITester = ({ projectId, location, processorId }: TesterProps) => 
 
   const runTest = async () => {
     if (!file) {
-      toast.error("Selecione um arquivo PDF primeiro.");
+      toast.error("Selecione um arquivo primeiro.");
       return;
     }
-    if (!projectId || !processorId) {
-      toast.error("Preencha Project ID e Processor ID antes de testar.");
+    const isPdfOrImage = /\.(pdf|png|jpe?g|gif|tiff?|bmp|webp)$/i.test(file.name);
+    if (isPdfOrImage && (!projectId || !processorId)) {
+      toast.error("Para PDFs/imagens preencha Project ID e Processor ID do Document AI.");
       return;
     }
 
