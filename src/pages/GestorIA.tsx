@@ -305,12 +305,27 @@ const TabAgentes = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Configure modelos, persona e parâmetros dos agentes de IA.</p>
-        <a href="/modelo-matematico" className="text-xs font-medium text-[hsl(258,90%,66%)] hover:underline flex items-center gap-1">
-          <Brain className="w-3.5 h-3.5" /> Ver Modelo Matemático Completo →
-        </a>
-      </div>
+      <Tabs defaultValue="apis" className="w-full">
+        <TabsList className="bg-muted/50 p-1 h-auto">
+          <TabsTrigger value="apis" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <Plug className="w-3.5 h-3.5" /> APIs & Provedores
+          </TabsTrigger>
+          <TabsTrigger value="agents" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <Bot className="w-3.5 h-3.5" /> Persona dos Agentes
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="apis" className="mt-5">
+          <AIProvidersConfig />
+        </TabsContent>
+
+        <TabsContent value="agents" className="mt-5 space-y-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Configure modelos, persona e parâmetros dos agentes de IA.</p>
+            <a href="/modelo-matematico" className="text-xs font-medium text-[hsl(258,90%,66%)] hover:underline flex items-center gap-1">
+              <Brain className="w-3.5 h-3.5" /> Ver Modelo Matemático Completo →
+            </a>
+          </div>
       <div className="grid gap-4">
         {agents.map((agent, i) => {
           const isExpanded = expandedAgent === i;
