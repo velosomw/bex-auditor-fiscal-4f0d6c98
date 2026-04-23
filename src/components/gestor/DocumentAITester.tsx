@@ -57,11 +57,12 @@ const DocumentAITester = ({ projectId, location, processorId }: TesterProps) => 
 
   const runTest = async () => {
     if (!file) {
-      toast.error("Selecione um arquivo PDF primeiro.");
+      toast.error("Selecione um arquivo primeiro.");
       return;
     }
-    if (!projectId || !processorId) {
-      toast.error("Preencha Project ID e Processor ID antes de testar.");
+    const isPdfOrImage = /\.(pdf|png|jpe?g|gif|tiff?|bmp|webp)$/i.test(file.name);
+    if (isPdfOrImage && (!projectId || !processorId)) {
+      toast.error("Para PDFs/imagens preencha Project ID e Processor ID do Document AI.");
       return;
     }
 
@@ -129,13 +130,16 @@ const DocumentAITester = ({ projectId, location, processorId }: TesterProps) => 
 
       <div className="grid md:grid-cols-[1fr_auto] gap-2 items-end">
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold">Arquivo PDF de teste</Label>
+          <Label className="text-xs font-semibold">Arquivo de teste</Label>
           <Input
             type="file"
-            accept="application/pdf,.pdf"
+            accept=".pdf,.png,.jpg,.jpeg,.gif,.tif,.tiff,.bmp,.webp,.xlsx,.xls,.ods,.csv,.tsv,.docx,.doc,.txt,.md,.rtf"
             onChange={handleFile}
             className="text-xs file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs"
           />
+          <p className="text-[10px] text-muted-foreground">
+            Suportados: PDF · imagens (Document AI) · XLSX/XLS/CSV/ODS · DOCX/DOC · TXT/RTF
+          </p>
           {file && (
             <p className="text-[11px] text-muted-foreground">
               <FileText className="w-3 h-3 inline mr-1" />
