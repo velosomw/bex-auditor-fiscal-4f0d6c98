@@ -121,14 +121,14 @@ const PIPELINE_KEY = "bex.gestor-ia.ai-pipeline";
 // ─── Defaults ────────────────────────────────────────────────
 const DEFAULT_CONFIGS: Record<ProviderId, ProviderConfig> = {
   lovable_cloud: { id: "lovable_cloud", enabled: true, apiKey: "", model: "google/gemini-2.5-flash" },
-  google_document_ai: { id: "google_document_ai", enabled: false, apiKey: "", projectId: "", location: "us", processorId: "" },
+  google_document_ai: { id: "google_document_ai", enabled: true, apiKey: "••• armazenada como secret •••", projectId: "", location: "us", processorId: "" },
   gemini: { id: "gemini", enabled: false, apiKey: "", model: "gemini-2.5-flash" },
   vertex_ai: { id: "vertex_ai", enabled: false, apiKey: "", projectId: "", location: "us-central1", model: "gemini-2.5-pro" },
   openai_gpt: { id: "openai_gpt", enabled: false, apiKey: "", model: "gpt-5-mini" },
 };
 
 const DEFAULT_PIPELINE: PipelineConfig = {
-  ocr: "lovable_cloud",
+  ocr: "google_document_ai",
   reasoning: "lovable_cloud",
   report: "lovable_cloud",
 };
