@@ -9,6 +9,7 @@ import {
   Cloud, FileSearch, Sparkles, Brain, Cpu, CheckCircle2,
   XCircle, Eye, EyeOff, KeyRound, Settings2, Zap,
 } from "lucide-react";
+import DocumentAITester from "./DocumentAITester";
 
 // ─── Types ───────────────────────────────────────────────────
 type ProviderId = "lovable_cloud" | "google_document_ai" | "gemini" | "vertex_ai" | "openai_gpt";
@@ -406,6 +407,14 @@ const AIProvidersConfig = () => {
                       <Zap className="w-3 h-3" /> Testar conexão
                     </Button>
                   </div>
+
+                  {provider.id === "google_document_ai" && (
+                    <DocumentAITester
+                      projectId={cfg.projectId}
+                      location={cfg.location}
+                      processorId={cfg.processorId}
+                    />
+                  )}
                 </div>
               )}
             </div>
