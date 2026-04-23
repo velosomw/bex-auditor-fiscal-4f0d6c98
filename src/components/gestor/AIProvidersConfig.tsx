@@ -302,6 +302,12 @@ const AIProvidersConfig = () => {
                     </div>
                   )}
 
+                  {provider.id === "google_document_ai" && (
+                    <div className="text-xs text-muted-foreground bg-[hsl(200,90%,50%)]/5 border border-[hsl(200,90%,50%)]/20 rounded-md p-3">
+                      🔐 A API Key já está armazenada com segurança como secret <code className="bg-muted px-1 rounded">GOOGLE_DOCUMENT_AI_API_KEY</code>. Preencha apenas <strong>Project ID</strong>, <strong>Location</strong> e <strong>Processor ID</strong> abaixo para ativar o pipeline OCR.
+                    </div>
+                  )}
+
                   <div className="grid md:grid-cols-2 gap-4">
                     {provider.fields.includes("apiKey") && (
                       <div className="space-y-1.5 md:col-span-2">
