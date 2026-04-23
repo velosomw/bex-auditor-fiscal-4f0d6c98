@@ -435,6 +435,8 @@ const TabAgentes = () => {
           );
         })}
       </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
