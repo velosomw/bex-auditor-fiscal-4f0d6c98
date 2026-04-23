@@ -407,6 +407,14 @@ const AIProvidersConfig = () => {
                       <Zap className="w-3 h-3" /> Testar conexão
                     </Button>
                   </div>
+
+                  {provider.id === "google_document_ai" && (
+                    <DocumentAITester
+                      projectId={cfg.projectId}
+                      location={cfg.location}
+                      processorId={cfg.processorId}
+                    />
+                  )}
                 </div>
               )}
             </div>
