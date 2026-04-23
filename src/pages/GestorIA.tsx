@@ -17,6 +17,7 @@ import {
   MessageSquare, Thermometer, Cpu, Eye, Send, SlidersHorizontal, Gauge
 } from "lucide-react";
 import TabReportLimits from "@/components/gestor/TabReportLimits";
+import AIProvidersConfig from "@/components/gestor/AIProvidersConfig";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 
 // ─── Mock Data ───────────────────────────────────────────────
