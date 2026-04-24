@@ -132,7 +132,7 @@ async function persistAuditEntry(entry: AuditHistoryEntry): Promise<void> {
   const uid = await getCurrentUserId();
   if (!uid) return;
   try {
-    await supabase.from("audit_documents").insert({
+    await (supabase.from("audit_documents") as any).insert({
       company_id: entry.companyId,
       created_by: uid,
       file_name: entry.fileName,
@@ -155,7 +155,7 @@ async function persistGeneratedReport(entry: GeneratedReportEntry): Promise<void
   const uid = await getCurrentUserId();
   if (!uid) return;
   try {
-    await supabase.from("audit_reports").insert({
+    await (supabase.from("audit_reports") as any).insert({
       company_id: entry.companyId,
       created_by: uid,
       title: entry.title,
@@ -188,8 +188,7 @@ export async function hydrateFromRemote(opts?: { companyId?: string }): Promise<
   if (!uid) return;
   try {
     // Documentos
-    let docsQuery = supabase
-      .from("audit_documents")
+    let docsQuery: any = (supabase.from("audit_documents") as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(200);
@@ -197,8 +196,7 @@ export async function hydrateFromRemote(opts?: { companyId?: string }): Promise<
     const { data: docsData } = await docsQuery;
 
     // Relatórios
-    let repQuery = supabase
-      .from("audit_reports")
+    let repQuery: any = (supabase.from("audit_reports") as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(100);
