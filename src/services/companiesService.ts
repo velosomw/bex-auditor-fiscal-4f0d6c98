@@ -26,6 +26,7 @@ export interface Company {
   zip: string | null;
   notes: string | null;
   source: CompanySource;
+  accounting_firm_id?: string | null;
 }
 
 /**
