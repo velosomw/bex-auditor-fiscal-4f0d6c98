@@ -6,11 +6,17 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp } from "lucide-react";
 import {
-  parseBalanceteChartsFromFiles,
+  resolveBalanceteCharts,
   type BalanceteChartsResult,
 } from "@/services/balanceteChartsParser";
+import type { ParsedFinancialData } from "@/services/auditAIService";
 
-interface Props { files?: File[] }
+interface Props {
+  files?: File[];
+  /** Dados estruturados extraídos pela IA — usados como fallback quando o
+   *  arquivo carregado não é o template .xlsm com as abas de gráficos. */
+  parsedData?: ParsedFinancialData | null;
+}
 
 // Paleta semântica (HSL) — usamos cores fixas para distinção das séries.
 const SERIES_COLORS = [
@@ -46,19 +52,21 @@ const EmptyState = ({ icon: Icon, title }: { icon: any; title: string }) => (
   </div>
 );
 
-const TabGraficosAuditoria = ({ files }: Props) => {
+const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
   const [data, setData] = useState<BalanceteChartsResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    if (!files || !files.length) { setData(null); return; }
+    const hasFiles = !!files?.length;
+    const hasParsed = !!parsedData?.balanco?.length;
+    if (!hasFiles && !hasParsed) { setData(null); return; }
     setLoading(true);
-    parseBalanceteChartsFromFiles(files)
+    resolveBalanceteCharts(files, parsedData ?? null)
       .then(r => { if (!cancelled) setData(r); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [files]);
+  }, [files, parsedData]);
 
   // ── Bloco 1: Balanço (linha multi-série) ──────────────────────────────────
   const balancoRows = useMemo(() => {
@@ -117,7 +125,7 @@ const TabGraficosAuditoria = ({ files }: Props) => {
     );
   }
 
-  if (!files?.length || !data?.hasData) {
+  if ((!files?.length && !parsedData?.balanco?.length) || !data?.hasData) {
     return (
       <Card>
         <CardHeader>
@@ -125,12 +133,23 @@ const TabGraficosAuditoria = ({ files }: Props) => {
             <BarChart3 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Gráficos de Auditoria
           </CardTitle>
           <CardDescription>
-            Carregue um balancete (.xlsm/.xlsx) com as abas <strong>Dados para Graficos</strong>, <strong>Folha</strong>,{" "}
-            <strong>FCP - 6 meses</strong> e <strong>Fluxo de Caixa - Prev x Realiz</strong> para visualizar os gráficos.
+            Os gráficos são extraídos automaticamente do <strong>balancete carregado</strong> na fase de
+            processamento. Para gráficos completos (Folha, FCP, Previsto×Realizado), envie o template{" "}
+            <code className="text-[10px]">.xlsm</code> com as abas <em>Dados para Graficos</em>,{" "}
+            <em>Folha</em>, <em>FCP - 6 meses</em> e <em>Fluxo de Caixa - Prev x Realiz</em>. Para
+            balancetes contábeis (PDF/CSV/XLSX), o bloco <em>Balanço — Evolução Mensal</em> é gerado a
+            partir da análise IA.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EmptyState icon={FileSpreadsheet} title="Nenhum balancete com abas de gráficos foi identificado." />
+          <EmptyState
+            icon={FileSpreadsheet}
+            title={
+              parsedData?.balanco?.length
+                ? "Não foi possível derivar séries do balancete analisado."
+                : "Nenhum balancete processado ainda."
+            }
+          />
         </CardContent>
       </Card>
     );
