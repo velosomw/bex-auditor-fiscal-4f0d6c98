@@ -141,7 +141,7 @@ const UserManagement = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (sendInvite = false) => {
     if (!formName) { toast.error("Preencha o nome."); return; }
     setSaving(true);
 
@@ -154,16 +154,37 @@ const UserManagement = () => {
       setDialogOpen(false);
       loadUsers();
     } else {
-      if (!formEmail || !formPassword) {
-        toast.error("Preencha e-mail e senha para novo usuário.");
+      if (!formEmail) {
+        toast.error("Preencha o e-mail.");
         setSaving(false);
         return;
       }
-      const { error } = await supabase.functions.invoke("admin-create-user", {
-        body: { email: formEmail, password: formPassword, full_name: formName, phone: formPhone, role: formRole },
+      if (!sendInvite && !formPassword) {
+        toast.error("Preencha a senha ou use 'Criar e enviar e-mail'.");
+        setSaving(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: {
+          email: formEmail,
+          password: sendInvite ? undefined : formPassword,
+          full_name: formName,
+          phone: formPhone,
+          role: formRole,
+          send_invite: sendInvite,
+          redirect_to: `${window.location.origin}/reset-password`,
+        },
       });
-      if (error) {
+      if (error || (data as any)?.error) {
         toast.error("Erro ao criar usuário. Tente novamente.");
+      } else if (sendInvite) {
+        toast.success(
+          (data as any)?.invite_sent
+            ? "Usuário criado! E-mail de definição de senha enviado."
+            : "Usuário criado, mas o e-mail não pôde ser enviado.",
+        );
+        setDialogOpen(false);
+        loadUsers();
       } else {
         toast.success("Usuário cadastrado com sucesso!");
         setDialogOpen(false);
