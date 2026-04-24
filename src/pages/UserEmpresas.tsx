@@ -308,28 +308,6 @@ const UserEmpresas = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Setor</Label>
-                  <Select value={sector} onValueChange={setSector}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
-                    <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>UF</Label>
-                  <Select value={uf} onValueChange={setUf}>
-                    <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                    <SelectContent className="max-h-60">{UF.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rcity">Cidade</Label>
-                  <Input id="rcity" value={city} onChange={e => setCity(e.target.value)} placeholder="Ex: São Paulo" />
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="raddr">Endereço</Label>
-                  <Input id="raddr" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, número, bairro, CEP" />
-                </div>
-                <div className="space-y-1.5">
                   <Label htmlFor="rcontact">Responsável</Label>
                   <Input id="rcontact" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Nome do contato" />
                 </div>
@@ -337,32 +315,7 @@ const UserEmpresas = () => {
                   <Label htmlFor="remail">E-mail</Label>
                   <Input id="remail" type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="contato@empresa.com.br" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rphone">Telefone Celular</Label>
-                  <Input
-                    id="rphone"
-                    value={contactPhone}
-                    onChange={e => setContactPhone(formatPhoneMobile(e.target.value))}
-                    placeholder="(00) 00000-0000"
-                    maxLength={15}
-                    inputMode="numeric"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rphonefix">Telefone Fixo</Label>
-                  <Input
-                    id="rphonefix"
-                    value={contactPhoneFixed}
-                    onChange={e => setContactPhoneFixed(formatPhoneLandline(e.target.value))}
-                    placeholder="(00) 0000-0000"
-                    maxLength={14}
-                    inputMode="numeric"
-                  />
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="rnotes">Observações</Label>
-                  <Input id="rnotes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notas internas (opcional)" />
-                </div>
+
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <Button variant="ghost" onClick={() => { resetForm(); setShowRegister(false); }}>Cancelar</Button>
