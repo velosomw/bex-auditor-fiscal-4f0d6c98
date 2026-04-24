@@ -73,6 +73,7 @@ export interface CreateCompanyInput {
   status?: CompanyStatus;
   source?: CompanySource;
   phone_fixed?: string;
+  accounting_firm_id?: string | null;
 }
 
 export async function createCompany(input: CreateCompanyInput): Promise<Company> {
@@ -101,6 +102,7 @@ export async function createCompany(input: CreateCompanyInput): Promise<Company>
     status: input.status || (isAuthenticated ? "ativa" : "pendente"),
     source: input.source || (isAuthenticated ? "auditor" : "site"),
     created_by: userId || null,
+    accounting_firm_id: input.accounting_firm_id || null,
   };
 
   // Anonymous (site) inserts cannot SELECT back due to RLS — only insert.
