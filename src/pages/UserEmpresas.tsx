@@ -193,6 +193,7 @@ const UserEmpresas = () => {
         phone: contactPhone || undefined,
         phone_fixed: contactPhoneFixed || undefined,
         notes: notes.trim() || undefined,
+        accounting_firm_id: myFirm?.id || null,
       });
       toast({ title: "Empresa cadastrada", description: c.name });
       resetForm();
