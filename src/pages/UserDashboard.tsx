@@ -11,6 +11,7 @@ import {
   getAuditHistory,
   getGeneratedReports,
   clearAuditHistory,
+  hydrateFromRemote,
   type AuditHistoryEntry,
   type GeneratedReportEntry,
 } from "@/services/auditHistoryService";
@@ -96,9 +97,11 @@ const UserDashboard = () => {
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
 
   useEffect(() => {
-    setHistory(getAuditHistory());
-    setReports(getGeneratedReports());
-    listCompanies().then(setCompanies).catch(() => {});
+    hydrateFromRemote().finally(() => {
+      setHistory(getAuditHistory());
+      setReports(getGeneratedReports());
+    });
+    listCompanies({ ownedOnly: true }).then(setCompanies).catch(() => {});
   }, []);
 
   const handleStartNewAudit = (company: Company) => {

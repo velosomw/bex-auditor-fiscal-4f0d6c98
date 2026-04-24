@@ -14,6 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_documents: {
+        Row: {
+          batch_id: string | null
+          company_id: string
+          conformidade: number
+          created_at: string
+          created_by: string
+          file_name: string
+          file_size: number
+          format: string
+          id: string
+          riscos: number
+          risk_level: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id?: string | null
+          company_id: string
+          conformidade?: number
+          created_at?: string
+          created_by: string
+          file_name: string
+          file_size?: number
+          format?: string
+          id?: string
+          riscos?: number
+          risk_level?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string | null
+          company_id?: string
+          conformidade?: number
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          file_size?: number
+          format?: string
+          id?: string
+          riscos?: number
+          risk_level?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_reports: {
+        Row: {
+          ai_analysis: Json | null
+          batch_id: string | null
+          company_id: string
+          conformidade: number
+          created_at: string
+          created_by: string
+          file_name: string
+          file_size: number
+          format: string
+          id: string
+          parsed_data: Json | null
+          riscos: number
+          risk_level: string
+          source: string
+          source_documents: Json | null
+          status: string
+          title: string
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          batch_id?: string | null
+          company_id: string
+          conformidade?: number
+          created_at?: string
+          created_by: string
+          file_name?: string
+          file_size?: number
+          format?: string
+          id?: string
+          parsed_data?: Json | null
+          riscos?: number
+          risk_level?: string
+          source?: string
+          source_documents?: Json | null
+          status?: string
+          title: string
+          updated_at?: string
+          variant?: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          batch_id?: string | null
+          company_id?: string
+          conformidade?: number
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          file_size?: number
+          format?: string
+          id?: string
+          parsed_data?: Json | null
+          riscos?: number
+          risk_level?: string
+          source?: string
+          source_documents?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null

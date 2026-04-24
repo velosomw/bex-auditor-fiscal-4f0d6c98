@@ -14,6 +14,7 @@ import { useUser } from "@/contexts/UserContext";
 import {
   getReportsByCompany,
   getDocsByCompany,
+  hydrateFromRemote,
   type GeneratedReportEntry,
   type AuditHistoryEntry,
 } from "@/services/auditHistoryService";
@@ -99,8 +100,11 @@ const UserEmpresas = () => {
 
   const reload = () => {
     setLoading(true);
-    listCompanies({ ownedOnly: true })
-      .then(setCompanies)
+    Promise.all([
+      listCompanies({ ownedOnly: true }),
+      hydrateFromRemote(),
+    ])
+      .then(([list]) => setCompanies(list))
       .catch(e => toast({ title: "Erro ao carregar empresas", description: e.message, variant: "destructive" }))
       .finally(() => setLoading(false));
   };
