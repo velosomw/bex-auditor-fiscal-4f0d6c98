@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_firms: {
+        Row: {
+          address: string | null
+          address_number: string | null
+          cnpj: string
+          crc: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          source: string
+          status: string
+          updated_at: string
+          user_id: string | null
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          address_number?: string | null
+          cnpj: string
+          crc: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          address_number?: string | null
+          cnpj?: string
+          crc?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       audit_documents: {
         Row: {
           batch_id: string | null
@@ -149,6 +200,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          accounting_firm_id: string | null
           address: string | null
           city: string | null
           cnae: string | null
@@ -172,6 +224,7 @@ export type Database = {
           zip: string | null
         }
         Insert: {
+          accounting_firm_id?: string | null
           address?: string | null
           city?: string | null
           cnae?: string | null
@@ -195,6 +248,7 @@ export type Database = {
           zip?: string | null
         }
         Update: {
+          accounting_firm_id?: string | null
           address?: string | null
           city?: string | null
           cnae?: string | null
@@ -217,7 +271,15 @@ export type Database = {
           updated_at?: string
           zip?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_accounting_firm_id_fkey"
+            columns: ["accounting_firm_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_firms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
