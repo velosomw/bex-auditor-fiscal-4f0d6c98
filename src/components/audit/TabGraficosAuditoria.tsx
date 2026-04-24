@@ -125,7 +125,7 @@ const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
     );
   }
 
-  if (!files?.length || !data?.hasData) {
+  if ((!files?.length && !parsedData?.balanco?.length) || !data?.hasData) {
     return (
       <Card>
         <CardHeader>
@@ -133,12 +133,23 @@ const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
             <BarChart3 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Gráficos de Auditoria
           </CardTitle>
           <CardDescription>
-            Carregue um balancete (.xlsm/.xlsx) com as abas <strong>Dados para Graficos</strong>, <strong>Folha</strong>,{" "}
-            <strong>FCP - 6 meses</strong> e <strong>Fluxo de Caixa - Prev x Realiz</strong> para visualizar os gráficos.
+            Os gráficos são extraídos automaticamente do <strong>balancete carregado</strong> na fase de
+            processamento. Para gráficos completos (Folha, FCP, Previsto×Realizado), envie o template{" "}
+            <code className="text-[10px]">.xlsm</code> com as abas <em>Dados para Graficos</em>,{" "}
+            <em>Folha</em>, <em>FCP - 6 meses</em> e <em>Fluxo de Caixa - Prev x Realiz</em>. Para
+            balancetes contábeis (PDF/CSV/XLSX), o bloco <em>Balanço — Evolução Mensal</em> é gerado a
+            partir da análise IA.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EmptyState icon={FileSpreadsheet} title="Nenhum balancete com abas de gráficos foi identificado." />
+          <EmptyState
+            icon={FileSpreadsheet}
+            title={
+              parsedData?.balanco?.length
+                ? "Não foi possível derivar séries do balancete analisado."
+                : "Nenhum balancete processado ainda."
+            }
+          />
         </CardContent>
       </Card>
     );
