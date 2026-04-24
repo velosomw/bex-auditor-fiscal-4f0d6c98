@@ -21,6 +21,7 @@ import {
 import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getMyAccountingFirm, type AccountingFirm } from "@/services/accountingFirmsService";
 
 const SECTORS = ["Indústria", "Varejo", "Serviços", "Tecnologia", "Construção", "Agro", "Saúde", "Financeiro", "Educação", "Outro"];
 const UF = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
