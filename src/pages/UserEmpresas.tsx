@@ -21,6 +21,7 @@ import {
 import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getMyAccountingFirm, type AccountingFirm } from "@/services/accountingFirmsService";
 
 const SECTORS = ["Indústria", "Varejo", "Serviços", "Tecnologia", "Construção", "Agro", "Saúde", "Financeiro", "Educação", "Outro"];
 const UF = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -83,6 +84,7 @@ const UserEmpresas = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
   const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
+  const [myFirm, setMyFirm] = useState<AccountingFirm | null>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -109,7 +111,10 @@ const UserEmpresas = () => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    reload();
+    getMyAccountingFirm().then(setMyFirm).catch(() => {});
+  }, []);
 
   const aggregates: CompanyAggregate[] = useMemo(() => {
     return companies.map(c => {
@@ -188,6 +193,7 @@ const UserEmpresas = () => {
         phone: contactPhone || undefined,
         phone_fixed: contactPhoneFixed || undefined,
         notes: notes.trim() || undefined,
+        accounting_firm_id: myFirm?.id || null,
       });
       toast({ title: "Empresa cadastrada", description: c.name });
       resetForm();
