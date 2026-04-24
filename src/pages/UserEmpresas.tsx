@@ -142,9 +142,8 @@ const UserEmpresas = () => {
   }), [aggregates, companies]);
 
   const resetForm = () => {
-    setName(""); setCnpj(""); setSector(""); setUf(""); setCity("");
-    setContactName(""); setContactEmail(""); setContactPhone(""); setContactPhoneFixed("");
-    setAddress(""); setNotes("");
+    setName(""); setCnpj("");
+    setContactName(""); setContactEmail("");
   };
 
   const handleSave = async () => {
@@ -153,10 +152,6 @@ const UserEmpresas = () => {
     if (trimmedName.length > 200) { toast({ title: "Razão Social muito longa (máx. 200)", variant: "destructive" }); return; }
     const cnpjDigits = cnpj.replace(/\D/g, "");
     if (cnpjDigits && cnpjDigits.length !== 14) { toast({ title: "CNPJ inválido", description: "Informe os 14 dígitos.", variant: "destructive" }); return; }
-    const mobileDigits = contactPhone.replace(/\D/g, "");
-    if (mobileDigits && mobileDigits.length !== 11) { toast({ title: "Telefone celular inválido", description: "Use o formato (00) 00000-0000.", variant: "destructive" }); return; }
-    const fixedDigits = contactPhoneFixed.replace(/\D/g, "");
-    if (fixedDigits && fixedDigits.length !== 10) { toast({ title: "Telefone fixo inválido", description: "Use o formato (00) 0000-0000.", variant: "destructive" }); return; }
     if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { toast({ title: "E-mail inválido", variant: "destructive" }); return; }
 
     // Verifica sessão antes de tentar gravar (evita falha silenciosa por RLS)
@@ -173,19 +168,11 @@ const UserEmpresas = () => {
 
     setSaving(true);
     try {
-      const sectorComposed = [sector, uf && city ? `${city}/${uf}` : uf].filter(Boolean).join(" — ");
       const c = await createCompany({
         name: trimmedName,
         cnpj: cnpj.trim() || undefined,
-        sector: sectorComposed || undefined,
-        city: city || undefined,
-        uf: uf || undefined,
-        address: address.trim() || undefined,
         contact_name: contactName.trim() || undefined,
         email: contactEmail.trim() || undefined,
-        phone: contactPhone || undefined,
-        phone_fixed: contactPhoneFixed || undefined,
-        notes: notes.trim() || undefined,
         accounting_firm_id: myFirm?.id || null,
       });
       toast({ title: "Empresa cadastrada", description: c.name });
