@@ -892,7 +892,7 @@ const GestorIA = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold font-serif text-foreground">Dashboard de Auditoria IA</h1>
+            <h1 className="text-2xl font-bold font-serif text-foreground">Dashboard de Contábil IA</h1>
             <p className="text-sm text-muted-foreground">Visão consolidada com inteligência artificial</p>
           </div>
           <div className="flex items-center gap-2">
