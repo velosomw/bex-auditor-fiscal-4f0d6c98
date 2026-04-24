@@ -121,18 +121,10 @@ const SolicitarCadastro = () => {
                 <div className="w-20 h-20 mx-auto rounded-full bg-[hsl(142,76%,36%)]/10 flex items-center justify-center">
                   <CheckCircle2 className="w-10 h-10 text-[hsl(142,76%,36%)]" />
                 </div>
-                <h2 className="text-2xl font-display font-bold text-foreground">Cadastro recebido com sucesso!</h2>
+                <h2 className="text-2xl font-display font-bold text-foreground">Cadastro efetuado com sucesso!</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Sua solicitação foi registrada e a equipe da <strong>Brasil Expert</strong> entrará em contato em até <strong>2 dias úteis</strong> para validar os dados e enviar o e-mail de definição de senha.
+                  Você receberá em seu <strong>e-mail</strong> a senha de acesso à plataforma <strong>Brasil Expert</strong>.
                 </p>
-                <div className="bg-muted/40 rounded-lg p-4 text-sm text-left">
-                  <p className="font-semibold text-foreground mb-1">📧 Próximos passos:</p>
-                  <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                    <li>Análise documental do CRC e CNPJ informados</li>
-                    <li>Liberação do acesso e envio do link de senha por e-mail</li>
-                    <li>Importação automática das empresas-cliente cadastradas</li>
-                  </ul>
-                </div>
                 <Button onClick={() => navigate("/")} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
                   Voltar ao início
                 </Button>
