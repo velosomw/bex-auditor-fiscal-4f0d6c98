@@ -89,15 +89,8 @@ const UserEmpresas = () => {
   // Form state
   const [name, setName] = useState("");
   const [cnpj, setCnpj] = useState("");
-  const [sector, setSector] = useState("");
-  const [uf, setUf] = useState("");
-  const [city, setCity] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactPhoneFixed, setContactPhoneFixed] = useState("");
-  const [address, setAddress] = useState("");
-  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const reload = () => {
