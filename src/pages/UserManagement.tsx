@@ -141,7 +141,7 @@ const UserManagement = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (sendInvite = false) => {
     if (!formName) { toast.error("Preencha o nome."); return; }
     setSaving(true);
 
@@ -154,16 +154,37 @@ const UserManagement = () => {
       setDialogOpen(false);
       loadUsers();
     } else {
-      if (!formEmail || !formPassword) {
-        toast.error("Preencha e-mail e senha para novo usuário.");
+      if (!formEmail) {
+        toast.error("Preencha o e-mail.");
         setSaving(false);
         return;
       }
-      const { error } = await supabase.functions.invoke("admin-create-user", {
-        body: { email: formEmail, password: formPassword, full_name: formName, phone: formPhone, role: formRole },
+      if (!sendInvite && !formPassword) {
+        toast.error("Preencha a senha ou use 'Criar e enviar e-mail'.");
+        setSaving(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: {
+          email: formEmail,
+          password: sendInvite ? undefined : formPassword,
+          full_name: formName,
+          phone: formPhone,
+          role: formRole,
+          send_invite: sendInvite,
+          redirect_to: `${window.location.origin}/reset-password`,
+        },
       });
-      if (error) {
+      if (error || (data as any)?.error) {
         toast.error("Erro ao criar usuário. Tente novamente.");
+      } else if (sendInvite) {
+        toast.success(
+          (data as any)?.invite_sent
+            ? "Usuário criado! E-mail de definição de senha enviado."
+            : "Usuário criado, mas o e-mail não pôde ser enviado.",
+        );
+        setDialogOpen(false);
+        loadUsers();
       } else {
         toast.success("Usuário cadastrado com sucesso!");
         setDialogOpen(false);
@@ -349,7 +370,9 @@ const UserManagement = () => {
                   <Input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="email@exemplo.com" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-sm text-muted-foreground">Senha</Label>
+                  <Label className="text-sm text-muted-foreground">
+                    Senha <span className="text-xs">(opcional — deixe em branco para enviar e-mail)</span>
+                  </Label>
                   <Input type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
                 </div>
               </>
@@ -372,9 +395,19 @@ const UserManagement = () => {
               </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white" onClick={handleSave} disabled={saving}>
+            {!editingUser && (
+              <Button
+                variant="outline"
+                className="border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)]/10"
+                onClick={() => handleSave(true)}
+                disabled={saving}
+              >
+                {saving ? "Enviando..." : "Criar e enviar e-mail de senha"}
+              </Button>
+            )}
+            <Button className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white" onClick={() => handleSave(false)} disabled={saving}>
               {saving ? "Salvando..." : editingUser ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
