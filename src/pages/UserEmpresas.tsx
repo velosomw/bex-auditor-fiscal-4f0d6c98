@@ -89,15 +89,8 @@ const UserEmpresas = () => {
   // Form state
   const [name, setName] = useState("");
   const [cnpj, setCnpj] = useState("");
-  const [sector, setSector] = useState("");
-  const [uf, setUf] = useState("");
-  const [city, setCity] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactPhoneFixed, setContactPhoneFixed] = useState("");
-  const [address, setAddress] = useState("");
-  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const reload = () => {
@@ -149,9 +142,8 @@ const UserEmpresas = () => {
   }), [aggregates, companies]);
 
   const resetForm = () => {
-    setName(""); setCnpj(""); setSector(""); setUf(""); setCity("");
-    setContactName(""); setContactEmail(""); setContactPhone(""); setContactPhoneFixed("");
-    setAddress(""); setNotes("");
+    setName(""); setCnpj("");
+    setContactName(""); setContactEmail("");
   };
 
   const handleSave = async () => {
@@ -160,10 +152,6 @@ const UserEmpresas = () => {
     if (trimmedName.length > 200) { toast({ title: "Razão Social muito longa (máx. 200)", variant: "destructive" }); return; }
     const cnpjDigits = cnpj.replace(/\D/g, "");
     if (cnpjDigits && cnpjDigits.length !== 14) { toast({ title: "CNPJ inválido", description: "Informe os 14 dígitos.", variant: "destructive" }); return; }
-    const mobileDigits = contactPhone.replace(/\D/g, "");
-    if (mobileDigits && mobileDigits.length !== 11) { toast({ title: "Telefone celular inválido", description: "Use o formato (00) 00000-0000.", variant: "destructive" }); return; }
-    const fixedDigits = contactPhoneFixed.replace(/\D/g, "");
-    if (fixedDigits && fixedDigits.length !== 10) { toast({ title: "Telefone fixo inválido", description: "Use o formato (00) 0000-0000.", variant: "destructive" }); return; }
     if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) { toast({ title: "E-mail inválido", variant: "destructive" }); return; }
 
     // Verifica sessão antes de tentar gravar (evita falha silenciosa por RLS)
@@ -180,19 +168,11 @@ const UserEmpresas = () => {
 
     setSaving(true);
     try {
-      const sectorComposed = [sector, uf && city ? `${city}/${uf}` : uf].filter(Boolean).join(" — ");
       const c = await createCompany({
         name: trimmedName,
         cnpj: cnpj.trim() || undefined,
-        sector: sectorComposed || undefined,
-        city: city || undefined,
-        uf: uf || undefined,
-        address: address.trim() || undefined,
         contact_name: contactName.trim() || undefined,
         email: contactEmail.trim() || undefined,
-        phone: contactPhone || undefined,
-        phone_fixed: contactPhoneFixed || undefined,
-        notes: notes.trim() || undefined,
         accounting_firm_id: myFirm?.id || null,
       });
       toast({ title: "Empresa cadastrada", description: c.name });
@@ -308,28 +288,6 @@ const UserEmpresas = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Setor</Label>
-                  <Select value={sector} onValueChange={setSector}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
-                    <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>UF</Label>
-                  <Select value={uf} onValueChange={setUf}>
-                    <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
-                    <SelectContent className="max-h-60">{UF.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rcity">Cidade</Label>
-                  <Input id="rcity" value={city} onChange={e => setCity(e.target.value)} placeholder="Ex: São Paulo" />
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="raddr">Endereço</Label>
-                  <Input id="raddr" value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, número, bairro, CEP" />
-                </div>
-                <div className="space-y-1.5">
                   <Label htmlFor="rcontact">Responsável</Label>
                   <Input id="rcontact" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Nome do contato" />
                 </div>
@@ -337,32 +295,7 @@ const UserEmpresas = () => {
                   <Label htmlFor="remail">E-mail</Label>
                   <Input id="remail" type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="contato@empresa.com.br" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rphone">Telefone Celular</Label>
-                  <Input
-                    id="rphone"
-                    value={contactPhone}
-                    onChange={e => setContactPhone(formatPhoneMobile(e.target.value))}
-                    placeholder="(00) 00000-0000"
-                    maxLength={15}
-                    inputMode="numeric"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rphonefix">Telefone Fixo</Label>
-                  <Input
-                    id="rphonefix"
-                    value={contactPhoneFixed}
-                    onChange={e => setContactPhoneFixed(formatPhoneLandline(e.target.value))}
-                    placeholder="(00) 0000-0000"
-                    maxLength={14}
-                    inputMode="numeric"
-                  />
-                </div>
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label htmlFor="rnotes">Observações</Label>
-                  <Input id="rnotes" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notas internas (opcional)" />
-                </div>
+
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <Button variant="ghost" onClick={() => { resetForm(); setShowRegister(false); }}>Cancelar</Button>
