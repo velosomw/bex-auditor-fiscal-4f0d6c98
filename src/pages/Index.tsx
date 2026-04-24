@@ -52,20 +52,8 @@ const Index = () => {
             
             Transformamos desafios financeiros em oportunidades de crescimento sustentável. Inteligência financeira, capacidade analítica e soluções estruturadas.
           </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.35 }}
-            className="flex flex-wrap gap-4">
-            
-            <Link
-              to="/solucoes"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]">
-              
-              Nossas Soluções
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
+          <div />
+
         </div>
       </section>
 
