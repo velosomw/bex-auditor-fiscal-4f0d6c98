@@ -3923,7 +3923,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
         <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="graficos-auditoria"><TabGraficosAuditoria files={uploadedFiles} /></TabsContent>
+        <TabsContent value="graficos-auditoria"><TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="relatorio-final">

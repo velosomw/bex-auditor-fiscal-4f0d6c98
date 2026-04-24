@@ -6,11 +6,17 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp } from "lucide-react";
 import {
-  parseBalanceteChartsFromFiles,
+  resolveBalanceteCharts,
   type BalanceteChartsResult,
 } from "@/services/balanceteChartsParser";
+import type { ParsedFinancialData } from "@/services/auditAIService";
 
-interface Props { files?: File[] }
+interface Props {
+  files?: File[];
+  /** Dados estruturados extraídos pela IA — usados como fallback quando o
+   *  arquivo carregado não é o template .xlsm com as abas de gráficos. */
+  parsedData?: ParsedFinancialData | null;
+}
 
 // Paleta semântica (HSL) — usamos cores fixas para distinção das séries.
 const SERIES_COLORS = [
@@ -46,19 +52,21 @@ const EmptyState = ({ icon: Icon, title }: { icon: any; title: string }) => (
   </div>
 );
 
-const TabGraficosAuditoria = ({ files }: Props) => {
+const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
   const [data, setData] = useState<BalanceteChartsResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    if (!files || !files.length) { setData(null); return; }
+    const hasFiles = !!files?.length;
+    const hasParsed = !!parsedData?.balanco?.length;
+    if (!hasFiles && !hasParsed) { setData(null); return; }
     setLoading(true);
-    parseBalanceteChartsFromFiles(files)
+    resolveBalanceteCharts(files, parsedData ?? null)
       .then(r => { if (!cancelled) setData(r); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [files]);
+  }, [files, parsedData]);
 
   // ── Bloco 1: Balanço (linha multi-série) ──────────────────────────────────
   const balancoRows = useMemo(() => {

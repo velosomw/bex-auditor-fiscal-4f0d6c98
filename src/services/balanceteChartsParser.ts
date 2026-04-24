@@ -286,3 +286,98 @@ export async function parseBalanceteChartsFromFiles(files: File[]): Promise<Bala
   }
   return null;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * FALLBACK — Deriva os gráficos a partir do balancete já analisado pela IA.
+ * Usado quando o arquivo carregado NÃO é o template .xlsm (PDF, CSV, balancete
+ * contábil genérico). A IA extrai contas + valores por período → reconstruímos
+ * o "Balanço — Evolução Mensal" com as principais contas de liquidez/operação.
+ * ────────────────────────────────────────────────────────────────────────────── */
+interface ParsedLike {
+  balanco: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
+  dre?: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
+  years: string[];
+  fileName?: string;
+  documentInfo?: { empresa?: string; periodo?: string };
+}
+
+// Mapeamento de palavras-chave → série do gráfico do balanço
+const ACCOUNT_PATTERNS: Array<{ nome: string; rx: RegExp }> = [
+  { nome: "Caixa e Equivalentes", rx: /\b(caixa|disponibilidade|equivalente|bancos?|aplica[cç][aã]o financeira)\b/i },
+  { nome: "Estoque",              rx: /\bestoqu/i },
+  { nome: "Clientes a Receber",   rx: /\b(clientes|duplicatas? a receber|contas? a receber)\b/i },
+  { nome: "Ativo Circulante",     rx: /\bativo circulante\b/i },
+  { nome: "Ativo Total",          rx: /\b(ativo total|total do ativo|total ativo)\b/i },
+  { nome: "Fornecedores",         rx: /\bfornecedor/i },
+  { nome: "Passivo Circulante",   rx: /\bpassivo circulante\b/i },
+  { nome: "Patrimônio Líquido",   rx: /\b(patrim[oô]nio l[ií]quido|patrimonio liquido)\b/i },
+];
+
+const sortPeriods = (years: string[]): string[] => {
+  // Tenta detectar formato "YYYY-MM" / "YYYY/MM" / "YYYY" e ordenar cronologicamente
+  return [...years].sort((a, b) => {
+    const na = a.replace(/\D/g, "");
+    const nb = b.replace(/\D/g, "");
+    return na.localeCompare(nb);
+  });
+};
+
+const periodLabel = (p: string): string => {
+  // "2024-01" → "Jan/24"; "2024" → "2024"
+  const m = p.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (m) {
+    const idx = parseInt(m[2], 10) - 1;
+    if (idx >= 0 && idx < 12) return `${MES_ABREV[idx]}/${m[1].slice(-2)}`;
+  }
+  return p;
+};
+
+export function deriveChartsFromParsedData(parsed: ParsedLike | null | undefined): BalanceteChartsResult | null {
+  if (!parsed || !parsed.balanco?.length || !parsed.years?.length) return null;
+  const periods = sortPeriods(parsed.years);
+  if (!periods.length) return null;
+
+  const meses = periods.map(periodLabel);
+  const series: BalancoSerie[] = [];
+  const seenNomes = new Set<string>();
+
+  for (const pat of ACCOUNT_PATTERNS) {
+    // Procura primeira conta do balanço cuja descrição/conta combina com o padrão
+    const match = parsed.balanco.find(r => {
+      const txt = `${r.descricao || ""} ${r.conta || ""}`;
+      return pat.rx.test(txt);
+    });
+    if (!match) continue;
+    const valores = periods.map(p => {
+      const v = match.values?.[p];
+      return typeof v === "number" && Number.isFinite(v) ? v : null;
+    });
+    if (valores.some(v => v !== null) && !seenNomes.has(pat.nome)) {
+      series.push({ nome: pat.nome, valores });
+      seenNomes.add(pat.nome);
+    }
+  }
+
+  if (!series.length) return null;
+  return {
+    hasData: true,
+    fileName: parsed.fileName || parsed.documentInfo?.empresa,
+    balanco: { meses, series },
+    // Folha / FCP / Prev x Realiz são abas específicas do template — não derivamos.
+  };
+}
+
+/**
+ * Resolve a fonte dos gráficos: tenta primeiro o template .xlsm; se não houver,
+ * faz fallback para os dados extraídos pela IA durante a análise do balancete.
+ */
+export async function resolveBalanceteCharts(
+  files: File[] | undefined,
+  parsed: ParsedLike | null | undefined,
+): Promise<BalanceteChartsResult | null> {
+  if (files?.length) {
+    const fromFile = await parseBalanceteChartsFromFiles(files);
+    if (fromFile?.hasData) return fromFile;
+  }
+  return deriveChartsFromParsedData(parsed);
+}
