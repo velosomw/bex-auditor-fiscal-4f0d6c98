@@ -111,7 +111,7 @@ const Header = () => {
             to="/login"
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
           >
-            Acessar Solução
+            Acessar a Plataforma
           </Link>
         </div>
 
