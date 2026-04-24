@@ -370,7 +370,9 @@ const UserManagement = () => {
                   <Input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="email@exemplo.com" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-sm text-muted-foreground">Senha</Label>
+                  <Label className="text-sm text-muted-foreground">
+                    Senha <span className="text-xs">(opcional — deixe em branco para enviar e-mail)</span>
+                  </Label>
                   <Input type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
                 </div>
               </>
@@ -393,9 +395,19 @@ const UserManagement = () => {
               </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white" onClick={handleSave} disabled={saving}>
+            {!editingUser && (
+              <Button
+                variant="outline"
+                className="border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)]/10"
+                onClick={() => handleSave(true)}
+                disabled={saving}
+              >
+                {saving ? "Enviando..." : "Criar e enviar e-mail de senha"}
+              </Button>
+            )}
+            <Button className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white" onClick={() => handleSave(false)} disabled={saving}>
               {saving ? "Salvando..." : editingUser ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
