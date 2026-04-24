@@ -111,7 +111,10 @@ const UserEmpresas = () => {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    reload();
+    getMyAccountingFirm().then(setMyFirm).catch(() => {});
+  }, []);
 
   const aggregates: CompanyAggregate[] = useMemo(() => {
     return companies.map(c => {
