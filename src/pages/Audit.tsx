@@ -27,6 +27,7 @@ import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import PlatformLayout from "@/components/PlatformLayout";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
+import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
 import { getFileFormat as getFormat } from "@/services/auditAIService";
@@ -3813,7 +3814,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source }: { 
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -3821,6 +3822,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
   sourceDocs?: { fileName: string; fileSize: number; format: string }[];
   company?: Company | null;
   source?: "auditor_chefe" | "usuario" | "empresa";
+  uploadedFiles?: File[];
 }) => {
   const navigate = useNavigate();
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
@@ -3905,6 +3907,9 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
           <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
           </TabsTrigger>
+          <TabsTrigger value="graficos-auditoria" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+            <BarChart3 className="w-3.5 h-3.5" /> Gráficos de Auditoria
+          </TabsTrigger>
           <TabsTrigger value="kanitz" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Scale className="w-3.5 h-3.5" /> Kanitz
           </TabsTrigger>
@@ -3918,6 +3923,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
         <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="graficos-auditoria"><TabGraficosAuditoria files={uploadedFiles} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="relatorio-final">
@@ -4024,6 +4030,7 @@ const AuditContent = () => {
             sourceDocs={sourceDocs}
             company={company}
             source={reportSource}
+            uploadedFiles={uploadedFiles}
           />
         )}
       </div>
