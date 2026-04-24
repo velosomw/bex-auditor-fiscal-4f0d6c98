@@ -943,7 +943,7 @@ const ModeloMatematico = () => {
               <Calculator className="w-6 h-6 text-primary" />
               Modelo Matemático Detalhado
             </h1>
-            <p className="text-sm text-muted-foreground">Índices Financeiros & Sistema de Persona — Plataforma de Auditoria IA v3.0</p>
+            <p className="text-sm text-muted-foreground">Índices Financeiros & Sistema de Persona — Plataforma de Contábil IA v3.0</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Ano:</span>
