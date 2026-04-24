@@ -109,7 +109,7 @@ const Login = () => {
             </div>
             <h1 className="text-2xl font-bold text-[hsl(222,25%,18%)]">Plataforma de</h1>
             <h2 className="text-2xl font-bold bg-gradient-to-r from-[hsl(217,91%,50%)] to-[hsl(200,98%,60%)] bg-clip-text text-transparent">
-              Auditoria IA
+              Contábil IA
             </h2>
           </div>
 
