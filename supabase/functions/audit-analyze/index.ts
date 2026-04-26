@@ -243,9 +243,25 @@ serve(async (req) => {
   }
 
   try {
-    const { balanco, dre, documentInfo, config } = await req.json();
+    const { balanco, dre, documentInfo, config, pipeline } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Pipeline pré-processamento (opcional): contas normalizadas + few-shot + validação
+    const pipelineBlock = pipeline
+      ? `
+## DADOS NORMALIZADOS PELO PIPELINE IA (use como base preferencial)
+- Score de qualidade do parsing: ${(pipeline.quality_score * 100).toFixed(1)}%
+- Validação contábil: Ativo=${pipeline.validation?.ativo?.toFixed(0)}, Passivo=${pipeline.validation?.passivo?.toFixed(0)}, PL=${pipeline.validation?.pl?.toFixed(0)}, válido=${pipeline.validation?.valid}
+- Alertas do validador: ${(pipeline.validation?.alertas || []).join(" | ") || "nenhum"}
+- Contas normalizadas (top 30):
+${(pipeline.normalized || []).slice(0, 30).map((r: any) => `  • ${r.conta_normalizada} [${r.categoria}] = ${r.valor.toFixed(0)}`).join("\n")}
+${(pipeline.few_shot_examples || []).length > 0 ? `
+## EXEMPLOS DE ANÁLISES VALIDADAS POR AUDITORES (few-shot — siga padrões similares)
+${(pipeline.few_shot_examples || []).slice(0, 3).map((ex: any, i: number) => `Exemplo ${i + 1}: ${JSON.stringify(ex.output).slice(0, 600)}`).join("\n\n")}
+` : ""}
+`
+      : "";
 
     const userPrompt = `Analise os seguintes dados financeiros usando a pipeline multi-agente (Estruturador → Auditor → Risk Engine → Gerador):
 
@@ -255,7 +271,7 @@ serve(async (req) => {
 ${documentInfo ? `- Empresa: ${documentInfo.empresa || "Não informado"}
 - Período: ${documentInfo.periodo || "Não informado"}
 - Tipo de Documento: ${documentInfo.tipo || "Não informado"}` : ""}
-
+${pipelineBlock}
 ## BALANÇO PATRIMONIAL
 ${JSON.stringify(balanco, null, 2)}
 
