@@ -1,23 +1,23 @@
 // Audit Pipeline Process — Pré-processamento inteligente de balancetes
-// Pipeline: registro → embeddings → similarity → normalização → validação → score
-// Roda ANTES do audit-analyze (multi-agente Kanitz/BEX) sem alterá-lo.
+// Stack: Lovable AI Gateway (chat/JSON, sem embeddings) + Supabase Postgres.
 //
-// Etapas (sem OCR aqui — o OCR já é feito por audit-parse-pdf / document-ai-process):
+// Pipeline:
 //   1. Cria pipeline_documents
-//   2. Salva balancete_data (linhas estruturadas vindas do parser)
-//   3. Normalizador semântico via embeddings + dicionário contábil
-//   4. Recupera exemplos similares de dataset_validated (few-shot)
-//   5. Validador contábil (Ativo = Passivo + PL)
-//   6. Score de qualidade (ocr * 0.3 + mapping * 0.3 + validation * 0.4)
+//   2. Normalização semântica via LLM (Gemini Flash) com dicionário injetado
+//   3. Salva balancete_data
+//   4. Validação contábil (Ativo ≈ Passivo + PL com tolerância 2%)
+//   5. Few-shot examples recentes de dataset_validated
+//   6. Score de qualidade composto
 //   7. Persiste pipeline_analysis_results
-//   8. Retorna dados normalizados + few-shot examples + score para o audit-analyze
+//   8. Retorna dados normalizados + few-shot + score para o audit-analyze
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
@@ -39,90 +39,146 @@ interface PipelineRequest {
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
 }
 
-/* ──────────────── Embedding via Lovable AI Gateway ──────────────── */
-async function generateEmbedding(text: string): Promise<number[] | null> {
-  // Lovable AI Gateway suporta o endpoint OpenAI-compatible /v1/embeddings.
-  // Modelo: google/text-embedding-004 (768 dims) — alinhado com vector(768)
-  try {
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/text-embedding-004",
-        input: text.slice(0, 2000),
-      }),
-    });
-    if (!r.ok) {
-      console.warn("embedding HTTP", r.status, (await r.text()).slice(0, 200));
-      return null;
-    }
-    const j = await r.json();
-    return j?.data?.[0]?.embedding || null;
-  } catch (e) {
-    console.warn("embedding error", e);
-    return null;
-  }
-}
-
-/* ──────────────── Categorização contábil heurística ──────────────── */
+/* ──────────────── Categorização contábil heurística (fallback) ──────────────── */
 function classifyAccount(desc: string): { tipo: string; categoria: string } {
-  const d = desc.toLowerCase();
+  const d = (desc || "").toLowerCase();
   if (/(receita|venda|faturamento)/.test(d)) return { tipo: "receita", categoria: "receita" };
   if (/(custo|cmv)/.test(d)) return { tipo: "despesa", categoria: "custo" };
   if (/(despesa|gasto)/.test(d)) return { tipo: "despesa", categoria: "despesa" };
-  if (/(caixa|banco|aplica|cliente|estoque|recebe|circulante)/.test(d))
-    return { tipo: "ativo", categoria: "ativo_circulante" };
   if (/(imobilizado|intangivel|investiment|longo prazo|nao circulante|não circulante)/.test(d))
     return { tipo: "ativo", categoria: "ativo_nao_circulante" };
-  if (/(fornecedor|emprestimo|financiamento|salario|imposto a pagar|factoring|fidc|duplicat.*descont)/.test(d))
-    return { tipo: "passivo", categoria: "passivo_circulante" };
-  if (/(exigivel.*longo|passivo.*nao.*circulante|passivo.*não.*circulante)/.test(d))
+  if (/(caixa|banco|aplica|cliente|estoque|recebe|circulante|duplicat)/.test(d))
+    return { tipo: "ativo", categoria: "ativo_circulante" };
+  if (/(exigivel.*longo|passivo.*nao.*circulante|passivo.*não.*circulante|financiamento.*longo)/.test(d))
     return { tipo: "passivo", categoria: "passivo_nao_circulante" };
-  if (/(capital social|reserva|lucro acumulado|patrimonio)/.test(d))
+  if (/(fornecedor|emprestimo|financiamento|salario|imposto a pagar|factoring|fidc|duplicat.*descont|obrigac)/.test(d))
+    return { tipo: "passivo", categoria: "passivo_circulante" };
+  if (/(capital social|reserva|lucro acumulado|prejuizo acumulado|patrimonio)/.test(d))
     return { tipo: "pl", categoria: "patrimonio_liquido" };
   return { tipo: "ativo", categoria: "ativo_circulante" };
 }
 
-/* ──────────────── Normalização via dicionário (similarity search) ──────────────── */
-async function normalizeAccount(
+/* ──────────────── Normalização semântica em lote via LLM ──────────────── */
+async function normalizeAccountsLLM(
+  rows: Array<{ conta: string; descricao: string }>,
   // deno-lint-ignore no-explicit-any
-  supabase: any,
-  raw: string,
-  embedding: number[] | null,
-): Promise<{ termo_padrao: string; categoria: string; matched: boolean }> {
-  // 1. Tenta match exato (case-insensitive) primeiro — barato
-  const lower = raw.toLowerCase().trim();
-  const { data: exact } = await supabase
-    .from("contabil_dictionary")
-    .select("termo_padrao, categoria")
-    .ilike("termo_original", lower)
-    .limit(1)
-    .maybeSingle();
-  if (exact) return { termo_padrao: (exact as any).termo_padrao, categoria: (exact as any).categoria, matched: true };
+  dictionary: any[],
+): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
+  // Dicionário compacto para o prompt
+  const dictText = dictionary
+    .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
+    .join("\n");
 
-  // 2. Similarity search via embedding (se disponível)
-  if (embedding) {
-    const { data: sim } = await supabase.rpc("match_contabil_dictionary", {
-      query_embedding: embedding,
-      match_threshold: 0.7,
-      match_count: 1,
+  const inputList = rows
+    .map((r, i) => `${i}. ${r.descricao || r.conta}`)
+    .join("\n");
+
+  const systemPrompt = `Você é um contador especialista em normalização de plano de contas brasileiro (CPC/IFRS/NBC TA).
+Para cada conta de balancete recebida, retorne:
+- conta_normalizada: nome padrão consolidado (ex.: "Bcos c/Mvto" → "Bancos Conta Movimento")
+- categoria: uma de [ativo_circulante, ativo_nao_circulante, passivo_circulante, passivo_nao_circulante, patrimonio_liquido, receita, custo, despesa]
+- tipo: uma de [ativo, passivo, pl, receita, despesa]
+- matched: true se mapeou via dicionário, false se inferiu
+
+DICIONÁRIO DE REFERÊNCIA:
+${dictText}`;
+
+  const userPrompt = `Normalize estas ${rows.length} contas (mantenha a mesma ordem):\n${inputList}`;
+
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "return_normalized_accounts",
+            description: "Retorna lista de contas normalizadas na mesma ordem do input.",
+            parameters: {
+              type: "object",
+              properties: {
+                accounts: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      conta_normalizada: { type: "string" },
+                      categoria: {
+                        type: "string",
+                        enum: [
+                          "ativo_circulante",
+                          "ativo_nao_circulante",
+                          "passivo_circulante",
+                          "passivo_nao_circulante",
+                          "patrimonio_liquido",
+                          "receita",
+                          "custo",
+                          "despesa",
+                        ],
+                      },
+                      tipo: {
+                        type: "string",
+                        enum: ["ativo", "passivo", "pl", "receita", "despesa"],
+                      },
+                      matched: { type: "boolean" },
+                    },
+                    required: ["conta_normalizada", "categoria", "tipo", "matched"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["accounts"],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "return_normalized_accounts" } },
+    }),
+  });
+
+  if (!r.ok) {
+    console.warn("LLM normalize HTTP", r.status, (await r.text()).slice(0, 300));
+    return rows.map((row) => {
+      const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
+      return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
     });
-    if (sim && (sim as any[]).length > 0) {
-      const top = (sim as any[])[0];
-      return { termo_padrao: top.termo_padrao, categoria: top.categoria, matched: true };
-    }
   }
 
-  // 3. Fallback heurístico
-  const { categoria } = classifyAccount(raw);
-  return { termo_padrao: raw, categoria, matched: false };
+  try {
+    const j = await r.json();
+    const tc = j.choices?.[0]?.message?.tool_calls?.[0];
+    const args = JSON.parse(tc?.function?.arguments || "{}");
+    const accounts = args.accounts as Array<{
+      conta_normalizada: string;
+      categoria: string;
+      tipo: string;
+      matched: boolean;
+    }>;
+    if (!Array.isArray(accounts) || accounts.length !== rows.length) {
+      throw new Error(`tamanho inesperado: ${accounts?.length} vs ${rows.length}`);
+    }
+    return accounts;
+  } catch (e) {
+    console.warn("LLM normalize parse error", e);
+    return rows.map((row) => {
+      const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
+      return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
+    });
+  }
 }
 
 /* ──────────────── Validador contábil ──────────────── */
-function validateBalanco(rows: Array<{ conta_normalizada: string; valor: number; tipo: string }>): {
+function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   valid: boolean;
   ativo: number;
   passivo: number;
@@ -130,35 +186,22 @@ function validateBalanco(rows: Array<{ conta_normalizada: string; valor: number;
   diff: number;
   alertas: string[];
 } {
-  const sum = (t: string) => rows.filter((r) => r.tipo === t).reduce((a, b) => a + Math.abs(b.valor), 0);
+  const sum = (t: string) =>
+    rows.filter((r) => r.tipo === t).reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
   const ativo = sum("ativo");
   const passivo = sum("passivo");
   const pl = sum("pl");
   const diff = Math.abs(ativo - (passivo + pl));
-  const tolerance = ativo * 0.02; // 2%
+  const tolerance = ativo * 0.02;
   const alertas: string[] = [];
   if (ativo === 0) alertas.push("Ativo total = 0 (verifique extração)");
   if (passivo + pl === 0) alertas.push("Passivo + PL = 0 (verifique extração)");
   if (diff > tolerance && ativo > 0) {
-    alertas.push(`Equação contábil desbalanceada: Ativo (${ativo.toFixed(0)}) ≠ Passivo+PL (${(passivo + pl).toFixed(0)}). Diferença: ${diff.toFixed(0)}`);
+    alertas.push(
+      `Equação contábil desbalanceada: Ativo (${ativo.toFixed(0)}) ≠ Passivo+PL (${(passivo + pl).toFixed(0)}). Diferença: ${diff.toFixed(0)}`,
+    );
   }
   return { valid: diff <= tolerance, ativo, passivo, pl, diff, alertas };
-}
-
-/* ──────────────── Few-shot retrieval ──────────────── */
-async function fetchFewShotExamples(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
-  embedding: number[] | null,
-  k = 3,
-): Promise<Array<{ input: any; output: any }>> {
-  if (!embedding) return [];
-  const { data } = await supabase.rpc("match_dataset_validated", {
-    query_embedding: embedding,
-    match_threshold: 0.6,
-    match_count: k,
-  });
-  return ((data as any[]) || []).map((r) => ({ input: r.input_json, output: r.output_corrected }));
 }
 
 /* ──────────────── Handler ──────────────── */
@@ -168,7 +211,6 @@ serve(async (req) => {
   try {
     const body: PipelineRequest = await req.json();
 
-    // Resolve user from JWT (service-role client; auth.uid() not available)
     const authHeader = req.headers.get("Authorization") || "";
     const jwt = authHeader.replace("Bearer ", "");
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -198,47 +240,59 @@ serve(async (req) => {
       .single();
 
     if (docErr || !doc) throw new Error(`Falha ao registrar documento: ${docErr?.message}`);
+    // deno-lint-ignore no-explicit-any
     const documentId = (doc as any).id;
 
-    // 2. Normalizar contas (balanço + DRE)
+    // 2. Carregar dicionário (uma vez)
+    const { data: dictionary } = await supabase
+      .from("contabil_dictionary")
+      .select("termo_original, termo_padrao, categoria")
+      .limit(200);
+
+    // 3. Combinar balanço + DRE
     const allRows = [
-      ...body.balanco.map((r) => ({ ...r, _src: "balanco" as const })),
-      ...body.dre.map((r) => ({ ...r, _src: "dre" as const })),
+      ...(body.balanco || []).map((r) => ({ ...r, _src: "balanco" as const })),
+      ...(body.dre || []).map((r) => ({ ...r, _src: "dre" as const })),
     ];
 
-    const normalizedRows: Array<{
-      conta_original: string;
-      conta_normalizada: string;
-      valor: number;
-      tipo: string;
-      categoria: string;
-      matched: boolean;
-    }> = [];
-
-    let mappedCount = 0;
-    const years = Object.keys(body.balanco[0]?.values || body.dre[0]?.values || { _: 0 });
-    const lastYear = years.sort().reverse()[0] || "_";
-
-    for (const row of allRows) {
-      const text = `${row.conta} ${row.descricao}`.trim();
-      const emb = await generateEmbedding(text);
-      const norm = await normalizeAccount(supabase, row.descricao || row.conta, emb);
-      if (norm.matched) mappedCount++;
-      const valor = Number(row.values[lastYear] || 0);
-      const { tipo } = classifyAccount(norm.termo_padrao + " " + row.descricao);
-      normalizedRows.push({
-        conta_original: row.descricao || row.conta,
-        conta_normalizada: norm.termo_padrao,
-        valor,
-        tipo,
-        categoria: norm.categoria,
-        matched: norm.matched,
+    if (allRows.length === 0) {
+      await supabase
+        .from("pipeline_documents")
+        .update({ status: "failed", error_message: "Sem linhas para processar" })
+        .eq("id", documentId);
+      return new Response(JSON.stringify({ error: "Sem linhas para processar" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 3. Persistir balancete_data
+    const years = Object.keys(body.balanco?.[0]?.values || body.dre?.[0]?.values || { _: 0 });
+    const lastYear = years.sort().reverse()[0] || "_";
+
+    // 4. Normalização em lote via LLM (uma chamada para tudo)
+    const normalized = await normalizeAccountsLLM(
+      allRows.map((r) => ({ conta: r.conta, descricao: r.descricao })),
+      dictionary || [],
+    );
+
+    let mappedCount = 0;
+    const normalizedRows = allRows.map((row, i) => {
+      const n = normalized[i];
+      if (n.matched) mappedCount++;
+      const valor = Number(row.values?.[lastYear] || 0);
+      return {
+        conta_original: row.descricao || row.conta,
+        conta_normalizada: n.conta_normalizada,
+        valor,
+        tipo: n.tipo,
+        categoria: n.categoria,
+        matched: n.matched,
+      };
+    });
+
+    // 5. Persistir balancete_data
     if (normalizedRows.length > 0) {
-      await supabase.from("balancete_data").insert(
+      const { error: bdErr } = await supabase.from("balancete_data").insert(
         normalizedRows.map((r) => ({
           document_id: documentId,
           conta_original: r.conta_original,
@@ -248,38 +302,34 @@ serve(async (req) => {
           categoria: r.categoria,
         })),
       );
+      if (bdErr) console.warn("balancete_data insert warn:", bdErr.message);
     }
 
-    // 4. Validador contábil
+    // 6. Validação contábil
     const validation = validateBalanco(normalizedRows);
 
-    // 5. Few-shot retrieval
-    const summaryText =
-      `Balancete ${body.documentInfo?.empresa || ""} ${body.documentInfo?.periodo || ""} ` +
-      normalizedRows
-        .slice(0, 20)
-        .map((r) => `${r.conta_normalizada}:${r.valor.toFixed(0)}`)
-        .join(" | ");
-    const docEmbedding = await generateEmbedding(summaryText);
-    const fewShot = await fetchFewShotExamples(supabase, docEmbedding, 3);
+    // 7. Few-shot: últimos 3 exemplos validados (sem embeddings — vetor indisponível)
+    const { data: fsRows } = await supabase
+      .from("dataset_validated")
+      .select("input_json, output_corrected")
+      .order("created_at", { ascending: false })
+      .limit(3);
+    const fewShot = (fsRows || []).map((r) => ({
+      // deno-lint-ignore no-explicit-any
+      input: (r as any).input_json,
+      // deno-lint-ignore no-explicit-any
+      output: (r as any).output_corrected,
+    }));
 
-    if (docEmbedding) {
-      await supabase.from("pipeline_embeddings").insert({
-        document_id: documentId,
-        tipo: "balancete",
-        text_content: summaryText,
-        embedding: docEmbedding as any,
-        metadata: { mapped: mappedCount, total: normalizedRows.length },
-      });
-    }
-
-    // 6. Score de qualidade
+    // 8. Score de qualidade
     const ocrScore = Math.max(0, Math.min(1, body.ocr_score ?? 0.85));
     const mappingScore = normalizedRows.length > 0 ? mappedCount / normalizedRows.length : 0;
-    const validationScore = validation.valid ? 1 : Math.max(0, 1 - validation.diff / Math.max(validation.ativo, 1));
+    const validationScore = validation.valid
+      ? 1
+      : Math.max(0, 1 - validation.diff / Math.max(validation.ativo, 1));
     const qualityScore = ocrScore * 0.3 + mappingScore * 0.3 + validationScore * 0.4;
 
-    // 7. Persistir analysis_results
+    // 9. Persistir analysis_results
     await supabase.from("pipeline_analysis_results").insert({
       document_id: documentId,
       indicadores: {
@@ -298,7 +348,6 @@ serve(async (req) => {
 
     await supabase.from("pipeline_documents").update({ status: "done" }).eq("id", documentId);
 
-    // 8. Resposta
     return new Response(
       JSON.stringify({
         document_id: documentId,
