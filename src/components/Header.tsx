@@ -46,7 +46,7 @@ const Header = () => {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-12 h-16 lg:h-20">
         {/* Logo */}
-        <Link to="/" className="flex items-center">
+        <Link to="/" className="flex items-center py-2 -ml-2 px-2 rounded-md hover:opacity-80 transition-opacity">
           <img 
             src={logoBex} 
             alt="BEX Brasil Expert" 
@@ -135,20 +135,24 @@ const Header = () => {
           >
             <nav className="px-6 py-4 space-y-1">
               {navItems.map((item) => (
-                <div key={item.label}>
-                  <div className="flex items-center justify-between">
+                <div key={item.label} className="border-b border-border/50 last:border-b-0">
+                  <div className="flex items-center justify-between min-h-[48px]">
                     <Link
                       to={item.href}
-                      className="block py-3 text-primary hover:text-accent font-medium transition-colors"
+                      className="flex-1 py-3 text-primary hover:text-accent font-medium transition-colors"
                     >
                       {item.label}
                     </Link>
                     {item.submenu && (
                       <button
-                        onClick={() =>
-                          setActiveSubmenu(activeSubmenu === item.label ? null : item.label)
-                        }
-                        className="p-2 text-primary/60"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setActiveSubmenu(activeSubmenu === item.label ? null : item.label);
+                        }}
+                        aria-label={`Abrir submenu ${item.label}`}
+                        aria-expanded={activeSubmenu === item.label}
+                        className="p-3 -mr-2 text-primary/60 hover:text-accent transition-colors"
                       >
                         <ChevronDown
                           className={`w-4 h-4 transition-transform ${
@@ -158,23 +162,26 @@ const Header = () => {
                       </button>
                     )}
                   </div>
-                  <AnimatePresence>
+                  <AnimatePresence initial={false}>
                     {item.submenu && activeSubmenu === item.label && (
                       <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: "auto" }}
-                        exit={{ height: 0 }}
-                        className="overflow-hidden pl-4"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
                       >
-                        {item.submenu.map((sub) => (
-                          <Link
-                            key={sub.href}
-                            to={sub.href}
-                            className="block py-2.5 text-sm text-muted-foreground hover:text-accent transition-colors"
-                          >
-                            {sub.label}
-                          </Link>
-                        ))}
+                        <div className="pl-4 pb-2 space-y-1">
+                          {item.submenu.map((sub) => (
+                            <Link
+                              key={sub.href}
+                              to={sub.href}
+                              className="block py-2.5 text-sm text-muted-foreground hover:text-accent transition-colors"
+                            >
+                              {sub.label}
+                            </Link>
+                          ))}
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
