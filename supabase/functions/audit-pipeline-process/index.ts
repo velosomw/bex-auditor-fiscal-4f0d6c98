@@ -88,7 +88,8 @@ function classifyAccount(desc: string): { tipo: string; categoria: string } {
 
 /* ──────────────── Normalização via dicionário (similarity search) ──────────────── */
 async function normalizeAccount(
-  supabase: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   raw: string,
   embedding: number[] | null,
 ): Promise<{ termo_padrao: string; categoria: string; matched: boolean }> {
@@ -146,7 +147,8 @@ function validateBalanco(rows: Array<{ conta_normalizada: string; valor: number;
 
 /* ──────────────── Few-shot retrieval ──────────────── */
 async function fetchFewShotExamples(
-  supabase: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   embedding: number[] | null,
   k = 3,
 ): Promise<Array<{ input: any; output: any }>> {
