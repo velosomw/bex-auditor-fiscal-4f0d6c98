@@ -629,6 +629,33 @@ export type Database = {
         }
         Returns: boolean
       }
+      match_contabil_dictionary: {
+        Args: {
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+        }
+        Returns: {
+          categoria: string
+          id: string
+          similarity: number
+          termo_original: string
+          termo_padrao: string
+        }[]
+      }
+      match_dataset_validated: {
+        Args: {
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+        }
+        Returns: {
+          id: string
+          input_json: Json
+          output_corrected: Json
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       app_role:
