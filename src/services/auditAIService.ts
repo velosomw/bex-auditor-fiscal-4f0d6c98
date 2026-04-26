@@ -357,10 +357,56 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   };
 }
 
-/* ── Call audit-analyze edge function ── */
+/* ── Pipeline pré-processamento (normalização + few-shot + score) ── */
+export interface PipelineResult {
+  document_id: string;
+  normalized: Array<{ conta_original: string; conta_normalizada: string; valor: number; tipo: string; categoria: string; matched: boolean }>;
+  few_shot_examples: Array<{ input: any; output: any }>;
+  validation: { valid: boolean; ativo: number; passivo: number; pl: number; diff: number; alertas: string[] };
+  scores: { ocr: number; mapping: number; validation: number; quality: number };
+}
+
+export async function runAuditPipeline(
+  parsedData: ParsedFinancialData,
+  fileName: string,
+  companyId?: string,
+): Promise<PipelineResult | null> {
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null; // pipeline requires auth; segue sem ele se não logado
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/audit-pipeline-process`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        company_id: companyId,
+        file_name: fileName,
+        balanco: parsedData.balanco,
+        dre: parsedData.dre,
+        documentInfo: parsedData.documentInfo,
+      }),
+    });
+    if (!response.ok) {
+      console.warn("Pipeline pré-processamento falhou:", response.status);
+      return null;
+    }
+    return await response.json();
+  } catch (e) {
+    console.warn("Pipeline pré-processamento erro:", e);
+    return null;
+  }
+}
+
+/* ── Call audit-analyze edge function (com pipeline opcional) ── */
 export async function analyzeFinancialData(
   parsedData: ParsedFinancialData,
-  config: { depth: string; purpose: string }
+  config: { depth: string; purpose: string },
+  pipeline?: PipelineResult | null
 ): Promise<any> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -376,6 +422,14 @@ export async function analyzeFinancialData(
       dre: parsedData.dre,
       documentInfo: parsedData.documentInfo,
       config,
+      pipeline: pipeline
+        ? {
+            normalized: pipeline.normalized,
+            few_shot_examples: pipeline.few_shot_examples,
+            validation: pipeline.validation,
+            quality_score: pipeline.scores.quality,
+          }
+        : undefined,
     }),
   });
 
@@ -385,7 +439,7 @@ export async function analyzeFinancialData(
   }
 
   const data = await response.json();
-  return data.analysis;
+  return { ...data.analysis, _pipeline: pipeline || null };
 }
 
 /* ── Stream chat with AI auditor ── */
