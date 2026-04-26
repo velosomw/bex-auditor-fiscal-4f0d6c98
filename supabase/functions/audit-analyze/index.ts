@@ -285,7 +285,7 @@ Execute os 4 agentes em sequência e gere a análise completa conforme a estrutu
           { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
-        max_tokens: 16000,
+        max_tokens: 24000,
       }),
     });
 
