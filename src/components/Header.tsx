@@ -49,8 +49,8 @@ const Header = () => {
         <Link to="/" className="flex items-center">
           <img 
             src={logoBex} 
-            alt="BEX Auditoria" 
-            className="h-8 lg:h-10 w-auto object-contain"
+            alt="BEX Brasil Expert" 
+            className="h-10 lg:h-12 w-auto object-contain"
           />
         </Link>
 
