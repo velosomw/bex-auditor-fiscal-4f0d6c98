@@ -73,17 +73,26 @@ async function normalizeAccountsLLM(
     .map((r, i) => `${i}. ${r.descricao || r.conta}`)
     .join("\n");
 
-  const systemPrompt = `Você é um contador especialista em normalização de plano de contas brasileiro (CPC/IFRS/NBC TA).
-Para cada conta de balancete recebida, retorne:
-- conta_normalizada: nome padrão consolidado (ex.: "Bcos c/Mvto" → "Bancos Conta Movimento")
-- categoria: uma de [ativo_circulante, ativo_nao_circulante, passivo_circulante, passivo_nao_circulante, patrimonio_liquido, receita, custo, despesa]
-- tipo: uma de [ativo, passivo, pl, receita, despesa]
-- matched: true se mapeou via dicionário, false se inferiu
+  const systemPrompt = `Você é um CONTADOR ESPECIALISTA em classificação contábil brasileira (CPC/IFRS/NBC TA/Lei 6.404/76).
 
-DICIONÁRIO DE REFERÊNCIA:
-${dictText}`;
+TAREFA: Padronizar e classificar contas de um balancete usando SIMILARIDADE SEMÂNTICA (não literal).
 
-  const userPrompt = `Normalize estas ${rows.length} contas (mantenha a mesma ordem):\n${inputList}`;
+REGRAS CRÍTICAS:
+1. Para cada conta, retorne:
+   - conta_normalizada: termo padrão consolidado (ex.: "Bcos c/Mvto" → "Bancos Conta Movimento"; "Dupl. Desct." → "Duplicatas Descontadas")
+   - categoria: uma de [ativo_circulante, ativo_nao_circulante, passivo_circulante, passivo_nao_circulante, patrimonio_liquido, receita, custo, despesa]
+   - tipo: uma de [ativo, passivo, pl, receita, despesa]
+   - matched: true se mapeou via dicionário/exemplo, false se inferiu por contexto
+2. Use SIMILARIDADE SEMÂNTICA — contas equivalentes devem ter o MESMO termo padrão (consistência).
+3. NÃO invente categorias novas. NÃO crie subcontas inexistentes.
+4. Identifique sinais de risco: factoring, FIDC, duplicatas descontadas, antecipação de recebíveis → categoria correta + termo padronizado.
+5. Se a conta for ambígua → mantenha o nome original e marque matched=false.
+6. Mantenha a MESMA ORDEM das contas de entrada.
+
+DICIONÁRIO CONTÁBIL DE REFERÊNCIA:
+${dictText || "(vazio — use seu conhecimento contábil)"}`;
+
+  const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem do input:\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts.`;
 
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
