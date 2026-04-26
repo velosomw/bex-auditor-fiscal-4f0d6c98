@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import logoBex from "@/assets/logo-bex.png";
+import logoBex from "@/assets/logo-bex-brasil-expert.png";
 
 const navItems = [
   { label: "Insights", href: "/insights" },
@@ -38,10 +38,10 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-border ${
         scrolled
-          ? "bg-primary/95 backdrop-blur-md shadow-lg"
-          : "bg-primary"
+          ? "bg-white/95 backdrop-blur-md shadow-lg"
+          : "bg-white"
       }`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-12 h-16 lg:h-20">
@@ -49,8 +49,8 @@ const Header = () => {
         <Link to="/" className="flex items-center">
           <img 
             src={logoBex} 
-            alt="BEX Auditoria" 
-            className="h-8 lg:h-10 w-auto object-contain"
+            alt="BEX Brasil Expert" 
+            className="h-10 lg:h-12 w-auto object-contain"
           />
         </Link>
 
@@ -65,7 +65,7 @@ const Header = () => {
             >
               <Link
                 to={item.href}
-                className="flex items-center gap-1 px-5 py-2 text-sm font-medium text-primary-foreground/80 hover:text-accent transition-colors"
+                className="flex items-center gap-1 px-5 py-2 text-sm font-medium text-primary hover:text-accent transition-colors"
               >
                 {item.label}
                 {item.submenu && <ChevronDown className="w-3.5 h-3.5" />}
@@ -103,7 +103,7 @@ const Header = () => {
         <div className="hidden lg:flex items-center gap-3">
           <Link
             to="/contato"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md font-semibold transition-all border border-primary-foreground/30 text-primary-foreground/80 bg-transparent hover:[background:var(--btn-gradient)] hover:text-white hover:border-transparent"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md font-semibold transition-all border border-primary/30 text-primary bg-transparent hover:[background:var(--btn-gradient)] hover:text-white hover:border-transparent"
           >
             Fale Conosco
           </Link>
@@ -118,7 +118,7 @@ const Header = () => {
         {/* Mobile Toggle */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="lg:hidden text-primary-foreground"
+          className="lg:hidden text-primary"
         >
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -131,7 +131,7 @@ const Header = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="lg:hidden bg-primary border-t border-primary-foreground/10 overflow-hidden"
+            className="lg:hidden bg-white border-t border-border overflow-hidden"
           >
             <nav className="px-6 py-4 space-y-1">
               {navItems.map((item) => (
@@ -139,7 +139,7 @@ const Header = () => {
                   <div className="flex items-center justify-between">
                     <Link
                       to={item.href}
-                      className="block py-3 text-primary-foreground/80 hover:text-accent font-medium transition-colors"
+                      className="block py-3 text-primary hover:text-accent font-medium transition-colors"
                     >
                       {item.label}
                     </Link>
@@ -148,7 +148,7 @@ const Header = () => {
                         onClick={() =>
                           setActiveSubmenu(activeSubmenu === item.label ? null : item.label)
                         }
-                        className="p-2 text-primary-foreground/60"
+                        className="p-2 text-primary/60"
                       >
                         <ChevronDown
                           className={`w-4 h-4 transition-transform ${
@@ -170,7 +170,7 @@ const Header = () => {
                           <Link
                             key={sub.href}
                             to={sub.href}
-                            className="block py-2.5 text-sm text-primary-foreground/60 hover:text-accent transition-colors"
+                            className="block py-2.5 text-sm text-muted-foreground hover:text-accent transition-colors"
                           >
                             {sub.label}
                           </Link>
