@@ -198,6 +198,53 @@ export type Database = {
           },
         ]
       }
+      balancete_data: {
+        Row: {
+          categoria: string | null
+          conta_normalizada: string | null
+          conta_original: string
+          created_at: string
+          document_id: string
+          id: string
+          nivel: number | null
+          subcategoria: string | null
+          tipo: string | null
+          valor: number
+        }
+        Insert: {
+          categoria?: string | null
+          conta_normalizada?: string | null
+          conta_original: string
+          created_at?: string
+          document_id: string
+          id?: string
+          nivel?: number | null
+          subcategoria?: string | null
+          tipo?: string | null
+          valor?: number
+        }
+        Update: {
+          categoria?: string | null
+          conta_normalizada?: string | null
+          conta_original?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          nivel?: number | null
+          subcategoria?: string | null
+          tipo?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balancete_data_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           accounting_firm_id: string | null
@@ -281,6 +328,247 @@ export type Database = {
           },
         ]
       }
+      contabil_dictionary: {
+        Row: {
+          categoria: string
+          created_at: string
+          embedding: string | null
+          frequencia: number | null
+          id: string
+          subcategoria: string | null
+          termo_original: string
+          termo_padrao: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          embedding?: string | null
+          frequencia?: number | null
+          id?: string
+          subcategoria?: string | null
+          termo_original: string
+          termo_padrao: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          embedding?: string | null
+          frequencia?: number | null
+          id?: string
+          subcategoria?: string | null
+          termo_original?: string
+          termo_padrao?: string
+        }
+        Relationships: []
+      }
+      dataset_validated: {
+        Row: {
+          corrected_by: string
+          created_at: string
+          document_id: string | null
+          embedding: string | null
+          id: string
+          input_json: Json
+          notes: string | null
+          output_corrected: Json
+        }
+        Insert: {
+          corrected_by: string
+          created_at?: string
+          document_id?: string | null
+          embedding?: string | null
+          id?: string
+          input_json: Json
+          notes?: string | null
+          output_corrected: Json
+        }
+        Update: {
+          corrected_by?: string
+          created_at?: string
+          document_id?: string | null
+          embedding?: string | null
+          id?: string
+          input_json?: Json
+          notes?: string | null
+          output_corrected?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dataset_validated_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocr_results: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          ocr_score: number | null
+          provider: string | null
+          raw_text: string | null
+          structured_json: Json | null
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          ocr_score?: number | null
+          provider?: string | null
+          raw_text?: string | null
+          structured_json?: Json | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          ocr_score?: number | null
+          provider?: string | null
+          raw_text?: string | null
+          structured_json?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocr_results_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_analysis_results: {
+        Row: {
+          alertas: Json | null
+          created_at: string
+          document_id: string
+          id: string
+          indicadores: Json | null
+          mapping_score: number | null
+          ocr_score: number | null
+          quality_score: number | null
+          validation_score: number | null
+        }
+        Insert: {
+          alertas?: Json | null
+          created_at?: string
+          document_id: string
+          id?: string
+          indicadores?: Json | null
+          mapping_score?: number | null
+          ocr_score?: number | null
+          quality_score?: number | null
+          validation_score?: number | null
+        }
+        Update: {
+          alertas?: Json | null
+          created_at?: string
+          document_id?: string
+          id?: string
+          indicadores?: Json | null
+          mapping_score?: number | null
+          ocr_score?: number | null
+          quality_score?: number | null
+          validation_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_analysis_results_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_documents: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string
+          error_message: string | null
+          file_name: string
+          file_type: string
+          id: string
+          status: string
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          file_name: string
+          file_type?: string
+          id?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          file_name?: string
+          file_type?: string
+          id?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_embeddings: {
+        Row: {
+          created_at: string
+          document_id: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          text_content: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          document_id?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          text_content?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          text_content?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_embeddings_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -340,6 +628,33 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      match_contabil_dictionary: {
+        Args: {
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+        }
+        Returns: {
+          categoria: string
+          id: string
+          similarity: number
+          termo_original: string
+          termo_padrao: string
+        }[]
+      }
+      match_dataset_validated: {
+        Args: {
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+        }
+        Returns: {
+          id: string
+          input_json: Json
+          output_corrected: Json
+          similarity: number
+        }[]
       }
     }
     Enums: {

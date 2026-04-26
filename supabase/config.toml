@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.document-ai-process]
 verify_jwt = false
+
+[functions.audit-pipeline-process]
+verify_jwt = false

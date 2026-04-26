@@ -25,7 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import PlatformLayout from "@/components/PlatformLayout";
-import { parseFile, parseMultipleFiles, analyzeFinancialData, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
+import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import { toast } from "@/hooks/use-toast";
@@ -665,14 +665,31 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
           years: [],
         };
 
-        // Step 5-7: Risk Engine
+        // Step 5-7: Risk Engine (com pipeline pré-processamento: normalização + few-shot + score)
         setCurrentStep(5);
         setProgress(50);
+
+        let pipelineResult = null;
+        if (parsedData && (parsedData.balanco.length > 0 || parsedData.dre.length > 0)) {
+          try {
+            pipelineResult = await runAuditPipeline(
+              parsedData,
+              files[0]?.name || "balancete",
+            );
+            if (pipelineResult) {
+              console.log(
+                `Pipeline IA — qualidade ${(pipelineResult.scores.quality * 100).toFixed(1)}% | mapeadas ${pipelineResult.normalized.filter(r => r.matched).length}/${pipelineResult.normalized.length} | few-shot ${pipelineResult.few_shot_examples.length}`
+              );
+            }
+          } catch (e) {
+            console.warn("Pipeline IA pulado (continuando análise):", e);
+          }
+        }
 
         const analysis = await analyzeFinancialData(dataToAnalyze, {
           depth: "tecnico",
           purpose: "externa",
-        });
+        }, pipelineResult);
 
         setCurrentStep(6);
         setProgress(70);
