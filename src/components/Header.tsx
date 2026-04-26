@@ -19,6 +19,9 @@ const navItems = [
   { label: "Contato", href: "/contato" },
 ];
 
+const slugify = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
+
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,6 +38,19 @@ const Header = () => {
     setMobileOpen(false);
     setActiveSubmenu(null);
   }, [location]);
+
+  // Keyboard: Escape closes any open submenu and returns focus to its trigger
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && activeSubmenu) {
+        const trigger = document.getElementById(`submenu-trigger-${slugify(activeSubmenu)}`);
+        setActiveSubmenu(null);
+        trigger?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [activeSubmenu]);
 
   return (
     <header
@@ -55,48 +71,96 @@ const Header = () => {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-1">
-          {navItems.map((item) => (
-            <div
-              key={item.label}
-              className="relative"
-              onMouseEnter={() => item.submenu && setActiveSubmenu(item.label)}
-              onMouseLeave={() => setActiveSubmenu(null)}
-            >
-              <Link
-                to={item.href}
-                className="flex items-center gap-1 px-5 py-2 text-sm font-medium text-primary hover:text-accent transition-colors"
+        <nav className="hidden lg:flex items-center gap-1" aria-label="Principal">
+          {navItems.map((item) => {
+            const submenuId = `submenu-${slugify(item.label)}`;
+            const triggerId = `submenu-trigger-${slugify(item.label)}`;
+            const isOpen = activeSubmenu === item.label;
+            return (
+              <div
+                key={item.label}
+                className="relative"
+                onMouseEnter={() => item.submenu && setActiveSubmenu(item.label)}
+                onMouseLeave={() => setActiveSubmenu(null)}
+                onFocus={() => item.submenu && setActiveSubmenu(item.label)}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setActiveSubmenu(null);
+                  }
+                }}
               >
-                {item.label}
-                {item.submenu && <ChevronDown className="w-3.5 h-3.5" />}
-              </Link>
+                <Link
+                  to={item.href}
+                  className="flex items-center gap-1 px-5 py-2 text-sm font-medium text-primary hover:text-accent transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  {item.label}
+                  {item.submenu && (
+                    <button
+                      id={triggerId}
+                      type="button"
+                      aria-haspopup="menu"
+                      aria-expanded={isOpen}
+                      aria-controls={submenuId}
+                      aria-label={`${isOpen ? "Fechar" : "Abrir"} submenu ${item.label}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setActiveSubmenu(isOpen ? null : item.label);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          setActiveSubmenu(item.label);
+                          requestAnimationFrame(() => {
+                            const first = document.querySelector<HTMLAnchorElement>(
+                              `#${submenuId} a`
+                            );
+                            first?.focus();
+                          });
+                        }
+                      }}
+                      className="p-1 -mr-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                  )}
+                </Link>
 
-              {/* Submenu */}
-              <AnimatePresence>
-                {item.submenu && activeSubmenu === item.label && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 pt-2 min-w-[320px]"
-                  >
-                    <div className="bg-card rounded-lg shadow-xl border border-border overflow-hidden">
-                      {item.submenu.map((sub) => (
-                        <Link
-                          key={sub.href}
-                          to={sub.href}
-                          className="block px-6 py-4 text-sm font-medium text-foreground hover:bg-muted hover:text-accent transition-colors border-b border-border last:border-b-0"
-                        >
-                          {sub.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
+                {/* Submenu */}
+                <AnimatePresence>
+                  {item.submenu && isOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute top-full left-0 pt-2 min-w-[320px]"
+                    >
+                      <div
+                        id={submenuId}
+                        role="menu"
+                        aria-label={item.label}
+                        className="bg-card rounded-lg shadow-xl border border-border overflow-hidden"
+                      >
+                        {item.submenu.map((sub) => (
+                          <Link
+                            key={sub.href}
+                            to={sub.href}
+                            role="menuitem"
+                            className="block px-6 py-4 text-sm font-medium text-foreground hover:bg-muted hover:text-accent transition-colors border-b border-border last:border-b-0 focus-visible:outline-none focus-visible:bg-muted focus-visible:text-accent"
+                          >
+                            {sub.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
         </nav>
 
         {/* CTA Desktop */}
