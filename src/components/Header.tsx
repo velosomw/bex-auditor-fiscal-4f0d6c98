@@ -182,7 +182,10 @@ const Header = () => {
         {/* Mobile Toggle */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="lg:hidden text-primary"
+          aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-menu"
+          className="lg:hidden text-primary p-2 -mr-2 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -195,62 +198,70 @@ const Header = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
+            id="mobile-menu"
             className="lg:hidden bg-white border-t border-border overflow-hidden"
           >
-            <nav className="px-6 py-4 space-y-1">
-              {navItems.map((item) => (
-                <div key={item.label} className="border-b border-border/50 last:border-b-0">
-                  <div className="flex items-center justify-between min-h-[48px]">
-                    <Link
-                      to={item.href}
-                      className="flex-1 py-3 text-primary hover:text-accent font-medium transition-colors"
-                    >
-                      {item.label}
-                    </Link>
-                    {item.submenu && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setActiveSubmenu(activeSubmenu === item.label ? null : item.label);
-                        }}
-                        aria-label={`Abrir submenu ${item.label}`}
-                        aria-expanded={activeSubmenu === item.label}
-                        className="p-3 -mr-2 text-primary/60 hover:text-accent transition-colors"
+            <nav className="px-6 py-4 space-y-1" aria-label="Mobile">
+              {navItems.map((item) => {
+                const submenuId = `mobile-submenu-${slugify(item.label)}`;
+                const triggerId = `mobile-submenu-trigger-${slugify(item.label)}`;
+                const isOpen = activeSubmenu === item.label;
+                return (
+                  <div key={item.label} className="border-b border-border/50 last:border-b-0">
+                    <div className="flex items-center justify-between min-h-[48px]">
+                      <Link
+                        to={item.href}
+                        className="flex-1 py-3 text-primary hover:text-accent font-medium transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       >
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            activeSubmenu === item.label ? "rotate-180" : ""
-                          }`}
-                        />
-                      </button>
-                    )}
+                        {item.label}
+                      </Link>
+                      {item.submenu && (
+                        <button
+                          id={triggerId}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setActiveSubmenu(isOpen ? null : item.label);
+                          }}
+                          aria-label={`${isOpen ? "Fechar" : "Abrir"} submenu ${item.label}`}
+                          aria-expanded={isOpen}
+                          aria-controls={submenuId}
+                          className="p-3 -mr-2 text-primary/60 hover:text-accent transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        >
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                      )}
+                    </div>
+                    <AnimatePresence initial={false}>
+                      {item.submenu && isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div id={submenuId} role="menu" aria-label={item.label} className="pl-4 pb-2 space-y-1">
+                            {item.submenu.map((sub) => (
+                              <Link
+                                key={sub.href}
+                                to={sub.href}
+                                role="menuitem"
+                                className="block py-2.5 text-sm text-muted-foreground hover:text-accent transition-colors rounded focus-visible:outline-none focus-visible:text-accent"
+                              >
+                                {sub.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <AnimatePresence initial={false}>
-                    {item.submenu && activeSubmenu === item.label && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="pl-4 pb-2 space-y-1">
-                          {item.submenu.map((sub) => (
-                            <Link
-                              key={sub.href}
-                              to={sub.href}
-                              className="block py-2.5 text-sm text-muted-foreground hover:text-accent transition-colors"
-                            >
-                              {sub.label}
-                            </Link>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
+                );
+              })}
                 <Link
                 to="/contato"
                 className="block mt-4 text-center py-3 rounded-md text-white font-semibold hover:opacity-90 transition-opacity [background:var(--btn-gradient)]"
