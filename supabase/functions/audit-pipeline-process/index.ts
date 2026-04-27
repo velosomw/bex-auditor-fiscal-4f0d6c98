@@ -58,20 +58,15 @@ function classifyAccount(desc: string): { tipo: string; categoria: string } {
   return { tipo: "ativo", categoria: "ativo_circulante" };
 }
 
-/* ──────────────── Normalização semântica em lote via LLM ──────────────── */
-async function normalizeAccountsLLM(
-  rows: Array<{ conta: string; descricao: string }>,
-  // deno-lint-ignore no-explicit-any
-  dictionary: any[],
-): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
-  // Dicionário compacto para o prompt
-  const dictText = dictionary
-    .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
-    .join("\n");
+/* ──────────────── Normalização semântica em lote via LLM (com chunking + paralelização) ──────────────── */
+const CHUNK_SIZE = 40; // contas por requisição — equilibra latência vs throughput
+const MAX_PARALLEL = 4; // lotes simultâneos
 
-  const inputList = rows
-    .map((r, i) => `${i}. ${r.descricao || r.conta}`)
-    .join("\n");
+async function normalizeChunk(
+  rows: Array<{ conta: string; descricao: string }>,
+  dictText: string,
+): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
+  const inputList = rows.map((r, i) => `${i}. ${r.descricao || r.conta}`).join("\n");
 
   const systemPrompt = `Você é um CONTADOR ESPECIALISTA em classificação contábil brasileira (CPC/IFRS/NBC TA/Lei 6.404/76).
 
@@ -101,7 +96,7 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-2.5-flash-lite",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -184,6 +179,32 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
       return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
     });
   }
+}
+
+/* Wrapper: chunkifica e paraleliza chamadas LLM (reduz latência ~3-4x em balancetes grandes) */
+async function normalizeAccountsLLM(
+  rows: Array<{ conta: string; descricao: string }>,
+  // deno-lint-ignore no-explicit-any
+  dictionary: any[],
+): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
+  if (rows.length === 0) return [];
+  const dictText = (dictionary || [])
+    .slice(0, 80)
+    .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
+    .join("\n");
+
+  const chunks: Array<{ conta: string; descricao: string }[]> = [];
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    chunks.push(rows.slice(i, i + CHUNK_SIZE));
+  }
+
+  const results: Array<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> = [];
+  for (let i = 0; i < chunks.length; i += MAX_PARALLEL) {
+    const wave = chunks.slice(i, i + MAX_PARALLEL);
+    const settled = await Promise.all(wave.map((c) => normalizeChunk(c, dictText)));
+    results.push(...settled);
+  }
+  return results.flat();
 }
 
 /* ──────────────── Validador contábil ──────────────── */

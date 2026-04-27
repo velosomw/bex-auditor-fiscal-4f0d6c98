@@ -80,6 +80,8 @@ const TabUpload = () => {
   });
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [timings, setTimings] = useState<Partial<Record<StageKey, number>>>({});
+  const [totalMs, setTotalMs] = useState<number | null>(null);
 
   useEffect(() => {
     listCompanies().then(setCompanies).catch(() => {});
@@ -102,40 +104,51 @@ const TabUpload = () => {
     setProcessing(true);
     setErrorMsg(null);
     setResult(null);
+    setTimings({});
+    setTotalMs(null);
     setStages({ upload: "running", ocr: "idle", extract: "idle", normalize: "idle", analyze: "idle" });
 
-    try {
-      // 1. Upload (client-side: arquivo já está em memória)
-      setStage("upload", "done");
+    const t0 = performance.now();
+    const mark = (k: StageKey, start: number) =>
+      setTimings(prev => ({ ...prev, [k]: Math.round(performance.now() - start) }));
 
-      // 2. OCR / Parse (chama audit-parse-pdf via parseFile)
+    try {
+      const tUpload = performance.now();
+      setStage("upload", "done");
+      mark("upload", tUpload);
+
+      const tOcr = performance.now();
       setStage("ocr", "running");
       const parsed = await parseFile(files[0]);
       setStage("ocr", "done");
+      mark("ocr", tOcr);
 
-      // 3. Extração (estruturação balanco/dre já vem do parser)
+      const tExt = performance.now();
       setStage("extract", "running");
       if (!parsed.balanco?.length && !parsed.dre?.length) {
         throw new Error("Nenhum balanço ou DRE detectado no documento.");
       }
       setStage("extract", "done");
+      mark("extract", tExt);
 
-      // 4. Normalização (audit-pipeline-process — LLM)
+      const tNorm = performance.now();
       setStage("normalize", "running");
       const pipe = await runAuditPipeline(parsed, files[0].name, empresaId);
       if (!pipe) throw new Error("Pipeline indisponível (sessão ou serviço).");
       setStage("normalize", "done");
+      mark("normalize", tNorm);
 
-      // 5. Análise & score (já calculado pelo pipeline)
+      const tAna = performance.now();
       setStage("analyze", "running");
       setResult(pipe);
       setStage("analyze", "done");
+      mark("analyze", tAna);
 
-      toast.success(`Processado. Quality score ${(pipe.scores.quality * 100).toFixed(0)}%.`);
+      setTotalMs(Math.round(performance.now() - t0));
+      toast.success(`Processado em ${((performance.now() - t0) / 1000).toFixed(1)}s · Quality ${(pipe.scores.quality * 100).toFixed(0)}%`);
     } catch (e: any) {
       const msg = e?.message || "Falha no pipeline.";
       setErrorMsg(msg);
-      // marca a etapa em execução como erro
       setStages(prev => {
         const next = { ...prev };
         (Object.keys(next) as StageKey[]).forEach(k => {
@@ -222,20 +235,33 @@ const TabUpload = () => {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 flex-1">
             {(Object.keys(STAGE_LABELS) as StageKey[]).map((k) => {
               const s = stages[k];
+              const ms = timings[k];
               return (
                 <div key={k} className="flex items-center gap-2">
                   {s === "done" && <CheckCircle2 className="w-5 h-5 text-[hsl(152,70%,45%)]" />}
                   {s === "running" && <Loader2 className="w-5 h-5 text-[hsl(258,90%,66%)] animate-spin" />}
                   {s === "error" && <XCircle className="w-5 h-5 text-[hsl(0,70%,55%)]" />}
                   {s === "idle" && <div className="w-5 h-5 rounded-full border-2 border-border" />}
-                  <span className="text-xs sm:text-sm text-foreground">{STAGE_LABELS[k]}</span>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-xs sm:text-sm text-foreground">{STAGE_LABELS[k]}</span>
+                    {ms != null && (
+                      <span className="text-[10px] font-mono text-muted-foreground">{(ms / 1000).toFixed(1)}s</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
-          <Button onClick={startPipeline} disabled={processing} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5 shrink-0">
-            <Sparkles className="w-3.5 h-3.5" /> {processing ? "Processando..." : "Processar com IA"}
-          </Button>
+          <div className="flex items-center gap-3 shrink-0">
+            {totalMs != null && (
+              <span className="text-xs font-mono text-muted-foreground">
+                Total: <strong className="text-foreground">{(totalMs / 1000).toFixed(1)}s</strong>
+              </span>
+            )}
+            <Button onClick={startPipeline} disabled={processing} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> {processing ? "Processando..." : "Processar com IA"}
+            </Button>
+          </div>
         </div>
 
         {errorMsg && (
