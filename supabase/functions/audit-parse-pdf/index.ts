@@ -1,9 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+/**
+ * Heurística de score do OCR/extração:
+ * - presença de balanco/dre
+ * - presença de years
+ * - presença de documentInfo
+ * - quantidade de linhas
+ */
+function computeOcrScore(extracted: Record<string, unknown>): number {
+  let score = 0.5;
+  const balanco = (extracted.balanco as unknown[]) || [];
+  const dre = (extracted.dre as unknown[]) || [];
+  const years = (extracted.years as unknown[]) || [];
+  const info = (extracted.documentInfo as Record<string, unknown>) || {};
+  if (balanco.length > 0) score += 0.15;
+  if (dre.length > 0) score += 0.10;
+  if (years.length > 0) score += 0.05;
+  if (info && Object.keys(info).length > 0) score += 0.05;
+  if (balanco.length + dre.length > 30) score += 0.10;
+  if (balanco.length + dre.length > 80) score += 0.05;
+  return Math.max(0, Math.min(1, score));
+}
+
 
 const EXTRACTION_PROMPT = `Você é o AGENTE PARSER MULTIFORMATO — um parser contábil especializado da plataforma BEX.
 
