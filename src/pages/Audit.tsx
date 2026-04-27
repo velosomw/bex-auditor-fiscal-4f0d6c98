@@ -4078,6 +4078,7 @@ const AuditContent = () => {
             company={company}
             source={reportSource}
             uploadedFiles={uploadedFiles}
+            selectedDepth={selectedDepth}
           />
         )}
       </div>
