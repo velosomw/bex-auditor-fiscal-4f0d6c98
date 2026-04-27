@@ -422,10 +422,11 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
-const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void }) => {
+const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDepthChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
+  useEffect(() => { onDepthChange?.(depth); }, [depth, onDepthChange]);
   const [purpose, setPurpose] = useState<string>("externa");
   const [rawFiles, setRawFiles] = useState<File[]>([]);
 
