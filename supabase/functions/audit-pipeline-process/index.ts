@@ -669,8 +669,14 @@ async function runPipeline(
 
     // 3.1 Filtrar contas sintéticas (totalizadoras) — manter apenas analíticas (folhas)
     // Evita dupla contagem hierárquica que inflava ativo em ~10x
-    const balancoLeaves = cleanBalanceteRows(body.balanco || []);
-    const dreLeaves = cleanBalanceteRows(body.dre || []);
+    const balancoLeaves = cleanBalanceteRows(
+      body.balanco || [],
+      body.dedup?.balanco ?? { dataKind: "balanco" },
+    );
+    const dreLeaves = cleanBalanceteRows(
+      body.dre || [],
+      body.dedup?.dre ?? { dataKind: "dre" },
+    );
     const allRows = [
       ...balancoLeaves.map((r) => ({ ...r, _src: "balanco" as const })),
       ...dreLeaves.map((r) => ({ ...r, _src: "dre" as const })),
