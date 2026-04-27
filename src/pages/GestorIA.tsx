@@ -896,6 +896,9 @@ const GestorIA = () => {
             <p className="text-sm text-muted-foreground">Visão consolidada com inteligência artificial</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/gestor-ia/agentes")}>
+              <Bot className="w-3.5 h-3.5" /> Gestão de Agentes
+            </Button>
             <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={() => navigate("/usuarios")}>
               <Plus className="w-3.5 h-3.5" /> Cadastrar Usuário
             </Button>
