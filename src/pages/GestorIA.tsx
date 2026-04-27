@@ -947,6 +947,9 @@ const GestorIA = () => {
             <TabsTrigger value="orfaos" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <FileText className="w-3.5 h-3.5" /> Documentos Órfãos
             </TabsTrigger>
+            <TabsTrigger value="exec-time" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <Clock className="w-3.5 h-3.5" /> Tempo de execução
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
