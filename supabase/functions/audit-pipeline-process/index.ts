@@ -294,34 +294,40 @@ async function updateProgress(
   }
 }
 
-/* ──────────────── Fast-path heurístico (#3) ────────────────
-   Tenta classificar SEM LLM usando:
-   1. Código de conta brasileiro (1.x = ativo, 2.3+ = PL, etc.)  ← muito confiável
-   2. Match exato no dicionário contábil (cache persistente em DB) ← #2
-   Só envia ao LLM o que não foi resolvido. */
+/* ──────────────── Fast-path heurístico (#3 — v4 agressivo) ────────────────
+   Tenta classificar SEM LLM. Em balancetes BR padrão (plano de contas 1.x/2.x/3.x/4.x/5.x)
+   o código de conta é AUTORIDADE: cobre ~100% sem necessidade de IA. Cai pro LLM apenas
+   quando: sem código + sem cache + descrição não dispara classifyAccount confiável. */
 function tryFastPath(
   row: { conta: string; descricao: string },
   dictMap: Map<string, NormResult>,
 ): NormResult | null {
   const desc = row.descricao || row.conta;
-  // 1. Cache persistente (DB) — match exato
+
+  // 1. Cache persistente (DB) — match exato (alta prioridade)
   const cached = dictMap.get(cacheKey(desc));
   if (cached) return cached;
 
-  // 2. Código de conta forte + heurística semântica
+  // 2. Código de conta brasileiro = AUTORIDADE (v4: aceita código sozinho)
+  //    Plano BR é estrutural: 1.x.x.x = ativo, 2.3.x = PL, etc. Não há ambiguidade.
   const byCode = classifyByCode(row.conta);
   if (byCode) {
-    const { tipo, categoria } = classifyAccount(desc);
-    // Só aceita fast-path se código E descrição concordam (alta confiança)
-    if (byCode.tipo === tipo && byCode.categoria === categoria) {
-      return {
-        conta_normalizada: desc,
-        categoria: byCode.categoria,
-        tipo: byCode.tipo,
-        matched: true,
-      };
-    }
+    return {
+      conta_normalizada: desc,
+      categoria: byCode.categoria,
+      tipo: byCode.tipo,
+      matched: true,
+    };
   }
+
+  // 3. Sem código → tenta heurística por descrição (palavras-chave fortes)
+  //    Só aceita se for "óbvio" (caixa, banco, fornecedor, capital social, etc.)
+  const STRONG_KEYWORDS = /(capital\s*social|reserva\s*(legal|estatut|capital|lucro)|lucros?\s*acumulad|preju[ií]zos?\s*acumulad|caixa|banco|fornecedor|cliente|estoque|imobilizado|receita\s*(bruta|l[ií]quida|de\s*venda)|cmv|custo\s*da\s*mercadoria|salario|fgts|inss|imposto\s*a\s*pagar|empr[eé]stimo|financiamento|duplicat)/i;
+  if (STRONG_KEYWORDS.test(desc)) {
+    const { tipo, categoria } = classifyAccount(desc);
+    return { conta_normalizada: desc, categoria, tipo, matched: true };
+  }
+
   return null;
 }
 
