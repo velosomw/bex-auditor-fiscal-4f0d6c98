@@ -11,6 +11,7 @@ import {
   type BalanceteChartsResult,
 } from "@/services/balanceteChartsParser";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import AuditCharts from "@/components/audit/AuditCharts";
 
 interface Props {
   files?: File[];
