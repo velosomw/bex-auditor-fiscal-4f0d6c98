@@ -262,15 +262,15 @@ async function normalizeChunk(
   rows: Array<{ conta: string; descricao: string }>,
   dictText: string,
 ): Promise<NormResult[]> {
-  // Tentativa 1
-  let accounts = await callLLMNormalize(rows, dictText);
+  // Tentativa 1: modelo rápido
+  let accounts = await callLLMNormalize(rows, dictText, "google/gemini-2.5-flash-lite");
 
-  // #5 Retry único se tamanho não bate (causa principal dos fallbacks heurísticos)
+  // #5 v4 Retry com MODELO DIFERENTE (evita repetir mesmo 503/timeout)
   if (!accounts || accounts.length !== rows.length) {
     if (accounts) {
-      console.warn(`LLM mismatch ${accounts.length}/${rows.length} — retry`);
+      console.warn(`LLM mismatch ${accounts.length}/${rows.length} — retry com flash`);
     }
-    accounts = await callLLMNormalize(rows, dictText);
+    accounts = await callLLMNormalize(rows, dictText, "google/gemini-2.5-flash");
   }
 
   if (!accounts) {
