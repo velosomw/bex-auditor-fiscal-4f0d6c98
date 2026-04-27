@@ -554,57 +554,66 @@ const TabValidacao = () => {
 };
 
 // ─── TELA 3 — Aprendizado da IA ───────────────────────────────
-const TabAprendizado = () => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {[
-        { label: "Documentos aprendidos", value: "847", icon: BookOpen, color: "hsl(258,90%,66%)" },
-        { label: "Taxa de acerto", value: "94.7%", icon: Target, color: "hsl(152,70%,45%)" },
-        { label: "Evolução (90d)", value: "+18%", icon: TrendingUp, color: "hsl(38,90%,55%)" },
-      ].map((k, i) => (
-        <div key={i} className="bg-card rounded-xl border border-border p-5">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${k.color}15` }}>
-            <k.icon className="w-5 h-5" style={{ color: k.color }} />
+const TabAprendizado = () => {
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof loadLearningRows>>>([]);
+  const [perf, setPerf] = useState<Awaited<ReturnType<typeof loadPerfStats>> | null>(null);
+  useEffect(() => {
+    loadLearningRows(50).then(setRows).catch(() => {});
+    loadPerfStats().then(setPerf).catch(() => {});
+  }, []);
+  const kpis = [
+    { label: "Documentos aprendidos", value: String(perf?.totalDocs ?? 0), icon: BookOpen, color: "hsl(258,90%,66%)" },
+    { label: "Quality médio", value: `${perf?.quality ?? 0}%`, icon: Target, color: "hsl(152,70%,45%)" },
+    { label: "Termos no dicionário", value: String(rows.length), icon: TrendingUp, color: "hsl(38,90%,55%)" },
+  ];
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {kpis.map((k, i) => (
+          <div key={i} className="bg-card rounded-xl border border-border p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${k.color}15` }}>
+              <k.icon className="w-5 h-5" style={{ color: k.color }} />
+            </div>
+            <div className="text-2xl font-bold text-foreground">{k.value}</div>
+            <div className="text-xs text-muted-foreground">{k.label}</div>
           </div>
-          <div className="text-2xl font-bold text-foreground">{k.value}</div>
-          <div className="text-xs text-muted-foreground">{k.label}</div>
-        </div>
-      ))}
-    </div>
-
-    <div className="bg-card rounded-xl border border-border overflow-hidden">
-      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-foreground">Mapeamentos aprendidos</h4>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs"><Save className="w-3 h-3" /> Fixar selecionados</Button>
+        ))}
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-xs">Conta Original</TableHead>
-            <TableHead className="text-xs">Conta Padronizada</TableHead>
-            <TableHead className="text-xs text-right">Frequência</TableHead>
-            <TableHead className="text-xs text-right">Confiança</TableHead>
-            <TableHead className="text-xs text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {learningRows.map((r, i) => (
-            <TableRow key={i}>
-              <TableCell className="text-xs">{r.original}</TableCell>
-              <TableCell className="text-xs font-medium text-foreground">{r.padrao}</TableCell>
-              <TableCell className="text-xs text-right font-mono">{r.freq}</TableCell>
-              <TableCell className="text-xs text-right font-mono text-[hsl(152,70%,45%)]">{r.conf}%</TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="icon" className="h-7 w-7"><Edit3 className="w-3.5 h-3.5" /></Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7"><Trash2 className="w-3.5 h-3.5" /></Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-foreground">Mapeamentos aprendidos</h4>
+          <span className="text-xs text-muted-foreground">{rows.length} termos</span>
+        </div>
+        {rows.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground">
+            Sem mapeamentos aprendidos ainda. Conforme balancetes forem validados, os termos aparecerão aqui.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Conta Original</TableHead>
+                <TableHead className="text-xs">Conta Padronizada</TableHead>
+                <TableHead className="text-xs text-right">Frequência</TableHead>
+                <TableHead className="text-xs text-right">Confiança</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-xs">{r.original}</TableCell>
+                  <TableCell className="text-xs font-medium text-foreground">{r.padrao}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{r.freq}</TableCell>
+                  <TableCell className="text-xs text-right font-mono text-[hsl(152,70%,45%)]">{r.conf}%</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── TELA 4 — Dataset & Histórico ─────────────────────────────
 const TabDataset = () => (
