@@ -134,7 +134,9 @@ const UserDashboard = () => {
     report: GeneratedReportEntry;
     docs: AuditHistoryEntry[] | { fileName: string; fileSize: number; format: string; date: string }[];
   };
-  const groups: ReportGroup[] = reports.slice(0, 5).map(r => {
+  // Mostra apenas o ÚLTIMO par documento↔relatório no dashboard.
+  // Histórico completo fica em /user/empresas.
+  const groups: ReportGroup[] = reports.slice(0, 1).map(r => {
     let docs: any[] = [];
     if (r.batchId && docsByBatch.has(r.batchId)) {
       docs = docsByBatch.get(r.batchId)!;
@@ -144,14 +146,18 @@ const UserDashboard = () => {
     return { report: r, docs };
   });
 
-  // Documentos que não têm relatório gerado ainda
+  // Apenas o ÚLTIMO documento sem relatório gerado.
   const usedBatchIds = new Set(reports.map(r => r.batchId).filter(Boolean) as string[]);
   const unmatchedDocs = [
     ...Array.from(docsByBatch.entries())
       .filter(([bid]) => !usedBatchIds.has(bid))
       .flatMap(([, docs]) => docs),
     ...orphanDocs,
-  ].slice(0, 5);
+  ].slice(0, 1);
+
+  const hasMoreHistory = reports.length > 1 || (
+    [...Array.from(docsByBatch.entries()).filter(([bid]) => !usedBatchIds.has(bid)).flatMap(([, docs]) => docs), ...orphanDocs].length > 1
+  );
 
   const kpis = [
     { label: "Total de Auditorias", value: history.length, icon: FileText, bgClass: "bg-[hsl(217,91%,50%)]/10", colorClass: "text-[hsl(217,91%,50%)]" },
