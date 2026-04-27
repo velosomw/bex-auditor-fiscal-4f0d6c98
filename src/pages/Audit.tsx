@@ -4057,6 +4057,7 @@ const AuditContent = () => {
             onFilesReady={setUploadedFiles}
             dedupConfig={dedupConfig}
             onDedupChange={setDedupConfig}
+            onDepthChange={setSelectedDepth}
           />
         )}
         {phase === "processing" && (
