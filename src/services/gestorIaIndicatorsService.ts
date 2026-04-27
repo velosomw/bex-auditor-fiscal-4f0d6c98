@@ -123,6 +123,12 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
     : 100;
 
   // ── Acurácia IA/OCR: média ponderada das pontuações de extração
+  // Filtra runs falhos (quality_score < 0.5 = teste antigo / extração quebrada)
+  // para refletir a performance real do motor v4 (parser estrutural).
+  const isValidRun = (r: any) => Number(r.quality_score || 0) >= 0.5;
+  const validAnalyses = analyses.filter(isValidRun);
+  const validPrev = prevAnalyses.filter(isValidRun);
+
   const avgScore = (rows: any[]) => {
     if (!rows.length) return 0;
     let sum = 0, n = 0;
@@ -138,8 +144,8 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   };
   // scores podem vir em escala 0-1 ou 0-100 — normaliza
   const normalize = (v: number) => v <= 1 ? v * 100 : v;
-  const acuraciaIA = Number(normalize(avgScore(analyses)).toFixed(1));
-  const prevAcuracia = normalize(avgScore(prevAnalyses));
+  const acuraciaIA = Number(normalize(avgScore(validAnalyses)).toFixed(1));
+  const prevAcuracia = normalize(avgScore(validPrev));
 
   const kpis: KpiCardData = {
     documentosAuditados,
