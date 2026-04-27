@@ -201,11 +201,21 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
     const j = await r.json();
     const tc = j.choices?.[0]?.message?.tool_calls?.[0];
     const args = JSON.parse(tc?.function?.arguments || "{}");
-    const accounts = args.accounts as NormResult[];
-    if (!Array.isArray(accounts) || accounts.length !== rows.length) {
-      throw new Error(`tamanho inesperado: ${accounts?.length} vs ${rows.length}`);
+    const accounts = Array.isArray(args.accounts) ? (args.accounts as NormResult[]) : [];
+
+    // Tolerante: alinha por índice. Se LLM retornou menos/mais, completa com heurística.
+    if (accounts.length !== rows.length) {
+      console.warn(`LLM normalize size mismatch: ${accounts.length} vs ${rows.length} — usando alinhamento parcial + fallback heurístico`);
     }
-    return accounts;
+
+    return rows.map((row, i) => {
+      const llm = accounts[i];
+      if (llm && llm.conta_normalizada && llm.tipo && llm.categoria) {
+        return llm;
+      }
+      const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
+      return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
+    });
   } catch (e) {
     console.warn("LLM normalize parse error", e);
     return rows.map((row) => {
