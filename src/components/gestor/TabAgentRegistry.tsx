@@ -12,6 +12,7 @@ import {
   Bot, KeyRound, Trash2, Settings, CheckCircle2, XCircle, Pause,
   Cloud, FileSearch, Sparkles, Brain, Cpu,
 } from "lucide-react";
+import ImportValidatedReferenceDialog from "./ImportValidatedReferenceDialog";
 
 // ─── Tipos ──────────────────────────────────────────────────
 type Origem = "IA Gateway" | "Externa" | "Google Cloud" | "OpenAI" | "Personalizada";
