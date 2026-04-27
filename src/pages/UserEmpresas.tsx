@@ -138,19 +138,19 @@ const UserEmpresas = () => {
     return [...aggregates].sort((a, b) => ts(b) - ts(a));
   }, [aggregates]);
 
-  const filtered = useMemo(() => {
+  const filteredAll = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = q
-      ? sortedByRecent.filter(a =>
-          a.company.name.toLowerCase().includes(q) ||
-          (a.company.cnpj || "").toLowerCase().includes(q) ||
-          (a.company.city || "").toLowerCase().includes(q) ||
-          (a.company.sector || "").toLowerCase().includes(q)
-        )
-      : sortedByRecent;
-    // Limita a exibição a 5 empresas (mais recentes primeiro) na visão detalhada / lista suspensa
-    return base.slice(0, 5);
+    if (!q) return sortedByRecent;
+    return sortedByRecent.filter(a =>
+      a.company.name.toLowerCase().includes(q) ||
+      (a.company.cnpj || "").toLowerCase().includes(q) ||
+      (a.company.city || "").toLowerCase().includes(q) ||
+      (a.company.sector || "").toLowerCase().includes(q)
+    );
   }, [sortedByRecent, search]);
+
+  // Visão detalhada / lista suspensa: até 5 mais recentes.
+  const filtered = useMemo(() => filteredAll.slice(0, 5), [filteredAll]);
 
   const selected = useMemo(() => aggregates.find(a => a.company.id === selectedId) || null, [aggregates, selectedId]);
 
