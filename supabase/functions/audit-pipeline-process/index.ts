@@ -136,10 +136,10 @@ function classifyByCode(conta: string): { tipo: string; categoria: string } | nu
 const CHUNK_SIZE = 120; // v3: era 80 (#1 paralelismo)
 const MAX_PARALLEL = 12; // v3: era 6 (#1 paralelismo)
 
-async function normalizeChunk(
+async function callLLMNormalize(
   rows: Array<{ conta: string; descricao: string }>,
   dictText: string,
-): Promise<NormResult[]> {
+): Promise<NormResult[] | null> {
   const inputList = rows.map((r, i) => `${i}. ${r.descricao || r.conta}`).join("\n");
 
   const systemPrompt = `Você é um CONTADOR ESPECIALISTA em classificação contábil brasileira (CPC/IFRS/NBC TA/Lei 6.404/76).
@@ -147,21 +147,22 @@ async function normalizeChunk(
 TAREFA: Padronizar e classificar contas de um balancete usando SIMILARIDADE SEMÂNTICA (não literal).
 
 REGRAS CRÍTICAS:
-1. Para cada conta, retorne:
+1. RETORNE EXATAMENTE ${rows.length} ITENS no array \`accounts\` — nem mais, nem menos. Esta regra é absoluta.
+2. Mantenha a MESMA ORDEM das contas de entrada (item 0 do output corresponde ao item 0 do input).
+3. Para cada conta, retorne:
    - conta_normalizada: termo padrão consolidado (ex.: "Bcos c/Mvto" → "Bancos Conta Movimento"; "Dupl. Desct." → "Duplicatas Descontadas")
    - categoria: uma de [ativo_circulante, ativo_nao_circulante, passivo_circulante, passivo_nao_circulante, patrimonio_liquido, receita, custo, despesa]
    - tipo: uma de [ativo, passivo, pl, receita, despesa]
    - matched: true se mapeou via dicionário/exemplo, false se inferiu por contexto
-2. ATENÇÃO ESPECIAL AO PATRIMÔNIO LÍQUIDO: Capital Social, Reservas (Legal/Estatutária/Capital/Lucros), Lucros Acumulados, Lucros do Exercício, Prejuízos Acumulados, Ajustes de Avaliação Patrimonial, Ações em Tesouraria → SEMPRE tipo="pl", categoria="patrimonio_liquido". NUNCA classifique "Lucros Acumulados" como receita.
-3. Use SIMILARIDADE SEMÂNTICA — contas equivalentes devem ter o MESMO termo padrão.
-4. NÃO invente categorias novas.
-5. Sinais de risco: factoring, FIDC, duplicatas descontadas → categoria correta + termo padronizado.
-6. Mantenha a MESMA ORDEM das contas de entrada.
+4. ATENÇÃO ESPECIAL AO PATRIMÔNIO LÍQUIDO: Capital Social, Reservas (Legal/Estatutária/Capital/Lucros), Lucros Acumulados, Lucros do Exercício, Prejuízos Acumulados, Ajustes de Avaliação Patrimonial, Ações em Tesouraria → SEMPRE tipo="pl", categoria="patrimonio_liquido". NUNCA classifique "Lucros Acumulados" como receita.
+5. Use SIMILARIDADE SEMÂNTICA — contas equivalentes devem ter o MESMO termo padrão.
+6. NÃO invente categorias novas.
+7. Sinais de risco: factoring, FIDC, duplicatas descontadas → categoria correta + termo padronizado.
 
 DICIONÁRIO CONTÁBIL DE REFERÊNCIA:
 ${dictText || "(vazio — use seu conhecimento contábil)"}`;
 
-  const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem do input:\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts.`;
+  const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem e tamanho do input (${rows.length} itens):\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts com ${rows.length} elementos no array.`;
 
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -180,12 +181,14 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
           type: "function",
           function: {
             name: "return_normalized_accounts",
-            description: "Retorna lista de contas normalizadas na mesma ordem do input.",
+            description: `Retorna lista de EXATAMENTE ${rows.length} contas normalizadas na mesma ordem do input.`,
             parameters: {
               type: "object",
               properties: {
                 accounts: {
                   type: "array",
+                  minItems: rows.length,
+                  maxItems: rows.length,
                   items: {
                     type: "object",
                     properties: {
@@ -226,10 +229,7 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
 
   if (!r.ok) {
     console.warn("LLM normalize HTTP", r.status, (await r.text()).slice(0, 300));
-    return rows.map((row) => {
-      const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
-      return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
-    });
+    return null;
   }
 
   try {
@@ -237,27 +237,43 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
     const tc = j.choices?.[0]?.message?.tool_calls?.[0];
     const args = JSON.parse(tc?.function?.arguments || "{}");
     const accounts = Array.isArray(args.accounts) ? (args.accounts as NormResult[]) : [];
-
-    // Tolerante: alinha por índice. Se LLM retornou menos/mais, completa com heurística.
-    if (accounts.length !== rows.length) {
-      console.warn(`LLM normalize size mismatch: ${accounts.length} vs ${rows.length} — usando alinhamento parcial + fallback heurístico`);
-    }
-
-    return rows.map((row, i) => {
-      const llm = accounts[i];
-      if (llm && llm.conta_normalizada && llm.tipo && llm.categoria) {
-        return llm;
-      }
-      const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
-      return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
-    });
+    return accounts;
   } catch (e) {
     console.warn("LLM normalize parse error", e);
+    return null;
+  }
+}
+
+async function normalizeChunk(
+  rows: Array<{ conta: string; descricao: string }>,
+  dictText: string,
+): Promise<NormResult[]> {
+  // Tentativa 1
+  let accounts = await callLLMNormalize(rows, dictText);
+
+  // #5 Retry único se tamanho não bate (causa principal dos fallbacks heurísticos)
+  if (!accounts || accounts.length !== rows.length) {
+    if (accounts) {
+      console.warn(`LLM mismatch ${accounts.length}/${rows.length} — retry`);
+    }
+    accounts = await callLLMNormalize(rows, dictText);
+  }
+
+  if (!accounts) {
     return rows.map((row) => {
       const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
       return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
     });
   }
+
+  return rows.map((row, i) => {
+    const llm = accounts![i];
+    if (llm && llm.conta_normalizada && llm.tipo && llm.categoria) {
+      return llm;
+    }
+    const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
+    return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
+  });
 }
 
 /* Wrapper: cache + dedup + chunk + paralelização (Quick Wins 1, 2, 3) */
