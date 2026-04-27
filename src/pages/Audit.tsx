@@ -624,6 +624,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
 
@@ -684,8 +685,13 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
               undefined,
               undefined,
               dedupConfig,
+              (ev) => {
+                if (ev.progress) setPipelineProgress(ev.progress);
+                else if (ev.status) setPipelineProgress(`Status: ${ev.status}`);
+              },
             );
             if (pipelineResult) {
+              setPipelineProgress(null);
               console.log(
                 `Pipeline IA — qualidade ${(pipelineResult.scores.quality * 100).toFixed(1)}% | mapeadas ${pipelineResult.normalized.filter(r => r.matched).length}/${pipelineResult.normalized.length} | few-shot ${pipelineResult.few_shot_examples.length}`
               );
@@ -764,6 +770,14 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
         <div className="space-y-3">
           <Progress value={progress} className="h-2" />
           <p className="text-xs text-muted-foreground text-center">{progress}%</p>
+          {pipelineProgress && (
+            <div className="rounded-lg border border-[hsl(258,90%,66%)]/20 bg-[hsl(258,90%,66%)]/5 px-3 py-2 flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 text-[hsl(258,90%,66%)] animate-spin shrink-0" />
+              <p className="text-xs text-foreground/90 truncate" title={pipelineProgress}>
+                {pipelineProgress}
+              </p>
+            </div>
+          )}
         </div>
         <div className="space-y-2">
           {processingSteps.map((step, i) => (
