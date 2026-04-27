@@ -579,15 +579,27 @@ const UserEmpresas = () => {
                           {selected.company.contact_name && <span>• Contato: {selected.company.contact_name}</span>}
                         </div>
                       </div>
-                      {!isReadOnly && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleNewAudit(selected.company)}
-                          className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-                        >
-                          <Plus className="w-4 h-4" /> Nova Auditoria
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!isReadOnly && !editing && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startEdit(selected.company)}
+                            className="gap-1.5"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> Editar
+                          </Button>
+                        )}
+                        {!isReadOnly && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleNewAudit(selected.company)}
+                            className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                          >
+                            <Plus className="w-4 h-4" /> Nova Auditoria
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
@@ -608,6 +620,94 @@ const UserEmpresas = () => {
                         <p className="text-lg font-bold text-foreground">{selected.totalRiscos}</p>
                       </div>
                     </div>
+
+                    {/* Formulário de edição da empresa */}
+                    {editing && (
+                      <div className="mt-5 pt-5 border-t border-border/50">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <Pencil className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Editar Cadastro da Empresa
+                          </h3>
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(false)} className="h-7 gap-1 text-xs">
+                            <X className="w-3.5 h-3.5" /> Cancelar
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1.5 md:col-span-2">
+                            <Label htmlFor="ename" className="text-xs">Razão Social *</Label>
+                            <Input id="ename" value={editForm.name || ""} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ecnpj" className="text-xs">CNPJ</Label>
+                            <Input id="ecnpj" value={editForm.cnpj || ""} onChange={e => setEditForm(f => ({ ...f, cnpj: formatCNPJ(e.target.value) }))} maxLength={18} inputMode="numeric" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ecnae" className="text-xs">CNAE</Label>
+                            <Input id="ecnae" value={editForm.cnae || ""} onChange={e => setEditForm(f => ({ ...f, cnae: e.target.value }))} placeholder="0000-0/00" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="esector" className="text-xs">Setor</Label>
+                            <Select value={editForm.sector || ""} onValueChange={(v) => setEditForm(f => ({ ...f, sector: v }))}>
+                              <SelectTrigger id="esector"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                              <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="econtact" className="text-xs">Responsável</Label>
+                            <Input id="econtact" value={editForm.contact_name || ""} onChange={e => setEditForm(f => ({ ...f, contact_name: e.target.value }))} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="eemail" className="text-xs">E-mail</Label>
+                            <Input id="eemail" type="email" value={editForm.email || ""} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ephone" className="text-xs">Celular</Label>
+                            <Input id="ephone" value={editForm.phone || ""} onChange={e => setEditForm(f => ({ ...f, phone: formatPhoneMobile(e.target.value) }))} placeholder="(00) 00000-0000" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ephonef" className="text-xs">Telefone Fixo</Label>
+                            <Input id="ephonef" value={editForm.phone_fixed || ""} onChange={e => setEditForm(f => ({ ...f, phone_fixed: formatPhoneLandline(e.target.value) }))} placeholder="(00) 0000-0000" />
+                          </div>
+                          <div className="space-y-1.5 md:col-span-2">
+                            <Label htmlFor="eaddr" className="text-xs">Endereço</Label>
+                            <Input id="eaddr" value={editForm.address || ""} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} placeholder="Rua, número, complemento" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ecity" className="text-xs">Cidade</Label>
+                            <Input id="ecity" value={editForm.city || ""} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label htmlFor="euf" className="text-xs">UF</Label>
+                              <Select value={editForm.uf || ""} onValueChange={(v) => setEditForm(f => ({ ...f, uf: v }))}>
+                                <SelectTrigger id="euf"><SelectValue placeholder="UF" /></SelectTrigger>
+                                <SelectContent>{UF.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label htmlFor="ezip" className="text-xs">CEP</Label>
+                              <Input id="ezip" value={editForm.zip || ""} onChange={e => setEditForm(f => ({ ...f, zip: e.target.value }))} placeholder="00000-000" />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5 md:col-span-2">
+                            <Label htmlFor="enotes" className="text-xs">Observações</Label>
+                            <Textarea id="enotes" value={editForm.notes || ""} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Notas internas sobre a empresa..." />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-4">
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancelar</Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveEdit}
+                            disabled={savingEdit}
+                            className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                          >
+                            {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                            Salvar Alterações
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
