@@ -422,10 +422,11 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
-const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void }) => {
+const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDepthChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
+  useEffect(() => { onDepthChange?.(depth); }, [depth, onDepthChange]);
   const [purpose, setPurpose] = useState<string>("externa");
   const [rawFiles, setRawFiles] = useState<File[]>([]);
 
@@ -1587,16 +1588,22 @@ const ReportPage = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => void; onGerarKanitz: () => void }) => (
+const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecnico" }: { onGerarBex: () => void; onGerarKanitz: () => void; selectedDepth?: "executivo" | "tecnico" }) => {
+  const bexAvailable = selectedDepth === "executivo";
+  const kanitzAvailable = selectedDepth === "tecnico";
+  return (
   <div className="space-y-6">
     <div className="text-center space-y-2 mb-2">
       <h2 className="text-lg font-bold text-foreground font-serif">Selecione o Relatório para Gerar</h2>
       <p className="text-sm text-muted-foreground max-w-xl mx-auto">Escolha entre o Relatório BEX (Avaliação Contábil e Solvência) ou o Relatório Kanitz (Termômetro de Insolvência).</p>
+      <p className="text-[11px] text-muted-foreground/80 max-w-xl mx-auto">
+        Conforme o <strong>Nível de Profundidade Técnica</strong> selecionado na configuração, somente o relatório correspondente está liberado para acesso.
+      </p>
     </div>
 
     <div className="grid lg:grid-cols-2 gap-6">
       {/* Card BEX */}
-      <Card className="border-2 hover:border-[hsl(258,90%,66%)]/50 transition-all">
+      <Card className={`border-2 hover:border-[hsl(258,90%,66%)]/50 transition-all ${bexAvailable ? "ring-2 ring-[hsl(258,90%,66%)]/40" : ""}`}>
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
@@ -1612,8 +1619,11 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
           <p className="text-xs text-muted-foreground leading-relaxed">
             Relatório técnico completo com diagnóstico executivo, solvência, pendências contábeis, indicadores financeiros, endividamento, balanço patrimonial e Score BEX de Solvência.
            </p>
-           <div className="flex justify-center">
+           <div className="flex justify-center gap-2">
              <Badge className="bg-green-500/15 text-green-600 border-green-500/30 text-xs font-semibold px-3 py-1">Versão Gratuita</Badge>
+             {bexAvailable && (
+               <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-xs font-semibold px-3 py-1">Selecionado</Badge>
+             )}
            </div>
           <div className="space-y-2">
             {reportTopicsBex.map(t => {
@@ -1646,7 +1656,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
       </Card>
 
       {/* Card Kanitz */}
-      <Card className="border-2 hover:border-amber-500/50 transition-all">
+      <Card className={`border-2 hover:border-amber-500/50 transition-all ${kanitzAvailable ? "ring-2 ring-amber-500/40" : ""}`}>
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
@@ -1662,8 +1672,11 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
           <p className="text-xs text-muted-foreground leading-relaxed">
             Relatório de análise preditiva de falência com cálculo do Fator de Insolvência (FI), classificação de risco, análise técnica automatizada e recomendações estratégicas.
            </p>
-           <div className="flex justify-center">
+           <div className="flex justify-center gap-2">
              <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30 text-xs font-semibold px-3 py-1">Versão Paga</Badge>
+             {kanitzAvailable && (
+               <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-xs font-semibold px-3 py-1">Selecionado</Badge>
+             )}
            </div>
           <div className="space-y-2">
             {reportTopicsKanitz.map(t => {
@@ -1696,7 +1709,8 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => 
       </Card>
     </div>
   </div>
-);
+  );
+};
 
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
@@ -3854,7 +3868,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles }: { 
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico" }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -3863,6 +3877,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
   company?: Company | null;
   source?: "auditor_chefe" | "usuario" | "empresa";
   uploadedFiles?: File[];
+  selectedDepth?: "executivo" | "tecnico";
 }) => {
   const navigate = useNavigate();
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
@@ -3905,11 +3920,27 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
   };
 
   const handleGerarBex = () => {
+    if (selectedDepth !== "executivo") {
+      toast({
+        title: "Relatório bloqueado",
+        description: "Para acessar o Relatório BEx_Resumido_Kanitz, selecione esse nível em 'Nível de Profundidade Técnica' na etapa de configuração.",
+        variant: "destructive",
+      });
+      return;
+    }
     setReportType("bex");
     persistReport("resumido");
   };
 
   const handleGerarKanitz = () => {
+    if (selectedDepth !== "tecnico") {
+      toast({
+        title: "Relatório bloqueado",
+        description: "Para acessar o Relatório BEx_Completo_Kanitz, selecione esse nível em 'Nível de Profundidade Técnica' na etapa de configuração.",
+        variant: "destructive",
+      });
+      return;
+    }
     setReportType("kanitz");
     persistReport("completo");
   };
@@ -3972,7 +4003,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
           ) : reportType === "kanitz" ? (
             <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarBex} variant="completo" />
           ) : (
-            <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} />
+            <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} selectedDepth={selectedDepth} />
           )}
         </TabsContent>
       </Tabs>
@@ -3996,6 +4027,7 @@ const AuditContent = () => {
   const [sourceDocs, setSourceDocs] = useState<{ fileName: string; fileSize: number; format: string }[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [dedupConfig, setDedupConfig] = useState<import("@/services/auditAIService").DedupConfig>({});
+  const [selectedDepth, setSelectedDepth] = useState<"executivo" | "tecnico">("tecnico");
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
@@ -4055,6 +4087,7 @@ const AuditContent = () => {
             onFilesReady={setUploadedFiles}
             dedupConfig={dedupConfig}
             onDedupChange={setDedupConfig}
+            onDepthChange={setSelectedDepth}
           />
         )}
         {phase === "processing" && (
@@ -4075,6 +4108,7 @@ const AuditContent = () => {
             company={company}
             source={reportSource}
             uploadedFiles={uploadedFiles}
+            selectedDepth={selectedDepth}
           />
         )}
       </div>
