@@ -129,16 +129,25 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   const validAnalyses = analyses.filter(isValidRun);
   const validPrev = prevAnalyses.filter(isValidRun);
 
+  // Acurácia da IA = capacidade de EXTRAIR e MAPEAR dados.
+  // validation_score reflete saúde contábil do documento (Ativo=Passivo+PL),
+  // que é problema do balancete e não da IA — por isso fica fora da acurácia.
+  // Pesos: OCR 30% · Quality 30% · Mapping 40% (mapeamento é o core do motor v4).
   const avgScore = (rows: any[]) => {
     if (!rows.length) return 0;
     let sum = 0, n = 0;
     for (const r of rows) {
-      const ocr = Number(r.ocr_score || 0);
+      const ocr  = Number(r.ocr_score || 0);
       const qual = Number(r.quality_score || 0);
-      const val = Number(r.validation_score || 0);
-      const map = Number(r.mapping_score || 0);
-      const local = [ocr, qual, val, map].filter(v => v > 0);
-      if (local.length) { sum += local.reduce((a,b)=>a+b,0) / local.length; n++; }
+      const map  = Number(r.mapping_score || 0);
+      const parts: Array<[number, number]> = [];
+      if (ocr  > 0) parts.push([ocr,  0.30]);
+      if (qual > 0) parts.push([qual, 0.30]);
+      if (map  > 0) parts.push([map,  0.40]);
+      if (!parts.length) continue;
+      const wsum = parts.reduce((a,[,w]) => a + w, 0);
+      const score = parts.reduce((a,[v,w]) => a + v * w, 0) / wsum;
+      sum += score; n++;
     }
     return n ? (sum / n) : 0;
   };
@@ -255,13 +264,16 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   // ── Distribuição de Acurácia IA (faixas) — só runs válidos
   const accBuckets = { excelente: 0, bom: 0, regular: 0, baixo: 0 };
   for (const r of validAnalyses) {
-    const ocr = Number(r.ocr_score || 0);
+    const ocr  = Number(r.ocr_score || 0);
     const qual = Number(r.quality_score || 0);
-    const val = Number(r.validation_score || 0);
-    const map = Number(r.mapping_score || 0);
-    const local = [ocr, qual, val, map].filter(v => v > 0);
-    if (!local.length) continue;
-    const score = normalize(local.reduce((a,b)=>a+b,0) / local.length);
+    const map  = Number(r.mapping_score || 0);
+    const parts: Array<[number, number]> = [];
+    if (ocr  > 0) parts.push([ocr,  0.30]);
+    if (qual > 0) parts.push([qual, 0.30]);
+    if (map  > 0) parts.push([map,  0.40]);
+    if (!parts.length) continue;
+    const wsum = parts.reduce((a,[,w]) => a + w, 0);
+    const score = normalize(parts.reduce((a,[v,w]) => a + v * w, 0) / wsum);
     if (score >= 90) accBuckets.excelente++;
     else if (score >= 75) accBuckets.bom++;
     else if (score >= 50) accBuckets.regular++;
