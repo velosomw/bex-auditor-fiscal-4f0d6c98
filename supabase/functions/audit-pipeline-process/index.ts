@@ -941,6 +941,7 @@ async function runPipeline(
     };
 
     // 7.2 Análise contextual via LLM (Auditor Contábil Sênior IA)
+    await updateProgress(supabase, documentId, "Gerando insights do auditor sênior…");
     const tAnalysis = Date.now();
     let aiInsights: { resumo: string; pontos_atencao: string[]; recomendacoes: string[] } | null = null;
     try {
