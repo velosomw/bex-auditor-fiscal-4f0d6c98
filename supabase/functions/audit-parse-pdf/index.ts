@@ -170,8 +170,8 @@ serve(async (req) => {
   }
 
   try {
-    const { fileBase64, fileName, mimeType } = await req.json();
-    
+    const { fileBase64, fileName, mimeType, documentId } = await req.json();
+
     if (!fileBase64) {
       return new Response(
         JSON.stringify({ error: "Nenhum arquivo fornecido" }),
@@ -182,7 +182,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    console.log(`Processing file: ${fileName}, type: ${mimeType}, size: ${fileBase64.length} chars base64`);
+    console.log(`Processing file: ${fileName}, type: ${mimeType}, size: ${fileBase64.length} chars base64, documentId: ${documentId ?? "—"}`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -239,11 +239,54 @@ serve(async (req) => {
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
     const extracted = extractAndRepairJson(content);
+    const ocrScore = computeOcrScore(extracted);
 
-    console.log(`Document parsed: ${(extracted.balanco as any[])?.length || 0} balanço rows, ${(extracted.dre as any[])?.length || 0} DRE rows, type: ${(extracted.documentInfo as any)?.tipo || extracted.pdfType}`);
+    console.log(`Document parsed: ${(extracted.balanco as any[])?.length || 0} balanço rows, ${(extracted.dre as any[])?.length || 0} DRE rows, type: ${(extracted.documentInfo as any)?.tipo || extracted.pdfType}, ocr_score=${ocrScore.toFixed(2)}`);
+
+    // Persistência em ocr_results (best-effort, nunca quebra a resposta)
+    let persisted = false;
+    if (documentId) {
+      try {
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+        const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (SUPABASE_URL && SERVICE_ROLE) {
+          const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          });
+          // Confirma que o documento existe antes de inserir
+          const { data: doc } = await admin
+            .from("pipeline_documents")
+            .select("id")
+            .eq("id", documentId)
+            .maybeSingle();
+          if (doc) {
+            const rawTextSnippet = JSON.stringify(extracted).slice(0, 20000);
+            const { error: insErr } = await admin.from("ocr_results").insert({
+              document_id: documentId,
+              provider: "lovable_ai_gemini",
+              ocr_score: ocrScore,
+              raw_text: rawTextSnippet,
+              structured_json: extracted,
+            });
+            if (insErr) {
+              console.error("ocr_results insert error:", insErr);
+            } else {
+              persisted = true;
+              console.log(`ocr_results persisted for document ${documentId}`);
+            }
+          } else {
+            console.warn(`documentId ${documentId} not found in pipeline_documents — skipping ocr_results persistence`);
+          }
+        } else {
+          console.warn("SUPABASE_URL or SERVICE_ROLE missing — skipping ocr_results persistence");
+        }
+      } catch (persistErr) {
+        console.error("Failed to persist ocr_results:", persistErr);
+      }
+    }
 
     return new Response(
-      JSON.stringify({ extracted }),
+      JSON.stringify({ extracted, ocr_score: ocrScore, persisted }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
