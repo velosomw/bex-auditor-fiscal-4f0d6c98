@@ -770,6 +770,14 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
         <div className="space-y-3">
           <Progress value={progress} className="h-2" />
           <p className="text-xs text-muted-foreground text-center">{progress}%</p>
+          {pipelineProgress && (
+            <div className="rounded-lg border border-[hsl(258,90%,66%)]/20 bg-[hsl(258,90%,66%)]/5 px-3 py-2 flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 text-[hsl(258,90%,66%)] animate-spin shrink-0" />
+              <p className="text-xs text-foreground/90 truncate" title={pipelineProgress}>
+                {pipelineProgress}
+              </p>
+            </div>
+          )}
         </div>
         <div className="space-y-2">
           {processingSteps.map((step, i) => (
