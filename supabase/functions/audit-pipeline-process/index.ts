@@ -393,7 +393,8 @@ serve(async (req) => {
       quality_score: qualityScore,
     });
 
-    await supabase.from("pipeline_documents").update({ status: "done" }).eq("id", documentId);
+    // Marca como completed para que loadRealEntityData (ModeloMatematico) leia os números reais
+    await supabase.from("pipeline_documents").update({ status: "completed" }).eq("id", documentId);
 
     return new Response(
       JSON.stringify({
