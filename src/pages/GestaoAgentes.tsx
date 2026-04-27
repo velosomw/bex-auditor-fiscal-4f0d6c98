@@ -57,15 +57,27 @@ const errorReduction = [
 ];
 
 // ─── TELA 1 — Upload & Processamento (REAL: parseFile + runAuditPipeline) ─────
-type StageKey = "upload" | "ocr" | "extract" | "normalize" | "analyze";
-type StageStatus = "idle" | "running" | "done" | "error";
+type StageKey = "upload" | "ocr" | "extract" | "normalize" | "validate" | "analyze";
+type StageStatus = "idle" | "running" | "done" | "error" | "warning";
 
 const STAGE_LABELS: Record<StageKey, string> = {
   upload: "Upload",
   ocr: "OCR / Parse",
   extract: "Extração",
   normalize: "Normalização",
+  validate: "Validação Contábil",
   analyze: "Análise & Score",
+};
+
+// Tolerância contábil: R$ 1,00 absoluto OU 0,5% do Ativo (o que for maior)
+const checkBalanceIntegrity = (ativo: number, passivo: number, pl: number) => {
+  const somaPP = passivo + pl;
+  const diff = ativo - somaPP;
+  const absDiff = Math.abs(diff);
+  const tolerance = Math.max(1, Math.abs(ativo) * 0.005);
+  const balanced = absDiff <= tolerance;
+  const pctDiff = ativo !== 0 ? (absDiff / Math.abs(ativo)) * 100 : 0;
+  return { balanced, diff, absDiff, tolerance, pctDiff, somaPP };
 };
 
 const TabUpload = () => {
@@ -76,7 +88,7 @@ const TabUpload = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [processing, setProcessing] = useState(false);
   const [stages, setStages] = useState<Record<StageKey, StageStatus>>({
-    upload: "idle", ocr: "idle", extract: "idle", normalize: "idle", analyze: "idle",
+    upload: "idle", ocr: "idle", extract: "idle", normalize: "idle", validate: "idle", analyze: "idle",
   });
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -106,7 +118,7 @@ const TabUpload = () => {
     setResult(null);
     setTimings({});
     setTotalMs(null);
-    setStages({ upload: "running", ocr: "idle", extract: "idle", normalize: "idle", analyze: "idle" });
+    setStages({ upload: "running", ocr: "idle", extract: "idle", normalize: "idle", validate: "idle", analyze: "idle" });
 
     const t0 = performance.now();
     const mark = (k: StageKey, start: number) =>
@@ -138,6 +150,25 @@ const TabUpload = () => {
       setStage("normalize", "done");
       mark("normalize", tNorm);
 
+      // ETAPA OBRIGATÓRIA: Validação Contábil (Ativo = Passivo + PL)
+      const tVal = performance.now();
+      setStage("validate", "running");
+      const integrity = checkBalanceIntegrity(
+        pipe.validation.ativo,
+        pipe.validation.passivo,
+        pipe.validation.pl,
+      );
+      mark("validate", tVal);
+      if (integrity.balanced) {
+        setStage("validate", "done");
+        toast.success(`Equação contábil validada (Δ R$ ${integrity.absDiff.toFixed(2)})`);
+      } else {
+        setStage("validate", "warning");
+        toast.warning(
+          `Divergência: Ativo ≠ Passivo + PL — Δ R$ ${integrity.absDiff.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${integrity.pctDiff.toFixed(2)}%)`,
+        );
+      }
+
       const tAna = performance.now();
       setStage("analyze", "running");
       setResult(pipe);
@@ -145,7 +176,8 @@ const TabUpload = () => {
       mark("analyze", tAna);
 
       setTotalMs(Math.round(performance.now() - t0));
-      toast.success(`Processado em ${((performance.now() - t0) / 1000).toFixed(1)}s · Quality ${(pipe.scores.quality * 100).toFixed(0)}%`);
+      const ok = integrity.balanced ? "✅" : "⚠️";
+      toast.success(`${ok} Processado em ${((performance.now() - t0) / 1000).toFixed(1)}s · Quality ${(pipe.scores.quality * 100).toFixed(0)}%`);
     } catch (e: any) {
       const msg = e?.message || "Falha no pipeline.";
       setErrorMsg(msg);
@@ -232,7 +264,7 @@ const TabUpload = () => {
 
       <div className="bg-card rounded-xl border border-border p-5 space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 flex-1">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 flex-1">
             {(Object.keys(STAGE_LABELS) as StageKey[]).map((k) => {
               const s = stages[k];
               const ms = timings[k];
@@ -241,6 +273,7 @@ const TabUpload = () => {
                   {s === "done" && <CheckCircle2 className="w-5 h-5 text-[hsl(152,70%,45%)]" />}
                   {s === "running" && <Loader2 className="w-5 h-5 text-[hsl(258,90%,66%)] animate-spin" />}
                   {s === "error" && <XCircle className="w-5 h-5 text-[hsl(0,70%,55%)]" />}
+                  {s === "warning" && <AlertCircle className="w-5 h-5 text-[hsl(38,90%,55%)]" />}
                   {s === "idle" && <div className="w-5 h-5 rounded-full border-2 border-border" />}
                   <div className="flex flex-col leading-tight">
                     <span className="text-xs sm:text-sm text-foreground">{STAGE_LABELS[k]}</span>
@@ -270,27 +303,137 @@ const TabUpload = () => {
           </div>
         )}
 
-        {result && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border">
-            {[
-              { label: "OCR", v: result.scores.ocr },
-              { label: "Mapeamento", v: result.scores.mapping },
-              { label: "Validação", v: result.scores.validation },
-              { label: "Quality Score", v: result.scores.quality, hi: true },
-            ].map((m, i) => (
-              <div key={i} className={`rounded-lg border p-3 ${m.hi ? "border-[hsl(258,90%,66%)]/30 bg-[hsl(258,90%,66%)]/5" : "border-border"}`}>
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{m.label}</div>
-                <div className="text-lg font-bold text-foreground">{(m.v * 100).toFixed(0)}%</div>
-                <Progress value={m.v * 100} className="h-1 mt-1" />
+        {result && (() => {
+          const integrity = checkBalanceIntegrity(
+            result.validation.ativo,
+            result.validation.passivo,
+            result.validation.pl,
+          );
+          const fmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+          return (
+            <>
+              {/* Painel de Validação Contábil — etapa explícita antes do relatório */}
+              <div
+                className={`rounded-lg border p-4 ${
+                  integrity.balanced
+                    ? "border-[hsl(152,70%,45%)]/30 bg-[hsl(152,70%,45%)]/5"
+                    : "border-[hsl(38,90%,55%)]/40 bg-[hsl(38,90%,55%)]/5"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex items-center gap-2">
+                    {integrity.balanced ? (
+                      <CheckCircle2 className="w-5 h-5 text-[hsl(152,70%,45%)]" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-[hsl(38,90%,55%)]" />
+                    )}
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">
+                        Validação Contábil — Ativo = Passivo + PL
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Tolerância: máx(R$ 1,00; 0,5% do Ativo) ={" "}
+                        <span className="font-mono">{fmt(integrity.tolerance)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Badge
+                    className={
+                      integrity.balanced
+                        ? "bg-[hsl(152,70%,45%)]/15 text-[hsl(152,70%,45%)]"
+                        : "bg-[hsl(38,90%,55%)]/15 text-[hsl(38,90%,55%)]"
+                    }
+                  >
+                    {integrity.balanced ? "✅ Balanço íntegro" : "⚠️ Divergência detectada"}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="bg-card/60 rounded-md p-2 border border-border">
+                    <div className="text-[10px] uppercase text-muted-foreground">Ativo Total</div>
+                    <div className="font-mono font-semibold text-foreground">{fmt(result.validation.ativo)}</div>
+                  </div>
+                  <div className="bg-card/60 rounded-md p-2 border border-border">
+                    <div className="text-[10px] uppercase text-muted-foreground">Passivo</div>
+                    <div className="font-mono font-semibold text-foreground">{fmt(result.validation.passivo)}</div>
+                  </div>
+                  <div className="bg-card/60 rounded-md p-2 border border-border">
+                    <div className="text-[10px] uppercase text-muted-foreground">Patrimônio Líquido</div>
+                    <div className="font-mono font-semibold text-foreground">{fmt(result.validation.pl)}</div>
+                  </div>
+                  <div
+                    className={`rounded-md p-2 border ${
+                      integrity.balanced
+                        ? "border-[hsl(152,70%,45%)]/30 bg-[hsl(152,70%,45%)]/10"
+                        : "border-[hsl(38,90%,55%)]/40 bg-[hsl(38,90%,55%)]/10"
+                    }`}
+                  >
+                    <div className="text-[10px] uppercase text-muted-foreground">Δ (Ativo − P+PL)</div>
+                    <div className="font-mono font-semibold text-foreground">
+                      {fmt(integrity.diff)} <span className="text-[10px] text-muted-foreground">({integrity.pctDiff.toFixed(2)}%)</span>
+                    </div>
+                  </div>
+                </div>
+                {!integrity.balanced && (
+                  <div className="mt-3 text-xs text-foreground space-y-1">
+                    <div className="font-semibold flex items-center gap-1.5">
+                      <Lightbulb className="w-3.5 h-3.5 text-[hsl(38,90%,55%)]" /> Possíveis causas
+                    </div>
+                    <ul className="list-disc list-inside text-muted-foreground space-y-0.5 ml-1">
+                      <li>Conta de Patrimônio Líquido classificada como Passivo (ou vice-versa)</li>
+                      <li>Resultado do exercício não transferido para o PL</li>
+                      <li>Sinal invertido em conta retificadora (ex.: depreciação acumulada)</li>
+                      <li>Linhas omitidas no OCR — revisar extração na aba Validação</li>
+                    </ul>
+                  </div>
+                )}
+                {result.validation.alertas?.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {result.validation.alertas.map((a, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px] font-normal">
+                        {a}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <Button size="sm" variant="outline" className="gap-1.5">
+                    <Edit3 className="w-3.5 h-3.5" /> Revisar na Validação
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={!integrity.balanced}
+                    title={
+                      integrity.balanced
+                        ? "Gerar relatório executivo"
+                        : "Corrija a divergência contábil antes de gerar o relatório"
+                    }
+                    className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5 disabled:opacity-50"
+                  >
+                    <FileText className="w-3.5 h-3.5" /> Gerar Relatório Final
+                  </Button>
+                </div>
               </div>
-            ))}
-            <div className="col-span-2 sm:col-span-4 text-xs text-muted-foreground">
-              {result.normalized.length} contas normalizadas · Ativo {result.validation.ativo.toLocaleString("pt-BR")} ·
-              Passivo+PL {(result.validation.passivo + result.validation.pl).toLocaleString("pt-BR")} ·
-              {result.validation.valid ? " ✅ Balanceado" : ` ⚠️ Diferença ${result.validation.diff.toLocaleString("pt-BR")}`}
-            </div>
-          </div>
-        )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border">
+                {[
+                  { label: "OCR", v: result.scores.ocr },
+                  { label: "Mapeamento", v: result.scores.mapping },
+                  { label: "Validação", v: result.scores.validation },
+                  { label: "Quality Score", v: result.scores.quality, hi: true },
+                ].map((m, i) => (
+                  <div key={i} className={`rounded-lg border p-3 ${m.hi ? "border-[hsl(258,90%,66%)]/30 bg-[hsl(258,90%,66%)]/5" : "border-border"}`}>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{m.label}</div>
+                    <div className="text-lg font-bold text-foreground">{(m.v * 100).toFixed(0)}%</div>
+                    <Progress value={m.v * 100} className="h-1 mt-1" />
+                  </div>
+                ))}
+                <div className="col-span-2 sm:col-span-4 text-[11px] text-muted-foreground">
+                  {result.normalized.length} contas normalizadas
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
