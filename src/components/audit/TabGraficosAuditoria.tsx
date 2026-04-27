@@ -258,6 +258,155 @@ const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
         </CardHeader>
       </Card>
 
+      {/* RESUMO EXECUTIVO + KANITZ + ALERTAS — derivados da DRE/Balanço */}
+      {exec && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: "Receita", value: fmtMoeda(exec.kpis.receita), icon: TrendingUp, color: "hsl(217,91%,50%)" },
+              { label: "Lucro / Prejuízo", value: fmtMoeda(exec.kpis.lucro), icon: DollarSign, color: exec.kpis.lucro >= 0 ? "hsl(150,70%,42%)" : "hsl(0,75%,55%)" },
+              { label: "Margem", value: `${exec.kpis.margem.toFixed(1)}%`, icon: Activity, color: exec.kpis.margem >= 5 ? "hsl(150,70%,42%)" : exec.kpis.margem >= 0 ? "hsl(34,95%,55%)" : "hsl(0,75%,55%)" },
+              { label: "Caixa Disponível", value: fmtMoeda(exec.kpis.caixa), icon: Wallet, color: "hsl(258,90%,66%)" },
+            ].map((k) => (
+              <Card key={k.label} className="border-l-4" style={{ borderLeftColor: k.color }}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{k.label}</span>
+                    <k.icon className="w-4 h-4" style={{ color: k.color }} />
+                  </div>
+                  <p className="text-xl font-bold font-mono" style={{ color: k.color }}>{k.value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="bg-muted/30">
+            <CardContent className="p-4 flex items-start gap-3">
+              <Activity className="w-4 h-4 mt-0.5 text-[hsl(217,91%,50%)] shrink-0" />
+              <p className="text-sm text-foreground"><strong>Insight IA:</strong> {exec.insight}</p>
+            </CardContent>
+          </Card>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Gauge className="w-4 h-4" style={{ color: exec.kanitz.color }} /> Kanitz — Fator de Insolvência
+                </CardTitle>
+                <CardDescription>FI = 0,05·X1 + 1,65·X2 + 3,55·X3 − 1,06·X4 − 0,33·X5</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center">
+                <ResponsiveContainer width="100%" height={200}>
+                  <RadialBarChart innerRadius="65%" outerRadius="100%" data={[{ name: "FI", value: Math.max(-7, Math.min(7, exec.kanitz.fi)) + 7, fill: exec.kanitz.color }]} startAngle={180} endAngle={0}>
+                    <RadialBar background dataKey="value" cornerRadius={8} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <div className="text-center -mt-12">
+                  <p className="text-3xl font-bold font-mono" style={{ color: exec.kanitz.color }}>{exec.kanitz.fi}</p>
+                  <Badge style={{ backgroundColor: exec.kanitz.color, color: "white" }} className="mt-1">{exec.kanitz.classe}</Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground text-center mt-3">
+                  Faixas: <strong>FI &gt; 0</strong> Solvência · <strong>−3 ≤ FI ≤ 0</strong> Penumbra · <strong>FI &lt; −3</strong> Insolvência
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-[hsl(0,75%,55%)]" /> Estrutura de Custos
+                </CardTitle>
+                <CardDescription>Distribuição Custo · Despesas · Lucro (último período)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {exec.custoStruct.length ? (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie data={exec.custoStruct} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} label={(e: any) => `${e.name}: ${((e.percent || 0) * 100).toFixed(0)}%`}>
+                        {exec.custoStruct.map((d, i) => <Cell key={i} fill={d.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => fmtMoeda(v)} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : <EmptyState icon={DollarSign} title="Sem dados de custos." />}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Receita × Custo × Lucro
+                </CardTitle>
+                <CardDescription>Cores fixas (padrão Excel): Azul · Vermelho · Verde</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={exec.rclSerie}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="periodo" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={fmtCompact} />
+                    <Tooltip formatter={(v: number) => fmtMoeda(v)} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="Receita" fill="hsl(217,91%,50%)" radius={[3,3,0,0]} />
+                    <Bar dataKey="Custo" fill="hsl(0,75%,55%)" radius={[3,3,0,0]} />
+                    <Bar dataKey="Lucro" fill="hsl(150,70%,42%)" radius={[3,3,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-[hsl(150,70%,42%)]" /> Margem Líquida (%)
+                </CardTitle>
+                <CardDescription>Evolução percentual do lucro sobre receita</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={exec.margemSerie}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="periodo" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} unit="%" />
+                    <Tooltip formatter={(v: number) => `${v}%`} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line type="monotone" dataKey="Margem (%)" stroke="hsl(150,70%,42%)" strokeWidth={2.5} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[hsl(34,95%,55%)]" /> Alertas Inteligentes
+              </CardTitle>
+              <CardDescription>Detecção automática de riscos financeiros</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {exec.alertas.map((a, i) => {
+                const map = {
+                  critico: { color: "hsl(0,75%,55%)", icon: AlertTriangle, label: "Crítico" },
+                  atencao: { color: "hsl(34,95%,55%)", icon: AlertTriangle, label: "Atenção" },
+                  ok: { color: "hsl(150,70%,42%)", icon: CheckCircle2, label: "OK" },
+                }[a.nivel];
+                const Icon = map.icon;
+                return (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded border-l-4 bg-muted/30" style={{ borderLeftColor: map.color }}>
+                    <Icon className="w-4 h-4 shrink-0" style={{ color: map.color }} />
+                    <Badge variant="outline" className="text-[10px]" style={{ borderColor: map.color, color: map.color }}>{map.label}</Badge>
+                    <span className="text-sm">{a.texto}</span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
       {/* BLOCO 1 — Balanço */}
       <Card>
         <CardHeader>
