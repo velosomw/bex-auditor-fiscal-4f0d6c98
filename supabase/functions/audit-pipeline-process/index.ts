@@ -961,9 +961,28 @@ async function runPipeline(
     };
 
     // 7.2 Análise contextual via LLM (Auditor Contábil Sênior IA)
+    //     v4: usa MODELO MAIOR (gemini-2.5-pro) — capacidade liberada da extração
+    //     v4: enriquece com referências validadas (dataset_validated) — few-shot real
     await updateProgress(supabase, documentId, "Gerando insights do auditor sênior…");
     const tAnalysis = Date.now();
     let aiInsights: { resumo: string; pontos_atencao: string[]; recomendacoes: string[] } | null = null;
+
+    // Carregar até 3 referências validadas (RAG few-shot textual; embedding seria ideal mas requer custo extra)
+    let fewShotBlock = "";
+    try {
+      const { data: refs } = await supabase
+        .from("dataset_validated")
+        .select("input_json, output_corrected, notes")
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (refs && refs.length > 0) {
+        fewShotBlock = `\n\nREFERÊNCIAS VALIDADAS POR AUDITOR (use como gabarito de raciocínio):\n` +
+          refs.map((r: any, i: number) =>
+            `[Ref ${i + 1}] ${r.notes || "Balancete validado"} — ${r.output_corrected?.balanco?.length || 0} contas balanço, ${r.output_corrected?.dre?.length || 0} contas DRE.`
+          ).join("\n");
+      }
+    } catch (_) { /* não-crítico */ }
+
     try {
       const ctx = `Empresa: ${body.documentInfo?.empresa || "N/D"}
 Período: ${body.documentInfo?.periodo || lastYear}
@@ -990,7 +1009,8 @@ DRE:
 - Endividamento Geral: ${indicadoresFinanceiros.endividamento_geral ?? "N/D"}%
 - Composição Endividamento (curto prazo): ${indicadoresFinanceiros.composicao_endividamento ?? "N/D"}%
 - Margem Líquida: ${indicadoresFinanceiros.margem_liquida ?? "N/D"}%
-- ROE: ${indicadoresFinanceiros.roe ?? "N/D"}%`;
+- ROE: ${indicadoresFinanceiros.roe ?? "N/D"}%${fewShotBlock}`;
+
 
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
