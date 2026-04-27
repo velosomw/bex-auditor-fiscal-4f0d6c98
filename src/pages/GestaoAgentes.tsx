@@ -56,14 +56,34 @@ const errorReduction = [
   { mes: "Out", erros: 58 }, { mes: "Nov", erros: 42 }, { mes: "Dez", erros: 31 }, { mes: "Jan", erros: 22 },
 ];
 
-// ─── TELA 1 — Upload & Processamento ──────────────────────────
+// ─── TELA 1 — Upload & Processamento (REAL: parseFile + runAuditPipeline) ─────
+type StageKey = "upload" | "ocr" | "extract" | "normalize" | "analyze";
+type StageStatus = "idle" | "running" | "done" | "error";
+
+const STAGE_LABELS: Record<StageKey, string> = {
+  upload: "Upload",
+  ocr: "OCR / Parse",
+  extract: "Extração",
+  normalize: "Normalização",
+  analyze: "Análise & Score",
+};
+
 const TabUpload = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [tipo, setTipo] = useState("balancete");
-  const [empresa, setEmpresa] = useState("");
+  const [empresaId, setEmpresaId] = useState<string>("");
   const [periodo, setPeriodo] = useState("");
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [processing, setProcessing] = useState(false);
-  const [steps, setSteps] = useState({ ocr: false, extract: false, normalize: false, analyze: false });
+  const [stages, setStages] = useState<Record<StageKey, StageStatus>>({
+    upload: "idle", ocr: "idle", extract: "idle", normalize: "idle", analyze: "idle",
+  });
+  const [result, setResult] = useState<PipelineResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    listCompanies().then(setCompanies).catch(() => {});
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -71,21 +91,62 @@ const TabUpload = () => {
     setFiles(prev => [...prev, ...dropped]);
   }, []);
 
-  const startPipeline = () => {
+  const setStage = (k: StageKey, s: StageStatus) =>
+    setStages(prev => ({ ...prev, [k]: s }));
+
+  const startPipeline = async () => {
     if (!files.length) return toast.error("Adicione pelo menos um documento.");
-    if (!empresa || !periodo) return toast.error("Preencha empresa e período.");
+    if (!empresaId) return toast.error("Selecione a empresa.");
+    if (!periodo) return toast.error("Informe o período.");
+
     setProcessing(true);
-    setSteps({ ocr: false, extract: false, normalize: false, analyze: false });
-    const stages: (keyof typeof steps)[] = ["ocr", "extract", "normalize", "analyze"];
-    stages.forEach((s, i) => {
-      setTimeout(() => {
-        setSteps(prev => ({ ...prev, [s]: true }));
-        if (i === stages.length - 1) {
-          setProcessing(false);
-          toast.success("Pipeline concluído. Vá para Validação Inteligente.");
-        }
-      }, (i + 1) * 900);
-    });
+    setErrorMsg(null);
+    setResult(null);
+    setStages({ upload: "running", ocr: "idle", extract: "idle", normalize: "idle", analyze: "idle" });
+
+    try {
+      // 1. Upload (client-side: arquivo já está em memória)
+      setStage("upload", "done");
+
+      // 2. OCR / Parse (chama audit-parse-pdf via parseFile)
+      setStage("ocr", "running");
+      const parsed = await parseFile(files[0]);
+      setStage("ocr", "done");
+
+      // 3. Extração (estruturação balanco/dre já vem do parser)
+      setStage("extract", "running");
+      if (!parsed.balanco?.length && !parsed.dre?.length) {
+        throw new Error("Nenhum balanço ou DRE detectado no documento.");
+      }
+      setStage("extract", "done");
+
+      // 4. Normalização (audit-pipeline-process — LLM)
+      setStage("normalize", "running");
+      const pipe = await runAuditPipeline(parsed, files[0].name, empresaId);
+      if (!pipe) throw new Error("Pipeline indisponível (sessão ou serviço).");
+      setStage("normalize", "done");
+
+      // 5. Análise & score (já calculado pelo pipeline)
+      setStage("analyze", "running");
+      setResult(pipe);
+      setStage("analyze", "done");
+
+      toast.success(`Processado. Quality score ${(pipe.scores.quality * 100).toFixed(0)}%.`);
+    } catch (e: any) {
+      const msg = e?.message || "Falha no pipeline.";
+      setErrorMsg(msg);
+      // marca a etapa em execução como erro
+      setStages(prev => {
+        const next = { ...prev };
+        (Object.keys(next) as StageKey[]).forEach(k => {
+          if (next[k] === "running") next[k] = "error";
+        });
+        return next;
+      });
+      toast.error(msg);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (
@@ -97,12 +158,13 @@ const TabUpload = () => {
       >
         <Upload className="w-12 h-12 mx-auto text-[hsl(258,90%,66%)] mb-3" />
         <h3 className="font-semibold text-foreground mb-1">Arraste documentos ou clique para selecionar</h3>
-        <p className="text-xs text-muted-foreground mb-4">PDF, XLSX, CSV — Balancete, DRE ou Fluxo de Caixa · Integração OneDrive disponível</p>
+        <p className="text-xs text-muted-foreground mb-4">PDF, XLSX, CSV — Balancete, DRE ou Fluxo de Caixa</p>
         <input
           type="file"
           multiple
           id="file-input"
           className="hidden"
+          accept=".pdf,.xlsx,.xls,.csv,.txt,.docx"
           onChange={(e) => e.target.files && setFiles(prev => [...prev, ...Array.from(e.target.files!)])}
         />
         <label htmlFor="file-input">
@@ -113,8 +175,13 @@ const TabUpload = () => {
         {files.length > 0 && (
           <div className="mt-4 text-left max-w-md mx-auto space-y-1.5">
             {files.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-md">
-                <FileText className="w-3.5 h-3.5" /> {f.name}
+              <div key={i} className="flex items-center justify-between gap-2 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-md">
+                <span className="flex items-center gap-2 truncate"><FileText className="w-3.5 h-3.5 shrink-0" /> {f.name}</span>
+                <button
+                  onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label="Remover"
+                >×</button>
               </div>
             ))}
           </div>
@@ -135,7 +202,14 @@ const TabUpload = () => {
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">Empresa</Label>
-          <Input value={empresa} onChange={(e) => setEmpresa(e.target.value)} placeholder="Selecionar empresa" />
+          <Select value={empresaId} onValueChange={setEmpresaId}>
+            <SelectTrigger><SelectValue placeholder={companies.length ? "Selecionar empresa" : "Sem empresas cadastradas"} /></SelectTrigger>
+            <SelectContent>
+              {companies.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">Período</Label>
@@ -143,27 +217,54 @@ const TabUpload = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between bg-card rounded-xl border border-border p-5">
-        <div className="grid grid-cols-4 gap-4 flex-1">
-          {[
-            { key: "ocr", label: "OCR", done: steps.ocr },
-            { key: "extract", label: "Extração", done: steps.extract },
-            { key: "normalize", label: "Normalização", done: steps.normalize },
-            { key: "analyze", label: "Análise", done: steps.analyze },
-          ].map((s) => (
-            <div key={s.key} className="flex items-center gap-2">
-              {s.done ? (
-                <CheckCircle2 className="w-5 h-5 text-[hsl(152,70%,45%)]" />
-              ) : (
-                <div className={`w-5 h-5 rounded-full border-2 ${processing ? "border-[hsl(258,90%,66%)] animate-pulse" : "border-border"}`} />
-              )}
-              <span className="text-sm text-foreground">{s.label}</span>
-            </div>
-          ))}
+      <div className="bg-card rounded-xl border border-border p-5 space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 flex-1">
+            {(Object.keys(STAGE_LABELS) as StageKey[]).map((k) => {
+              const s = stages[k];
+              return (
+                <div key={k} className="flex items-center gap-2">
+                  {s === "done" && <CheckCircle2 className="w-5 h-5 text-[hsl(152,70%,45%)]" />}
+                  {s === "running" && <Loader2 className="w-5 h-5 text-[hsl(258,90%,66%)] animate-spin" />}
+                  {s === "error" && <XCircle className="w-5 h-5 text-[hsl(0,70%,55%)]" />}
+                  {s === "idle" && <div className="w-5 h-5 rounded-full border-2 border-border" />}
+                  <span className="text-xs sm:text-sm text-foreground">{STAGE_LABELS[k]}</span>
+                </div>
+              );
+            })}
+          </div>
+          <Button onClick={startPipeline} disabled={processing} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5 shrink-0">
+            <Sparkles className="w-3.5 h-3.5" /> {processing ? "Processando..." : "Processar com IA"}
+          </Button>
         </div>
-        <Button onClick={startPipeline} disabled={processing} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" /> {processing ? "Processando..." : "Processar com IA"}
-        </Button>
+
+        {errorMsg && (
+          <div className="flex items-start gap-2 text-xs text-[hsl(0,70%,55%)] bg-[hsl(0,70%,55%)]/10 border border-[hsl(0,70%,55%)]/20 rounded-md p-3">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {errorMsg}
+          </div>
+        )}
+
+        {result && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border">
+            {[
+              { label: "OCR", v: result.scores.ocr },
+              { label: "Mapeamento", v: result.scores.mapping },
+              { label: "Validação", v: result.scores.validation },
+              { label: "Quality Score", v: result.scores.quality, hi: true },
+            ].map((m, i) => (
+              <div key={i} className={`rounded-lg border p-3 ${m.hi ? "border-[hsl(258,90%,66%)]/30 bg-[hsl(258,90%,66%)]/5" : "border-border"}`}>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{m.label}</div>
+                <div className="text-lg font-bold text-foreground">{(m.v * 100).toFixed(0)}%</div>
+                <Progress value={m.v * 100} className="h-1 mt-1" />
+              </div>
+            ))}
+            <div className="col-span-2 sm:col-span-4 text-xs text-muted-foreground">
+              {result.normalized.length} contas normalizadas · Ativo {result.validation.ativo.toLocaleString("pt-BR")} ·
+              Passivo+PL {(result.validation.passivo + result.validation.pl).toLocaleString("pt-BR")} ·
+              {result.validation.valid ? " ✅ Balanceado" : ` ⚠️ Diferença ${result.validation.diff.toLocaleString("pt-BR")}`}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
