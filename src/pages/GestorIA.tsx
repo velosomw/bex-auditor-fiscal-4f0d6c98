@@ -25,6 +25,7 @@ import TabExecutionTime from "@/components/gestor/TabExecutionTime";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 
 // ─── Mock Data (somente para abas ainda não conectadas) ─────
+const integrations = [
   { name: "BigQuery", type: "Data Warehouse", status: "active", icon: Database },
   { name: "API Contábil", type: "ERP", status: "active", icon: Globe },
   { name: "Webhooks", type: "Notificações", status: "active", icon: Webhook },
