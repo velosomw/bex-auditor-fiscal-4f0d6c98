@@ -1,15 +1,12 @@
 // Audit Pipeline Process — Pré-processamento inteligente de balancetes
-// Stack: Lovable AI Gateway (chat/JSON, sem embeddings) + Supabase Postgres.
+// Stack: Lovable AI Gateway (chat/JSON) + Supabase Postgres.
 //
-// Pipeline:
-//   1. Cria pipeline_documents
-//   2. Normalização semântica via LLM (Gemini Flash) com dicionário injetado
-//   3. Salva balancete_data
-//   4. Validação contábil (Ativo ≈ Passivo + PL com tolerância 2%)
-//   5. Few-shot examples recentes de dataset_validated
-//   6. Score de qualidade composto
-//   7. Persiste pipeline_analysis_results
-//   8. Retorna dados normalizados + few-shot + score para o audit-analyze
+// Quick Wins aplicados (v2):
+//   1. Cache em memória (hash da descrição) → evita LLM calls repetidos
+//   2. Paralelismo aumentado (CHUNK_SIZE 80, MAX_PARALLEL 6)
+//   3. Deduplicação pré-LLM (descrições idênticas processadas 1x)
+//   4. Heurística PL melhorada (Capital Social / Reservas / Lucros / Prejuízos)
+//   5. Logging estruturado por estágio (timestamps + métricas)
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -32,7 +29,7 @@ interface BalanceteRow {
 
 interface PipelineRequest {
   company_id?: string;
-  document_id?: string; // se já criado pelo cliente (para vincular ocr_results)
+  document_id?: string;
   file_name: string;
   ocr_score?: number;
   balanco: BalanceteRow[];
@@ -40,9 +37,52 @@ interface PipelineRequest {
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
 }
 
-/* ──────────────── Categorização contábil heurística (fallback) ──────────────── */
+type NormResult = { conta_normalizada: string; categoria: string; tipo: string; matched: boolean };
+
+/* ──────────────── Logging estruturado (Quick Win 5) ──────────────── */
+function stageLog(reqId: string, stage: string, extra: Record<string, unknown> = {}) {
+  console.log(JSON.stringify({ reqId, stage, ts: new Date().toISOString(), ...extra }));
+}
+
+/* ──────────────── Cache em memória global (Quick Win 1) ──────────────── */
+// Persiste entre invocações enquanto a edge instance estiver quente
+const NORMALIZE_CACHE = new Map<string, NormResult>();
+const CACHE_MAX = 5000;
+
+function cacheKey(desc: string): string {
+  return (desc || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function cacheGet(desc: string): NormResult | undefined {
+  return NORMALIZE_CACHE.get(cacheKey(desc));
+}
+
+function cacheSet(desc: string, val: NormResult) {
+  if (NORMALIZE_CACHE.size >= CACHE_MAX) {
+    // FIFO simples: remove o primeiro
+    const firstKey = NORMALIZE_CACHE.keys().next().value;
+    if (firstKey) NORMALIZE_CACHE.delete(firstKey);
+  }
+  NORMALIZE_CACHE.set(cacheKey(desc), val);
+}
+
+/* ──────────────── Heurística PL melhorada (Quick Win 4) ──────────────── */
 function classifyAccount(desc: string): { tipo: string; categoria: string } {
   const d = (desc || "").toLowerCase();
+
+  // PL — DETECÇÃO PRIORITÁRIA (antes de receita/despesa para evitar "lucros" virar receita)
+  if (
+    /(capital\s*social|capital\s*subscrito|capital\s*integraliz|capital\s*a\s*integraliz)/.test(d) ||
+    /(reserva\s*(legal|estatut|capital|lucro|reavaliaç))/.test(d) ||
+    /(lucros?\s*(acumulad|a\s*distribu|do\s*exerc))/.test(d) ||
+    /(preju[ií]zos?\s*acumulad)/.test(d) ||
+    /(patrim[oô]nio\s*l[ií]quido|patrimonio\s*liquido)/.test(d) ||
+    /(a[çc][oõ]es?\s*em\s*tesouraria|ações\s*em\s*tesouraria)/.test(d) ||
+    /(ajustes?\s*de\s*avalia[çc][aã]o)/.test(d)
+  ) {
+    return { tipo: "pl", categoria: "patrimonio_liquido" };
+  }
+
   if (/(receita|venda|faturamento)/.test(d)) return { tipo: "receita", categoria: "receita" };
   if (/(custo|cmv)/.test(d)) return { tipo: "despesa", categoria: "custo" };
   if (/(despesa|gasto)/.test(d)) return { tipo: "despesa", categoria: "despesa" };
@@ -54,19 +94,17 @@ function classifyAccount(desc: string): { tipo: string; categoria: string } {
     return { tipo: "passivo", categoria: "passivo_nao_circulante" };
   if (/(fornecedor|emprestimo|financiamento|salario|imposto a pagar|factoring|fidc|duplicat.*descont|obrigac)/.test(d))
     return { tipo: "passivo", categoria: "passivo_circulante" };
-  if (/(capital social|reserva|lucro acumulado|prejuizo acumulado|patrimonio)/.test(d))
-    return { tipo: "pl", categoria: "patrimonio_liquido" };
   return { tipo: "ativo", categoria: "ativo_circulante" };
 }
 
-/* ──────────────── Normalização semântica em lote via LLM (com chunking + paralelização) ──────────────── */
-const CHUNK_SIZE = 40; // contas por requisição — equilibra latência vs throughput
-const MAX_PARALLEL = 4; // lotes simultâneos
+/* ──────────────── Normalização semântica em lote via LLM ──────────────── */
+const CHUNK_SIZE = 80; // Quick Win 2: era 40
+const MAX_PARALLEL = 6; // Quick Win 2: era 4
 
 async function normalizeChunk(
   rows: Array<{ conta: string; descricao: string }>,
   dictText: string,
-): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
+): Promise<NormResult[]> {
   const inputList = rows.map((r, i) => `${i}. ${r.descricao || r.conta}`).join("\n");
 
   const systemPrompt = `Você é um CONTADOR ESPECIALISTA em classificação contábil brasileira (CPC/IFRS/NBC TA/Lei 6.404/76).
@@ -79,10 +117,10 @@ REGRAS CRÍTICAS:
    - categoria: uma de [ativo_circulante, ativo_nao_circulante, passivo_circulante, passivo_nao_circulante, patrimonio_liquido, receita, custo, despesa]
    - tipo: uma de [ativo, passivo, pl, receita, despesa]
    - matched: true se mapeou via dicionário/exemplo, false se inferiu por contexto
-2. Use SIMILARIDADE SEMÂNTICA — contas equivalentes devem ter o MESMO termo padrão (consistência).
-3. NÃO invente categorias novas. NÃO crie subcontas inexistentes.
-4. Identifique sinais de risco: factoring, FIDC, duplicatas descontadas, antecipação de recebíveis → categoria correta + termo padronizado.
-5. Se a conta for ambígua → mantenha o nome original e marque matched=false.
+2. ATENÇÃO ESPECIAL AO PATRIMÔNIO LÍQUIDO: Capital Social, Reservas (Legal/Estatutária/Capital/Lucros), Lucros Acumulados, Lucros do Exercício, Prejuízos Acumulados, Ajustes de Avaliação Patrimonial, Ações em Tesouraria → SEMPRE tipo="pl", categoria="patrimonio_liquido". NUNCA classifique "Lucros Acumulados" como receita.
+3. Use SIMILARIDADE SEMÂNTICA — contas equivalentes devem ter o MESMO termo padrão.
+4. NÃO invente categorias novas.
+5. Sinais de risco: factoring, FIDC, duplicatas descontadas → categoria correta + termo padronizado.
 6. Mantenha a MESMA ORDEM das contas de entrada.
 
 DICIONÁRIO CONTÁBIL DE REFERÊNCIA:
@@ -163,12 +201,7 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
     const j = await r.json();
     const tc = j.choices?.[0]?.message?.tool_calls?.[0];
     const args = JSON.parse(tc?.function?.arguments || "{}");
-    const accounts = args.accounts as Array<{
-      conta_normalizada: string;
-      categoria: string;
-      tipo: string;
-      matched: boolean;
-    }>;
+    const accounts = args.accounts as NormResult[];
     if (!Array.isArray(accounts) || accounts.length !== rows.length) {
       throw new Error(`tamanho inesperado: ${accounts?.length} vs ${rows.length}`);
     }
@@ -182,30 +215,110 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
   }
 }
 
-/* Wrapper: chunkifica e paraleliza chamadas LLM (reduz latência ~3-4x em balancetes grandes) */
+/* Wrapper: cache + dedup + chunk + paralelização (Quick Wins 1, 2, 3) */
 async function normalizeAccountsLLM(
   rows: Array<{ conta: string; descricao: string }>,
   // deno-lint-ignore no-explicit-any
   dictionary: any[],
-): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
+  reqId: string,
+): Promise<NormResult[]> {
   if (rows.length === 0) return [];
+
   const dictText = (dictionary || [])
     .slice(0, 80)
     .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
     .join("\n");
 
-  const chunks: Array<{ conta: string; descricao: string }[]> = [];
-  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-    chunks.push(rows.slice(i, i + CHUNK_SIZE));
+  // Resultado final por índice
+  const finalResults: NormResult[] = new Array(rows.length);
+
+  // Quick Win 1+3: cache lookup + dedup
+  const uniqueByDesc = new Map<string, { row: { conta: string; descricao: string }; indices: number[] }>();
+  let cacheHits = 0;
+
+  rows.forEach((row, idx) => {
+    const desc = row.descricao || row.conta;
+    const cached = cacheGet(desc);
+    if (cached) {
+      finalResults[idx] = cached;
+      cacheHits++;
+      return;
+    }
+    const key = cacheKey(desc);
+    const existing = uniqueByDesc.get(key);
+    if (existing) {
+      existing.indices.push(idx);
+    } else {
+      uniqueByDesc.set(key, { row, indices: [idx] });
+    }
+  });
+
+  const uniqueRows = Array.from(uniqueByDesc.values()).map((v) => v.row);
+  const dedupSavings = rows.length - cacheHits - uniqueRows.length;
+
+  stageLog(reqId, "normalize.dedup", {
+    total: rows.length,
+    cache_hits: cacheHits,
+    unique_to_process: uniqueRows.length,
+    dedup_savings: dedupSavings,
+  });
+
+  if (uniqueRows.length === 0) {
+    stageLog(reqId, "normalize.complete", { llm_calls: 0, source: "100%_cache" });
+    return finalResults;
   }
 
-  const results: Array<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> = [];
+  // Chunkifica + paraleliza (Quick Win 2)
+  const chunks: Array<{ conta: string; descricao: string }[]> = [];
+  for (let i = 0; i < uniqueRows.length; i += CHUNK_SIZE) {
+    chunks.push(uniqueRows.slice(i, i + CHUNK_SIZE));
+  }
+
+  stageLog(reqId, "normalize.llm_start", {
+    chunks: chunks.length,
+    chunk_size: CHUNK_SIZE,
+    max_parallel: MAX_PARALLEL,
+    waves: Math.ceil(chunks.length / MAX_PARALLEL),
+  });
+
+  const t0 = Date.now();
+  const allLLMResults: NormResult[] = [];
   for (let i = 0; i < chunks.length; i += MAX_PARALLEL) {
     const wave = chunks.slice(i, i + MAX_PARALLEL);
     const settled = await Promise.all(wave.map((c) => normalizeChunk(c, dictText)));
-    results.push(...settled);
+    settled.forEach((s) => allLLMResults.push(...s));
   }
-  return results.flat();
+  stageLog(reqId, "normalize.llm_done", {
+    duration_ms: Date.now() - t0,
+    llm_processed: allLLMResults.length,
+  });
+
+  // Distribui resultado LLM para todos os índices (cache + originais)
+  uniqueRows.forEach((row, i) => {
+    const desc = row.descricao || row.conta;
+    const result = allLLMResults[i];
+    if (!result) return;
+    cacheSet(desc, result);
+    const entry = uniqueByDesc.get(cacheKey(desc));
+    entry?.indices.forEach((idx) => {
+      finalResults[idx] = result;
+    });
+  });
+
+  // Garante que nenhum índice fica vazio (fallback heurístico)
+  rows.forEach((row, idx) => {
+    if (!finalResults[idx]) {
+      const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
+      finalResults[idx] = {
+        conta_normalizada: row.descricao || row.conta,
+        categoria,
+        tipo,
+        matched: false,
+      };
+    }
+  });
+
+  return finalResults;
 }
 
 /* ──────────────── Validador contábil ──────────────── */
@@ -239,8 +352,18 @@ function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const reqId = crypto.randomUUID().slice(0, 8);
+  const tStart = Date.now();
+
   try {
     const body: PipelineRequest = await req.json();
+    stageLog(reqId, "request.received", {
+      file: body.file_name,
+      balanco_rows: body.balanco?.length || 0,
+      dre_rows: body.dre?.length || 0,
+      has_company: !!body.company_id,
+      has_document: !!body.document_id,
+    });
 
     const authHeader = req.headers.get("Authorization") || "";
     const jwt = authHeader.replace("Bearer ", "");
@@ -260,15 +383,14 @@ serve(async (req) => {
     // 1. Registrar (ou reutilizar) documento
     let documentId: string;
     if (body.document_id) {
-      // Reutiliza doc já criado pelo cliente para que ocr_results já gravado fique vinculado
       const { data: existingDoc } = await supabase
         .from("pipeline_documents")
         .select("id")
         .eq("id", body.document_id)
         .maybeSingle();
       if (!existingDoc) throw new Error(`document_id ${body.document_id} não encontrado`);
+      // deno-lint-ignore no-explicit-any
       documentId = (existingDoc as any).id;
-      // Atualiza status e VINCULA company_id (apenas se fornecido — nunca desvincula)
       const updatePayload: Record<string, unknown> = { status: "normalizing" };
       if (body.company_id) updatePayload.company_id = body.company_id;
       await supabase.from("pipeline_documents").update(updatePayload).eq("id", documentId);
@@ -289,12 +411,18 @@ serve(async (req) => {
       // deno-lint-ignore no-explicit-any
       documentId = (doc as any).id;
     }
+    stageLog(reqId, "document.ready", { document_id: documentId });
 
-    // 2. Carregar dicionário (uma vez)
+    // 2. Carregar dicionário
+    const tDict = Date.now();
     const { data: dictionary } = await supabase
       .from("contabil_dictionary")
       .select("termo_original, termo_padrao, categoria")
       .limit(200);
+    stageLog(reqId, "dictionary.loaded", {
+      entries: dictionary?.length || 0,
+      duration_ms: Date.now() - tDict,
+    });
 
     // 3. Combinar balanço + DRE
     const allRows = [
@@ -316,11 +444,17 @@ serve(async (req) => {
     const years = Object.keys(body.balanco?.[0]?.values || body.dre?.[0]?.values || { _: 0 });
     const lastYear = years.sort().reverse()[0] || "_";
 
-    // 4. Normalização em lote via LLM (uma chamada para tudo)
+    // 4. Normalização em lote (com cache + dedup + paralelização)
+    const tNorm = Date.now();
     const normalized = await normalizeAccountsLLM(
       allRows.map((r) => ({ conta: r.conta, descricao: r.descricao })),
       dictionary || [],
+      reqId,
     );
+    stageLog(reqId, "normalize.total", {
+      duration_ms: Date.now() - tNorm,
+      rows: allRows.length,
+    });
 
     let mappedCount = 0;
     const normalizedRows = allRows.map((row, i) => {
@@ -354,8 +488,15 @@ serve(async (req) => {
 
     // 6. Validação contábil
     const validation = validateBalanco(normalizedRows);
+    stageLog(reqId, "validation.done", {
+      ativo: validation.ativo,
+      passivo: validation.passivo,
+      pl: validation.pl,
+      diff: validation.diff,
+      valid: validation.valid,
+    });
 
-    // 7. Few-shot: últimos 3 exemplos validados (sem embeddings — vetor indisponível)
+    // 7. Few-shot
     const { data: fsRows } = await supabase
       .from("dataset_validated")
       .select("input_json, output_corrected")
@@ -368,7 +509,7 @@ serve(async (req) => {
       output: (r as any).output_corrected,
     }));
 
-    // 8. Score de qualidade
+    // 8. Score
     const ocrScore = Math.max(0, Math.min(1, body.ocr_score ?? 0.85));
     const mappingScore = normalizedRows.length > 0 ? mappedCount / normalizedRows.length : 0;
     const validationScore = validation.valid
@@ -393,8 +534,14 @@ serve(async (req) => {
       quality_score: qualityScore,
     });
 
-    // Marca como completed para que loadRealEntityData (ModeloMatematico) leia os números reais
     await supabase.from("pipeline_documents").update({ status: "completed" }).eq("id", documentId);
+
+    const totalMs = Date.now() - tStart;
+    stageLog(reqId, "request.complete", {
+      total_ms: totalMs,
+      quality_score: qualityScore,
+      cache_size: NORMALIZE_CACHE.size,
+    });
 
     return new Response(
       JSON.stringify({
@@ -408,10 +555,16 @@ serve(async (req) => {
           validation: validationScore,
           quality: qualityScore,
         },
+        meta: {
+          req_id: reqId,
+          total_ms: totalMs,
+          cache_size: NORMALIZE_CACHE.size,
+        },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
+    stageLog(reqId, "request.error", { error: e instanceof Error ? e.message : String(e) });
     console.error("audit-pipeline-process error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
