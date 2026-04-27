@@ -987,9 +987,7 @@ const ModeloMatematico = () => {
   const rentStatus = ind.margemLiquida < 0 ? "Negativa" : ind.margemLiquida < 0.05 ? "Baixa" : "Positiva";
   let riskClassification: RiskLevel = "Saudável";
   if (liquidezStatus === "Baixa" && endivStatus === "Alta" && rentStatus === "Negativa") riskClassification = "Crítico";
-  else if (endivStatus === "Alta" && rentStatus === "Baixa") riskClassification = "Alto";
-  else if (endivStatus === "Média" || liquidezStatus === "Média") riskClassification = "Moderado";
-
+  // Header (vai ser ajustado para incluir seletor de empresa) — fim dos cálculos.
   return (
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-4 md:p-6 space-y-6">
