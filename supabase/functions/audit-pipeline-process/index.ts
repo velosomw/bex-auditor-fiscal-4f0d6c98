@@ -921,8 +921,9 @@ async function runPipeline(
       valid: validation.valid,
     });
 
-    // 7. Score
-    const ocrScore = Math.max(0, Math.min(1, body.ocr_score ?? 0.85));
+    // 7. Score — parser estrutural (XLSX nativo) garante extração 100%, então 0.99
+    // Cliente pode enviar ocr_score próprio (PDF via Document AI). Default sobe para 0.99 (estrutural).
+    const ocrScore = Math.max(0, Math.min(1, body.ocr_score ?? 0.99));
     const mappingScore = normalizedRows.length > 0 ? mappedCount / normalizedRows.length : 0;
     const validationScore = validation.valid
       ? 1
