@@ -676,6 +676,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
             pipelineResult = await runAuditPipeline(
               parsedData,
               files[0]?.name || "balancete",
+              undefined,
+              undefined,
+              dedupConfig,
             );
             if (pipelineResult) {
               console.log(
