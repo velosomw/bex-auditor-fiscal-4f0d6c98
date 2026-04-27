@@ -1619,8 +1619,11 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
           <p className="text-xs text-muted-foreground leading-relaxed">
             Relatório técnico completo com diagnóstico executivo, solvência, pendências contábeis, indicadores financeiros, endividamento, balanço patrimonial e Score BEX de Solvência.
            </p>
-           <div className="flex justify-center">
+           <div className="flex justify-center gap-2">
              <Badge className="bg-green-500/15 text-green-600 border-green-500/30 text-xs font-semibold px-3 py-1">Versão Gratuita</Badge>
+             {bexAvailable && (
+               <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-xs font-semibold px-3 py-1">Selecionado</Badge>
+             )}
            </div>
           <div className="space-y-2">
             {reportTopicsBex.map(t => {
