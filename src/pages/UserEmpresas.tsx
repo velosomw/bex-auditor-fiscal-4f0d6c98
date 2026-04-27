@@ -480,21 +480,26 @@ const UserEmpresas = () => {
           {/* Lista */}
           <Card className="h-fit">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Empresas Atendidas</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm">Empresas Atendidas</CardTitle>
+                <Badge variant="outline" className="text-[10px]">
+                  {filtered.length} de {filteredAll.length} (mais recentes)
+                </Badge>
+              </div>
 
-              {/* Lista suspensa para seleção rápida */}
+              {/* Lista suspensa para seleção rápida — exibe até 5 mais recentes */}
               <div className="mt-2">
                 <Label className="text-[11px] text-muted-foreground">Selecionar empresa</Label>
                 <Select
                   value={selectedId || ""}
                   onValueChange={(v) => { setSelectedId(v); setShowRegister(false); }}
-                  disabled={loading || aggregates.length === 0}
+                  disabled={loading || filtered.length === 0}
                 >
                   <SelectTrigger className="h-9 mt-1">
-                    <SelectValue placeholder={aggregates.length === 0 ? "Nenhuma empresa cadastrada" : "Selecione uma empresa"} />
+                    <SelectValue placeholder={filtered.length === 0 ? "Nenhuma empresa encontrada" : "Selecione uma empresa"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[320px]">
-                    {aggregates.map(a => (
+                    {filtered.map(a => (
                       <SelectItem key={a.company.id} value={a.company.id}>
                         <span className="flex items-center gap-2">
                           <Building2 className="w-3.5 h-3.5 text-[hsl(217,91%,50%)]" />
@@ -503,6 +508,11 @@ const UserEmpresas = () => {
                         </span>
                       </SelectItem>
                     ))}
+                    {filteredAll.length > filtered.length && (
+                      <div className="px-2 py-1.5 text-[11px] text-muted-foreground border-t mt-1">
+                        Exibindo as 5 mais recentes. Refine a busca ou use a "Lista de Empresas" para ver todas.
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
