@@ -115,6 +115,83 @@ const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
     return { entradas: build(data.prevReal.entradas), saidas: build(data.prevReal.saidas) };
   }, [data]);
 
+  // ── Derivações executivas (KPIs, Kanitz, Receita×Custo×Lucro, Alertas) ───
+  const exec = useMemo(() => {
+    if (!parsedData?.dre?.length && !parsedData?.balanco?.length) return null;
+    const years = parsedData?.years ?? [];
+    const lastYear = years[years.length - 1];
+    if (!lastYear) return null;
+
+    const sumByKw = (rows: ParsedFinancialData["dre"], kws: string, year: string) => {
+      const re = new RegExp(kws, "i");
+      return (rows ?? [])
+        .filter(r => re.test(r.descricao || r.conta || ""))
+        .reduce((s, r) => s + (Number(r.values?.[year]) || 0), 0);
+    };
+
+    const receita = Math.abs(sumByKw(parsedData.dre, "receita.*l[ií]quida|receita.*bruta|vendas", lastYear));
+    const custo = Math.abs(sumByKw(parsedData.dre, "custo.*(mercadoria|servi[çc]o|produto|cmv|csv)", lastYear));
+    const despesas = Math.abs(sumByKw(parsedData.dre, "despesa|gasto", lastYear));
+    const lucro = sumByKw(parsedData.dre, "lucro.*l[ií]quid|resultado.*l[ií]quid|preju[ií]zo", lastYear);
+    const margem = receita > 0 ? (lucro / receita) * 100 : 0;
+
+    const ativoCirc = sumByKw(parsedData.balanco, "ativo.*circulante", lastYear);
+    const passivoCirc = sumByKw(parsedData.balanco, "passivo.*circulante", lastYear);
+    const passivoNCirc = sumByKw(parsedData.balanco, "passivo.*n[aã]o.*circulante|exig[ií]vel.*longo", lastYear);
+    const pl = sumByKw(parsedData.balanco, "patrim[oô]nio.*l[ií]quido", lastYear);
+    const estoques = sumByKw(parsedData.balanco, "estoque", lastYear);
+    const caixa = sumByKw(parsedData.balanco, "caixa|disponibilidade|banco", lastYear);
+
+    // Kanitz FI
+    const x1 = pl > 0 ? lucro / pl : 0;
+    const x2 = passivoCirc > 0 ? ativoCirc / passivoCirc : 0;
+    const x3 = passivoCirc > 0 ? (ativoCirc - estoques) / passivoCirc : 0;
+    const x4 = passivoCirc > 0 ? ativoCirc / passivoCirc : 0;
+    const x5 = pl > 0 ? (passivoCirc + passivoNCirc) / pl : 0;
+    const fi = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
+    const kanitzClass = fi > 0 ? "Solvência" : fi >= -3 ? "Penumbra" : "Insolvência";
+    const kanitzColor = fi > 0 ? "hsl(150,70%,42%)" : fi >= -3 ? "hsl(34,95%,55%)" : "hsl(0,75%,55%)";
+
+    const rclSerie = years.map(y => ({
+      periodo: y,
+      Receita: Math.abs(sumByKw(parsedData.dre, "receita.*l[ií]quida|receita.*bruta|vendas", y)),
+      Custo: Math.abs(sumByKw(parsedData.dre, "custo.*(mercadoria|servi[çc]o|produto|cmv|csv)", y)),
+      Lucro: sumByKw(parsedData.dre, "lucro.*l[ií]quid|resultado.*l[ií]quid", y),
+    }));
+    const margemSerie = rclSerie.map(p => ({
+      periodo: p.periodo,
+      "Margem (%)": p.Receita > 0 ? +(p.Lucro / p.Receita * 100).toFixed(2) : 0,
+    }));
+
+    const custoStruct = [
+      { name: "Custo Operacional", value: custo, color: "hsl(0,75%,55%)" },
+      { name: "Despesas", value: despesas, color: "hsl(34,95%,55%)" },
+      { name: "Lucro", value: Math.max(lucro, 0), color: "hsl(150,70%,42%)" },
+    ].filter(d => d.value > 0);
+
+    const alertas: Array<{ nivel: "critico" | "atencao" | "ok"; texto: string }> = [];
+    if (margem < 0) alertas.push({ nivel: "critico", texto: `Margem líquida negativa (${margem.toFixed(1)}%)` });
+    else if (margem < 5) alertas.push({ nivel: "atencao", texto: `Margem líquida baixa (${margem.toFixed(1)}%)` });
+    if (receita > 0 && custo / receita > 0.8) alertas.push({ nivel: "critico", texto: `Custo acima de 80% da receita (${(custo / receita * 100).toFixed(0)}%)` });
+    if (fi < -3) alertas.push({ nivel: "critico", texto: "Kanitz indica risco de insolvência" });
+    else if (fi < 0) alertas.push({ nivel: "atencao", texto: "Kanitz na faixa de penumbra" });
+    if (passivoCirc > ativoCirc && ativoCirc > 0) alertas.push({ nivel: "critico", texto: "Liquidez corrente < 1 (passivo > ativo circulante)" });
+    if (caixa <= 0) alertas.push({ nivel: "atencao", texto: "Caixa/disponibilidades baixos ou nulos" });
+    if (!alertas.length) alertas.push({ nivel: "ok", texto: "Sem alertas críticos detectados" });
+
+    const insight = margem < 0
+      ? `A empresa apresenta margem negativa (${margem.toFixed(1)}%) com custo elevado em relação à receita.`
+      : margem < 5
+      ? `Margem reduzida (${margem.toFixed(1)}%). Avaliar redução de custos ou reprecificação.`
+      : `Operação rentável com margem de ${margem.toFixed(1)}%.`;
+
+    return {
+      kpis: { receita, lucro, margem, caixa, custo, despesas },
+      kanitz: { fi: +fi.toFixed(2), classe: kanitzClass, color: kanitzColor },
+      rclSerie, margemSerie, custoStruct, alertas, insight,
+    };
+  }, [parsedData]);
+
   if (loading) {
     return (
       <Card>
