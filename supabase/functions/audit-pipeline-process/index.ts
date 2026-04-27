@@ -331,6 +331,34 @@ async function normalizeAccountsLLM(
   return finalResults;
 }
 
+/* ──────────────── Filtra contas analíticas (folhas) ────────────────
+   Em balancetes brasileiros, contas têm códigos hierárquicos (1, 1.1, 1.1.01, 1.1.01.001).
+   Contas sintéticas são prefixos de outras (ex.: "1.1" é prefixo de "1.1.01").
+   Somar TODAS gera dupla/tripla contagem. Mantemos apenas as FOLHAS (analíticas). */
+function keepOnlyLeafAccounts<T extends { conta: string }>(rows: T[]): T[] {
+  const codes = rows.map((r) => String(r.conta || "").trim()).filter(Boolean);
+  if (codes.length === 0) return rows;
+
+  // Normaliza separadores (aceita ".", "-", " ")
+  const normalize = (c: string) => c.replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
+  const normCodes = codes.map(normalize);
+
+  // Detecta se há hierarquia explícita (códigos com pontos)
+  const hasHierarchy = normCodes.some((c) => c.includes("."));
+  if (!hasHierarchy) return rows; // sem códigos hierárquicos, mantém tudo
+
+  const codeSet = new Set(normCodes);
+  return rows.filter((r) => {
+    const c = normalize(String(r.conta || "").trim());
+    if (!c) return true;
+    // É folha se NÃO existir nenhum outro código que comece com `c + "."`
+    for (const other of codeSet) {
+      if (other !== c && other.startsWith(c + ".")) return false;
+    }
+    return true;
+  });
+}
+
 /* ──────────────── Validador contábil ──────────────── */
 function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   valid: boolean;
@@ -340,13 +368,14 @@ function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   diff: number;
   alertas: string[];
 } {
+  // Soma com sinal preservado (não usar Math.abs — perde compensações de provisões/depreciações)
   const sum = (t: string) =>
-    rows.filter((r) => r.tipo === t).reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
-  const ativo = sum("ativo");
-  const passivo = sum("passivo");
-  const pl = sum("pl");
+    rows.filter((r) => r.tipo === t).reduce((a, b) => a + (Number(b.valor) || 0), 0);
+  const ativo = Math.abs(sum("ativo"));
+  const passivo = Math.abs(sum("passivo"));
+  const pl = Math.abs(sum("pl"));
   const diff = Math.abs(ativo - (passivo + pl));
-  const tolerance = ativo * 0.02;
+  const tolerance = Math.max(ativo * 0.02, 1000);
   const alertas: string[] = [];
   if (ativo === 0) alertas.push("Ativo total = 0 (verifique extração)");
   if (passivo + pl === 0) alertas.push("Passivo + PL = 0 (verifique extração)");
