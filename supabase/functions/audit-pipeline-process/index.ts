@@ -786,12 +786,14 @@ async function runPipeline(
   tStart: number,
 ) {
   try {
-    // 2. Carregar dicionário
+    await updateProgress(supabase, documentId, "Carregando dicionário contábil…");
+
+    // 2. Carregar dicionário (cresce conforme o cache é populado #2)
     const tDict = Date.now();
     const { data: dictionary } = await supabase
       .from("contabil_dictionary")
       .select("termo_original, termo_padrao, categoria")
-      .limit(200);
+      .limit(1000);
     stageLog(reqId, "dictionary.loaded", {
       entries: dictionary?.length || 0,
       duration_ms: Date.now() - tDict,
