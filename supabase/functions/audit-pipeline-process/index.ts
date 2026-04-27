@@ -139,6 +139,7 @@ const MAX_PARALLEL = 12; // v3: era 6 (#1 paralelismo)
 async function callLLMNormalize(
   rows: Array<{ conta: string; descricao: string }>,
   dictText: string,
+  model: string = "google/gemini-2.5-flash-lite",
 ): Promise<NormResult[] | null> {
   const inputList = rows.map((r, i) => `${i}. ${r.descricao || r.conta}`).join("\n");
 
