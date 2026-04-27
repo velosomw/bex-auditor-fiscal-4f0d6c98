@@ -6,16 +6,22 @@ export interface KpiCardData {
   auditoriasRealizadas: number;
   auditoriasConcluidas: number;
   auditoriasVariacao: number;
-  conformidadeGeral: number; // %
+  conformidadeGeral: number; // % (mantido para blocos de contexto)
   conformidadeVariacao: number;
   riscosIdentificados: number;
   riscosCriticos: number;
   riscosVariacao: number;
+  // Novos KPIs
+  agenteIaDisponibilidade: number; // % uptime do agente IA
+  agenteIaVariacao: number;
+  acuraciaIA: number; // % média OCR/extração
+  acuraciaVariacao: number;
 }
 
 export interface TrendPoint { month: string; value: number; }
 export interface RiskSlice { name: string; value: number; color: string; }
 export interface AuditTypeSlice { name: string; value: number; }
+export interface AccuracySlice { name: string; value: number; color: string; }
 
 export interface ContextBlocks {
   conformidade: { geral: number; total: number; comDesvios: number };
@@ -29,6 +35,7 @@ export interface GestorIaIndicators {
   trend: TrendPoint[];
   riskDistribution: RiskSlice[];
   auditTypes: AuditTypeSlice[];
+  accuracyDistribution: AccuracySlice[];
   context: ContextBlocks;
 }
 
@@ -48,7 +55,7 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   prevSince.setMonth(prevSince.getMonth() - monthsWindow);
   const prevSinceIso = prevSince.toISOString();
 
-  const [pipelineDocs, audits, prevAudits, prevPipeline] = await Promise.all([
+  const [pipelineDocs, audits, prevAudits, prevPipeline, analysis, prevAnalysis] = await Promise.all([
     supabase
       .from("pipeline_documents")
       .select("id, status, created_at")
@@ -59,12 +66,21 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
       .gte("created_at", sinceIso),
     supabase
       .from("audit_reports")
-      .select("id, conformidade, riscos, risk_level")
+      .select("id, conformidade, riscos, risk_level, status")
       .gte("created_at", prevSinceIso)
       .lt("created_at", sinceIso),
     supabase
       .from("pipeline_documents")
-      .select("id")
+      .select("id, status")
+      .gte("created_at", prevSinceIso)
+      .lt("created_at", sinceIso),
+    supabase
+      .from("pipeline_analysis_results")
+      .select("ocr_score, quality_score, validation_score, mapping_score, created_at")
+      .gte("created_at", sinceIso),
+    supabase
+      .from("pipeline_analysis_results")
+      .select("ocr_score, quality_score, validation_score, mapping_score")
       .gte("created_at", prevSinceIso)
       .lt("created_at", sinceIso),
   ]);
@@ -73,6 +89,8 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   const reports = audits.data || [];
   const prevReports = prevAudits.data || [];
   const prevDocs = prevPipeline.data || [];
+  const analyses = analysis.data || [];
+  const prevAnalyses = prevAnalysis.data || [];
 
   // ── KPIs ───────────────────────────────────────────────────
   const documentosAuditados = docs.length;
@@ -90,6 +108,39 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   const riscosCriticos = reports.filter(r => r.risk_level === "critico").length;
   const prevRiscos = prevReports.reduce((s, r) => s + (r.riscos || 0), 0);
 
+  // ── Disponibilidade do Agente IA: % de docs/auditorias não-falhos
+  const totalOps = docs.length + reports.length;
+  const failedOps = docs.filter(d => d.status === "failed" || d.status === "error").length
+                  + reports.filter(r => r.status === "failed" || r.status === "error").length;
+  const agenteIaDisponibilidade = totalOps
+    ? Number((((totalOps - failedOps) / totalOps) * 100).toFixed(1))
+    : 100;
+  const prevTotalOps = prevDocs.length + prevReports.length;
+  const prevFailedOps = prevDocs.filter((d: any) => d.status === "failed" || d.status === "error").length
+                      + prevReports.filter((r: any) => r.status === "failed" || r.status === "error").length;
+  const prevAgenteIa = prevTotalOps
+    ? ((prevTotalOps - prevFailedOps) / prevTotalOps) * 100
+    : 100;
+
+  // ── Acurácia IA/OCR: média ponderada das pontuações de extração
+  const avgScore = (rows: any[]) => {
+    if (!rows.length) return 0;
+    let sum = 0, n = 0;
+    for (const r of rows) {
+      const ocr = Number(r.ocr_score || 0);
+      const qual = Number(r.quality_score || 0);
+      const val = Number(r.validation_score || 0);
+      const map = Number(r.mapping_score || 0);
+      const local = [ocr, qual, val, map].filter(v => v > 0);
+      if (local.length) { sum += local.reduce((a,b)=>a+b,0) / local.length; n++; }
+    }
+    return n ? (sum / n) : 0;
+  };
+  // scores podem vir em escala 0-1 ou 0-100 — normaliza
+  const normalize = (v: number) => v <= 1 ? v * 100 : v;
+  const acuraciaIA = Number(normalize(avgScore(analyses)).toFixed(1));
+  const prevAcuracia = normalize(avgScore(prevAnalyses));
+
   const kpis: KpiCardData = {
     documentosAuditados,
     documentosVariacao: pct(documentosAuditados, prevDocs.length),
@@ -101,6 +152,10 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
     riscosIdentificados,
     riscosCriticos,
     riscosVariacao: pct(riscosIdentificados, prevRiscos),
+    agenteIaDisponibilidade,
+    agenteIaVariacao: Number((agenteIaDisponibilidade - prevAgenteIa).toFixed(1)),
+    acuraciaIA,
+    acuraciaVariacao: Number((acuraciaIA - prevAcuracia).toFixed(1)),
   };
 
   // ── Tendência mensal de conformidade ───────────────────────
@@ -191,5 +246,28 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
     },
   };
 
-  return { kpis, trend, riskDistribution, auditTypes, context };
+  // ── Distribuição de Acurácia IA (faixas) ─────────────────
+  const accBuckets = { excelente: 0, bom: 0, regular: 0, baixo: 0 };
+  for (const r of analyses) {
+    const ocr = Number(r.ocr_score || 0);
+    const qual = Number(r.quality_score || 0);
+    const val = Number(r.validation_score || 0);
+    const map = Number(r.mapping_score || 0);
+    const local = [ocr, qual, val, map].filter(v => v > 0);
+    if (!local.length) continue;
+    const score = normalize(local.reduce((a,b)=>a+b,0) / local.length);
+    if (score >= 90) accBuckets.excelente++;
+    else if (score >= 75) accBuckets.bom++;
+    else if (score >= 50) accBuckets.regular++;
+    else accBuckets.baixo++;
+  }
+  const accTotal = Math.max(1, analyses.length);
+  const accuracyDistribution: AccuracySlice[] = [
+    { name: "Excelente (≥90%)", value: Math.round((accBuckets.excelente / accTotal) * 100), color: "hsl(152,70%,45%)" },
+    { name: "Bom (75-90%)",     value: Math.round((accBuckets.bom       / accTotal) * 100), color: "hsl(200,80%,55%)" },
+    { name: "Regular (50-75%)", value: Math.round((accBuckets.regular   / accTotal) * 100), color: "hsl(38,90%,55%)" },
+    { name: "Baixo (<50%)",     value: Math.round((accBuckets.baixo     / accTotal) * 100), color: "hsl(0,80%,55%)" },
+  ];
+
+  return { kpis, trend, riskDistribution, auditTypes, accuracyDistribution, context };
 }

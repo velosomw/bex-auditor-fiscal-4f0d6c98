@@ -88,7 +88,7 @@ const TabVisaoGeral = () => {
     );
   }
 
-  const { kpis, trend, riskDistribution, auditTypes, context } = data;
+  const { kpis, trend, riskDistribution, auditTypes, accuracyDistribution, context } = data;
 
   const kpiCards = [
     {
@@ -104,16 +104,16 @@ const TabVisaoGeral = () => {
       positive: kpis.auditoriasVariacao >= 0, icon: CheckCircle2, color: "hsl(152,70%,45%)",
     },
     {
-      label: "Conformidade Geral", value: `${kpis.conformidadeGeral}%`,
-      sub: "Média ponderada",
-      change: `${kpis.conformidadeVariacao >= 0 ? "+" : ""}${kpis.conformidadeVariacao}%`,
-      positive: kpis.conformidadeVariacao >= 0, icon: ShieldCheck, color: "hsl(152,70%,45%)",
+      label: "Disponibilidade Agente IA", value: `${kpis.agenteIaDisponibilidade}%`,
+      sub: "Uptime de processamento",
+      change: `${kpis.agenteIaVariacao >= 0 ? "+" : ""}${kpis.agenteIaVariacao}%`,
+      positive: kpis.agenteIaVariacao >= 0, icon: Activity, color: "hsl(152,70%,45%)",
     },
     {
-      label: "Riscos Identificados", value: String(kpis.riscosIdentificados),
-      sub: `${kpis.riscosCriticos} críticos`,
-      change: `${kpis.riscosVariacao >= 0 ? "+" : ""}${kpis.riscosVariacao}%`,
-      positive: kpis.riscosVariacao <= 0, icon: AlertTriangle, color: "hsl(38,90%,55%)",
+      label: "Acurácia IA", value: `${kpis.acuraciaIA}%`,
+      sub: "Extração OCR/IA documentos",
+      change: `${kpis.acuraciaVariacao >= 0 ? "+" : ""}${kpis.acuraciaVariacao}%`,
+      positive: kpis.acuraciaVariacao >= 0, icon: Brain, color: "hsl(258,90%,66%)",
     },
   ];
 
@@ -205,21 +205,21 @@ const TabVisaoGeral = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Pie Chart */}
+          {/* Pie Chart - Acurácia IA */}
           <div className="bg-card rounded-xl border border-border p-5">
             <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-              <Activity className="w-4 h-4 text-[hsl(38,90%,55%)]" /> Distribuição de Riscos
+              <Brain className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Acurácia IA (extração)
             </div>
             <ResponsiveContainer width="100%" height={160}>
               <PieChart>
-                <Pie data={riskDistribution} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
-                  {riskDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                <Pie data={accuracyDistribution} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
+                  {accuracyDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex flex-wrap justify-center gap-3 mt-2">
-              {riskDistribution.map((r, i) => (
+              {accuracyDistribution.map((r, i) => (
                 <div key={i} className="flex items-center gap-1.5 text-xs">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: r.color }} /> {r.name} ({r.value}%)
                 </div>
