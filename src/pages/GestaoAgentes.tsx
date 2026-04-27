@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/auditAIService";
 import { listCompanies, type Company } from "@/services/companiesService";
+import { loadLearningRows, loadDatasetRows, loadPerfStats } from "@/services/agentLearningService";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
