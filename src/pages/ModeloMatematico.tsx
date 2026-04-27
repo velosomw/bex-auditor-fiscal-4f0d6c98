@@ -1055,31 +1055,96 @@ const ModeloMatematico = () => {
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-4 md:p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Calculator className="w-6 h-6 text-primary" />
               Modelo Matemático Detalhado
             </h1>
-            <p className="text-sm text-muted-foreground">Índices Financeiros & Sistema de Persona — Plataforma de Contábil IA v3.0</p>
+            <p className="text-sm text-muted-foreground">
+              Índices Financeiros & Persona — exemplos calculados sobre dados reais da empresa selecionada
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Ano:</span>
-            {years.map((y) => (
-              <button
-                key={y}
-                onClick={() => setSelectedYear(y)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  selectedYear === y
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {y}
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Seletor de empresa */}
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-muted-foreground" />
+              <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                <SelectTrigger className="w-[260px] h-9 text-sm">
+                  <SelectValue placeholder="Selecione a empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__demo__">
+                    <span className="flex items-center gap-2">
+                      <FlaskConical className="w-3.5 h-3.5" /> Exemplo didático (Kanitz/BEX)
+                    </span>
+                  </SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}{c.cnpj ? ` — ${c.cnpj}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingReal && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Ano:</span>
+              {years.map((y) => (
+                <button
+                  key={y}
+                  onClick={() => setSelectedYear(y)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    safeYear === y
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Banner de origem dos dados */}
+        {dataSource === "real" && selectedCompany && (
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 flex items-start gap-3">
+            <Database className="w-4 h-4 text-emerald-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">
+                Dados reais — {selectedCompany.name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Indicadores e fórmulas Kanitz/BEX abaixo calculados a partir de {docsCount} documento(s) processado(s) pelo Pipeline IA.
+              </p>
+            </div>
+          </div>
+        )}
+        {dataSource === "empty" && selectedCompany && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">
+                {selectedCompany.name} ainda não possui balancetes processados
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Carregue um balancete em <strong>Gestor IA → Pipeline</strong> vinculando a empresa para alimentar este modelo. Exibindo exemplo didático enquanto isso.
+              </p>
+            </div>
+          </div>
+        )}
+        {dataSource === "demo" && (
+          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 flex items-start gap-3">
+            <FlaskConical className="w-4 h-4 text-muted-foreground mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">Exemplo didático ativo</p>
+              <p className="text-xs text-muted-foreground">
+                Selecione uma empresa acima para ver os modelos Kanitz e BEX calculados com seus dados reais.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Variables summary */}
         <Card>
