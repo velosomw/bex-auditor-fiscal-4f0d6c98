@@ -1,12 +1,13 @@
 // Audit Pipeline Process — Pré-processamento inteligente de balancetes
 // Stack: Lovable AI Gateway (chat/JSON) + Supabase Postgres.
 //
-// Quick Wins aplicados (v2):
-//   1. Cache em memória (hash da descrição) → evita LLM calls repetidos
-//   2. Paralelismo aumentado (CHUNK_SIZE 80, MAX_PARALLEL 6)
-//   3. Deduplicação pré-LLM (descrições idênticas processadas 1x)
-//   4. Heurística PL melhorada (Capital Social / Reservas / Lucros / Prejuízos)
-//   5. Logging estruturado por estágio (timestamps + métricas)
+// Otimizações v3 (todas as 6 melhorias do plano de performance):
+//   #1 Paralelismo aumentado:   CHUNK_SIZE 80→120, MAX_PARALLEL 6→12 (≤ 1 onda em casos típicos)
+//   #2 Cache persistente em DB: contabil_dictionary (lookup O(1) entre auditorias)
+//   #3 Fast-path heurístico:    código BR (1.x/2.x) + dicionário pulam o LLM
+//   #4 Modelo rápido:           gemini-2.5-flash-lite para normalização
+//   #5 Tool calling rígido:     prompt firme + validação de tamanho + retry único em caso de mismatch
+//   #6 Progresso em tempo real: pipeline_documents.progress atualizado por estágio
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -132,13 +133,13 @@ function classifyByCode(conta: string): { tipo: string; categoria: string } | nu
 }
 
 /* ──────────────── Normalização semântica em lote via LLM ──────────────── */
-const CHUNK_SIZE = 80; // Quick Win 2: era 40
-const MAX_PARALLEL = 6; // Quick Win 2: era 4
+const CHUNK_SIZE = 120; // v3: era 80 (#1 paralelismo)
+const MAX_PARALLEL = 12; // v3: era 6 (#1 paralelismo)
 
-async function normalizeChunk(
+async function callLLMNormalize(
   rows: Array<{ conta: string; descricao: string }>,
   dictText: string,
-): Promise<NormResult[]> {
+): Promise<NormResult[] | null> {
   const inputList = rows.map((r, i) => `${i}. ${r.descricao || r.conta}`).join("\n");
 
   const systemPrompt = `Você é um CONTADOR ESPECIALISTA em classificação contábil brasileira (CPC/IFRS/NBC TA/Lei 6.404/76).
@@ -146,21 +147,22 @@ async function normalizeChunk(
 TAREFA: Padronizar e classificar contas de um balancete usando SIMILARIDADE SEMÂNTICA (não literal).
 
 REGRAS CRÍTICAS:
-1. Para cada conta, retorne:
+1. RETORNE EXATAMENTE ${rows.length} ITENS no array \`accounts\` — nem mais, nem menos. Esta regra é absoluta.
+2. Mantenha a MESMA ORDEM das contas de entrada (item 0 do output corresponde ao item 0 do input).
+3. Para cada conta, retorne:
    - conta_normalizada: termo padrão consolidado (ex.: "Bcos c/Mvto" → "Bancos Conta Movimento"; "Dupl. Desct." → "Duplicatas Descontadas")
    - categoria: uma de [ativo_circulante, ativo_nao_circulante, passivo_circulante, passivo_nao_circulante, patrimonio_liquido, receita, custo, despesa]
    - tipo: uma de [ativo, passivo, pl, receita, despesa]
    - matched: true se mapeou via dicionário/exemplo, false se inferiu por contexto
-2. ATENÇÃO ESPECIAL AO PATRIMÔNIO LÍQUIDO: Capital Social, Reservas (Legal/Estatutária/Capital/Lucros), Lucros Acumulados, Lucros do Exercício, Prejuízos Acumulados, Ajustes de Avaliação Patrimonial, Ações em Tesouraria → SEMPRE tipo="pl", categoria="patrimonio_liquido". NUNCA classifique "Lucros Acumulados" como receita.
-3. Use SIMILARIDADE SEMÂNTICA — contas equivalentes devem ter o MESMO termo padrão.
-4. NÃO invente categorias novas.
-5. Sinais de risco: factoring, FIDC, duplicatas descontadas → categoria correta + termo padronizado.
-6. Mantenha a MESMA ORDEM das contas de entrada.
+4. ATENÇÃO ESPECIAL AO PATRIMÔNIO LÍQUIDO: Capital Social, Reservas (Legal/Estatutária/Capital/Lucros), Lucros Acumulados, Lucros do Exercício, Prejuízos Acumulados, Ajustes de Avaliação Patrimonial, Ações em Tesouraria → SEMPRE tipo="pl", categoria="patrimonio_liquido". NUNCA classifique "Lucros Acumulados" como receita.
+5. Use SIMILARIDADE SEMÂNTICA — contas equivalentes devem ter o MESMO termo padrão.
+6. NÃO invente categorias novas.
+7. Sinais de risco: factoring, FIDC, duplicatas descontadas → categoria correta + termo padronizado.
 
 DICIONÁRIO CONTÁBIL DE REFERÊNCIA:
 ${dictText || "(vazio — use seu conhecimento contábil)"}`;
 
-  const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem do input:\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts.`;
+  const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem e tamanho do input (${rows.length} itens):\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts com ${rows.length} elementos no array.`;
 
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -179,12 +181,14 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
           type: "function",
           function: {
             name: "return_normalized_accounts",
-            description: "Retorna lista de contas normalizadas na mesma ordem do input.",
+            description: `Retorna lista de EXATAMENTE ${rows.length} contas normalizadas na mesma ordem do input.`,
             parameters: {
               type: "object",
               properties: {
                 accounts: {
                   type: "array",
+                  minItems: rows.length,
+                  maxItems: rows.length,
                   items: {
                     type: "object",
                     properties: {
@@ -225,10 +229,7 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
 
   if (!r.ok) {
     console.warn("LLM normalize HTTP", r.status, (await r.text()).slice(0, 300));
-    return rows.map((row) => {
-      const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
-      return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
-    });
+    return null;
   }
 
   try {
@@ -236,35 +237,103 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
     const tc = j.choices?.[0]?.message?.tool_calls?.[0];
     const args = JSON.parse(tc?.function?.arguments || "{}");
     const accounts = Array.isArray(args.accounts) ? (args.accounts as NormResult[]) : [];
-
-    // Tolerante: alinha por índice. Se LLM retornou menos/mais, completa com heurística.
-    if (accounts.length !== rows.length) {
-      console.warn(`LLM normalize size mismatch: ${accounts.length} vs ${rows.length} — usando alinhamento parcial + fallback heurístico`);
-    }
-
-    return rows.map((row, i) => {
-      const llm = accounts[i];
-      if (llm && llm.conta_normalizada && llm.tipo && llm.categoria) {
-        return llm;
-      }
-      const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
-      return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
-    });
+    return accounts;
   } catch (e) {
     console.warn("LLM normalize parse error", e);
+    return null;
+  }
+}
+
+async function normalizeChunk(
+  rows: Array<{ conta: string; descricao: string }>,
+  dictText: string,
+): Promise<NormResult[]> {
+  // Tentativa 1
+  let accounts = await callLLMNormalize(rows, dictText);
+
+  // #5 Retry único se tamanho não bate (causa principal dos fallbacks heurísticos)
+  if (!accounts || accounts.length !== rows.length) {
+    if (accounts) {
+      console.warn(`LLM mismatch ${accounts.length}/${rows.length} — retry`);
+    }
+    accounts = await callLLMNormalize(rows, dictText);
+  }
+
+  if (!accounts) {
     return rows.map((row) => {
       const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
       return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
     });
   }
+
+  return rows.map((row, i) => {
+    const llm = accounts![i];
+    if (llm && llm.conta_normalizada && llm.tipo && llm.categoria) {
+      return llm;
+    }
+    const { tipo, categoria } = classifyAccount(row.descricao || row.conta);
+    return { conta_normalizada: row.descricao || row.conta, categoria, tipo, matched: false };
+  });
 }
 
 /* Wrapper: cache + dedup + chunk + paralelização (Quick Wins 1, 2, 3) */
+/* ──────────────── Helper de progresso (#6) ──────────────── */
+async function updateProgress(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  documentId: string,
+  message: string,
+) {
+  try {
+    await supabase
+      .from("pipeline_documents")
+      .update({ progress: message, updated_at: new Date().toISOString() })
+      .eq("id", documentId);
+  } catch (_) {
+    /* não-crítico */
+  }
+}
+
+/* ──────────────── Fast-path heurístico (#3) ────────────────
+   Tenta classificar SEM LLM usando:
+   1. Código de conta brasileiro (1.x = ativo, 2.3+ = PL, etc.)  ← muito confiável
+   2. Match exato no dicionário contábil (cache persistente em DB) ← #2
+   Só envia ao LLM o que não foi resolvido. */
+function tryFastPath(
+  row: { conta: string; descricao: string },
+  dictMap: Map<string, NormResult>,
+): NormResult | null {
+  const desc = row.descricao || row.conta;
+  // 1. Cache persistente (DB) — match exato
+  const cached = dictMap.get(cacheKey(desc));
+  if (cached) return cached;
+
+  // 2. Código de conta forte + heurística semântica
+  const byCode = classifyByCode(row.conta);
+  if (byCode) {
+    const { tipo, categoria } = classifyAccount(desc);
+    // Só aceita fast-path se código E descrição concordam (alta confiança)
+    if (byCode.tipo === tipo && byCode.categoria === categoria) {
+      return {
+        conta_normalizada: desc,
+        categoria: byCode.categoria,
+        tipo: byCode.tipo,
+        matched: true,
+      };
+    }
+  }
+  return null;
+}
+
+/* Wrapper: cache mem + cache DB + fast-path + dedup + chunk + paralelização */
 async function normalizeAccountsLLM(
   rows: Array<{ conta: string; descricao: string }>,
   // deno-lint-ignore no-explicit-any
   dictionary: any[],
   reqId: string,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  documentId: string,
 ): Promise<NormResult[]> {
   if (rows.length === 0) return [];
 
@@ -273,21 +342,47 @@ async function normalizeAccountsLLM(
     .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
     .join("\n");
 
-  // Resultado final por índice
-  const finalResults: NormResult[] = new Array(rows.length);
+  // #2 Index do dicionário em memória para lookup O(1) por termo normalizado
+  const dictMap = new Map<string, NormResult>();
+  for (const d of dictionary || []) {
+    if (!d?.termo_original || !d?.termo_padrao) continue;
+    const key = cacheKey(d.termo_original);
+    const tipo = (d.tipo as string) ||
+      classifyAccount(d.termo_padrao).tipo;
+    dictMap.set(key, {
+      conta_normalizada: d.termo_padrao,
+      categoria: d.categoria,
+      tipo,
+      matched: true,
+    });
+  }
 
-  // Quick Win 1+3: cache lookup + dedup
+  const finalResults: NormResult[] = new Array(rows.length);
   const uniqueByDesc = new Map<string, { row: { conta: string; descricao: string }; indices: number[] }>();
   let cacheHits = 0;
+  let fastPathHits = 0;
 
   rows.forEach((row, idx) => {
     const desc = row.descricao || row.conta;
-    const cached = cacheGet(desc);
-    if (cached) {
-      finalResults[idx] = cached;
+
+    // (a) cache em memória (mesma instância warm)
+    const memCached = cacheGet(desc);
+    if (memCached) {
+      finalResults[idx] = memCached;
       cacheHits++;
       return;
     }
+
+    // (b) #3 fast-path heurístico (código BR + dicionário DB)
+    const fast = tryFastPath(row, dictMap);
+    if (fast) {
+      finalResults[idx] = fast;
+      cacheSet(desc, fast);
+      fastPathHits++;
+      return;
+    }
+
+    // (c) precisa LLM — agrega por descrição idêntica
     const key = cacheKey(desc);
     const existing = uniqueByDesc.get(key);
     if (existing) {
@@ -298,21 +393,28 @@ async function normalizeAccountsLLM(
   });
 
   const uniqueRows = Array.from(uniqueByDesc.values()).map((v) => v.row);
-  const dedupSavings = rows.length - cacheHits - uniqueRows.length;
+  const dedupSavings = rows.length - cacheHits - fastPathHits - uniqueRows.length;
 
   stageLog(reqId, "normalize.dedup", {
     total: rows.length,
     cache_hits: cacheHits,
+    fast_path_hits: fastPathHits,
     unique_to_process: uniqueRows.length,
     dedup_savings: dedupSavings,
   });
 
+  await updateProgress(
+    supabase,
+    documentId,
+    `Normalização: ${cacheHits} do cache, ${fastPathHits} resolvidas por heurística, ${uniqueRows.length} para a IA`,
+  );
+
   if (uniqueRows.length === 0) {
-    stageLog(reqId, "normalize.complete", { llm_calls: 0, source: "100%_cache" });
+    stageLog(reqId, "normalize.complete", { llm_calls: 0, source: "100%_cache_or_fastpath" });
     return finalResults;
   }
 
-  // Chunkifica + paraleliza (Quick Win 2)
+  // Chunkifica + paraleliza (#1)
   const chunks: Array<{ conta: string; descricao: string }[]> = [];
   for (let i = 0; i < uniqueRows.length; i += CHUNK_SIZE) {
     chunks.push(uniqueRows.slice(i, i + CHUNK_SIZE));
@@ -327,8 +429,16 @@ async function normalizeAccountsLLM(
 
   const t0 = Date.now();
   const allLLMResults: NormResult[] = [];
+  const totalWaves = Math.ceil(chunks.length / MAX_PARALLEL);
+  let waveIdx = 0;
   for (let i = 0; i < chunks.length; i += MAX_PARALLEL) {
+    waveIdx++;
     const wave = chunks.slice(i, i + MAX_PARALLEL);
+    await updateProgress(
+      supabase,
+      documentId,
+      `IA analisando contas: onda ${waveIdx}/${totalWaves} (${wave.length} grupos paralelos)`,
+    );
     const settled = await Promise.all(wave.map((c) => normalizeChunk(c, dictText)));
     settled.forEach((s) => allLLMResults.push(...s));
   }
@@ -338,16 +448,42 @@ async function normalizeAccountsLLM(
   });
 
   // Distribui resultado LLM para todos os índices (cache + originais)
+  const newDictEntries: Array<{ termo_original: string; termo_padrao: string; categoria: string }> = [];
   uniqueRows.forEach((row, i) => {
     const desc = row.descricao || row.conta;
     const result = allLLMResults[i];
     if (!result) return;
     cacheSet(desc, result);
+    // #2 acumula novos termos para popular o dicionário persistente
+    if (result.matched && result.conta_normalizada && result.categoria) {
+      newDictEntries.push({
+        termo_original: desc,
+        termo_padrao: result.conta_normalizada,
+        categoria: result.categoria,
+      });
+    }
     const entry = uniqueByDesc.get(cacheKey(desc));
     entry?.indices.forEach((idx) => {
       finalResults[idx] = result;
     });
   });
+
+  // #2 grava cache persistente em background (não bloqueia)
+  if (newDictEntries.length > 0) {
+    try {
+      // upsert por termo_original_normalizado (índice único)
+      const { error: upErr } = await supabase
+        .from("contabil_dictionary")
+        .upsert(newDictEntries, { onConflict: "termo_original_normalizado", ignoreDuplicates: true });
+      if (upErr) {
+        console.warn("dict upsert warn:", upErr.message);
+      } else {
+        stageLog(reqId, "dictionary.populated", { new_entries: newDictEntries.length });
+      }
+    } catch (e) {
+      console.warn("dict upsert error:", e instanceof Error ? e.message : e);
+    }
+  }
 
   // Garante que nenhum índice fica vazio (fallback heurístico)
   rows.forEach((row, idx) => {
@@ -650,12 +786,14 @@ async function runPipeline(
   tStart: number,
 ) {
   try {
-    // 2. Carregar dicionário
+    await updateProgress(supabase, documentId, "Carregando dicionário contábil…");
+
+    // 2. Carregar dicionário (cresce conforme o cache é populado #2)
     const tDict = Date.now();
     const { data: dictionary } = await supabase
       .from("contabil_dictionary")
       .select("termo_original, termo_padrao, categoria")
-      .limit(200);
+      .limit(1000);
     stageLog(reqId, "dictionary.loaded", {
       entries: dictionary?.length || 0,
       duration_ms: Date.now() - tDict,
@@ -704,6 +842,8 @@ async function runPipeline(
       allRows.map((r) => ({ conta: r.conta, descricao: r.descricao })),
       dictionary || [],
       reqId,
+      supabase,
+      documentId,
     );
     stageLog(reqId, "normalize.total", { duration_ms: Date.now() - tNorm, rows: allRows.length });
 
@@ -801,6 +941,7 @@ async function runPipeline(
     };
 
     // 7.2 Análise contextual via LLM (Auditor Contábil Sênior IA)
+    await updateProgress(supabase, documentId, "Gerando insights do auditor sênior…");
     const tAnalysis = Date.now();
     let aiInsights: { resumo: string; pontos_atencao: string[]; recomendacoes: string[] } | null = null;
     try {
@@ -917,7 +1058,10 @@ DRE:
       quality_score: qualityScore,
     });
 
-    await supabase.from("pipeline_documents").update({ status: "completed" }).eq("id", documentId);
+    await supabase
+      .from("pipeline_documents")
+      .update({ status: "completed", progress: "Concluído" })
+      .eq("id", documentId);
 
     stageLog(reqId, "request.complete", {
       total_ms: Date.now() - tStart,

@@ -337,6 +337,7 @@ export type Database = {
           id: string
           subcategoria: string | null
           termo_original: string
+          termo_original_normalizado: string | null
           termo_padrao: string
         }
         Insert: {
@@ -347,6 +348,7 @@ export type Database = {
           id?: string
           subcategoria?: string | null
           termo_original: string
+          termo_original_normalizado?: string | null
           termo_padrao: string
         }
         Update: {
@@ -357,6 +359,7 @@ export type Database = {
           id?: string
           subcategoria?: string | null
           termo_original?: string
+          termo_original_normalizado?: string | null
           termo_padrao?: string
         }
         Relationships: []
@@ -493,6 +496,7 @@ export type Database = {
           file_name: string
           file_type: string
           id: string
+          progress: string | null
           status: string
           storage_path: string | null
           updated_at: string
@@ -505,6 +509,7 @@ export type Database = {
           file_name: string
           file_type?: string
           id?: string
+          progress?: string | null
           status?: string
           storage_path?: string | null
           updated_at?: string
@@ -517,6 +522,7 @@ export type Database = {
           file_name?: string
           file_type?: string
           id?: string
+          progress?: string | null
           status?: string
           storage_path?: string | null
           updated_at?: string
