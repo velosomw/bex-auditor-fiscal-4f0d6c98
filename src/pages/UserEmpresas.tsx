@@ -87,12 +87,17 @@ const UserEmpresas = () => {
   const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
   const [myFirm, setMyFirm] = useState<AccountingFirm | null>(null);
 
-  // Form state
+  // Form state (cadastro)
   const [name, setName] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Edição inline
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Company>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const reload = () => {
     setLoading(true);
