@@ -360,32 +360,88 @@ async function normalizeAccountsLLM(
   return finalResults;
 }
 
-/* ──────────────── Filtra contas analíticas (folhas) ────────────────
-   Em balancetes brasileiros, contas têm códigos hierárquicos (1, 1.1, 1.1.01, 1.1.01.001).
-   Contas sintéticas são prefixos de outras (ex.: "1.1" é prefixo de "1.1.01").
-   Somar TODAS gera dupla/tripla contagem. Mantemos apenas as FOLHAS (analíticas). */
-function keepOnlyLeafAccounts<T extends { conta: string }>(rows: T[]): T[] {
-  const codes = rows.map((r) => String(r.conta || "").trim()).filter(Boolean);
-  if (codes.length === 0) return rows;
+/* ──────────────── Limpeza de balancete: remove sintéticas e deduplica ────────────────
+   Problemas comuns no parsing de balancetes Excel:
+   1. Hierarquia (1.1.01 totaliza 1.1.01.001+1.1.01.002) → soma dupla
+   2. Linhas sintéticas com descrição genérica ("Ativo", "Passivo Circulante", "DRE")
+   3. Excel mal formatado: mesma conta aparece como [código] + [descrição] em linhas separadas
+      com valores idênticos → soma dupla
+   Esta função aplica 3 filtros em sequência. */
+function cleanBalanceteRows<T extends { conta: string; descricao: string; values: Record<string, number> }>(
+  rows: T[],
+): T[] {
+  if (rows.length === 0) return rows;
 
-  // Normaliza separadores (aceita ".", "-", " ")
-  const normalize = (c: string) => c.replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
-  const normCodes = codes.map(normalize);
+  // FILTRO 1: hierarquia por código
+  const normalize = (c: string) => String(c || "").trim().replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
+  const codes = rows.map((r) => normalize(r.conta));
+  const hasHierarchy = codes.some((c) => c.includes("."));
+  let step1 = rows;
+  if (hasHierarchy) {
+    const codeSet = new Set(codes.filter(Boolean));
+    step1 = rows.filter((r) => {
+      const c = normalize(r.conta);
+      if (!c) return true;
+      for (const other of codeSet) {
+        if (other !== c && other.startsWith(c + ".")) return false;
+      }
+      return true;
+    });
+  }
 
-  // Detecta se há hierarquia explícita (códigos com pontos)
-  const hasHierarchy = normCodes.some((c) => c.includes("."));
-  if (!hasHierarchy) return rows; // sem códigos hierárquicos, mantém tudo
-
-  const codeSet = new Set(normCodes);
-  return rows.filter((r) => {
-    const c = normalize(String(r.conta || "").trim());
-    if (!c) return true;
-    // É folha se NÃO existir nenhum outro código que comece com `c + "."`
-    for (const other of codeSet) {
-      if (other !== c && other.startsWith(c + ".")) return false;
-    }
-    return true;
+  // FILTRO 2: descrições sintéticas/totalizadoras genéricas
+  const SYNTHETIC_PATTERNS = [
+    /^ativo$/i,
+    /^ativo\s+(circulante|n[aã]o\s+circulante|total)$/i,
+    /^passivo$/i,
+    /^passivo\s+(circulante|n[aã]o\s+circulante|total)$/i,
+    /^patrim[oô]nio\s+l[ií]quido$/i,
+    /^total\s+do?\s+(ativo|passivo|patrim[oô]nio)/i,
+    /^total\s+geral/i,
+    /^demonstra[çc][aã]o\s+de?\s+resultado/i,
+    /^demonstrativo\s+de?\s+resultado/i,
+    /^dre$/i,
+    /^receita\s+(bruta|l[ií]quida|total|operacional)$/i,
+    /^despesa\s+(total|operacional)$/i,
+    /^resultado\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+    /^lucro\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+    /^subtotal/i,
+    /^totaliza/i,
+  ];
+  const step2 = step1.filter((r) => {
+    const d = String(r.descricao || "").trim();
+    return !SYNTHETIC_PATTERNS.some((p) => p.test(d));
   });
+
+  // FILTRO 3: deduplicação por valor adjacente
+  const lastYear = (() => {
+    const years = Object.keys(step2[0]?.values || {});
+    return years.sort().reverse()[0] || "_";
+  })();
+  const step3: T[] = [];
+  const EPS = 0.01;
+  for (let i = 0; i < step2.length; i++) {
+    const cur = step2[i];
+    const curVal = Number(cur.values?.[lastYear] || 0);
+    const prev = step3[step3.length - 1];
+    if (prev && curVal !== 0) {
+      const prevVal = Number(prev.values?.[lastYear] || 0);
+      if (Math.abs(prevVal - curVal) < EPS) {
+        // Duplicata: substitui pela linha com descrição mais rica (não numérica)
+        const prevDesc = String(prev.descricao || "").trim();
+        const curDesc = String(cur.descricao || "").trim();
+        const prevIsCodeOnly = /^\d+$/.test(prevDesc) || prevDesc.length < 4;
+        const curIsCodeOnly = /^\d+$/.test(curDesc) || curDesc.length < 4;
+        if (prevIsCodeOnly && !curIsCodeOnly) {
+          step3[step3.length - 1] = cur;
+        }
+        continue;
+      }
+    }
+    step3.push(cur);
+  }
+
+  return step3;
 }
 
 /* ──────────────── Validador contábil ──────────────── */
@@ -445,8 +501,8 @@ async function runPipeline(
 
     // 3.1 Filtrar contas sintéticas (totalizadoras) — manter apenas analíticas (folhas)
     // Evita dupla contagem hierárquica que inflava ativo em ~10x
-    const balancoLeaves = keepOnlyLeafAccounts(body.balanco || []);
-    const dreLeaves = keepOnlyLeafAccounts(body.dre || []);
+    const balancoLeaves = cleanBalanceteRows(body.balanco || []);
+    const dreLeaves = cleanBalanceteRows(body.dre || []);
     const allRows = [
       ...balancoLeaves.map((r) => ({ ...r, _src: "balanco" as const })),
       ...dreLeaves.map((r) => ({ ...r, _src: "dre" as const })),
@@ -538,6 +594,132 @@ async function runPipeline(
       : Math.max(0, 1 - validation.diff / Math.max(validation.ativo, 1));
     const qualityScore = ocrScore * 0.3 + mappingScore * 0.3 + validationScore * 0.4;
 
+    // 7.1 Indicadores financeiros derivados
+    const sumByCat = (cat: string) =>
+      normalizedRows
+        .filter((r) => r.categoria === cat)
+        .reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
+    const ativoCirc = sumByCat("ativo_circulante");
+    const ativoNaoCirc = sumByCat("ativo_nao_circulante");
+    const passivoCirc = sumByCat("passivo_circulante");
+    const passivoNaoCirc = sumByCat("passivo_nao_circulante");
+    const receita = normalizedRows
+      .filter((r) => r.tipo === "receita")
+      .reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
+    const despesa = normalizedRows
+      .filter((r) => r.tipo === "despesa")
+      .reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
+    const resultado = receita - despesa;
+
+    const indicadoresFinanceiros = {
+      liquidez_corrente: passivoCirc > 0 ? +(ativoCirc / passivoCirc).toFixed(3) : null,
+      endividamento_geral:
+        validation.ativo > 0
+          ? +((validation.passivo / validation.ativo) * 100).toFixed(2)
+          : null,
+      composicao_endividamento:
+        validation.passivo > 0 ? +((passivoCirc / validation.passivo) * 100).toFixed(2) : null,
+      margem_liquida: receita > 0 ? +((resultado / receita) * 100).toFixed(2) : null,
+      roe: validation.pl > 0 ? +((resultado / validation.pl) * 100).toFixed(2) : null,
+      receita_total: receita,
+      despesa_total: despesa,
+      resultado_periodo: resultado,
+    };
+
+    // 7.2 Análise contextual via LLM (Auditor Contábil Sênior IA)
+    const tAnalysis = Date.now();
+    let aiInsights: { resumo: string; pontos_atencao: string[]; recomendacoes: string[] } | null = null;
+    try {
+      const ctx = `Empresa: ${body.documentInfo?.empresa || "N/D"}
+Período: ${body.documentInfo?.periodo || lastYear}
+
+INDICADORES CONSOLIDADOS:
+- Ativo Total: R$ ${validation.ativo.toLocaleString("pt-BR")}
+- Passivo Total: R$ ${validation.passivo.toLocaleString("pt-BR")}
+- Patrimônio Líquido: R$ ${validation.pl.toLocaleString("pt-BR")}
+- Equação Contábil: ${validation.valid ? "BALANCEADA" : `DESBALANCEADA (Δ R$ ${validation.diff.toLocaleString("pt-BR")})`}
+
+ESTRUTURA:
+- Ativo Circulante: R$ ${ativoCirc.toLocaleString("pt-BR")}
+- Ativo Não Circulante: R$ ${ativoNaoCirc.toLocaleString("pt-BR")}
+- Passivo Circulante: R$ ${passivoCirc.toLocaleString("pt-BR")}
+- Passivo Não Circulante: R$ ${passivoNaoCirc.toLocaleString("pt-BR")}
+
+DRE:
+- Receita: R$ ${receita.toLocaleString("pt-BR")}
+- Despesa: R$ ${despesa.toLocaleString("pt-BR")}
+- Resultado: R$ ${resultado.toLocaleString("pt-BR")}
+
+ÍNDICES:
+- Liquidez Corrente: ${indicadoresFinanceiros.liquidez_corrente ?? "N/D"}
+- Endividamento Geral: ${indicadoresFinanceiros.endividamento_geral ?? "N/D"}%
+- Composição Endividamento (curto prazo): ${indicadoresFinanceiros.composicao_endividamento ?? "N/D"}%
+- Margem Líquida: ${indicadoresFinanceiros.margem_liquida ?? "N/D"}%
+- ROE: ${indicadoresFinanceiros.roe ?? "N/D"}%`;
+
+      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `Você é o Auditor Contábil Sênior IA da BEX Auditoria, especialista em análise financeira pelas normas CPC/IFRS/Lei 6.404/76 com foco em diagnóstico de solvência, recuperação judicial e governança corporativa. Seja direto, técnico e cite valores absolutos quando relevante. Limite cada item a 1 frase objetiva.`,
+            },
+            {
+              role: "user",
+              content: `Analise este balancete e retorne JSON via tool call:\n\n${ctx}`,
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "return_audit_insights",
+                description: "Retorna análise contextual estruturada do auditor.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    resumo: {
+                      type: "string",
+                      description: "1-2 frases sobre saúde financeira geral.",
+                    },
+                    pontos_atencao: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "3-5 alertas técnicos (liquidez, endividamento, margem, etc.)",
+                    },
+                    recomendacoes: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "2-4 ações sugeridas pelo auditor.",
+                    },
+                  },
+                  required: ["resumo", "pontos_atencao", "recomendacoes"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "return_audit_insights" } },
+        }),
+      });
+      if (aiResp.ok) {
+        const aj = await aiResp.json();
+        const tc = aj.choices?.[0]?.message?.tool_calls?.[0];
+        aiInsights = JSON.parse(tc?.function?.arguments || "null");
+      } else {
+        console.warn("ai insights HTTP", aiResp.status);
+      }
+    } catch (e) {
+      console.warn("ai insights error:", e instanceof Error ? e.message : e);
+    }
+    stageLog(reqId, "ai_insights.done", {
+      duration_ms: Date.now() - tAnalysis,
+      has_insights: !!aiInsights,
+    });
+
     // 8. Persistir analysis_results
     await supabase.from("pipeline_analysis_results").insert({
       document_id: documentId,
@@ -545,8 +727,14 @@ async function runPipeline(
         ativo_total: validation.ativo,
         passivo_total: validation.passivo,
         pl: validation.pl,
+        ativo_circulante: ativoCirc,
+        ativo_nao_circulante: ativoNaoCirc,
+        passivo_circulante: passivoCirc,
+        passivo_nao_circulante: passivoNaoCirc,
         contas_total: normalizedRows.length,
         contas_mapeadas: mappedCount,
+        ...indicadoresFinanceiros,
+        ai_insights: aiInsights,
       },
       alertas: validation.alertas,
       ocr_score: ocrScore,
