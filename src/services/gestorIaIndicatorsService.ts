@@ -55,7 +55,7 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   prevSince.setMonth(prevSince.getMonth() - monthsWindow);
   const prevSinceIso = prevSince.toISOString();
 
-  const [pipelineDocs, audits, prevAudits, prevPipeline] = await Promise.all([
+  const [pipelineDocs, audits, prevAudits, prevPipeline, analysis, prevAnalysis] = await Promise.all([
     supabase
       .from("pipeline_documents")
       .select("id, status, created_at")
@@ -66,12 +66,21 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
       .gte("created_at", sinceIso),
     supabase
       .from("audit_reports")
-      .select("id, conformidade, riscos, risk_level")
+      .select("id, conformidade, riscos, risk_level, status")
       .gte("created_at", prevSinceIso)
       .lt("created_at", sinceIso),
     supabase
       .from("pipeline_documents")
-      .select("id")
+      .select("id, status")
+      .gte("created_at", prevSinceIso)
+      .lt("created_at", sinceIso),
+    supabase
+      .from("pipeline_analysis_results")
+      .select("ocr_score, quality_score, validation_score, mapping_score, created_at")
+      .gte("created_at", sinceIso),
+    supabase
+      .from("pipeline_analysis_results")
+      .select("ocr_score, quality_score, validation_score, mapping_score")
       .gte("created_at", prevSinceIso)
       .lt("created_at", sinceIso),
   ]);
@@ -80,6 +89,8 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   const reports = audits.data || [];
   const prevReports = prevAudits.data || [];
   const prevDocs = prevPipeline.data || [];
+  const analyses = analysis.data || [];
+  const prevAnalyses = prevAnalysis.data || [];
 
   // ── KPIs ───────────────────────────────────────────────────
   const documentosAuditados = docs.length;
