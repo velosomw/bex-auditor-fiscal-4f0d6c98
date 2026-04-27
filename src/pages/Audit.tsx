@@ -619,11 +619,12 @@ const processingSteps = [
   { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
-const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: { 
+const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed }: { 
   onComplete: () => void; 
   files: File[];
   onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
   dedupConfig?: import("@/services/auditAIService").DedupConfig;
+  preParsed?: MultiMonthParsed | null;
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -642,7 +643,20 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
         setProgress(5);
         
         let parsedData: ParsedFinancialData | null = null;
-        if (files.length > 0) {
+        if (preParsed) {
+          // Já temos o parse pronto (com meses confirmados pelo usuário) — reaproveita.
+          setCurrentStep(2);
+          setProgress(20);
+          parsedData = {
+            balanco: preParsed.balanco,
+            dre: preParsed.dre,
+            years: preParsed.years,
+            documentInfo: preParsed.documentInfo,
+            documentType: preParsed.documentType,
+            ocrScore: preParsed.ocrScore,
+          };
+          console.log(`Análise mensal: ${preParsed.years.length} meses → ${preParsed.months.map(m => m.label).join(", ")}`);
+        } else if (files.length > 0) {
           // Step 1: Parser agent - identify format
           setCurrentStep(1);
           setProgress(10);
