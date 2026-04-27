@@ -429,7 +429,7 @@ const UserEmpresas = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map(a => (
+                    {filteredAll.map(a => (
                       <TableRow key={a.company.id}>
                         <TableCell className="font-medium text-foreground">{a.company.name}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{a.company.cnpj || "—"}</TableCell>
