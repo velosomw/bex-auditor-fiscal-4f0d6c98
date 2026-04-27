@@ -205,21 +205,21 @@ const TabVisaoGeral = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Pie Chart */}
+          {/* Pie Chart - Acurácia IA */}
           <div className="bg-card rounded-xl border border-border p-5">
             <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-              <Activity className="w-4 h-4 text-[hsl(38,90%,55%)]" /> Distribuição de Riscos
+              <Brain className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Acurácia IA (extração)
             </div>
             <ResponsiveContainer width="100%" height={160}>
               <PieChart>
-                <Pie data={riskDistribution} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
-                  {riskDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                <Pie data={accuracyDistribution} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
+                  {accuracyDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex flex-wrap justify-center gap-3 mt-2">
-              {riskDistribution.map((r, i) => (
+              {accuracyDistribution.map((r, i) => (
                 <div key={i} className="flex items-center gap-1.5 text-xs">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: r.color }} /> {r.name} ({r.value}%)
                 </div>
