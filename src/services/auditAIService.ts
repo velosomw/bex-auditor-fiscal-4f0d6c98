@@ -379,9 +379,10 @@ export async function runAuditPipeline(
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const { supabase } = await import("@/integrations/supabase/client");
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null; // pipeline requires auth; segue sem ele se não logado
+  if (!session) return null;
 
   try {
+    // 1. Dispara pipeline (resposta 202 imediata, processamento em background)
     const response = await fetch(`${SUPABASE_URL}/functions/v1/audit-pipeline-process`, {
       method: "POST",
       headers: {
@@ -390,7 +391,7 @@ export async function runAuditPipeline(
       },
       body: JSON.stringify({
         company_id: companyId,
-        document_id: existingDocumentId, // se já criado para registrar OCR
+        document_id: existingDocumentId,
         file_name: fileName,
         balanco: parsedData.balanco,
         dre: parsedData.dre,
@@ -399,10 +400,94 @@ export async function runAuditPipeline(
       }),
     });
     if (!response.ok) {
-      console.warn("Pipeline pré-processamento falhou:", response.status);
+      console.warn("Pipeline enqueue falhou:", response.status);
       return null;
     }
-    return await response.json();
+    const enqueue = await response.json();
+    const documentId: string | undefined = enqueue?.document_id;
+    if (!documentId) return null;
+
+    // 2. Polling até status final (completed/failed) — até 8min
+    const MAX_WAIT_MS = 8 * 60 * 1000;
+    const POLL_MS = 3000;
+    const t0 = Date.now();
+    let finalStatus: string | null = null;
+    while (Date.now() - t0 < MAX_WAIT_MS) {
+      await new Promise((r) => setTimeout(r, POLL_MS));
+      const { data: doc } = await supabase
+        .from("pipeline_documents")
+        .select("status, error_message")
+        .eq("id", documentId)
+        .maybeSingle();
+      const st = (doc as any)?.status;
+      if (st === "completed" || st === "failed") {
+        finalStatus = st;
+        if (st === "failed") {
+          console.warn("Pipeline failed:", (doc as any)?.error_message);
+          return null;
+        }
+        break;
+      }
+    }
+    if (finalStatus !== "completed") {
+      console.warn("Pipeline timeout aguardando processamento");
+      return null;
+    }
+
+    // 3. Reconstrói PipelineResult a partir das tabelas finais
+    const [{ data: balRows }, { data: parRows }, { data: fsRows }] = await Promise.all([
+      supabase
+        .from("balancete_data")
+        .select("conta_original, conta_normalizada, valor, tipo, categoria")
+        .eq("document_id", documentId),
+      supabase
+        .from("pipeline_analysis_results")
+        .select("indicadores, alertas, ocr_score, mapping_score, validation_score, quality_score")
+        .eq("document_id", documentId)
+        .maybeSingle(),
+      supabase
+        .from("dataset_validated")
+        .select("input_json, output_corrected")
+        .order("created_at", { ascending: false })
+        .limit(3),
+    ]);
+
+    const par = (parRows as any) || {};
+    const indic = par.indicadores || {};
+    const ativo = Number(indic.ativo_total || 0);
+    const passivo = Number(indic.passivo_total || 0);
+    const pl = Number(indic.pl || 0);
+    const diff = Math.abs(ativo - (passivo + pl));
+
+    return {
+      document_id: documentId,
+      normalized: (balRows || []).map((r: any) => ({
+        conta_original: r.conta_original,
+        conta_normalizada: r.conta_normalizada,
+        valor: Number(r.valor),
+        tipo: r.tipo,
+        categoria: r.categoria,
+        matched: false,
+      })),
+      few_shot_examples: (fsRows || []).map((r: any) => ({
+        input: r.input_json,
+        output: r.output_corrected,
+      })),
+      validation: {
+        valid: (par.validation_score || 0) >= 0.98,
+        ativo,
+        passivo,
+        pl,
+        diff,
+        alertas: par.alertas || [],
+      },
+      scores: {
+        ocr: Number(par.ocr_score || 0),
+        mapping: Number(par.mapping_score || 0),
+        validation: Number(par.validation_score || 0),
+        quality: Number(par.quality_score || 0),
+      },
+    };
   } catch (e) {
     console.warn("Pipeline pré-processamento erro:", e);
     return null;
