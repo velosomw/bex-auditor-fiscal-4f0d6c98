@@ -118,7 +118,7 @@ const TabUpload = () => {
     setResult(null);
     setTimings({});
     setTotalMs(null);
-    setStages({ upload: "running", ocr: "idle", extract: "idle", normalize: "idle", analyze: "idle" });
+    setStages({ upload: "running", ocr: "idle", extract: "idle", normalize: "idle", validate: "idle", analyze: "idle" });
 
     const t0 = performance.now();
     const mark = (k: StageKey, start: number) =>
@@ -150,6 +150,25 @@ const TabUpload = () => {
       setStage("normalize", "done");
       mark("normalize", tNorm);
 
+      // ETAPA OBRIGATÓRIA: Validação Contábil (Ativo = Passivo + PL)
+      const tVal = performance.now();
+      setStage("validate", "running");
+      const integrity = checkBalanceIntegrity(
+        pipe.validation.ativo,
+        pipe.validation.passivo,
+        pipe.validation.pl,
+      );
+      mark("validate", tVal);
+      if (integrity.balanced) {
+        setStage("validate", "done");
+        toast.success(`Equação contábil validada (Δ R$ ${integrity.absDiff.toFixed(2)})`);
+      } else {
+        setStage("validate", "warning");
+        toast.warning(
+          `Divergência: Ativo ≠ Passivo + PL — Δ R$ ${integrity.absDiff.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${integrity.pctDiff.toFixed(2)}%)`,
+        );
+      }
+
       const tAna = performance.now();
       setStage("analyze", "running");
       setResult(pipe);
@@ -157,7 +176,8 @@ const TabUpload = () => {
       mark("analyze", tAna);
 
       setTotalMs(Math.round(performance.now() - t0));
-      toast.success(`Processado em ${((performance.now() - t0) / 1000).toFixed(1)}s · Quality ${(pipe.scores.quality * 100).toFixed(0)}%`);
+      const ok = integrity.balanced ? "✅" : "⚠️";
+      toast.success(`${ok} Processado em ${((performance.now() - t0) / 1000).toFixed(1)}s · Quality ${(pipe.scores.quality * 100).toFixed(0)}%`);
     } catch (e: any) {
       const msg = e?.message || "Falha no pipeline.";
       setErrorMsg(msg);
