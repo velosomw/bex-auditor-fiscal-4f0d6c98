@@ -24,38 +24,7 @@ import TabOrphanDocuments from "@/components/gestor/TabOrphanDocuments";
 import TabExecutionTime from "@/components/gestor/TabExecutionTime";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 
-// ─── Mock Data ───────────────────────────────────────────────
-const kpiCards = [
-  { label: "Documentos Auditados", value: "847", sub: "Total processado", change: "+12%", positive: true, icon: FileText, color: "hsl(258,90%,66%)" },
-  { label: "Auditorias Realizadas", value: "156", sub: "133 concluídas", change: "+8%", positive: true, icon: CheckCircle2, color: "hsl(152,70%,45%)" },
-  { label: "Conformidade Geral", value: "91.2%", sub: "Índice de conformidade", change: "+2.3%", positive: true, icon: ShieldCheck, color: "hsl(152,70%,45%)" },
-  { label: "Riscos Identificados", value: "67", sub: "20 críticos", change: "-5%", positive: false, icon: AlertTriangle, color: "hsl(38,90%,55%)" },
-];
-
-const trendData = [
-  { month: "Jul", value: 85 }, { month: "Ago", value: 86 }, { month: "Set", value: 88 },
-  { month: "Out", value: 85 }, { month: "Nov", value: 89 }, { month: "Dez", value: 91 },
-];
-
-const riskDistribution = [
-  { name: "Baixo", value: 60, color: "hsl(152,70%,45%)" },
-  { name: "Médio", value: 28, color: "hsl(38,90%,55%)" },
-  { name: "Alto", value: 12, color: "hsl(0,80%,55%)" },
-];
-
-const auditTypeData = [
-  { name: "Externa", value: 55 }, { name: "Interna", value: 45 },
-  { name: "Fiscal", value: 32 }, { name: "Defesa", value: 18 }, { name: "Revisão", value: 40 },
-];
-
-const contextBlocks = [
-  { title: "Conformidade & Indicadores", sub: "Qualidade contábil e normas aplicadas", icon: Scale, color: "hsl(152,70%,45%)", items: [{ k: "Conformidade Geral", v: "91.2%" }, { k: "Normas Aplicadas", v: "42" }, { k: "Com Desvios", v: "8" }] },
-  { title: "Riscos & Tendências", sub: "Análise de pontos críticos", icon: AlertTriangle, color: "hsl(38,90%,55%)", items: [{ k: "Pontos de Auditoria", v: "234" }, { k: "Riscos Altos", v: "20" }, { k: "Fragilidades", v: "45" }] },
-  { title: "Parecer & Alertas", sub: "Modificações potenciais", icon: Edit, color: "hsl(0,70%,55%)", items: [{ k: "Pontos Ressalva", v: "12" }, { k: "Pontos Ênfase", v: "28" }, { k: "Modificação", v: "5" }] },
-  { title: "Ajustes & Correções", sub: "Ações sugeridas pela IA", icon: Zap, color: "hsl(258,90%,66%)", items: [{ k: "Correções Sugeridas", v: "89" }, { k: "Impacto Financeiro", v: "28" }, { k: "Apenas Divulgação", v: "61" }] },
-];
-
-const integrations = [
+// ─── Mock Data (somente para abas ainda não conectadas) ─────
   { name: "BigQuery", type: "Data Warehouse", status: "active", icon: Database },
   { name: "API Contábil", type: "ERP", status: "active", icon: Globe },
   { name: "Webhooks", type: "Notificações", status: "active", icon: Webhook },
