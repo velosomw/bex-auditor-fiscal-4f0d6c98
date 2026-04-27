@@ -20,6 +20,7 @@ import UserDashboard from "./pages/UserDashboard";
 import Audit from "./pages/Audit";
 import ModeloMatematico from "./pages/ModeloMatematico";
 import GestorIA from "./pages/GestorIA";
+import GestaoAgentes from "./pages/GestaoAgentes";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
