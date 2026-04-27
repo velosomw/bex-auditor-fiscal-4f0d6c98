@@ -4014,7 +4014,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
 /* ══════════════════════════════════════════════════════
    MAIN AUDIT PAGE
    ══════════════════════════════════════════════════════ */
-type AuditPhase = "upload" | "processing" | "results";
+type AuditPhase = "upload" | "confirm-months" | "processing" | "results";
 
 const AuditContent = () => {
   const [searchParams] = useSearchParams();
@@ -4028,6 +4028,9 @@ const AuditContent = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [dedupConfig, setDedupConfig] = useState<import("@/services/auditAIService").DedupConfig>({});
   const [selectedDepth, setSelectedDepth] = useState<"executivo" | "tecnico">("tecnico");
+  const [multiMonth, setMultiMonth] = useState<import("@/services/auditMonthDetector").MultiMonthParsed | null>(null);
+  const [filteredMonths, setFilteredMonths] = useState<string[]>([]);
+  const [preParsing, setPreParsing] = useState(false);
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
