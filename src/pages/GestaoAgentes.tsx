@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/auditAIService";
 import { listCompanies, type Company } from "@/services/companiesService";
+import { loadLearningRows, loadDatasetRows, loadPerfStats } from "@/services/agentLearningService";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
@@ -554,152 +555,178 @@ const TabValidacao = () => {
 };
 
 // ─── TELA 3 — Aprendizado da IA ───────────────────────────────
-const TabAprendizado = () => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {[
-        { label: "Documentos aprendidos", value: "847", icon: BookOpen, color: "hsl(258,90%,66%)" },
-        { label: "Taxa de acerto", value: "94.7%", icon: Target, color: "hsl(152,70%,45%)" },
-        { label: "Evolução (90d)", value: "+18%", icon: TrendingUp, color: "hsl(38,90%,55%)" },
-      ].map((k, i) => (
-        <div key={i} className="bg-card rounded-xl border border-border p-5">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${k.color}15` }}>
-            <k.icon className="w-5 h-5" style={{ color: k.color }} />
+const TabAprendizado = () => {
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof loadLearningRows>>>([]);
+  const [perf, setPerf] = useState<Awaited<ReturnType<typeof loadPerfStats>> | null>(null);
+  useEffect(() => {
+    loadLearningRows(50).then(setRows).catch(() => {});
+    loadPerfStats().then(setPerf).catch(() => {});
+  }, []);
+  const kpis = [
+    { label: "Documentos aprendidos", value: String(perf?.totalDocs ?? 0), icon: BookOpen, color: "hsl(258,90%,66%)" },
+    { label: "Quality médio", value: `${perf?.quality ?? 0}%`, icon: Target, color: "hsl(152,70%,45%)" },
+    { label: "Termos no dicionário", value: String(rows.length), icon: TrendingUp, color: "hsl(38,90%,55%)" },
+  ];
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {kpis.map((k, i) => (
+          <div key={i} className="bg-card rounded-xl border border-border p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${k.color}15` }}>
+              <k.icon className="w-5 h-5" style={{ color: k.color }} />
+            </div>
+            <div className="text-2xl font-bold text-foreground">{k.value}</div>
+            <div className="text-xs text-muted-foreground">{k.label}</div>
           </div>
-          <div className="text-2xl font-bold text-foreground">{k.value}</div>
-          <div className="text-xs text-muted-foreground">{k.label}</div>
-        </div>
-      ))}
-    </div>
-
-    <div className="bg-card rounded-xl border border-border overflow-hidden">
-      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-foreground">Mapeamentos aprendidos</h4>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs"><Save className="w-3 h-3" /> Fixar selecionados</Button>
+        ))}
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-xs">Conta Original</TableHead>
-            <TableHead className="text-xs">Conta Padronizada</TableHead>
-            <TableHead className="text-xs text-right">Frequência</TableHead>
-            <TableHead className="text-xs text-right">Confiança</TableHead>
-            <TableHead className="text-xs text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {learningRows.map((r, i) => (
-            <TableRow key={i}>
-              <TableCell className="text-xs">{r.original}</TableCell>
-              <TableCell className="text-xs font-medium text-foreground">{r.padrao}</TableCell>
-              <TableCell className="text-xs text-right font-mono">{r.freq}</TableCell>
-              <TableCell className="text-xs text-right font-mono text-[hsl(152,70%,45%)]">{r.conf}%</TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="icon" className="h-7 w-7"><Edit3 className="w-3.5 h-3.5" /></Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7"><Trash2 className="w-3.5 h-3.5" /></Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-foreground">Mapeamentos aprendidos</h4>
+          <span className="text-xs text-muted-foreground">{rows.length} termos</span>
+        </div>
+        {rows.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground">
+            Sem mapeamentos aprendidos ainda. Conforme balancetes forem validados, os termos aparecerão aqui.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Conta Original</TableHead>
+                <TableHead className="text-xs">Conta Padronizada</TableHead>
+                <TableHead className="text-xs text-right">Frequência</TableHead>
+                <TableHead className="text-xs text-right">Confiança</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-xs">{r.original}</TableCell>
+                  <TableCell className="text-xs font-medium text-foreground">{r.padrao}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{r.freq}</TableCell>
+                  <TableCell className="text-xs text-right font-mono text-[hsl(152,70%,45%)]">{r.conf}%</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── TELA 4 — Dataset & Histórico ─────────────────────────────
-const TabDataset = () => (
-  <div className="space-y-4">
-    <div className="bg-card rounded-xl border border-border overflow-hidden">
-      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-foreground">Dataset validado</h4>
-        <span className="text-xs text-muted-foreground">{datasetRows.length} documentos</span>
+const TabDataset = () => {
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof loadDatasetRows>>>([]);
+  useEffect(() => { loadDatasetRows(50).then(setRows).catch(() => {}); }, []);
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-foreground">Dataset validado</h4>
+          <span className="text-xs text-muted-foreground">{rows.length} documentos</span>
+        </div>
+        {rows.length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground">
+            Nenhum documento validado ainda. Validações de balancetes serão registradas aqui automaticamente.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Documento</TableHead>
+                <TableHead className="text-xs">Empresa</TableHead>
+                <TableHead className="text-xs">Data</TableHead>
+                <TableHead className="text-xs text-right">Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r, i) => (
+                <TableRow key={i}>
+                  <TableCell className="text-xs flex items-center gap-2">
+                    {r.gold && <Star className="w-3.5 h-3.5 text-[hsl(38,90%,55%)] fill-[hsl(38,90%,55%)]" />}
+                    {r.doc}
+                  </TableCell>
+                  <TableCell className="text-xs">{r.empresa}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{r.data}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{r.score}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-xs">Documento</TableHead>
-            <TableHead className="text-xs">Empresa</TableHead>
-            <TableHead className="text-xs">Data</TableHead>
-            <TableHead className="text-xs text-right">Score</TableHead>
-            <TableHead className="text-xs text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {datasetRows.map((r, i) => (
-            <TableRow key={i}>
-              <TableCell className="text-xs flex items-center gap-2">
-                {r.gold && <Star className="w-3.5 h-3.5 text-[hsl(38,90%,55%)] fill-[hsl(38,90%,55%)]" />}
-                {r.doc}
-              </TableCell>
-              <TableCell className="text-xs">{r.empresa}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{r.data}</TableCell>
-              <TableCell className="text-xs text-right font-mono">{r.score}</TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="icon" className="h-7 w-7" title="Visualizar diff"><Eye className="w-3.5 h-3.5" /></Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" title="Reprocessar"><RefreshCw className="w-3.5 h-3.5" /></Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" title="Marcar exemplo ouro"><Star className="w-3.5 h-3.5" /></Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── TELA 5 — Performance da IA ───────────────────────────────
-const TabPerformance = () => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {[
-        { label: "Precisão OCR", value: "98.2%", icon: Cpu, color: "hsl(258,90%,66%)" },
-        { label: "Precisão Mapeamento", value: "94.7%", icon: Target, color: "hsl(152,70%,45%)" },
-        { label: "Correção Humana", value: "5.3%", icon: Edit3, color: "hsl(38,90%,55%)" },
-        { label: "Tempo Médio", value: "2.4s", icon: Zap, color: "hsl(200,90%,50%)" },
-      ].map((k, i) => (
-        <div key={i} className="bg-card rounded-xl border border-border p-5">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${k.color}15` }}>
-            <k.icon className="w-5 h-5" style={{ color: k.color }} />
+const TabPerformance = () => {
+  const [perf, setPerf] = useState<Awaited<ReturnType<typeof loadPerfStats>> | null>(null);
+  useEffect(() => { loadPerfStats().then(setPerf).catch(() => {}); }, []);
+  const kpis = [
+    { label: "Precisão OCR", value: `${perf?.ocr ?? 0}%`, icon: Cpu, color: "hsl(258,90%,66%)" },
+    { label: "Precisão Mapeamento", value: `${perf?.mapping ?? 0}%`, icon: Target, color: "hsl(152,70%,45%)" },
+    { label: "Validação Contábil", value: `${perf?.validation ?? 0}%`, icon: Edit3, color: "hsl(38,90%,55%)" },
+    { label: "Quality Score", value: `${perf?.quality ?? 0}%`, icon: Zap, color: "hsl(200,90%,50%)" },
+  ];
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((k, i) => (
+          <div key={i} className="bg-card rounded-xl border border-border p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${k.color}15` }}>
+              <k.icon className="w-5 h-5" style={{ color: k.color }} />
+            </div>
+            <div className="text-2xl font-bold text-foreground">{k.value}</div>
+            <div className="text-xs text-muted-foreground">{k.label}</div>
           </div>
-          <div className="text-2xl font-bold text-foreground">{k.value}</div>
-          <div className="text-xs text-muted-foreground">{k.label}</div>
+        ))}
+      </div>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-card rounded-xl border border-border p-5">
+          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Evolução da Precisão
+          </h4>
+          {(perf?.trend.length ?? 0) === 0 ? (
+            <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground text-center px-4">
+              Sem histórico suficiente. A evolução será exibida após processamentos reais.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={perf!.trend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,20%,88%)" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="precisao" stroke="hsl(258,90%,66%)" strokeWidth={2.5} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
-      ))}
-    </div>
-
-    <div className="grid md:grid-cols-2 gap-4">
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Evolução da Precisão
-        </h4>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={accuracyTrend}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,20%,88%)" />
-            <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-            <YAxis domain={[70, 100]} tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Line type="monotone" dataKey="precisao" stroke="hsl(258,90%,66%)" strokeWidth={2.5} dot={{ r: 4 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-[hsl(38,90%,55%)]" /> Redução de Erros
-        </h4>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={errorReduction}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,20%,88%)" />
-            <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} />
-            <Tooltip />
-            <Bar dataKey="erros" fill="hsl(38,90%,55%)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="bg-card rounded-xl border border-border p-5">
+          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-[hsl(38,90%,55%)]" /> Erros de Validação
+          </h4>
+          {(perf?.errors.length ?? 0) === 0 ? (
+            <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">Sem dados.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={perf!.errors}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,20%,88%)" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="erros" fill="hsl(38,90%,55%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Main page ────────────────────────────────────────────────
 const GestaoAgentes = () => {

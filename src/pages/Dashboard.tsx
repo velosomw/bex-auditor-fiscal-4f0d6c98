@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { mockStats, mockCompliance, mockRisks, mockNormativeReferences, mockCriticalAreas, mockTrendData, mockAuditDistribution } from "@/data/dashboardMockData";
+import { loadDashboardStats, emptyStats, type DashboardStats } from "@/services/dashboardStatsService";
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
 import CoordinatorDashboard from "@/components/coordinator/CoordinatorDashboard";
@@ -19,23 +19,14 @@ import { listCompanies, type Company } from "@/services/companiesService";
 
 const COLORS = ["hsl(217,91%,50%)", "hsl(200,98%,55%)", "hsl(142,76%,36%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)"];
 
-/* ── Mock: Last Audit Overview ── */
-const lastAuditOverview = {
-  empresa: "Empresa Demonstração S.A.",
-  periodo: "Exercício 2023",
-  statusFinanceiro: "Atenção",
-  scoreRisco: 47,
-  indicadores: {
-    liquidezCorrente: 1.78,
-    endividamento: 0.445,
-    kanitz: 1.24,
-  },
-  alertasIA: [
-    { icone: "⚠", titulo: "Estoque elevado", descricao: "Estoques cresceram 45% acima do CMV", severidade: "medio" },
-    { icone: "⚠", titulo: "Dependência factoring", descricao: "Antecipação de recebíveis identificada — fator de risco", severidade: "alto" },
-    { icone: "⚠", titulo: "Passivo crescente", descricao: "Empréstimos LP cresceram 57% no período", severidade: "alto" },
-    { icone: "📉", titulo: "Margem em deterioração", descricao: "Margem líquida caiu 60% no período analisado", severidade: "critico" },
-  ],
+/* Empty state for last audit until real data exists */
+const emptyAuditOverview = {
+  empresa: "Sem auditoria registrada",
+  periodo: "—",
+  statusFinanceiro: "Saudável" as const,
+  scoreRisco: 0,
+  indicadores: { liquidezCorrente: null, endividamento: null, kanitz: null } as { liquidezCorrente: number | null; endividamento: number | null; kanitz: number | null },
+  alertasIA: [] as { titulo: string; descricao: string; severidade: string }[],
 };
 
 const severityStyle: Record<string, string> = {
@@ -52,6 +43,9 @@ const Dashboard = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [stats, setStats] = useState<DashboardStats>(emptyStats);
+  const [loading, setLoading] = useState(true);
+  const lastAuditOverview = stats.lastAudit ?? emptyAuditOverview;
 
   const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const onlyDigits = (s: string) => (s || "").replace(/\D/g, "");
@@ -72,7 +66,13 @@ const Dashboard = () => {
 
   const refreshCompanies = () => listCompanies().then(setCompanies).catch(() => {});
 
-  useEffect(() => { refreshCompanies(); }, []);
+  useEffect(() => {
+    refreshCompanies();
+    loadDashboardStats()
+      .then(setStats)
+      .catch(() => setStats(emptyStats))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleStartNewAudit = (company: Company) => navigate(`/audit?company=${company.id}`);
 
@@ -222,15 +222,15 @@ const Dashboard = () => {
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Liquidez Corrente</span>
-                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.liquidezCorrente.toFixed(2)}x</span>
+                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.liquidezCorrente != null ? `${lastAuditOverview.indicadores.liquidezCorrente.toFixed(2)}x` : "—"}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Endividamento</span>
-                    <span className="font-mono font-bold text-foreground">{(lastAuditOverview.indicadores.endividamento * 100).toFixed(1)}%</span>
+                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.endividamento != null ? `${(lastAuditOverview.indicadores.endividamento * 100).toFixed(1)}%` : "—"}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Kanitz (FI)</span>
-                    <span className="font-mono font-bold text-[hsl(142,76%,36%)]">{lastAuditOverview.indicadores.kanitz.toFixed(2)}</span>
+                    <span className="font-mono font-bold text-[hsl(142,76%,36%)]">{lastAuditOverview.indicadores.kanitz != null ? lastAuditOverview.indicadores.kanitz.toFixed(2) : "—"}</span>
                   </div>
                 </div>
               </div>
@@ -274,11 +274,11 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
-            { label: "Documentos", value: mockStats.totalDocuments, icon: FileText, color: "hsl(217,91%,50%)" },
-            { label: "Auditorias", value: mockStats.totalAudits, icon: BarChart3, color: "hsl(200,98%,55%)" },
-            { label: "Em Andamento", value: mockStats.auditsInProgress, icon: Clock, color: "hsl(38,92%,50%)" },
-            { label: "Concluídas", value: mockStats.auditsCompleted, icon: CheckCircle2, color: "hsl(142,76%,36%)" },
-            { label: "Pareceres", value: mockStats.opinionsIssued, icon: Award, color: "hsl(217,85%,45%)" },
+            { label: "Documentos", value: stats.totalDocuments, icon: FileText, color: "hsl(217,91%,50%)" },
+            { label: "Auditorias", value: stats.totalAudits, icon: BarChart3, color: "hsl(200,98%,55%)" },
+            { label: "Em Andamento", value: stats.auditsInProgress, icon: Clock, color: "hsl(38,92%,50%)" },
+            { label: "Concluídas", value: stats.auditsCompleted, icon: CheckCircle2, color: "hsl(142,76%,36%)" },
+            { label: "Pareceres", value: stats.opinionsIssued, icon: Award, color: "hsl(217,85%,45%)" },
           ].map((kpi) => (
             <Card key={kpi.label} className="border-border/50">
               <CardContent className="p-4">
@@ -310,14 +310,17 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-end gap-3">
-                    <span className="text-4xl font-bold text-foreground">{mockCompliance.overallCompliance}%</span>
-                    <span className="flex items-center gap-1 text-xs text-[hsl(142,76%,36%)] mb-1"><TrendingUp className="w-3 h-3" /> +2.1%</span>
+                    <span className="text-4xl font-bold text-foreground">{stats.overallCompliance}%</span>
+                    <span className="text-xs text-muted-foreground mb-1">média real</span>
                   </div>
-                  <Progress value={mockCompliance.overallCompliance} className="h-2" />
+                  <Progress value={stats.overallCompliance} className="h-2" />
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Normas Aplicadas</p><p className="font-semibold text-foreground">{mockCompliance.normsApplied}</p></div>
-                    <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Desvios</p><p className="font-semibold text-[hsl(38,92%,50%)]">{mockCompliance.normsWithDeviations}</p></div>
+                    <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Auditorias</p><p className="font-semibold text-foreground">{stats.totalAudits}</p></div>
+                    <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Empresas</p><p className="font-semibold text-foreground">{stats.totalCompanies}</p></div>
                   </div>
+                  {stats.overallCompliance === 0 && !loading && (
+                    <p className="text-[11px] text-muted-foreground italic">Sem dados de conformidade ainda. Execute uma auditoria para popular os indicadores.</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -328,25 +331,29 @@ const Dashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[
-                        { name: "Baixo", value: mockRisks.lowRisk, fill: "hsl(142,76%,36%)" },
-                        { name: "Médio", value: mockRisks.mediumRisk, fill: "hsl(38,92%,50%)" },
-                        { name: "Alto", value: mockRisks.highRisk, fill: "hsl(0,84%,60%)" },
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,90%)" />
-                        <XAxis dataKey="name" fontSize={12} />
-                        <YAxis fontSize={12} />
-                        <Tooltip />
-                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                          {[{ fill: "hsl(142,76%,36%)" }, { fill: "hsl(38,92%,50%)" }, { fill: "hsl(0,84%,60%)" }].map((entry, i) => (
-                            <Cell key={i} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {(stats.highRisk + stats.mediumRisk + stats.lowRisk) === 0 ? (
+                    <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">Sem auditorias classificadas por risco.</div>
+                  ) : (
+                    <div className="h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={[
+                          { name: "Baixo", value: stats.lowRisk, fill: "hsl(142,76%,36%)" },
+                          { name: "Médio", value: stats.mediumRisk, fill: "hsl(38,92%,50%)" },
+                          { name: "Alto", value: stats.highRisk, fill: "hsl(0,84%,60%)" },
+                        ]}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,90%)" />
+                          <XAxis dataKey="name" fontSize={12} />
+                          <YAxis fontSize={12} allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                            {[{ fill: "hsl(142,76%,36%)" }, { fill: "hsl(38,92%,50%)" }, { fill: "hsl(0,84%,60%)" }].map((entry, i) => (
+                              <Cell key={i} fill={entry.fill} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -354,15 +361,9 @@ const Dashboard = () => {
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">Áreas Críticas</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {mockCriticalAreas.map((area) => (
-                    <div key={area.name} className="flex items-center gap-3">
-                      <span className="text-sm text-foreground w-48 shrink-0">{area.name}</span>
-                      <Progress value={area.riskLevel} className="flex-1 h-2" />
-                      <Badge variant={area.riskLevel >= 80 ? "destructive" : area.riskLevel >= 65 ? "secondary" : "outline"} className="w-12 justify-center text-xs">{area.riskLevel}%</Badge>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  Mapa de áreas críticas será gerado automaticamente a partir das próximas auditorias (necessário ≥ 3 relatórios concluídos).
+                </p>
               </CardContent>
             </Card>
 
@@ -386,16 +387,16 @@ const Dashboard = () => {
           <TabsContent value="indicators" className="space-y-6">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "Consistência", value: mockCompliance.consistencyIndex, color: "hsl(142,76%,36%)" },
-                { label: "Reconhecimento", value: mockCompliance.recognition, color: "hsl(200,98%,55%)" },
-                { label: "Mensuração", value: mockCompliance.measurement, color: "hsl(217,91%,50%)" },
-                { label: "Evidenciação", value: mockCompliance.disclosure, color: "hsl(38,92%,50%)" },
-              ].map((ind) => (
+                { label: "Conformidade Média", value: stats.overallCompliance, color: "hsl(142,76%,36%)" },
+                { label: "Auditorias Concluídas", value: stats.auditsCompleted, color: "hsl(200,98%,55%)", suffix: "" },
+                { label: "Em Andamento", value: stats.auditsInProgress, color: "hsl(217,91%,50%)", suffix: "" },
+                { label: "Empresas Ativas", value: stats.totalCompanies, color: "hsl(38,92%,50%)", suffix: "" },
+              ].map((ind: any) => (
                 <Card key={ind.label}>
                   <CardContent className="p-5 text-center">
                     <p className="text-xs text-muted-foreground mb-2">{ind.label}</p>
-                    <p className="text-3xl font-bold" style={{ color: ind.color }}>{ind.value}%</p>
-                    <Progress value={ind.value} className="h-1.5 mt-3" />
+                    <p className="text-3xl font-bold" style={{ color: ind.color }}>{ind.value}{ind.suffix === "" ? "" : "%"}</p>
+                    <Progress value={Math.min(ind.value, 100)} className="h-1.5 mt-3" />
                   </CardContent>
                 </Card>
               ))}
@@ -403,20 +404,9 @@ const Dashboard = () => {
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">Referências Normativas</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {mockNormativeReferences.slice(0, 8).map((norm) => (
-                    <div key={norm.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="text-xs">{norm.type.toUpperCase()}</Badge>
-                        <div><p className="text-sm font-medium text-foreground">{norm.code}</p><p className="text-xs text-muted-foreground">{norm.description}</p></div>
-                      </div>
-                      <div className="text-right text-xs">
-                        <p className="text-muted-foreground">{norm.auditsImpacted} auditorias</p>
-                        <p className="text-[hsl(38,92%,50%)]">{norm.findingsRelated} achados</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  As referências normativas (CPC, NBC TA, IFRS) serão indexadas automaticamente conforme os relatórios de auditoria forem gerados.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -426,63 +416,81 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="pb-3"><CardTitle className="text-base">Tendência de Conformidade</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mockTrendData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,90%)" />
-                        <XAxis dataKey="month" fontSize={12} />
-                        <YAxis fontSize={12} domain={[80, 95]} />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="compliance" stroke="hsl(217,91%,50%)" strokeWidth={2} dot={{ r: 4 }} name="Conformidade %" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {stats.trend.length === 0 ? (
+                    <div className="h-[280px] flex items-center justify-center text-xs text-muted-foreground text-center px-4">
+                      Sem histórico suficiente. A tendência será exibida após o processamento de novos balancetes.
+                    </div>
+                  ) : (
+                    <div className="h-[280px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={stats.trend}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,90%)" />
+                          <XAxis dataKey="month" fontSize={12} />
+                          <YAxis fontSize={12} domain={[0, 100]} />
+                          <Tooltip />
+                          <Line type="monotone" dataKey="compliance" stroke="hsl(217,91%,50%)" strokeWidth={2} dot={{ r: 4 }} name="Quality %" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-3"><CardTitle className="text-base">Distribuição de Auditorias</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={mockAuditDistribution} cx="50%" cy="50%" outerRadius={100} dataKey="count" nameKey="type" label={({ type, percentage }) => `${percentage}%`} fontSize={11}>
-                          {mockAuditDistribution.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex flex-wrap gap-3 justify-center mt-2">
-                    {mockAuditDistribution.map((d, i) => (
-                      <div key={d.type} className="flex items-center gap-1.5 text-xs">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                        <span className="text-muted-foreground">{d.type}</span>
+                  {stats.auditDistribution.length === 0 ? (
+                    <div className="h-[280px] flex items-center justify-center text-xs text-muted-foreground">Sem auditorias registradas.</div>
+                  ) : (
+                    <>
+                      <div className="h-[280px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={stats.auditDistribution} cx="50%" cy="50%" outerRadius={100} dataKey="count" nameKey="type" label={({ percentage }: any) => `${percentage}%`} fontSize={11}>
+                              {stats.auditDistribution.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex flex-wrap gap-3 justify-center mt-2">
+                        {stats.auditDistribution.map((d, i) => (
+                          <div key={d.type} className="flex items-center gap-1.5 text-xs">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                            <span className="text-muted-foreground">{d.type}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="alerts" className="space-y-4">
-            {[
-              { severity: "high", title: "Reconhecimento de Receita — CPC 47", desc: "3 auditorias com alto risco identificado nesta área.", time: "2h atrás" },
-              { severity: "high", title: "Provisões insuficientes — CPC 25", desc: "Divergência material identificada em provisões trabalhistas.", time: "5h atrás" },
-              { severity: "medium", title: "Prazo de auditoria próximo", desc: "5 auditorias com prazo nos próximos 7 dias.", time: "1 dia atrás" },
-              { severity: "medium", title: "Controles internos fragilizados", desc: "Área de contas a receber requer atenção.", time: "2 dias atrás" },
-              { severity: "low", title: "Atualização normativa disponível", desc: "Nova revisão do CPC 06 publicada.", time: "3 dias atrás" },
-            ].map((alert, i) => (
-              <Card key={i} className={`border-l-4 ${alert.severity === "high" ? "border-l-[hsl(0,84%,60%)]" : alert.severity === "medium" ? "border-l-[hsl(38,92%,50%)]" : "border-l-[hsl(200,98%,55%)]"}`}>
-                <CardContent className="p-4 flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${alert.severity === "high" ? "text-[hsl(0,84%,60%)]" : alert.severity === "medium" ? "text-[hsl(38,92%,50%)]" : "text-[hsl(200,98%,55%)]"}`} />
-                    <div><p className="text-sm font-medium text-foreground">{alert.title}</p><p className="text-xs text-muted-foreground mt-0.5">{alert.desc}</p></div>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{alert.time}</span>
+            {lastAuditOverview.alertasIA.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                  <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-40" />
+                  Nenhum alerta inteligente registrado. Os alertas serão derivados automaticamente das próximas análises de auditoria.
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              lastAuditOverview.alertasIA.map((alert, i) => {
+                const sev = alert.severidade === "critico" || alert.severidade === "alto" ? "high" :
+                            alert.severidade === "medio" ? "medium" : "low";
+                return (
+                  <Card key={i} className={`border-l-4 ${sev === "high" ? "border-l-[hsl(0,84%,60%)]" : sev === "medium" ? "border-l-[hsl(38,92%,50%)]" : "border-l-[hsl(200,98%,55%)]"}`}>
+                    <CardContent className="p-4 flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${sev === "high" ? "text-[hsl(0,84%,60%)]" : sev === "medium" ? "text-[hsl(38,92%,50%)]" : "text-[hsl(200,98%,55%)]"}`} />
+                        <div><p className="text-sm font-medium text-foreground">{alert.titulo}</p><p className="text-xs text-muted-foreground mt-0.5">{alert.descricao}</p></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </TabsContent>
         </Tabs>
       </div>
