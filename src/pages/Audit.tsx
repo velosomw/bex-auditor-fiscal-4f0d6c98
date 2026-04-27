@@ -585,6 +585,10 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange }: { 
         </div>
       </div>
 
+      <div className="max-w-3xl mx-auto pt-2">
+        <DedupPresetForm value={dedupConfig} onChange={onDedupChange} />
+      </div>
+
       <div className="flex justify-center pt-2">
         <Button onClick={handleContinue} disabled={!hasFiles}
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
