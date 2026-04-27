@@ -277,11 +277,63 @@ async function normalizeChunk(
 }
 
 /* Wrapper: cache + dedup + chunk + paralelização (Quick Wins 1, 2, 3) */
+/* ──────────────── Helper de progresso (#6) ──────────────── */
+async function updateProgress(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  documentId: string,
+  message: string,
+) {
+  try {
+    await supabase
+      .from("pipeline_documents")
+      .update({ progress: message, updated_at: new Date().toISOString() })
+      .eq("id", documentId);
+  } catch (_) {
+    /* não-crítico */
+  }
+}
+
+/* ──────────────── Fast-path heurístico (#3) ────────────────
+   Tenta classificar SEM LLM usando:
+   1. Código de conta brasileiro (1.x = ativo, 2.3+ = PL, etc.)  ← muito confiável
+   2. Match exato no dicionário contábil (cache persistente em DB) ← #2
+   Só envia ao LLM o que não foi resolvido. */
+function tryFastPath(
+  row: { conta: string; descricao: string },
+  dictMap: Map<string, NormResult>,
+): NormResult | null {
+  const desc = row.descricao || row.conta;
+  // 1. Cache persistente (DB) — match exato
+  const cached = dictMap.get(cacheKey(desc));
+  if (cached) return cached;
+
+  // 2. Código de conta forte + heurística semântica
+  const byCode = classifyByCode(row.conta);
+  if (byCode) {
+    const { tipo, categoria } = classifyAccount(desc);
+    // Só aceita fast-path se código E descrição concordam (alta confiança)
+    if (byCode.tipo === tipo && byCode.categoria === categoria) {
+      return {
+        conta_normalizada: desc,
+        categoria: byCode.categoria,
+        tipo: byCode.tipo,
+        matched: true,
+      };
+    }
+  }
+  return null;
+}
+
+/* Wrapper: cache mem + cache DB + fast-path + dedup + chunk + paralelização */
 async function normalizeAccountsLLM(
   rows: Array<{ conta: string; descricao: string }>,
   // deno-lint-ignore no-explicit-any
   dictionary: any[],
   reqId: string,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  documentId: string,
 ): Promise<NormResult[]> {
   if (rows.length === 0) return [];
 
@@ -290,21 +342,47 @@ async function normalizeAccountsLLM(
     .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
     .join("\n");
 
-  // Resultado final por índice
-  const finalResults: NormResult[] = new Array(rows.length);
+  // #2 Index do dicionário em memória para lookup O(1) por termo normalizado
+  const dictMap = new Map<string, NormResult>();
+  for (const d of dictionary || []) {
+    if (!d?.termo_original || !d?.termo_padrao) continue;
+    const key = cacheKey(d.termo_original);
+    const tipo = (d.tipo as string) ||
+      classifyAccount(d.termo_padrao).tipo;
+    dictMap.set(key, {
+      conta_normalizada: d.termo_padrao,
+      categoria: d.categoria,
+      tipo,
+      matched: true,
+    });
+  }
 
-  // Quick Win 1+3: cache lookup + dedup
+  const finalResults: NormResult[] = new Array(rows.length);
   const uniqueByDesc = new Map<string, { row: { conta: string; descricao: string }; indices: number[] }>();
   let cacheHits = 0;
+  let fastPathHits = 0;
 
   rows.forEach((row, idx) => {
     const desc = row.descricao || row.conta;
-    const cached = cacheGet(desc);
-    if (cached) {
-      finalResults[idx] = cached;
+
+    // (a) cache em memória (mesma instância warm)
+    const memCached = cacheGet(desc);
+    if (memCached) {
+      finalResults[idx] = memCached;
       cacheHits++;
       return;
     }
+
+    // (b) #3 fast-path heurístico (código BR + dicionário DB)
+    const fast = tryFastPath(row, dictMap);
+    if (fast) {
+      finalResults[idx] = fast;
+      cacheSet(desc, fast);
+      fastPathHits++;
+      return;
+    }
+
+    // (c) precisa LLM — agrega por descrição idêntica
     const key = cacheKey(desc);
     const existing = uniqueByDesc.get(key);
     if (existing) {
@@ -315,21 +393,28 @@ async function normalizeAccountsLLM(
   });
 
   const uniqueRows = Array.from(uniqueByDesc.values()).map((v) => v.row);
-  const dedupSavings = rows.length - cacheHits - uniqueRows.length;
+  const dedupSavings = rows.length - cacheHits - fastPathHits - uniqueRows.length;
 
   stageLog(reqId, "normalize.dedup", {
     total: rows.length,
     cache_hits: cacheHits,
+    fast_path_hits: fastPathHits,
     unique_to_process: uniqueRows.length,
     dedup_savings: dedupSavings,
   });
 
+  await updateProgress(
+    supabase,
+    documentId,
+    `Normalização: ${cacheHits} do cache, ${fastPathHits} resolvidas por heurística, ${uniqueRows.length} para a IA`,
+  );
+
   if (uniqueRows.length === 0) {
-    stageLog(reqId, "normalize.complete", { llm_calls: 0, source: "100%_cache" });
+    stageLog(reqId, "normalize.complete", { llm_calls: 0, source: "100%_cache_or_fastpath" });
     return finalResults;
   }
 
-  // Chunkifica + paraleliza (Quick Win 2)
+  // Chunkifica + paraleliza (#1)
   const chunks: Array<{ conta: string; descricao: string }[]> = [];
   for (let i = 0; i < uniqueRows.length; i += CHUNK_SIZE) {
     chunks.push(uniqueRows.slice(i, i + CHUNK_SIZE));
@@ -344,8 +429,16 @@ async function normalizeAccountsLLM(
 
   const t0 = Date.now();
   const allLLMResults: NormResult[] = [];
+  const totalWaves = Math.ceil(chunks.length / MAX_PARALLEL);
+  let waveIdx = 0;
   for (let i = 0; i < chunks.length; i += MAX_PARALLEL) {
+    waveIdx++;
     const wave = chunks.slice(i, i + MAX_PARALLEL);
+    await updateProgress(
+      supabase,
+      documentId,
+      `IA analisando contas: onda ${waveIdx}/${totalWaves} (${wave.length} grupos paralelos)`,
+    );
     const settled = await Promise.all(wave.map((c) => normalizeChunk(c, dictText)));
     settled.forEach((s) => allLLMResults.push(...s));
   }
@@ -355,16 +448,42 @@ async function normalizeAccountsLLM(
   });
 
   // Distribui resultado LLM para todos os índices (cache + originais)
+  const newDictEntries: Array<{ termo_original: string; termo_padrao: string; categoria: string }> = [];
   uniqueRows.forEach((row, i) => {
     const desc = row.descricao || row.conta;
     const result = allLLMResults[i];
     if (!result) return;
     cacheSet(desc, result);
+    // #2 acumula novos termos para popular o dicionário persistente
+    if (result.matched && result.conta_normalizada && result.categoria) {
+      newDictEntries.push({
+        termo_original: desc,
+        termo_padrao: result.conta_normalizada,
+        categoria: result.categoria,
+      });
+    }
     const entry = uniqueByDesc.get(cacheKey(desc));
     entry?.indices.forEach((idx) => {
       finalResults[idx] = result;
     });
   });
+
+  // #2 grava cache persistente em background (não bloqueia)
+  if (newDictEntries.length > 0) {
+    try {
+      // upsert por termo_original_normalizado (índice único)
+      const { error: upErr } = await supabase
+        .from("contabil_dictionary")
+        .upsert(newDictEntries, { onConflict: "termo_original_normalizado", ignoreDuplicates: true });
+      if (upErr) {
+        console.warn("dict upsert warn:", upErr.message);
+      } else {
+        stageLog(reqId, "dictionary.populated", { new_entries: newDictEntries.length });
+      }
+    } catch (e) {
+      console.warn("dict upsert error:", e instanceof Error ? e.message : e);
+    }
+  }
 
   // Garante que nenhum índice fica vazio (fallback heurístico)
   rows.forEach((row, idx) => {
