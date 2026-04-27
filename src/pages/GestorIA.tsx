@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchGestorIaIndicators, type GestorIaIndicators } from "@/services/gestorIaIndicatorsService";
+import { Loader2 } from "lucide-react";
 import PlatformLayout from "@/components/PlatformLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
