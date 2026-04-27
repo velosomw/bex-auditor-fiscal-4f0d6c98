@@ -246,5 +246,28 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
     },
   };
 
-  return { kpis, trend, riskDistribution, auditTypes, context };
+  // ── Distribuição de Acurácia IA (faixas) ─────────────────
+  const accBuckets = { excelente: 0, bom: 0, regular: 0, baixo: 0 };
+  for (const r of analyses) {
+    const ocr = Number(r.ocr_score || 0);
+    const qual = Number(r.quality_score || 0);
+    const val = Number(r.validation_score || 0);
+    const map = Number(r.mapping_score || 0);
+    const local = [ocr, qual, val, map].filter(v => v > 0);
+    if (!local.length) continue;
+    const score = normalize(local.reduce((a,b)=>a+b,0) / local.length);
+    if (score >= 90) accBuckets.excelente++;
+    else if (score >= 75) accBuckets.bom++;
+    else if (score >= 50) accBuckets.regular++;
+    else accBuckets.baixo++;
+  }
+  const accTotal = Math.max(1, analyses.length);
+  const accuracyDistribution: AccuracySlice[] = [
+    { name: "Excelente (≥90%)", value: Math.round((accBuckets.excelente / accTotal) * 100), color: "hsl(152,70%,45%)" },
+    { name: "Bom (75-90%)",     value: Math.round((accBuckets.bom       / accTotal) * 100), color: "hsl(200,80%,55%)" },
+    { name: "Regular (50-75%)", value: Math.round((accBuckets.regular   / accTotal) * 100), color: "hsl(38,90%,55%)" },
+    { name: "Baixo (<50%)",     value: Math.round((accBuckets.baixo     / accTotal) * 100), color: "hsl(0,80%,55%)" },
+  ];
+
+  return { kpis, trend, riskDistribution, auditTypes, accuracyDistribution, context };
 }
