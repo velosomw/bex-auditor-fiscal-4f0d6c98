@@ -13,8 +13,9 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Upload, Brain, BookOpen, Database, Activity, FileText,
   CheckCircle2, AlertCircle, Sparkles, Save, RefreshCw, Star, Loader2,
-  Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap, XCircle,
+  Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap, XCircle, Plug,
 } from "lucide-react";
+import TabAgentRegistry from "@/components/gestor/TabAgentRegistry";
 import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/auditAIService";
 import { listCompanies, type Company } from "@/services/companiesService";
 import { loadLearningRows, loadDatasetRows, loadPerfStats } from "@/services/agentLearningService";
@@ -787,6 +788,9 @@ const GestaoAgentes = () => {
             <TabsTrigger value="performance" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <Activity className="w-3.5 h-3.5" /> Performance
             </TabsTrigger>
+            <TabsTrigger value="registro" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <Plug className="w-3.5 h-3.5" /> Registro de Agentes e Integrações
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="mt-5"><TabUpload /></TabsContent>
@@ -794,6 +798,7 @@ const GestaoAgentes = () => {
           <TabsContent value="aprendizado" className="mt-5"><TabAprendizado /></TabsContent>
           <TabsContent value="dataset" className="mt-5"><TabDataset /></TabsContent>
           <TabsContent value="performance" className="mt-5"><TabPerformance /></TabsContent>
+          <TabsContent value="registro" className="mt-5"><TabAgentRegistry /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
