@@ -244,6 +244,75 @@ export async function parseMultipleFiles(files: File[]): Promise<{ parsed: Parse
   return { parsed: consolidated, fileResults };
 }
 
+/* ── Template: Balancete Mensal BR ──
+ * Reconhece cabeçalhos do tipo:
+ *   Extenso | (Reduzido) | Descrição | Saldo Anterior | Débito | Crédito | Saldo Mês | Saldo Atual
+ * Extrai apenas contas analíticas (folha) — códigos de 8+ dígitos OU sem filhos hierárquicos.
+ * Retorna null se o template não bater.
+ */
+type BalanceteRowParsed = { conta: string; descricao: string; values: Record<string, number> };
+function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowParsed[]; periodLabel: string } | null {
+  // Procura linha de cabeçalho com "saldo atual" + ("extenso" OU "descri")
+  let headerIdx = -1;
+  let cols: Record<string, number> = {};
+  for (let i = 0; i < Math.min(15, jsonData.length); i++) {
+    const row = jsonData[i] || [];
+    const norm = row.map(c => String(c || "").toLowerCase().trim());
+    const hasSaldoAtual = norm.some(c => c.includes("saldo atual") || c === "saldo final");
+    const hasDescricao = norm.some(c => c.startsWith("descri") || c === "extenso");
+    if (!hasSaldoAtual || !hasDescricao) continue;
+    headerIdx = i;
+    norm.forEach((c, j) => {
+      if (c === "extenso" || c === "código" || c === "codigo" || c === "conta") cols.conta = j;
+      else if (c === "reduzido") cols.reduzido = j;
+      else if (c.startsWith("descri")) cols.descricao = j;
+      else if (c.includes("saldo anterior")) cols.saldoAnterior = j;
+      else if (c === "débito" || c === "debito") cols.debito = j;
+      else if (c === "crédito" || c === "credito") cols.credito = j;
+      else if (c.includes("saldo mês") || c.includes("saldo mes") || c.includes("movimento")) cols.saldoMes = j;
+      else if (c.includes("saldo atual") || c === "saldo final") cols.saldoAtual = j;
+    });
+    if (cols.conta === undefined) cols.conta = 0;
+    if (cols.descricao === undefined) cols.descricao = 1;
+    if (cols.saldoAtual === undefined) return null;
+    break;
+  }
+  if (headerIdx === -1) return null;
+
+  // Coleta todos os códigos para identificar quais são analíticos (folha)
+  const allCodes = new Set<string>();
+  for (let i = headerIdx + 1; i < jsonData.length; i++) {
+    const c = String(jsonData[i]?.[cols.conta] ?? "").trim();
+    if (c) allCodes.add(c);
+  }
+  const isLeaf = (code: string): boolean => {
+    if (!code) return false;
+    // Heurística: se nenhum outro código começa com este + dígito, é folha
+    for (const other of allCodes) {
+      if (other !== code && other.startsWith(code) && other.length > code.length) return false;
+    }
+    return true;
+  };
+
+  const periodLabel = "atual";
+  const rows: BalanceteRowParsed[] = [];
+  for (let i = headerIdx + 1; i < jsonData.length; i++) {
+    const row = jsonData[i];
+    if (!row || row.length === 0) continue;
+    const conta = String(row[cols.conta] ?? "").trim();
+    const desc = String(row[cols.descricao] ?? "").trim();
+    if (!conta && !desc) continue;
+    if (!isLeaf(conta)) continue; // pula totalizadores para evitar dupla contagem
+    const rawSaldo = row[cols.saldoAtual];
+    const saldoNum = typeof rawSaldo === "number"
+      ? rawSaldo
+      : parseFloat(String(rawSaldo ?? "0").replace(/[^\d.,-]/g, "").replace(",", "."));
+    if (!isFinite(saldoNum)) continue;
+    rows.push({ conta, descricao: desc || conta, values: { [periodLabel]: saldoNum } });
+  }
+  return rows.length > 0 ? { rows, periodLabel } : null;
+}
+
 /* ── Parse spreadsheet ── */
 export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData> {
   const buffer = await file.arrayBuffer();
@@ -252,6 +321,39 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   const allRows: Array<{ conta: string; descricao: string; values: Record<string, number> }> = [];
   const years = new Set<string>();
 
+  // 1) Tenta primeiro o template "Balancete Mensal BR" (Extenso/Descrição/Saldo Atual)
+  //    Se múltiplas sheets baterem o template, mantém a sheet com mais contas
+  //    (mais granular) para evitar dupla contagem entre abas duplicadas.
+  let bestTplRows: BalanceteRowParsed[] = [];
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
+    const tpl = tryParseBalanceteMensalBR(jsonData);
+    if (tpl && tpl.rows.length > bestTplRows.length) bestTplRows = tpl.rows;
+  }
+  if (bestTplRows.length > 0) {
+    bestTplRows.forEach(r => allRows.push(r));
+    years.add("atual");
+  }
+  if (allRows.length > 0) {
+    // separa balanço x DRE pelo prefixo do código (1/2 = patrimoniais, 3/4/5 = resultado)
+    const balanco: typeof allRows = [];
+    const dre: typeof allRows = [];
+    for (const r of allRows) {
+      const p = (r.conta || "").charAt(0);
+      if (p === "3" || p === "4" || p === "5") dre.push(r);
+      else balanco.push(r);
+    }
+    return {
+      balanco: balanco.length > 0 ? balanco : allRows,
+      dre,
+      years: Array.from(years),
+      documentType: "balancete",
+      ocrScore: 0.99, // extração estruturada nativa = altíssima confiança
+    };
+  }
+
+  // 2) Fallback: parser anterior (procura colunas por ano 20XX)
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
