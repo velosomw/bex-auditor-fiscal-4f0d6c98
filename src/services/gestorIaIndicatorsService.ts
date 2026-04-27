@@ -108,6 +108,39 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   const riscosCriticos = reports.filter(r => r.risk_level === "critico").length;
   const prevRiscos = prevReports.reduce((s, r) => s + (r.riscos || 0), 0);
 
+  // ── Disponibilidade do Agente IA: % de docs/auditorias não-falhos
+  const totalOps = docs.length + reports.length;
+  const failedOps = docs.filter(d => d.status === "failed" || d.status === "error").length
+                  + reports.filter(r => r.status === "failed" || r.status === "error").length;
+  const agenteIaDisponibilidade = totalOps
+    ? Number((((totalOps - failedOps) / totalOps) * 100).toFixed(1))
+    : 100;
+  const prevTotalOps = prevDocs.length + prevReports.length;
+  const prevFailedOps = prevDocs.filter((d: any) => d.status === "failed" || d.status === "error").length
+                      + prevReports.filter((r: any) => r.status === "failed" || r.status === "error").length;
+  const prevAgenteIa = prevTotalOps
+    ? ((prevTotalOps - prevFailedOps) / prevTotalOps) * 100
+    : 100;
+
+  // ── Acurácia IA/OCR: média ponderada das pontuações de extração
+  const avgScore = (rows: any[]) => {
+    if (!rows.length) return 0;
+    let sum = 0, n = 0;
+    for (const r of rows) {
+      const ocr = Number(r.ocr_score || 0);
+      const qual = Number(r.quality_score || 0);
+      const val = Number(r.validation_score || 0);
+      const map = Number(r.mapping_score || 0);
+      const local = [ocr, qual, val, map].filter(v => v > 0);
+      if (local.length) { sum += local.reduce((a,b)=>a+b,0) / local.length; n++; }
+    }
+    return n ? (sum / n) : 0;
+  };
+  // scores podem vir em escala 0-1 ou 0-100 — normaliza
+  const normalize = (v: number) => v <= 1 ? v * 100 : v;
+  const acuraciaIA = Number(normalize(avgScore(analyses)).toFixed(1));
+  const prevAcuracia = normalize(avgScore(prevAnalyses));
+
   const kpis: KpiCardData = {
     documentosAuditados,
     documentosVariacao: pct(documentosAuditados, prevDocs.length),
@@ -119,6 +152,10 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
     riscosIdentificados,
     riscosCriticos,
     riscosVariacao: pct(riscosIdentificados, prevRiscos),
+    agenteIaDisponibilidade,
+    agenteIaVariacao: Number((agenteIaDisponibilidade - prevAgenteIa).toFixed(1)),
+    acuraciaIA,
+    acuraciaVariacao: Number((acuraciaIA - prevAcuracia).toFixed(1)),
   };
 
   // ── Tendência mensal de conformidade ───────────────────────
