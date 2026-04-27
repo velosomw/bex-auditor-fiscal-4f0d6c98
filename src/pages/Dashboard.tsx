@@ -387,16 +387,16 @@ const Dashboard = () => {
           <TabsContent value="indicators" className="space-y-6">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "Consistência", value: mockCompliance.consistencyIndex, color: "hsl(142,76%,36%)" },
-                { label: "Reconhecimento", value: mockCompliance.recognition, color: "hsl(200,98%,55%)" },
-                { label: "Mensuração", value: mockCompliance.measurement, color: "hsl(217,91%,50%)" },
-                { label: "Evidenciação", value: mockCompliance.disclosure, color: "hsl(38,92%,50%)" },
-              ].map((ind) => (
+                { label: "Conformidade Média", value: stats.overallCompliance, color: "hsl(142,76%,36%)" },
+                { label: "Auditorias Concluídas", value: stats.auditsCompleted, color: "hsl(200,98%,55%)", suffix: "" },
+                { label: "Em Andamento", value: stats.auditsInProgress, color: "hsl(217,91%,50%)", suffix: "" },
+                { label: "Empresas Ativas", value: stats.totalCompanies, color: "hsl(38,92%,50%)", suffix: "" },
+              ].map((ind: any) => (
                 <Card key={ind.label}>
                   <CardContent className="p-5 text-center">
                     <p className="text-xs text-muted-foreground mb-2">{ind.label}</p>
-                    <p className="text-3xl font-bold" style={{ color: ind.color }}>{ind.value}%</p>
-                    <Progress value={ind.value} className="h-1.5 mt-3" />
+                    <p className="text-3xl font-bold" style={{ color: ind.color }}>{ind.value}{ind.suffix === "" ? "" : "%"}</p>
+                    <Progress value={Math.min(ind.value, 100)} className="h-1.5 mt-3" />
                   </CardContent>
                 </Card>
               ))}
@@ -404,20 +404,9 @@ const Dashboard = () => {
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">Referências Normativas</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {mockNormativeReferences.slice(0, 8).map((norm) => (
-                    <div key={norm.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="text-xs">{norm.type.toUpperCase()}</Badge>
-                        <div><p className="text-sm font-medium text-foreground">{norm.code}</p><p className="text-xs text-muted-foreground">{norm.description}</p></div>
-                      </div>
-                      <div className="text-right text-xs">
-                        <p className="text-muted-foreground">{norm.auditsImpacted} auditorias</p>
-                        <p className="text-[hsl(38,92%,50%)]">{norm.findingsRelated} achados</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  As referências normativas (CPC, NBC TA, IFRS) serão indexadas automaticamente conforme os relatórios de auditoria forem gerados.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -427,40 +416,52 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="pb-3"><CardTitle className="text-base">Tendência de Conformidade</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={mockTrendData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,90%)" />
-                        <XAxis dataKey="month" fontSize={12} />
-                        <YAxis fontSize={12} domain={[80, 95]} />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="compliance" stroke="hsl(217,91%,50%)" strokeWidth={2} dot={{ r: 4 }} name="Conformidade %" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {stats.trend.length === 0 ? (
+                    <div className="h-[280px] flex items-center justify-center text-xs text-muted-foreground text-center px-4">
+                      Sem histórico suficiente. A tendência será exibida após o processamento de novos balancetes.
+                    </div>
+                  ) : (
+                    <div className="h-[280px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={stats.trend}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,90%)" />
+                          <XAxis dataKey="month" fontSize={12} />
+                          <YAxis fontSize={12} domain={[0, 100]} />
+                          <Tooltip />
+                          <Line type="monotone" dataKey="compliance" stroke="hsl(217,91%,50%)" strokeWidth={2} dot={{ r: 4 }} name="Quality %" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-3"><CardTitle className="text-base">Distribuição de Auditorias</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={mockAuditDistribution} cx="50%" cy="50%" outerRadius={100} dataKey="count" nameKey="type" label={({ type, percentage }) => `${percentage}%`} fontSize={11}>
-                          {mockAuditDistribution.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex flex-wrap gap-3 justify-center mt-2">
-                    {mockAuditDistribution.map((d, i) => (
-                      <div key={d.type} className="flex items-center gap-1.5 text-xs">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                        <span className="text-muted-foreground">{d.type}</span>
+                  {stats.auditDistribution.length === 0 ? (
+                    <div className="h-[280px] flex items-center justify-center text-xs text-muted-foreground">Sem auditorias registradas.</div>
+                  ) : (
+                    <>
+                      <div className="h-[280px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={stats.auditDistribution} cx="50%" cy="50%" outerRadius={100} dataKey="count" nameKey="type" label={({ percentage }: any) => `${percentage}%`} fontSize={11}>
+                              {stats.auditDistribution.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex flex-wrap gap-3 justify-center mt-2">
+                        {stats.auditDistribution.map((d, i) => (
+                          <div key={d.type} className="flex items-center gap-1.5 text-xs">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                            <span className="text-muted-foreground">{d.type}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
