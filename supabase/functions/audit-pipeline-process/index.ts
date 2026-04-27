@@ -360,32 +360,88 @@ async function normalizeAccountsLLM(
   return finalResults;
 }
 
-/* ──────────────── Filtra contas analíticas (folhas) ────────────────
-   Em balancetes brasileiros, contas têm códigos hierárquicos (1, 1.1, 1.1.01, 1.1.01.001).
-   Contas sintéticas são prefixos de outras (ex.: "1.1" é prefixo de "1.1.01").
-   Somar TODAS gera dupla/tripla contagem. Mantemos apenas as FOLHAS (analíticas). */
-function keepOnlyLeafAccounts<T extends { conta: string }>(rows: T[]): T[] {
-  const codes = rows.map((r) => String(r.conta || "").trim()).filter(Boolean);
-  if (codes.length === 0) return rows;
+/* ──────────────── Limpeza de balancete: remove sintéticas e deduplica ────────────────
+   Problemas comuns no parsing de balancetes Excel:
+   1. Hierarquia (1.1.01 totaliza 1.1.01.001+1.1.01.002) → soma dupla
+   2. Linhas sintéticas com descrição genérica ("Ativo", "Passivo Circulante", "DRE")
+   3. Excel mal formatado: mesma conta aparece como [código] + [descrição] em linhas separadas
+      com valores idênticos → soma dupla
+   Esta função aplica 3 filtros em sequência. */
+function cleanBalanceteRows<T extends { conta: string; descricao: string; values: Record<string, number> }>(
+  rows: T[],
+): T[] {
+  if (rows.length === 0) return rows;
 
-  // Normaliza separadores (aceita ".", "-", " ")
-  const normalize = (c: string) => c.replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
-  const normCodes = codes.map(normalize);
+  // FILTRO 1: hierarquia por código
+  const normalize = (c: string) => String(c || "").trim().replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
+  const codes = rows.map((r) => normalize(r.conta));
+  const hasHierarchy = codes.some((c) => c.includes("."));
+  let step1 = rows;
+  if (hasHierarchy) {
+    const codeSet = new Set(codes.filter(Boolean));
+    step1 = rows.filter((r) => {
+      const c = normalize(r.conta);
+      if (!c) return true;
+      for (const other of codeSet) {
+        if (other !== c && other.startsWith(c + ".")) return false;
+      }
+      return true;
+    });
+  }
 
-  // Detecta se há hierarquia explícita (códigos com pontos)
-  const hasHierarchy = normCodes.some((c) => c.includes("."));
-  if (!hasHierarchy) return rows; // sem códigos hierárquicos, mantém tudo
-
-  const codeSet = new Set(normCodes);
-  return rows.filter((r) => {
-    const c = normalize(String(r.conta || "").trim());
-    if (!c) return true;
-    // É folha se NÃO existir nenhum outro código que comece com `c + "."`
-    for (const other of codeSet) {
-      if (other !== c && other.startsWith(c + ".")) return false;
-    }
-    return true;
+  // FILTRO 2: descrições sintéticas/totalizadoras genéricas
+  const SYNTHETIC_PATTERNS = [
+    /^ativo$/i,
+    /^ativo\s+(circulante|n[aã]o\s+circulante|total)$/i,
+    /^passivo$/i,
+    /^passivo\s+(circulante|n[aã]o\s+circulante|total)$/i,
+    /^patrim[oô]nio\s+l[ií]quido$/i,
+    /^total\s+do?\s+(ativo|passivo|patrim[oô]nio)/i,
+    /^total\s+geral/i,
+    /^demonstra[çc][aã]o\s+de?\s+resultado/i,
+    /^demonstrativo\s+de?\s+resultado/i,
+    /^dre$/i,
+    /^receita\s+(bruta|l[ií]quida|total|operacional)$/i,
+    /^despesa\s+(total|operacional)$/i,
+    /^resultado\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+    /^lucro\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+    /^subtotal/i,
+    /^totaliza/i,
+  ];
+  const step2 = step1.filter((r) => {
+    const d = String(r.descricao || "").trim();
+    return !SYNTHETIC_PATTERNS.some((p) => p.test(d));
   });
+
+  // FILTRO 3: deduplicação por valor adjacente
+  const lastYear = (() => {
+    const years = Object.keys(step2[0]?.values || {});
+    return years.sort().reverse()[0] || "_";
+  })();
+  const step3: T[] = [];
+  const EPS = 0.01;
+  for (let i = 0; i < step2.length; i++) {
+    const cur = step2[i];
+    const curVal = Number(cur.values?.[lastYear] || 0);
+    const prev = step3[step3.length - 1];
+    if (prev && curVal !== 0) {
+      const prevVal = Number(prev.values?.[lastYear] || 0);
+      if (Math.abs(prevVal - curVal) < EPS) {
+        // Duplicata: substitui pela linha com descrição mais rica (não numérica)
+        const prevDesc = String(prev.descricao || "").trim();
+        const curDesc = String(cur.descricao || "").trim();
+        const prevIsCodeOnly = /^\d+$/.test(prevDesc) || prevDesc.length < 4;
+        const curIsCodeOnly = /^\d+$/.test(curDesc) || curDesc.length < 4;
+        if (prevIsCodeOnly && !curIsCodeOnly) {
+          step3[step3.length - 1] = cur;
+        }
+        continue;
+      }
+    }
+    step3.push(cur);
+  }
+
+  return step3;
 }
 
 /* ──────────────── Validador contábil ──────────────── */
