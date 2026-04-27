@@ -121,6 +121,24 @@ export async function createCompany(input: CreateCompanyInput): Promise<Company>
   return data as Company;
 }
 
+export type UpdateCompanyInput = Partial<Omit<CreateCompanyInput, "source">>;
+
+export async function updateCompany(id: string, input: UpdateCompanyInput): Promise<Company> {
+  const patch: any = {};
+  for (const [k, v] of Object.entries(input)) {
+    patch[k] = typeof v === "string" ? (v.trim() || null) : (v ?? null);
+  }
+  if (input.name !== undefined) patch.name = String(input.name).trim();
+  const { data, error } = await supabase
+    .from("companies")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Company;
+}
+
 export async function updateCompanyStatus(id: string, status: CompanyStatus): Promise<void> {
   const { error } = await supabase.from("companies").update({ status }).eq("id", id);
   if (error) throw error;
