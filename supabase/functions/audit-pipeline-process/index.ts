@@ -97,6 +97,35 @@ function classifyAccount(desc: string): { tipo: string; categoria: string } {
   return { tipo: "ativo", categoria: "ativo_circulante" };
 }
 
+/* ──────────────── Classificação por código de conta brasileiro ────────────────
+   Plano de contas padrão BR:
+   1.x = Ativo  | 2.x = Passivo + PL  | 3.x = Receita  | 4.x = Custo/Despesa
+   Subdivisão típica: 2.1/2.2 = Passivo, 2.3/2.4/2.5 = PL */
+function classifyByCode(conta: string): { tipo: string; categoria: string } | null {
+  const c = String(conta || "").trim().replace(/[\s\-]+/g, ".");
+  if (!c) return null;
+  const first = c.charAt(0);
+  const second = c.charAt(2); // após o primeiro ponto
+  if (first === "1") {
+    // Ativo: 1.1/1.2 = circulante, 1.3+ = não circulante
+    if (second === "1" || second === "2") return { tipo: "ativo", categoria: "ativo_circulante" };
+    return { tipo: "ativo", categoria: "ativo_nao_circulante" };
+  }
+  if (first === "2") {
+    // PL: 2.3, 2.4, 2.5 (Capital, Reservas, Lucros)
+    if (second === "3" || second === "4" || second === "5") {
+      return { tipo: "pl", categoria: "patrimonio_liquido" };
+    }
+    if (second === "1") return { tipo: "passivo", categoria: "passivo_circulante" };
+    if (second === "2") return { tipo: "passivo", categoria: "passivo_nao_circulante" };
+    return { tipo: "passivo", categoria: "passivo_circulante" };
+  }
+  if (first === "3") return { tipo: "receita", categoria: "receita" };
+  if (first === "4") return { tipo: "despesa", categoria: "despesa" };
+  if (first === "5") return { tipo: "despesa", categoria: "custo" };
+  return null;
+}
+
 /* ──────────────── Normalização semântica em lote via LLM ──────────────── */
 const CHUNK_SIZE = 80; // Quick Win 2: era 40
 const MAX_PARALLEL = 6; // Quick Win 2: era 4
@@ -331,6 +360,34 @@ async function normalizeAccountsLLM(
   return finalResults;
 }
 
+/* ──────────────── Filtra contas analíticas (folhas) ────────────────
+   Em balancetes brasileiros, contas têm códigos hierárquicos (1, 1.1, 1.1.01, 1.1.01.001).
+   Contas sintéticas são prefixos de outras (ex.: "1.1" é prefixo de "1.1.01").
+   Somar TODAS gera dupla/tripla contagem. Mantemos apenas as FOLHAS (analíticas). */
+function keepOnlyLeafAccounts<T extends { conta: string }>(rows: T[]): T[] {
+  const codes = rows.map((r) => String(r.conta || "").trim()).filter(Boolean);
+  if (codes.length === 0) return rows;
+
+  // Normaliza separadores (aceita ".", "-", " ")
+  const normalize = (c: string) => c.replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
+  const normCodes = codes.map(normalize);
+
+  // Detecta se há hierarquia explícita (códigos com pontos)
+  const hasHierarchy = normCodes.some((c) => c.includes("."));
+  if (!hasHierarchy) return rows; // sem códigos hierárquicos, mantém tudo
+
+  const codeSet = new Set(normCodes);
+  return rows.filter((r) => {
+    const c = normalize(String(r.conta || "").trim());
+    if (!c) return true;
+    // É folha se NÃO existir nenhum outro código que comece com `c + "."`
+    for (const other of codeSet) {
+      if (other !== c && other.startsWith(c + ".")) return false;
+    }
+    return true;
+  });
+}
+
 /* ──────────────── Validador contábil ──────────────── */
 function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   valid: boolean;
@@ -340,13 +397,14 @@ function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   diff: number;
   alertas: string[];
 } {
+  // Soma com sinal preservado (não usar Math.abs — perde compensações de provisões/depreciações)
   const sum = (t: string) =>
-    rows.filter((r) => r.tipo === t).reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
-  const ativo = sum("ativo");
-  const passivo = sum("passivo");
-  const pl = sum("pl");
+    rows.filter((r) => r.tipo === t).reduce((a, b) => a + (Number(b.valor) || 0), 0);
+  const ativo = Math.abs(sum("ativo"));
+  const passivo = Math.abs(sum("passivo"));
+  const pl = Math.abs(sum("pl"));
   const diff = Math.abs(ativo - (passivo + pl));
-  const tolerance = ativo * 0.02;
+  const tolerance = Math.max(ativo * 0.02, 1000);
   const alertas: string[] = [];
   if (ativo === 0) alertas.push("Ativo total = 0 (verifique extração)");
   if (passivo + pl === 0) alertas.push("Passivo + PL = 0 (verifique extração)");
@@ -380,10 +438,24 @@ async function runPipeline(
     });
 
     // 3. Combinar balanço + DRE
-    const allRows = [
+    const allRowsRaw = [
       ...(body.balanco || []).map((r) => ({ ...r, _src: "balanco" as const })),
       ...(body.dre || []).map((r) => ({ ...r, _src: "dre" as const })),
     ];
+
+    // 3.1 Filtrar contas sintéticas (totalizadoras) — manter apenas analíticas (folhas)
+    // Evita dupla contagem hierárquica que inflava ativo em ~10x
+    const balancoLeaves = keepOnlyLeafAccounts(body.balanco || []);
+    const dreLeaves = keepOnlyLeafAccounts(body.dre || []);
+    const allRows = [
+      ...balancoLeaves.map((r) => ({ ...r, _src: "balanco" as const })),
+      ...dreLeaves.map((r) => ({ ...r, _src: "dre" as const })),
+    ];
+    stageLog(reqId, "hierarchy.filtered", {
+      raw_rows: allRowsRaw.length,
+      leaf_rows: allRows.length,
+      removed_synthetic: allRowsRaw.length - allRows.length,
+    });
 
     if (allRows.length === 0) {
       await supabase
@@ -405,19 +477,32 @@ async function runPipeline(
     );
     stageLog(reqId, "normalize.total", { duration_ms: Date.now() - tNorm, rows: allRows.length });
 
+    // 4.1 Override por código de conta (mais confiável que descrição)
     let mappedCount = 0;
+    let codeOverrides = 0;
     const normalizedRows = allRows.map((row, i) => {
       const n = normalized[i];
-      if (n.matched) mappedCount++;
+      const byCode = classifyByCode(row.conta);
+      // Código tem precedência: 1.x sempre é Ativo, 2.3+ sempre é PL, etc.
+      const finalTipo = byCode?.tipo || n.tipo;
+      const finalCat = byCode?.categoria || n.categoria;
+      if (byCode && (byCode.tipo !== n.tipo || byCode.categoria !== n.categoria)) codeOverrides++;
+      // mapping_score = % com classificação válida (matched OU código reconhecido)
+      if (n.matched || byCode) mappedCount++;
       const valor = Number(row.values?.[lastYear] || 0);
       return {
         conta_original: row.descricao || row.conta,
         conta_normalizada: n.conta_normalizada,
         valor,
-        tipo: n.tipo,
-        categoria: n.categoria,
-        matched: n.matched,
+        tipo: finalTipo,
+        categoria: finalCat,
+        matched: n.matched || !!byCode,
       };
+    });
+    stageLog(reqId, "classification.done", {
+      total: normalizedRows.length,
+      mapped: mappedCount,
+      code_overrides: codeOverrides,
     });
 
     // 5. Persistir balancete_data
