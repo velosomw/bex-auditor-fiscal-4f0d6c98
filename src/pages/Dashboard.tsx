@@ -468,23 +468,29 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="alerts" className="space-y-4">
-            {[
-              { severity: "high", title: "Reconhecimento de Receita — CPC 47", desc: "3 auditorias com alto risco identificado nesta área.", time: "2h atrás" },
-              { severity: "high", title: "Provisões insuficientes — CPC 25", desc: "Divergência material identificada em provisões trabalhistas.", time: "5h atrás" },
-              { severity: "medium", title: "Prazo de auditoria próximo", desc: "5 auditorias com prazo nos próximos 7 dias.", time: "1 dia atrás" },
-              { severity: "medium", title: "Controles internos fragilizados", desc: "Área de contas a receber requer atenção.", time: "2 dias atrás" },
-              { severity: "low", title: "Atualização normativa disponível", desc: "Nova revisão do CPC 06 publicada.", time: "3 dias atrás" },
-            ].map((alert, i) => (
-              <Card key={i} className={`border-l-4 ${alert.severity === "high" ? "border-l-[hsl(0,84%,60%)]" : alert.severity === "medium" ? "border-l-[hsl(38,92%,50%)]" : "border-l-[hsl(200,98%,55%)]"}`}>
-                <CardContent className="p-4 flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${alert.severity === "high" ? "text-[hsl(0,84%,60%)]" : alert.severity === "medium" ? "text-[hsl(38,92%,50%)]" : "text-[hsl(200,98%,55%)]"}`} />
-                    <div><p className="text-sm font-medium text-foreground">{alert.title}</p><p className="text-xs text-muted-foreground mt-0.5">{alert.desc}</p></div>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{alert.time}</span>
+            {lastAuditOverview.alertasIA.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                  <AlertTriangle className="w-6 h-6 mx-auto mb-2 opacity-40" />
+                  Nenhum alerta inteligente registrado. Os alertas serão derivados automaticamente das próximas análises de auditoria.
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              lastAuditOverview.alertasIA.map((alert, i) => {
+                const sev = alert.severidade === "critico" || alert.severidade === "alto" ? "high" :
+                            alert.severidade === "medio" ? "medium" : "low";
+                return (
+                  <Card key={i} className={`border-l-4 ${sev === "high" ? "border-l-[hsl(0,84%,60%)]" : sev === "medium" ? "border-l-[hsl(38,92%,50%)]" : "border-l-[hsl(200,98%,55%)]"}`}>
+                    <CardContent className="p-4 flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${sev === "high" ? "text-[hsl(0,84%,60%)]" : sev === "medium" ? "text-[hsl(38,92%,50%)]" : "text-[hsl(200,98%,55%)]"}`} />
+                        <div><p className="text-sm font-medium text-foreground">{alert.titulo}</p><p className="text-xs text-muted-foreground mt-0.5">{alert.descricao}</p></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </TabsContent>
         </Tabs>
       </div>
