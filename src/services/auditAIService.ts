@@ -374,6 +374,7 @@ export async function runAuditPipeline(
   parsedData: ParsedFinancialData,
   fileName: string,
   companyId?: string,
+  existingDocumentId?: string,
 ): Promise<PipelineResult | null> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const { supabase } = await import("@/integrations/supabase/client");
@@ -389,10 +390,12 @@ export async function runAuditPipeline(
       },
       body: JSON.stringify({
         company_id: companyId,
+        document_id: existingDocumentId, // se já criado para registrar OCR
         file_name: fileName,
         balanco: parsedData.balanco,
         dre: parsedData.dre,
         documentInfo: parsedData.documentInfo,
+        ocr_score: parsedData.ocrScore,
       }),
     });
     if (!response.ok) {
