@@ -840,6 +840,8 @@ async function runPipeline(
       allRows.map((r) => ({ conta: r.conta, descricao: r.descricao })),
       dictionary || [],
       reqId,
+      supabase,
+      documentId,
     );
     stageLog(reqId, "normalize.total", { duration_ms: Date.now() - tNorm, rows: allRows.length });
 
