@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
-import { mockStats, mockCompliance, mockRisks, mockNormativeReferences, mockCriticalAreas, mockTrendData, mockAuditDistribution } from "@/data/dashboardMockData";
+import { loadDashboardStats, emptyStats, type DashboardStats } from "@/services/dashboardStatsService";
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
 import CoordinatorDashboard from "@/components/coordinator/CoordinatorDashboard";
