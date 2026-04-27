@@ -383,12 +383,19 @@ export interface DedupConfig {
   dre?: DedupOptions;
 }
 
+export interface PipelineProgressEvent {
+  status: string;
+  progress: string | null;
+  documentId: string;
+}
+
 export async function runAuditPipeline(
   parsedData: ParsedFinancialData,
   fileName: string,
   companyId?: string,
   existingDocumentId?: string,
   dedup?: DedupConfig,
+  onProgress?: (ev: PipelineProgressEvent) => void,
 ): Promise<PipelineResult | null> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const { supabase } = await import("@/integrations/supabase/client");
@@ -422,27 +429,59 @@ export async function runAuditPipeline(
     const documentId: string | undefined = enqueue?.document_id;
     if (!documentId) return null;
 
-    // 2. Polling até status final (completed/failed) — até 8min
+    onProgress?.({ status: "queued", progress: "Iniciando pipeline...", documentId });
+
+    // 2a. Realtime subscription para receber updates de progress imediatos
+    const channel = supabase
+      .channel(`pipeline-doc-${documentId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "pipeline_documents",
+          filter: `id=eq.${documentId}`,
+        },
+        (payload) => {
+          const row: any = payload.new;
+          if (row) {
+            onProgress?.({
+              status: row.status ?? "processing",
+              progress: row.progress ?? null,
+              documentId,
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    // 2b. Polling como fallback (caso realtime perca um evento) até status final — até 8min
     const MAX_WAIT_MS = 8 * 60 * 1000;
     const POLL_MS = 3000;
     const t0 = Date.now();
     let finalStatus: string | null = null;
-    while (Date.now() - t0 < MAX_WAIT_MS) {
-      await new Promise((r) => setTimeout(r, POLL_MS));
-      const { data: doc } = await supabase
-        .from("pipeline_documents")
-        .select("status, error_message")
-        .eq("id", documentId)
-        .maybeSingle();
-      const st = (doc as any)?.status;
-      if (st === "completed" || st === "failed") {
-        finalStatus = st;
-        if (st === "failed") {
-          console.warn("Pipeline failed:", (doc as any)?.error_message);
-          return null;
+    try {
+      while (Date.now() - t0 < MAX_WAIT_MS) {
+        await new Promise((r) => setTimeout(r, POLL_MS));
+        const { data: doc } = await supabase
+          .from("pipeline_documents")
+          .select("status, error_message, progress")
+          .eq("id", documentId)
+          .maybeSingle();
+        const st = (doc as any)?.status;
+        const pg = (doc as any)?.progress ?? null;
+        if (st) onProgress?.({ status: st, progress: pg, documentId });
+        if (st === "completed" || st === "failed") {
+          finalStatus = st;
+          if (st === "failed") {
+            console.warn("Pipeline failed:", (doc as any)?.error_message);
+            return null;
+          }
+          break;
         }
-        break;
       }
+    } finally {
+      supabase.removeChannel(channel);
     }
     if (finalStatus !== "completed") {
       console.warn("Pipeline timeout aguardando processamento");
