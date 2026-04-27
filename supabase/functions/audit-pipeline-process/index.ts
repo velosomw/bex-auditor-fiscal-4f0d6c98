@@ -1,12 +1,13 @@
 // Audit Pipeline Process — Pré-processamento inteligente de balancetes
 // Stack: Lovable AI Gateway (chat/JSON) + Supabase Postgres.
 //
-// Quick Wins aplicados (v2):
-//   1. Cache em memória (hash da descrição) → evita LLM calls repetidos
-//   2. Paralelismo aumentado (CHUNK_SIZE 80, MAX_PARALLEL 6)
-//   3. Deduplicação pré-LLM (descrições idênticas processadas 1x)
-//   4. Heurística PL melhorada (Capital Social / Reservas / Lucros / Prejuízos)
-//   5. Logging estruturado por estágio (timestamps + métricas)
+// Otimizações v3 (todas as 6 melhorias do plano de performance):
+//   #1 Paralelismo aumentado:   CHUNK_SIZE 80→120, MAX_PARALLEL 6→12 (≤ 1 onda em casos típicos)
+//   #2 Cache persistente em DB: contabil_dictionary (lookup O(1) entre auditorias)
+//   #3 Fast-path heurístico:    código BR (1.x/2.x) + dicionário pulam o LLM
+//   #4 Modelo rápido:           gemini-2.5-flash-lite para normalização
+//   #5 Tool calling rígido:     prompt firme + validação de tamanho + retry único em caso de mismatch
+//   #6 Progresso em tempo real: pipeline_documents.progress atualizado por estágio
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
