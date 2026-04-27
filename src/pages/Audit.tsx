@@ -32,6 +32,8 @@ import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
 import { getFileFormat as getFormat } from "@/services/auditAIService";
+import { mergeMultiMonth, pickMonths, defaultLast3, type MultiMonthParsed } from "@/services/auditMonthDetector";
+import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 
 /* ── Helpers ── */
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
@@ -617,11 +619,12 @@ const processingSteps = [
   { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
-const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: { 
+const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed }: { 
   onComplete: () => void; 
   files: File[];
   onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
   dedupConfig?: import("@/services/auditAIService").DedupConfig;
+  preParsed?: MultiMonthParsed | null;
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -640,7 +643,20 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
         setProgress(5);
         
         let parsedData: ParsedFinancialData | null = null;
-        if (files.length > 0) {
+        if (preParsed) {
+          // Já temos o parse pronto (com meses confirmados pelo usuário) — reaproveita.
+          setCurrentStep(2);
+          setProgress(20);
+          parsedData = {
+            balanco: preParsed.balanco,
+            dre: preParsed.dre,
+            years: preParsed.years,
+            documentInfo: preParsed.documentInfo,
+            documentType: preParsed.documentType,
+            ocrScore: preParsed.ocrScore,
+          };
+          console.log(`Análise mensal: ${preParsed.years.length} meses → ${preParsed.months.map(m => m.label).join(", ")}`);
+        } else if (files.length > 0) {
           // Step 1: Parser agent - identify format
           setCurrentStep(1);
           setProgress(10);
@@ -4014,7 +4030,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
 /* ══════════════════════════════════════════════════════
    MAIN AUDIT PAGE
    ══════════════════════════════════════════════════════ */
-type AuditPhase = "upload" | "processing" | "results";
+type AuditPhase = "upload" | "confirm-months" | "processing" | "results";
 
 const AuditContent = () => {
   const [searchParams] = useSearchParams();
@@ -4028,6 +4044,9 @@ const AuditContent = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [dedupConfig, setDedupConfig] = useState<import("@/services/auditAIService").DedupConfig>({});
   const [selectedDepth, setSelectedDepth] = useState<"executivo" | "tecnico">("tecnico");
+  const [multiMonth, setMultiMonth] = useState<import("@/services/auditMonthDetector").MultiMonthParsed | null>(null);
+  const [filteredMonths, setFilteredMonths] = useState<string[]>([]);
+  const [preParsing, setPreParsing] = useState(false);
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
@@ -4083,24 +4102,51 @@ const AuditContent = () => {
         )}
         {phase === "upload" && (
           <UploadPhase 
-            onProcess={() => setPhase("processing")} 
+            onProcess={async () => {
+              if (uploadedFiles.length === 0) { setPhase("processing"); return; }
+              setPreParsing(true);
+              try {
+                // Pré-parse rápido só p/ detectar meses; ProcessingPhase reutiliza o resultado.
+                const items = await Promise.all(uploadedFiles.map(async (f) => ({
+                  fileName: f.name,
+                  parsed: await parseFile(f),
+                })));
+                const merged = mergeMultiMonth(items);
+                setMultiMonth(merged);
+                setFilteredMonths(defaultLast3(merged));
+                setPhase("confirm-months");
+              } catch (e) {
+                console.error("Pré-parse falhou:", e);
+                toast({ title: "Erro ao ler arquivos", description: "Tentando análise direta...", variant: "destructive" });
+                setPhase("processing");
+              } finally {
+                setPreParsing(false);
+              }
+            }} 
             onFilesReady={setUploadedFiles}
             dedupConfig={dedupConfig}
             onDedupChange={setDedupConfig}
             onDepthChange={setSelectedDepth}
           />
         )}
+        <MonthsConfirmDialog
+          open={phase === "confirm-months" && !!multiMonth}
+          data={multiMonth}
+          onConfirm={(keys) => { setFilteredMonths(keys); setPhase("processing"); }}
+          onCancel={() => { setMultiMonth(null); setPhase("upload"); }}
+        />
         {phase === "processing" && (
           <ProcessingPhase 
             onComplete={() => setPhase("results")} 
             files={uploadedFiles}
+            preParsed={multiMonth ? pickMonths(multiMonth, filteredMonths) : null}
             onAnalysisReady={handleAnalysisReady}
             dedupConfig={dedupConfig}
           />
         )}
         {phase === "results" && (
           <ResultsPhase 
-            onBack={() => { setPhase("upload"); setAiAnalysis(null); setParsedData(null); setBatchId(""); setSourceDocs([]); }} 
+            onBack={() => { setPhase("upload"); setAiAnalysis(null); setParsedData(null); setBatchId(""); setSourceDocs([]); setMultiMonth(null); }} 
             aiAnalysis={aiAnalysis}
             parsedData={parsedData}
             batchId={batchId}
