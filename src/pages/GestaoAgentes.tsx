@@ -88,7 +88,7 @@ const TabUpload = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [processing, setProcessing] = useState(false);
   const [stages, setStages] = useState<Record<StageKey, StageStatus>>({
-    upload: "idle", ocr: "idle", extract: "idle", normalize: "idle", analyze: "idle",
+    upload: "idle", ocr: "idle", extract: "idle", normalize: "idle", validate: "idle", analyze: "idle",
   });
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
