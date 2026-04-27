@@ -508,8 +508,12 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
     const years = Object.keys(step2[0]?.values || {});
     return years.sort().reverse()[0] || "_";
   })();
-  const EPS = 0.01;
-  const PROX_WINDOW = 3; // linhas adjacentes consideradas "mesma conta repetida pelo parser"
+
+  // Resolve parâmetros (auto-detecta escala se não vier override)
+  const sampleValues = step2.map((r) => Number(r.values?.[lastYear] || 0));
+  const { eps: EPS, decimals: DEC, proxWindow: PROX_WINDOW, relTol: REL_TOL } =
+    resolveDedupParams(sampleValues, opts);
+  const factor = Math.pow(10, DEC);
 
   const normCode = (s: string) =>
     String(s || "").trim().toLowerCase().replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
@@ -527,8 +531,14 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
   const descRichness = (s: string) => {
     const t = normDesc(s);
     if (!t) return 0;
-    if (/^\d+$/.test(t)) return 1; // só dígitos
-    return t.split(/\s+/).filter(Boolean).length + 2; // # de palavras
+    if (/^\d+$/.test(t)) return 1;
+    return t.split(/\s+/).filter(Boolean).length + 2;
+  };
+  // Igualdade tolerante: |Δ| <= max(EPS, relTol * max(|a|,|b|))
+  const valuesEqual = (a: number, b: number) => {
+    const d = Math.abs(a - b);
+    const tol = Math.max(EPS, REL_TOL * Math.max(Math.abs(a), Math.abs(b)));
+    return d <= tol;
   };
 
   type Indexed = { row: T; idx: number; code: string; desc: string; valR: number };
@@ -537,14 +547,10 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
     idx,
     code: normCode(row.conta),
     desc: normDesc(row.descricao),
-    valR: Math.round((Number(row.values?.[lastYear] || 0)) * 100) / 100,
+    valR: Math.round((Number(row.values?.[lastYear] || 0)) * factor) / factor,
   }));
 
-  // Conjunto de índices a remover
   const dropped = new Set<number>();
-  // Map de chave forte → primeiro índice já mantido (dentro da janela)
-  // Chave forte: code + "|" + desc + "|" + val (todas obrigatórias e não vazias)
-  // Chave fraca: usada apenas para o caso "código vs descrição em linhas vizinhas"
   for (let i = 0; i < indexed.length; i++) {
     if (dropped.has(i)) continue;
     const a = indexed[i];
@@ -555,42 +561,36 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
       if (dropped.has(j)) continue;
       const b = indexed[j];
 
-      // Sem valor → não considera duplicata por valor
       if (a.valR === 0 || b.valR === 0) continue;
-      if (Math.abs(a.valR - b.valR) >= EPS) continue;
+      if (!valuesEqual(a.valR, b.valR)) continue;
 
       const bHasCode = !!b.code;
       const bHasDesc = !!b.desc && !isCodeLike(b.row.descricao);
 
-      // CASO 1 — Chave forte: mesmo código + mesma descrição + mesmo valor → duplicata exata
+      // CASO 1 — chave forte
       if (aHasCode && bHasCode && a.code === b.code && aHasDesc && bHasDesc && a.desc === b.desc) {
         dropped.add(j);
         continue;
       }
 
-      // CASO 2 — Mesmo código (não vazio) + mesmo valor + descrições compatíveis
-      // (uma é prefixo da outra, ou uma é vazia/code-like)
+      // CASO 2 — mesmo código + descrições compatíveis
       if (aHasCode && bHasCode && a.code === b.code) {
         const oneEmpty = !aHasDesc || !bHasDesc;
         const oneContainsOther =
           aHasDesc && bHasDesc && (a.desc.includes(b.desc) || b.desc.includes(a.desc));
         if (oneEmpty || oneContainsOther) {
-          // Mantém a linha com descrição mais rica
           const keepA = descRichness(a.row.descricao) >= descRichness(b.row.descricao);
           dropped.add(keepA ? j : i);
-          if (!keepA) break; // i foi descartado, próximo i
+          if (!keepA) break;
           continue;
         }
       }
 
-      // CASO 3 — Artefato típico do Excel: linha [só código] + linha [só descrição]
-      // adjacentes (j === i+1) com mesmo valor → 2 linhas representam a MESMA conta.
-      // Só aplica para vizinhos imediatos para não colapsar contas distintas.
+      // CASO 3 — artefato Excel: vizinho imediato código vs descrição
       if (j === i + 1) {
         const aIsCodeOnly = isCodeLike(a.row.descricao);
         const bIsCodeOnly = isCodeLike(b.row.descricao);
         if (aIsCodeOnly !== bIsCodeOnly) {
-          // Mantém a com descrição textual; descarta a só-código
           if (aIsCodeOnly) {
             dropped.add(i);
             break;
@@ -600,8 +600,6 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
           }
         }
       }
-
-      // Caso contrário: NÃO deduplica (contas distintas que coincidem em valor)
     }
   }
 
