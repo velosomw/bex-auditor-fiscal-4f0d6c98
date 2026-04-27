@@ -3997,6 +3997,7 @@ const AuditContent = () => {
   const [sourceDocs, setSourceDocs] = useState<{ fileName: string; fileSize: number; format: string }[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
   const [dedupConfig, setDedupConfig] = useState<import("@/services/auditAIService").DedupConfig>({});
+  const [selectedDepth, setSelectedDepth] = useState<"executivo" | "tecnico">("tecnico");
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
