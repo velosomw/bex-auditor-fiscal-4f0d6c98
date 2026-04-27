@@ -123,7 +123,7 @@ export async function parseDataFileAI(file: File): Promise<ParsedFinancialData> 
 }
 
 /* ── Parse PDF/Document via AI ── */
-export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> {
+export async function parseDocumentAI(file: File, documentId?: string): Promise<ParsedFinancialData> {
   let fileBase64: string;
   let mimeType = file.type;
   const ext = getFileExtension(file);
@@ -145,10 +145,10 @@ export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> 
     }
   }
 
-  return parseDocumentAI_internal(fileBase64, file.name, mimeType);
+  return parseDocumentAI_internal(fileBase64, file.name, mimeType, documentId);
 }
 
-async function parseDocumentAI_internal(fileBase64: string, fileName: string, mimeType: string): Promise<ParsedFinancialData> {
+async function parseDocumentAI_internal(fileBase64: string, fileName: string, mimeType: string, documentId?: string): Promise<ParsedFinancialData> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -158,7 +158,7 @@ async function parseDocumentAI_internal(fileBase64: string, fileName: string, mi
       "Content-Type": "application/json",
       Authorization: `Bearer ${SUPABASE_KEY}`,
     },
-    body: JSON.stringify({ fileBase64, fileName, mimeType }),
+    body: JSON.stringify({ fileBase64, fileName, mimeType, documentId }),
   });
 
   if (!response.ok) {
@@ -176,6 +176,8 @@ async function parseDocumentAI_internal(fileBase64: string, fileName: string, mi
     pdfType: extracted.pdfType,
     documentInfo: extracted.documentInfo,
     documentType: extracted.documentInfo?.tipo,
+    ocrScore: typeof data.ocr_score === "number" ? data.ocr_score : undefined,
+    persisted: data.persisted === true,
   };
 }
 
