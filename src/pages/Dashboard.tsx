@@ -19,23 +19,14 @@ import { listCompanies, type Company } from "@/services/companiesService";
 
 const COLORS = ["hsl(217,91%,50%)", "hsl(200,98%,55%)", "hsl(142,76%,36%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)"];
 
-/* ── Mock: Last Audit Overview ── */
-const lastAuditOverview = {
-  empresa: "Empresa Demonstração S.A.",
-  periodo: "Exercício 2023",
-  statusFinanceiro: "Atenção",
-  scoreRisco: 47,
-  indicadores: {
-    liquidezCorrente: 1.78,
-    endividamento: 0.445,
-    kanitz: 1.24,
-  },
-  alertasIA: [
-    { icone: "⚠", titulo: "Estoque elevado", descricao: "Estoques cresceram 45% acima do CMV", severidade: "medio" },
-    { icone: "⚠", titulo: "Dependência factoring", descricao: "Antecipação de recebíveis identificada — fator de risco", severidade: "alto" },
-    { icone: "⚠", titulo: "Passivo crescente", descricao: "Empréstimos LP cresceram 57% no período", severidade: "alto" },
-    { icone: "📉", titulo: "Margem em deterioração", descricao: "Margem líquida caiu 60% no período analisado", severidade: "critico" },
-  ],
+/* Empty state for last audit until real data exists */
+const emptyAuditOverview = {
+  empresa: "Sem auditoria registrada",
+  periodo: "—",
+  statusFinanceiro: "Saudável" as const,
+  scoreRisco: 0,
+  indicadores: { liquidezCorrente: null, endividamento: null, kanitz: null } as { liquidezCorrente: number | null; endividamento: number | null; kanitz: number | null },
+  alertasIA: [] as { titulo: string; descricao: string; severidade: string }[],
 };
 
 const severityStyle: Record<string, string> = {
