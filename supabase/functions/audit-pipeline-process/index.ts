@@ -413,34 +413,113 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
     return !SYNTHETIC_PATTERNS.some((p) => p.test(d));
   });
 
-  // FILTRO 3: deduplicação por valor adjacente
+  // FILTRO 3: deduplicação robusta por chave composta + janela de proximidade
+  // Chave de identidade: (código_normalizado, descrição_normalizada, valor_arredondado)
+  // Critério de proximidade: só considera duplicata se aparecer dentro de PROX_WINDOW linhas,
+  // evitando colapsar contas distintas que coincidentemente têm o mesmo valor em pontos
+  // muito separados do balancete (ex.: dois empréstimos diferentes com saldo idêntico).
   const lastYear = (() => {
     const years = Object.keys(step2[0]?.values || {});
     return years.sort().reverse()[0] || "_";
   })();
-  const step3: T[] = [];
   const EPS = 0.01;
-  for (let i = 0; i < step2.length; i++) {
-    const cur = step2[i];
-    const curVal = Number(cur.values?.[lastYear] || 0);
-    const prev = step3[step3.length - 1];
-    if (prev && curVal !== 0) {
-      const prevVal = Number(prev.values?.[lastYear] || 0);
-      if (Math.abs(prevVal - curVal) < EPS) {
-        // Duplicata: substitui pela linha com descrição mais rica (não numérica)
-        const prevDesc = String(prev.descricao || "").trim();
-        const curDesc = String(cur.descricao || "").trim();
-        const prevIsCodeOnly = /^\d+$/.test(prevDesc) || prevDesc.length < 4;
-        const curIsCodeOnly = /^\d+$/.test(curDesc) || curDesc.length < 4;
-        if (prevIsCodeOnly && !curIsCodeOnly) {
-          step3[step3.length - 1] = cur;
-        }
+  const PROX_WINDOW = 3; // linhas adjacentes consideradas "mesma conta repetida pelo parser"
+
+  const normCode = (s: string) =>
+    String(s || "").trim().toLowerCase().replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
+  const normDesc = (s: string) =>
+    String(s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  const isCodeLike = (s: string) => {
+    const t = String(s || "").trim();
+    return !t || /^\d+$/.test(t) || t.length < 4;
+  };
+  const descRichness = (s: string) => {
+    const t = normDesc(s);
+    if (!t) return 0;
+    if (/^\d+$/.test(t)) return 1; // só dígitos
+    return t.split(/\s+/).filter(Boolean).length + 2; // # de palavras
+  };
+
+  type Indexed = { row: T; idx: number; code: string; desc: string; valR: number };
+  const indexed: Indexed[] = step2.map((row, idx) => ({
+    row,
+    idx,
+    code: normCode(row.conta),
+    desc: normDesc(row.descricao),
+    valR: Math.round((Number(row.values?.[lastYear] || 0)) * 100) / 100,
+  }));
+
+  // Conjunto de índices a remover
+  const dropped = new Set<number>();
+  // Map de chave forte → primeiro índice já mantido (dentro da janela)
+  // Chave forte: code + "|" + desc + "|" + val (todas obrigatórias e não vazias)
+  // Chave fraca: usada apenas para o caso "código vs descrição em linhas vizinhas"
+  for (let i = 0; i < indexed.length; i++) {
+    if (dropped.has(i)) continue;
+    const a = indexed[i];
+    const aHasCode = !!a.code;
+    const aHasDesc = !!a.desc && !isCodeLike(a.row.descricao);
+
+    for (let j = i + 1; j < Math.min(indexed.length, i + 1 + PROX_WINDOW); j++) {
+      if (dropped.has(j)) continue;
+      const b = indexed[j];
+
+      // Sem valor → não considera duplicata por valor
+      if (a.valR === 0 || b.valR === 0) continue;
+      if (Math.abs(a.valR - b.valR) >= EPS) continue;
+
+      const bHasCode = !!b.code;
+      const bHasDesc = !!b.desc && !isCodeLike(b.row.descricao);
+
+      // CASO 1 — Chave forte: mesmo código + mesma descrição + mesmo valor → duplicata exata
+      if (aHasCode && bHasCode && a.code === b.code && aHasDesc && bHasDesc && a.desc === b.desc) {
+        dropped.add(j);
         continue;
       }
+
+      // CASO 2 — Mesmo código (não vazio) + mesmo valor + descrições compatíveis
+      // (uma é prefixo da outra, ou uma é vazia/code-like)
+      if (aHasCode && bHasCode && a.code === b.code) {
+        const oneEmpty = !aHasDesc || !bHasDesc;
+        const oneContainsOther =
+          aHasDesc && bHasDesc && (a.desc.includes(b.desc) || b.desc.includes(a.desc));
+        if (oneEmpty || oneContainsOther) {
+          // Mantém a linha com descrição mais rica
+          const keepA = descRichness(a.row.descricao) >= descRichness(b.row.descricao);
+          dropped.add(keepA ? j : i);
+          if (!keepA) break; // i foi descartado, próximo i
+          continue;
+        }
+      }
+
+      // CASO 3 — Artefato típico do Excel: linha [só código] + linha [só descrição]
+      // adjacentes (j === i+1) com mesmo valor → 2 linhas representam a MESMA conta.
+      // Só aplica para vizinhos imediatos para não colapsar contas distintas.
+      if (j === i + 1) {
+        const aIsCodeOnly = isCodeLike(a.row.descricao);
+        const bIsCodeOnly = isCodeLike(b.row.descricao);
+        if (aIsCodeOnly !== bIsCodeOnly) {
+          // Mantém a com descrição textual; descarta a só-código
+          if (aIsCodeOnly) {
+            dropped.add(i);
+            break;
+          } else {
+            dropped.add(j);
+            continue;
+          }
+        }
+      }
+
+      // Caso contrário: NÃO deduplica (contas distintas que coincidem em valor)
     }
-    step3.push(cur);
   }
 
+  const step3 = indexed.filter((x) => !dropped.has(x.idx)).map((x) => x.row);
   return step3;
 }
 
