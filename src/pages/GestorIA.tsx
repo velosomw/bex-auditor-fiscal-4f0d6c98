@@ -66,119 +66,218 @@ const StatusBadge = ({ status }: { status: string }) => {
   return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${styles[status]}`}>{labels[status]}</span>;
 };
 
-// ─── Tab: Visão Geral ────────────────────────────────────────
-const TabVisaoGeral = () => (
-  <div className="space-y-8">
-    {/* KPI Cards */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {kpiCards.map((kpi, i) => (
-        <div key={i} className="relative bg-card rounded-xl border border-border p-5 overflow-hidden">
-          <div className="absolute top-3 right-3 opacity-10">
-            <kpi.icon className="w-16 h-16" style={{ color: kpi.color }} />
-          </div>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${kpi.color}15` }}>
-              <kpi.icon className="w-5 h-5" style={{ color: kpi.color }} />
-            </div>
-            <span className={`text-xs font-bold flex items-center gap-1 ${kpi.positive ? "text-[hsl(152,70%,45%)]" : "text-[hsl(0,70%,55%)]"}`}>
-              <TrendingUp className={`w-3 h-3 ${!kpi.positive ? "rotate-180" : ""}`} /> {kpi.change}
-            </span>
-          </div>
-          <div className="text-3xl font-bold font-sans text-foreground">{kpi.value}</div>
-          <div className="text-sm font-semibold text-foreground mt-1">{kpi.label}</div>
-          <div className="text-xs text-muted-foreground">{kpi.sub}</div>
-        </div>
-      ))}
-    </div>
+// ─── Tab: Visão Geral (dados reais) ──────────────────────────
+const TabVisaoGeral = () => {
+  const [data, setData] = useState<GestorIaIndicators | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    {/* Charts Row */}
-    <div>
-      <h3 className="text-lg font-bold font-serif text-foreground mb-4 flex items-center gap-2">
-        <span className="w-1 h-5 rounded-full bg-[hsl(258,90%,66%)]" /> Visão Geral
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Trend Chart */}
-        <div className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-            <TrendingUp className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Tendência de Conformidade
-          </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,20%,88%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
-              <YAxis domain={[80, 100]} tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
-              <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="hsl(258,90%,66%)" strokeWidth={2} dot={{ fill: "hsl(258,90%,66%)", r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+  useEffect(() => {
+    let alive = true;
+    fetchGestorIaIndicators(12)
+      .then(d => { if (alive) setData(d); })
+      .catch(err => { console.error("[GestorIA] indicadores:", err); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
 
-        {/* Pie Chart */}
-        <div className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-            <Activity className="w-4 h-4 text-[hsl(38,90%,55%)]" /> Distribuição de Riscos
-          </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie data={riskDistribution} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
-                {riskDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex justify-center gap-4 mt-2">
-            {riskDistribution.map((r, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-xs">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: r.color }} /> {r.name}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bar Chart */}
-        <div className="bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-            <BarChart3 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Auditorias por Tipo
-          </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={auditTypeData} layout="vertical">
-              <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" width={60} />
-              <Tooltip />
-              <Bar dataKey="value" fill="hsl(258,90%,66%)" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+  if (loading || !data) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
-    </div>
+    );
+  }
 
-    {/* Context Blocks */}
-    <div>
-      <h3 className="text-lg font-bold font-serif text-foreground mb-4 flex items-center gap-2">
-        <span className="w-1 h-5 rounded-full bg-[hsl(38,90%,55%)]" /> Blocos de Contexto
-      </h3>
+  const { kpis, trend, riskDistribution, auditTypes, context } = data;
+
+  const kpiCards = [
+    {
+      label: "Documentos Auditados", value: String(kpis.documentosAuditados),
+      sub: "Total processado (12m)",
+      change: `${kpis.documentosVariacao >= 0 ? "+" : ""}${kpis.documentosVariacao}%`,
+      positive: kpis.documentosVariacao >= 0, icon: FileText, color: "hsl(258,90%,66%)",
+    },
+    {
+      label: "Auditorias Realizadas", value: String(kpis.auditoriasRealizadas),
+      sub: `${kpis.auditoriasConcluidas} concluídas`,
+      change: `${kpis.auditoriasVariacao >= 0 ? "+" : ""}${kpis.auditoriasVariacao}%`,
+      positive: kpis.auditoriasVariacao >= 0, icon: CheckCircle2, color: "hsl(152,70%,45%)",
+    },
+    {
+      label: "Conformidade Geral", value: `${kpis.conformidadeGeral}%`,
+      sub: "Média ponderada",
+      change: `${kpis.conformidadeVariacao >= 0 ? "+" : ""}${kpis.conformidadeVariacao}%`,
+      positive: kpis.conformidadeVariacao >= 0, icon: ShieldCheck, color: "hsl(152,70%,45%)",
+    },
+    {
+      label: "Riscos Identificados", value: String(kpis.riscosIdentificados),
+      sub: `${kpis.riscosCriticos} críticos`,
+      change: `${kpis.riscosVariacao >= 0 ? "+" : ""}${kpis.riscosVariacao}%`,
+      positive: kpis.riscosVariacao <= 0, icon: AlertTriangle, color: "hsl(38,90%,55%)",
+    },
+  ];
+
+  const contextBlocks = [
+    {
+      title: "Conformidade & Indicadores", sub: "Qualidade contábil e normas aplicadas",
+      icon: Scale, color: "hsl(152,70%,45%)",
+      items: [
+        { k: "Conformidade Geral", v: `${context.conformidade.geral}%` },
+        { k: "Normas Aplicadas",   v: String(context.conformidade.total) },
+        { k: "Com Desvios",        v: String(context.conformidade.comDesvios) },
+      ],
+    },
+    {
+      title: "Riscos & Tendências", sub: "Análise de pontos críticos",
+      icon: AlertTriangle, color: "hsl(38,90%,55%)",
+      items: [
+        { k: "Pontos de Auditoria", v: String(context.riscos.pontos) },
+        { k: "Riscos Altos",        v: String(context.riscos.altos) },
+        { k: "Riscos Críticos",     v: String(context.riscos.criticos) },
+      ],
+    },
+    {
+      title: "Parecer & Alertas", sub: "Modificações potenciais",
+      icon: Edit, color: "hsl(0,70%,55%)",
+      items: [
+        { k: "Pontos Ressalva", v: String(context.parecer.ressalva) },
+        { k: "Pontos Ênfase",   v: String(context.parecer.enfase) },
+        { k: "Modificação",     v: String(context.parecer.modificacao) },
+      ],
+    },
+    {
+      title: "Ajustes & Correções", sub: "Ações sugeridas pela IA",
+      icon: Zap, color: "hsl(258,90%,66%)",
+      items: [
+        { k: "Correções Sugeridas", v: String(context.ajustes.sugeridas) },
+        { k: "Impacto Financeiro",  v: String(context.ajustes.impacto) },
+        { k: "Apenas Divulgação",   v: String(context.ajustes.divulgacao) },
+      ],
+    },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {contextBlocks.map((block, i) => (
-          <div key={i} className="bg-card rounded-xl border border-border p-5" style={{ borderTopColor: block.color, borderTopWidth: 3 }}>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${block.color}15` }}>
-              <block.icon className="w-5 h-5" style={{ color: block.color }} />
+        {kpiCards.map((kpi, i) => (
+          <div key={i} className="relative bg-card rounded-xl border border-border p-5 overflow-hidden">
+            <div className="absolute top-3 right-3 opacity-10">
+              <kpi.icon className="w-16 h-16" style={{ color: kpi.color }} />
             </div>
-            <h4 className="font-semibold text-sm text-foreground">{block.title}</h4>
-            <p className="text-xs text-muted-foreground mb-3">{block.sub}</p>
-            <div className="space-y-2">
-              {block.items.map((item, j) => (
-                <div key={j} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{item.k}</span>
-                  <span className="font-bold" style={{ color: block.color }}>{item.v}</span>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${kpi.color}15` }}>
+                <kpi.icon className="w-5 h-5" style={{ color: kpi.color }} />
+              </div>
+              <span className={`text-xs font-bold flex items-center gap-1 ${kpi.positive ? "text-[hsl(152,70%,45%)]" : "text-[hsl(0,70%,55%)]"}`}>
+                <TrendingUp className={`w-3 h-3 ${!kpi.positive ? "rotate-180" : ""}`} /> {kpi.change}
+              </span>
+            </div>
+            <div className="text-3xl font-bold font-sans text-foreground">{kpi.value}</div>
+            <div className="text-sm font-semibold text-foreground mt-1">{kpi.label}</div>
+            <div className="text-xs text-muted-foreground">{kpi.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts Row */}
+      <div>
+        <h3 className="text-lg font-bold font-serif text-foreground mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 rounded-full bg-[hsl(258,90%,66%)]" /> Visão Geral
+          <span className="ml-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/30">
+            Dados reais · 12m
+          </span>
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Trend Chart */}
+          <div className="bg-card rounded-xl border border-border p-5">
+            <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
+              <TrendingUp className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Tendência de Conformidade
+            </div>
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={trend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214,20%,88%)" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
+                <Tooltip />
+                <Line type="monotone" dataKey="value" stroke="hsl(258,90%,66%)" strokeWidth={2} dot={{ fill: "hsl(258,90%,66%)", r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Pie Chart */}
+          <div className="bg-card rounded-xl border border-border p-5">
+            <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
+              <Activity className="w-4 h-4 text-[hsl(38,90%,55%)]" /> Distribuição de Riscos
+            </div>
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie data={riskDistribution} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" paddingAngle={3}>
+                  {riskDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex flex-wrap justify-center gap-3 mt-2">
+              {riskDistribution.map((r, i) => (
+                <div key={i} className="flex items-center gap-1.5 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: r.color }} /> {r.name} ({r.value}%)
                 </div>
               ))}
             </div>
           </div>
-        ))}
+
+          {/* Bar Chart */}
+          <div className="bg-card rounded-xl border border-border p-5">
+            <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
+              <BarChart3 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Auditorias por Tipo
+            </div>
+            {auditTypes.length === 0 ? (
+              <div className="h-[160px] flex items-center justify-center text-xs text-muted-foreground">
+                Nenhuma auditoria registrada no período.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={auditTypes} layout="vertical">
+                  <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" width={70} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="hsl(258,90%,66%)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Context Blocks */}
+      <div>
+        <h3 className="text-lg font-bold font-serif text-foreground mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 rounded-full bg-[hsl(38,90%,55%)]" /> Blocos de Contexto
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {contextBlocks.map((block, i) => (
+            <div key={i} className="bg-card rounded-xl border border-border p-5" style={{ borderTopColor: block.color, borderTopWidth: 3 }}>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: `${block.color}15` }}>
+                <block.icon className="w-5 h-5" style={{ color: block.color }} />
+              </div>
+              <h4 className="font-semibold text-sm text-foreground">{block.title}</h4>
+              <p className="text-xs text-muted-foreground mb-3">{block.sub}</p>
+              <div className="space-y-2">
+                {block.items.map((item, j) => (
+                  <div key={j} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{item.k}</span>
+                    <span className="font-bold" style={{ color: block.color }}>{item.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Tab: Integrações ────────────────────────────────────────
 const TabIntegracoes = () => (
