@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Plus, Search, FileText, Eye, TrendingUp, AlertTriangle, Loader2, X, List, LayoutGrid, ChevronDown } from "lucide-react";
+import { ArrowLeft, Building2, Plus, Search, FileText, Eye, TrendingUp, AlertTriangle, Loader2, X, List, LayoutGrid, ChevronDown, Pencil, Save } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PlatformLayout from "@/components/PlatformLayout";
-import { listCompanies, createCompany, type Company } from "@/services/companiesService";
+import { listCompanies, createCompany, updateCompany, type Company } from "@/services/companiesService";
+import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@/contexts/UserContext";
 import {
   getReportsByCompany,
@@ -86,12 +87,17 @@ const UserEmpresas = () => {
   const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
   const [myFirm, setMyFirm] = useState<AccountingFirm | null>(null);
 
-  // Form state
+  // Form state (cadastro)
   const [name, setName] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Edição inline
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Company>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const reload = () => {
     setLoading(true);
@@ -198,6 +204,60 @@ const UserEmpresas = () => {
       return;
     }
     navigate(`/audit?company=${c.id}`);
+  };
+
+  const startEdit = (c: Company) => {
+    setEditForm({
+      name: c.name,
+      cnpj: c.cnpj || "",
+      sector: c.sector || "",
+      cnae: c.cnae || "",
+      contact_name: c.contact_name || "",
+      email: c.email || "",
+      phone: c.phone || "",
+      phone_fixed: c.phone_fixed || "",
+      address: c.address || "",
+      city: c.city || "",
+      uf: c.uf || "",
+      zip: c.zip || "",
+      notes: c.notes || "",
+    });
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selected) return;
+    const trimmedName = (editForm.name || "").trim();
+    if (!trimmedName) { toast({ title: "Razão Social é obrigatória", variant: "destructive" }); return; }
+    const cnpjDigits = (editForm.cnpj || "").replace(/\D/g, "");
+    if (cnpjDigits && cnpjDigits.length !== 14) { toast({ title: "CNPJ inválido", description: "Informe os 14 dígitos.", variant: "destructive" }); return; }
+    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) { toast({ title: "E-mail inválido", variant: "destructive" }); return; }
+
+    setSavingEdit(true);
+    try {
+      await updateCompany(selected.company.id, {
+        name: trimmedName,
+        cnpj: editForm.cnpj || undefined,
+        sector: editForm.sector || undefined,
+        cnae: editForm.cnae || undefined,
+        contact_name: editForm.contact_name || undefined,
+        email: editForm.email || undefined,
+        phone: editForm.phone || undefined,
+        phone_fixed: editForm.phone_fixed || undefined,
+        address: editForm.address || undefined,
+        city: editForm.city || undefined,
+        uf: editForm.uf || undefined,
+        zip: editForm.zip || undefined,
+        notes: editForm.notes || undefined,
+      });
+      toast({ title: "Empresa atualizada", description: trimmedName });
+      setEditing(false);
+      reload();
+    } catch (e: any) {
+      toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   return (
@@ -519,15 +579,27 @@ const UserEmpresas = () => {
                           {selected.company.contact_name && <span>• Contato: {selected.company.contact_name}</span>}
                         </div>
                       </div>
-                      {!isReadOnly && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleNewAudit(selected.company)}
-                          className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-                        >
-                          <Plus className="w-4 h-4" /> Nova Auditoria
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!isReadOnly && !editing && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startEdit(selected.company)}
+                            className="gap-1.5"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> Editar
+                          </Button>
+                        )}
+                        {!isReadOnly && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleNewAudit(selected.company)}
+                            className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                          >
+                            <Plus className="w-4 h-4" /> Nova Auditoria
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
@@ -548,6 +620,94 @@ const UserEmpresas = () => {
                         <p className="text-lg font-bold text-foreground">{selected.totalRiscos}</p>
                       </div>
                     </div>
+
+                    {/* Formulário de edição da empresa */}
+                    {editing && (
+                      <div className="mt-5 pt-5 border-t border-border/50">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <Pencil className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Editar Cadastro da Empresa
+                          </h3>
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(false)} className="h-7 gap-1 text-xs">
+                            <X className="w-3.5 h-3.5" /> Cancelar
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1.5 md:col-span-2">
+                            <Label htmlFor="ename" className="text-xs">Razão Social *</Label>
+                            <Input id="ename" value={editForm.name || ""} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ecnpj" className="text-xs">CNPJ</Label>
+                            <Input id="ecnpj" value={editForm.cnpj || ""} onChange={e => setEditForm(f => ({ ...f, cnpj: formatCNPJ(e.target.value) }))} maxLength={18} inputMode="numeric" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ecnae" className="text-xs">CNAE</Label>
+                            <Input id="ecnae" value={editForm.cnae || ""} onChange={e => setEditForm(f => ({ ...f, cnae: e.target.value }))} placeholder="0000-0/00" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="esector" className="text-xs">Setor</Label>
+                            <Select value={editForm.sector || ""} onValueChange={(v) => setEditForm(f => ({ ...f, sector: v }))}>
+                              <SelectTrigger id="esector"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                              <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="econtact" className="text-xs">Responsável</Label>
+                            <Input id="econtact" value={editForm.contact_name || ""} onChange={e => setEditForm(f => ({ ...f, contact_name: e.target.value }))} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="eemail" className="text-xs">E-mail</Label>
+                            <Input id="eemail" type="email" value={editForm.email || ""} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ephone" className="text-xs">Celular</Label>
+                            <Input id="ephone" value={editForm.phone || ""} onChange={e => setEditForm(f => ({ ...f, phone: formatPhoneMobile(e.target.value) }))} placeholder="(00) 00000-0000" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ephonef" className="text-xs">Telefone Fixo</Label>
+                            <Input id="ephonef" value={editForm.phone_fixed || ""} onChange={e => setEditForm(f => ({ ...f, phone_fixed: formatPhoneLandline(e.target.value) }))} placeholder="(00) 0000-0000" />
+                          </div>
+                          <div className="space-y-1.5 md:col-span-2">
+                            <Label htmlFor="eaddr" className="text-xs">Endereço</Label>
+                            <Input id="eaddr" value={editForm.address || ""} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} placeholder="Rua, número, complemento" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="ecity" className="text-xs">Cidade</Label>
+                            <Input id="ecity" value={editForm.city || ""} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label htmlFor="euf" className="text-xs">UF</Label>
+                              <Select value={editForm.uf || ""} onValueChange={(v) => setEditForm(f => ({ ...f, uf: v }))}>
+                                <SelectTrigger id="euf"><SelectValue placeholder="UF" /></SelectTrigger>
+                                <SelectContent>{UF.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label htmlFor="ezip" className="text-xs">CEP</Label>
+                              <Input id="ezip" value={editForm.zip || ""} onChange={e => setEditForm(f => ({ ...f, zip: e.target.value }))} placeholder="00000-000" />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5 md:col-span-2">
+                            <Label htmlFor="enotes" className="text-xs">Observações</Label>
+                            <Textarea id="enotes" value={editForm.notes || ""} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} rows={3} placeholder="Notas internas sobre a empresa..." />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-4">
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancelar</Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveEdit}
+                            disabled={savingEdit}
+                            className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                          >
+                            {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                            Salvar Alterações
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
