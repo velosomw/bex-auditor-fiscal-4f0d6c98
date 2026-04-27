@@ -370,11 +370,25 @@ export interface PipelineResult {
   scores: { ocr: number; mapping: number; validation: number; quality: number };
 }
 
+export type DedupDataKind = "balanco" | "dre" | "indice" | "unidade" | "auto";
+export interface DedupOptions {
+  dataKind?: DedupDataKind;
+  eps?: number;
+  decimals?: number;
+  proxWindow?: number;
+  relTol?: number;
+}
+export interface DedupConfig {
+  balanco?: DedupOptions;
+  dre?: DedupOptions;
+}
+
 export async function runAuditPipeline(
   parsedData: ParsedFinancialData,
   fileName: string,
   companyId?: string,
   existingDocumentId?: string,
+  dedup?: DedupConfig,
 ): Promise<PipelineResult | null> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const { supabase } = await import("@/integrations/supabase/client");
@@ -397,6 +411,7 @@ export async function runAuditPipeline(
         dre: parsedData.dre,
         documentInfo: parsedData.documentInfo,
         ocr_score: parsedData.ocrScore,
+        ...(dedup ? { dedup } : {}),
       }),
     });
     if (!response.ok) {

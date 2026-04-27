@@ -28,6 +28,7 @@ import PlatformLayout from "@/components/PlatformLayout";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
+import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
 import { getFileFormat as getFormat } from "@/services/auditAIService";
@@ -421,7 +422,7 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
-const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFilesReady: (files: File[]) => void }) => {
+const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
@@ -585,6 +586,10 @@ const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFil
         </div>
       </div>
 
+      <div className="max-w-3xl mx-auto pt-2">
+        <DedupPresetForm value={dedupConfig} onChange={onDedupChange} />
+      </div>
+
       <div className="flex justify-center pt-2">
         <Button onClick={handleContinue} disabled={!hasFiles}
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
@@ -611,10 +616,11 @@ const processingSteps = [
   { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
-const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: { 
+const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: { 
   onComplete: () => void; 
   files: File[];
   onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
+  dedupConfig?: import("@/services/auditAIService").DedupConfig;
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -675,6 +681,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: {
             pipelineResult = await runAuditPipeline(
               parsedData,
               files[0]?.name || "balancete",
+              undefined,
+              undefined,
+              dedupConfig,
             );
             if (pipelineResult) {
               console.log(
@@ -3972,6 +3981,7 @@ const AuditContent = () => {
   const [batchId, setBatchId] = useState<string>("");
   const [sourceDocs, setSourceDocs] = useState<{ fileName: string; fileSize: number; format: string }[]>([]);
   const [company, setCompany] = useState<Company | null>(null);
+  const [dedupConfig, setDedupConfig] = useState<import("@/services/auditAIService").DedupConfig>({});
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
@@ -4028,7 +4038,9 @@ const AuditContent = () => {
         {phase === "upload" && (
           <UploadPhase 
             onProcess={() => setPhase("processing")} 
-            onFilesReady={setUploadedFiles} 
+            onFilesReady={setUploadedFiles}
+            dedupConfig={dedupConfig}
+            onDedupChange={setDedupConfig}
           />
         )}
         {phase === "processing" && (
@@ -4036,6 +4048,7 @@ const AuditContent = () => {
             onComplete={() => setPhase("results")} 
             files={uploadedFiles}
             onAnalysisReady={handleAnalysisReady}
+            dedupConfig={dedupConfig}
           />
         )}
         {phase === "results" && (
