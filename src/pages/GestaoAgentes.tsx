@@ -127,12 +127,31 @@ const TabUpload = () => {
 
     try {
       const tUpload = performance.now();
+      // Pré-cria pipeline_documents para que o OCR possa ser persistido em ocr_results
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { session } } = await supabase.auth.getSession();
+      let documentId: string | undefined;
+      if (session?.user?.id) {
+        const { data: doc, error: docErr } = await supabase
+          .from("pipeline_documents")
+          .insert({
+            company_id: empresaId,
+            file_name: files[0].name,
+            file_type: files[0].name.split(".").pop() || "unknown",
+            status: "ocr",
+            created_by: session.user.id,
+          })
+          .select("id")
+          .single();
+        if (!docErr && doc) documentId = (doc as any).id;
+        else console.warn("Falha ao pré-criar pipeline_documents:", docErr);
+      }
       setStage("upload", "done");
       mark("upload", tUpload);
 
       const tOcr = performance.now();
       setStage("ocr", "running");
-      const parsed = await parseFile(files[0]);
+      const parsed = await parseFile(files[0], documentId);
       setStage("ocr", "done");
       mark("ocr", tOcr);
 
@@ -146,7 +165,7 @@ const TabUpload = () => {
 
       const tNorm = performance.now();
       setStage("normalize", "running");
-      const pipe = await runAuditPipeline(parsed, files[0].name, empresaId);
+      const pipe = await runAuditPipeline(parsed, files[0].name, empresaId, documentId);
       if (!pipe) throw new Error("Pipeline indisponível (sessão ou serviço).");
       setStage("normalize", "done");
       mark("normalize", tNorm);

@@ -32,6 +32,7 @@ interface BalanceteRow {
 
 interface PipelineRequest {
   company_id?: string;
+  document_id?: string; // se já criado pelo cliente (para vincular ocr_results)
   file_name: string;
   ocr_score?: number;
   balanco: BalanceteRow[];
@@ -256,22 +257,38 @@ serve(async (req) => {
       });
     }
 
-    // 1. Registrar documento
-    const { data: doc, error: docErr } = await supabase
-      .from("pipeline_documents")
-      .insert({
-        company_id: body.company_id || null,
-        file_name: body.file_name,
-        file_type: body.file_name.split(".").pop() || "unknown",
-        status: "normalizing",
-        created_by: userId,
-      })
-      .select()
-      .single();
+    // 1. Registrar (ou reutilizar) documento
+    let documentId: string;
+    if (body.document_id) {
+      // Reutiliza doc já criado pelo cliente para que ocr_results já gravado fique vinculado
+      const { data: existingDoc } = await supabase
+        .from("pipeline_documents")
+        .select("id")
+        .eq("id", body.document_id)
+        .maybeSingle();
+      if (!existingDoc) throw new Error(`document_id ${body.document_id} não encontrado`);
+      documentId = (existingDoc as any).id;
+      await supabase
+        .from("pipeline_documents")
+        .update({ status: "normalizing", company_id: body.company_id || null })
+        .eq("id", documentId);
+    } else {
+      const { data: doc, error: docErr } = await supabase
+        .from("pipeline_documents")
+        .insert({
+          company_id: body.company_id || null,
+          file_name: body.file_name,
+          file_type: body.file_name.split(".").pop() || "unknown",
+          status: "normalizing",
+          created_by: userId,
+        })
+        .select()
+        .single();
 
-    if (docErr || !doc) throw new Error(`Falha ao registrar documento: ${docErr?.message}`);
-    // deno-lint-ignore no-explicit-any
-    const documentId = (doc as any).id;
+      if (docErr || !doc) throw new Error(`Falha ao registrar documento: ${docErr?.message}`);
+      // deno-lint-ignore no-explicit-any
+      documentId = (doc as any).id;
+    }
 
     // 2. Carregar dicionário (uma vez)
     const { data: dictionary } = await supabase

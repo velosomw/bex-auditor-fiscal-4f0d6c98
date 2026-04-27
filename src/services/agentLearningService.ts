@@ -59,23 +59,36 @@ export const loadDatasetRows = async (limit = 50): Promise<DatasetRow[]> => {
 };
 
 export const loadPerfStats = async (): Promise<PerfStats> => {
-  const { data: analyses } = await supabase
-    .from("pipeline_analysis_results")
-    .select("ocr_score, mapping_score, validation_score, quality_score, created_at")
-    .order("created_at", { ascending: false });
+  const [{ data: analyses }, { data: ocrRows }] = await Promise.all([
+    supabase
+      .from("pipeline_analysis_results")
+      .select("ocr_score, mapping_score, validation_score, quality_score, created_at")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("ocr_results")
+      .select("ocr_score, created_at, provider")
+      .order("created_at", { ascending: false }),
+  ]);
   const { count: totalDocs } = await supabase.from("pipeline_documents").select("id", { count: "exact", head: true });
   const { count: validatedCount } = await supabase.from("dataset_validated").select("id", { count: "exact", head: true });
 
   const arr = analyses ?? [];
-  const avg = (key: "ocr_score" | "mapping_score" | "validation_score" | "quality_score") =>
+  const ocrArr = ocrRows ?? [];
+
+  // OCR % prefere histórico real de ocr_results; fallback para pipeline_analysis_results
+  const ocrAvg = ocrArr.length
+    ? Math.round((ocrArr.reduce((s, r: any) => s + (Number(r.ocr_score) || 0), 0) / ocrArr.length) * 100)
+    : (arr.length ? Math.round((arr.reduce((s, a: any) => s + (a.ocr_score ?? 0), 0) / arr.length) * 100) : 0);
+
+  const avg = (key: "mapping_score" | "validation_score" | "quality_score") =>
     arr.length ? Math.round((arr.reduce((s, a: any) => s + (a[key] ?? 0), 0) / arr.length) * 100) : 0;
 
-  // 7 meses
-  const months: { key: string; label: string; vals: number[]; errs: number }[] = [];
+  // Janela móvel de 7 meses
+  const months: { key: string; label: string; vals: number[]; ocrVals: number[]; errs: number }[] = [];
   const now = new Date();
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: monthLabel(d), vals: [], errs: 0 });
+    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: monthLabel(d), vals: [], ocrVals: [], errs: 0 });
   }
   arr.forEach((a: any) => {
     const d = new Date(a.created_at);
@@ -85,15 +98,33 @@ export const loadPerfStats = async (): Promise<PerfStats> => {
     if (a.quality_score) m.vals.push(Math.round(a.quality_score * 100));
     if (a.validation_score && a.validation_score < 0.8) m.errs += 1;
   });
+  ocrArr.forEach((r: any) => {
+    const d = new Date(r.created_at);
+    const k = `${d.getFullYear()}-${d.getMonth()}`;
+    const m = months.find(x => x.key === k);
+    if (!m) return;
+    if (r.ocr_score) m.ocrVals.push(Math.round(Number(r.ocr_score) * 100));
+  });
+
+  // Tendência: combina precisão geral + OCR real quando disponível
+  const trend = months
+    .filter(m => m.vals.length > 0 || m.ocrVals.length > 0)
+    .map(m => {
+      const allVals = [...m.vals, ...m.ocrVals];
+      return {
+        mes: m.label,
+        precisao: Math.round(allVals.reduce((a, b) => a + b, 0) / allVals.length),
+      };
+    });
 
   return {
-    ocr: avg("ocr_score"),
+    ocr: ocrAvg,
     mapping: avg("mapping_score"),
     validation: avg("validation_score"),
     quality: avg("quality_score"),
     totalDocs: totalDocs ?? 0,
     validatedCount: validatedCount ?? 0,
-    trend: months.filter(m => m.vals.length > 0).map(m => ({ mes: m.label, precisao: Math.round(m.vals.reduce((a, b) => a + b, 0) / m.vals.length) })),
+    trend,
     errors: months.map(m => ({ mes: m.label, erros: m.errs })),
   };
 };

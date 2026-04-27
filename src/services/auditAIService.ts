@@ -7,6 +7,8 @@ export interface ParsedFinancialData {
   pdfType?: string;
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
   documentType?: string; // balancete, balanço, dre, dfc, extrato
+  ocrScore?: number;     // 0..1 — qualidade da extração reportada pelo backend
+  persisted?: boolean;   // true se ocr_results foi gravado para o documentId fornecido
 }
 
 export interface ConsolidatedFinancialData {
@@ -123,7 +125,7 @@ export async function parseDataFileAI(file: File): Promise<ParsedFinancialData> 
 }
 
 /* ── Parse PDF/Document via AI ── */
-export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> {
+export async function parseDocumentAI(file: File, documentId?: string): Promise<ParsedFinancialData> {
   let fileBase64: string;
   let mimeType = file.type;
   const ext = getFileExtension(file);
@@ -145,10 +147,10 @@ export async function parseDocumentAI(file: File): Promise<ParsedFinancialData> 
     }
   }
 
-  return parseDocumentAI_internal(fileBase64, file.name, mimeType);
+  return parseDocumentAI_internal(fileBase64, file.name, mimeType, documentId);
 }
 
-async function parseDocumentAI_internal(fileBase64: string, fileName: string, mimeType: string): Promise<ParsedFinancialData> {
+async function parseDocumentAI_internal(fileBase64: string, fileName: string, mimeType: string, documentId?: string): Promise<ParsedFinancialData> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -158,7 +160,7 @@ async function parseDocumentAI_internal(fileBase64: string, fileName: string, mi
       "Content-Type": "application/json",
       Authorization: `Bearer ${SUPABASE_KEY}`,
     },
-    body: JSON.stringify({ fileBase64, fileName, mimeType }),
+    body: JSON.stringify({ fileBase64, fileName, mimeType, documentId }),
   });
 
   if (!response.ok) {
@@ -176,13 +178,15 @@ async function parseDocumentAI_internal(fileBase64: string, fileName: string, mi
     pdfType: extracted.pdfType,
     documentInfo: extracted.documentInfo,
     documentType: extracted.documentInfo?.tipo,
+    ocrScore: typeof data.ocr_score === "number" ? data.ocr_score : undefined,
+    persisted: data.persisted === true,
   };
 }
 
 /* ── Parse any supported file ── */
-export async function parseFile(file: File): Promise<ParsedFinancialData> {
+export async function parseFile(file: File, documentId?: string): Promise<ParsedFinancialData> {
   if (isPDF(file) || isDocument(file)) {
-    return parseDocumentAI(file);
+    return parseDocumentAI(file, documentId);
   }
   if (isDataFile(file)) {
     return parseDataFileAI(file);
@@ -370,6 +374,7 @@ export async function runAuditPipeline(
   parsedData: ParsedFinancialData,
   fileName: string,
   companyId?: string,
+  existingDocumentId?: string,
 ): Promise<PipelineResult | null> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const { supabase } = await import("@/integrations/supabase/client");
@@ -385,10 +390,12 @@ export async function runAuditPipeline(
       },
       body: JSON.stringify({
         company_id: companyId,
+        document_id: existingDocumentId, // se já criado para registrar OCR
         file_name: fileName,
         balanco: parsedData.balanco,
         dre: parsedData.dre,
         documentInfo: parsedData.documentInfo,
+        ocr_score: parsedData.ocrScore,
       }),
     });
     if (!response.ok) {
