@@ -66,7 +66,13 @@ const Dashboard = () => {
 
   const refreshCompanies = () => listCompanies().then(setCompanies).catch(() => {});
 
-  useEffect(() => { refreshCompanies(); }, []);
+  useEffect(() => {
+    refreshCompanies();
+    loadDashboardStats()
+      .then(setStats)
+      .catch(() => setStats(emptyStats))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleStartNewAudit = (company: Company) => navigate(`/audit?company=${company.id}`);
 
