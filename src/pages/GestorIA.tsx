@@ -926,9 +926,6 @@ const GestorIA = () => {
             <TabsTrigger value="visao-geral" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <LayoutGrid className="w-3.5 h-3.5" /> Visão Geral
             </TabsTrigger>
-            <TabsTrigger value="integracoes" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
-              <Plug className="w-3.5 h-3.5" /> Integrações
-            </TabsTrigger>
             <TabsTrigger value="base-conhecimento" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <BookOpen className="w-3.5 h-3.5" /> Base de Conhecimento
             </TabsTrigger>
@@ -953,7 +950,6 @@ const GestorIA = () => {
           </TabsList>
 
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
-          <TabsContent value="integracoes"><TabIntegracoes /></TabsContent>
           <TabsContent value="base-conhecimento"><TabBaseConhecimento /></TabsContent>
           <TabsContent value="governanca"><TabGovernanca /></TabsContent>
           <TabsContent value="logs"><TabLogs /></TabsContent>
