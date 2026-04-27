@@ -222,16 +222,28 @@ const UserDashboard = () => {
         </div>
 
         {/* Section header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Documentos & Relatórios Correspondentes</h2>
-            <p className="text-xs text-muted-foreground">Cada relatório gerado é gerado a partir de um ou mais documentos analisados (relação N:1).</p>
+            <h2 className="text-lg font-semibold text-foreground">Última Auditoria — Documentos & Relatório Correspondente</h2>
+            <p className="text-xs text-muted-foreground">
+              Exibimos apenas a auditoria mais recente. Para visualizar o histórico completo, acesse{" "}
+              <button onClick={() => navigate("/user/empresas")} className="text-[hsl(217,91%,50%)] hover:underline font-medium">
+                Empresas → Histórico de Relatórios
+              </button>.
+            </p>
           </div>
-          {history.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={handleClear} className="text-xs text-muted-foreground gap-1">
-              <Trash2 className="w-3 h-3" /> Limpar
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {hasMoreHistory && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/user/empresas")} className="gap-1.5 text-xs">
+                <Building2 className="w-3.5 h-3.5" /> Ver histórico completo
+              </Button>
+            )}
+            {history.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={handleClear} className="text-xs text-muted-foreground gap-1">
+                <Trash2 className="w-3 h-3" /> Limpar
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Pares: Documentos Analisados ↔ Relatório Gerado */}
