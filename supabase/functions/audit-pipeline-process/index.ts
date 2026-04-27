@@ -268,10 +268,10 @@ serve(async (req) => {
         .maybeSingle();
       if (!existingDoc) throw new Error(`document_id ${body.document_id} não encontrado`);
       documentId = (existingDoc as any).id;
-      await supabase
-        .from("pipeline_documents")
-        .update({ status: "normalizing", company_id: body.company_id || null })
-        .eq("id", documentId);
+      // Atualiza status e VINCULA company_id (apenas se fornecido — nunca desvincula)
+      const updatePayload: Record<string, unknown> = { status: "normalizing" };
+      if (body.company_id) updatePayload.company_id = body.company_id;
+      await supabase.from("pipeline_documents").update(updatePayload).eq("id", documentId);
     } else {
       const { data: doc, error: docErr } = await supabase
         .from("pipeline_documents")
