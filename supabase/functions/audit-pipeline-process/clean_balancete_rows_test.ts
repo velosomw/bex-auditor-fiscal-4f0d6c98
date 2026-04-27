@@ -165,37 +165,49 @@ type ExcelCell = string | number | null | undefined;
 interface ExcelRowRaw {
   conta: ExcelCell;
   descricao: ExcelCell;
-  valor: ExcelCell;
+  /** Valor único (ano default) — modo legado de coluna única */
+  valor?: ExcelCell;
+  /** Valores por ano — modo multi-ano: { "2022": ..., "2023": ..., "2024": ... } */
+  valores?: Record<string, ExcelCell>;
 }
 
-/** Coerção idêntica à que o parser do Excel aplica antes do dedup. */
-function coerceExcelRow(raw: ExcelRowRaw, year = "2024"): Row {
-  const cellToString = (c: ExcelCell): string => {
-    if (c === null || c === undefined) return "";
-    if (typeof c === "number") {
-      // Excel pode exportar "1.1" como número 1.1; preserva precisão e remove .0 final
-      const s = Number.isInteger(c) ? String(c) : String(c);
-      return s;
+const cellToString = (c: ExcelCell): string => {
+  if (c === null || c === undefined) return "";
+  if (typeof c === "number") return String(c);
+  return String(c).trim();
+};
+
+const cellToNumber = (c: ExcelCell): number => {
+  if (c === null || c === undefined || c === "") return 0;
+  if (typeof c === "number") return c;
+  // strings com vírgula decimal BR ("1.234,56") ou prefixo "R$"
+  const cleaned = String(c).replace(/\./g, "").replace(",", ".").replace(/[^\d.\-]/g, "");
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Coerção Excel → contrato Row.
+ * Aceita modo legado (`valor` + `year`) ou multi-ano (`valores` mapeando ano→célula).
+ */
+function coerceExcelRow(raw: ExcelRowRaw, defaultYear = "2024"): Row {
+  const values: Record<string, number> = {};
+  if (raw.valores && typeof raw.valores === "object") {
+    for (const [year, cell] of Object.entries(raw.valores)) {
+      values[year] = cellToNumber(cell);
     }
-    return String(c).trim();
-  };
-  const cellToNumber = (c: ExcelCell): number => {
-    if (c === null || c === undefined || c === "") return 0;
-    if (typeof c === "number") return c;
-    // strings com vírgula decimal BR ("1.234,56")
-    const cleaned = String(c).replace(/\./g, "").replace(",", ".").replace(/[^\d.\-]/g, "");
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : 0;
-  };
+  } else {
+    values[defaultYear] = cellToNumber(raw.valor);
+  }
   return {
     conta: cellToString(raw.conta),
     descricao: cellToString(raw.descricao),
-    values: { [year]: cellToNumber(raw.valor) },
+    values,
   };
 }
 
-function fromExcel(rows: ExcelRowRaw[], year = "2024"): Row[] {
-  return rows.map((r) => coerceExcelRow(r, year));
+function fromExcel(rows: ExcelRowRaw[], defaultYear = "2024"): Row[] {
+  return rows.map((r) => coerceExcelRow(r, defaultYear));
 }
 
 /** Validação mínima do contrato pós-coerção (antes do dedup). */
@@ -379,5 +391,95 @@ Deno.test("xlsx-real: cleanBalanceteRows produz resultado esperado", () => {
 
   // 5) Tolerância relativa: vendas 10M vs 10M+50 colapsam (relTol em modo auto)
   assertEquals(contas.filter((c) => c === "3.1.01.001").length, 1);
+});
+
+/* ════════════════════════════════════════════════════════════
+   CAMADA EXCEL — MULTI-ANO
+   Excel comparativos costumam ter colunas: Conta | Descrição | 2022 | 2023 | 2024
+   O parser entrega cada coluna de ano como uma célula independente, possivelmente
+   em formatos diferentes (number puro, BR string, vazio). A coerção precisa
+   produzir `values: { "2022": n, "2023": n, "2024": n }` com TODO valor numérico.
+   ════════════════════════════════════════════════════════════ */
+
+const fxExcelMultiAno: ExcelRowRaw[] = [
+  {
+    conta: "1.1.01.001",
+    descricao: "Caixa Geral",
+    valores: { "2022": 30_000, "2023": "40.000,00", "2024": 50_000 },
+  },
+  {
+    conta: "1.1.01.002",
+    descricao: "Bancos",
+    valores: { "2022": "100.000,00", "2023": null, "2024": 120_000 }, // 2023 vazio → 0
+  },
+  {
+    conta: "1.1.01.001",
+    descricao: "Caixa Geral",
+    valores: { "2022": 30_000, "2023": "40.000,00", "2024": 50_000 }, // duplicata exata multi-ano
+  },
+  {
+    conta: "2.1.01.001",
+    descricao: "Empréstimo Banco A",
+    valores: { "2022": "R$ 80.000,00", "2023": 90_000, "2024": "1.234,56" }, // formatos heterogêneos
+  },
+];
+
+Deno.test("excel-multi-ano: coerção produz values com chave por ano e tudo numérico", () => {
+  const rows = fromExcel(fxExcelMultiAno);
+  assertValidContract(rows);
+  for (const r of rows) {
+    assertEquals(Object.keys(r.values).sort(), ["2022", "2023", "2024"]);
+  }
+});
+
+Deno.test("excel-multi-ano: cada ano coagido independentemente (BR, number, vazio)", () => {
+  const rows = fromExcel(fxExcelMultiAno);
+  const caixa = rows[0];
+  assertEquals(caixa.values["2022"], 30_000);
+  assertEquals(caixa.values["2023"], 40_000);
+  assertEquals(caixa.values["2024"], 50_000);
+
+  const bancos = rows[1];
+  assertEquals(bancos.values["2022"], 100_000);
+  assertEquals(bancos.values["2023"], 0); // null → 0 (preserva chave do ano)
+  assertEquals(bancos.values["2024"], 120_000);
+
+  const emp = rows[3];
+  assertEquals(emp.values["2022"], 80_000);
+  assertEquals(emp.values["2023"], 90_000);
+  assertEquals(Math.round(emp.values["2024"] * 100), 123_456); // "1.234,56" → 1234.56
+});
+
+Deno.test("excel-multi-ano: contrato validado por ano (sem NaN/Infinity)", () => {
+  const rows = fromExcel(fxExcelMultiAno);
+  for (const r of rows) {
+    for (const [year, v] of Object.entries(r.values)) {
+      assertEquals(typeof v, "number", `ano ${year} deve ser number`);
+      assertEquals(Number.isFinite(v), true, `ano ${year} deve ser finito`);
+      assertEquals(Number.isNaN(v), false, `ano ${year} não pode ser NaN`);
+    }
+  }
+});
+
+Deno.test("excel-multi-ano: dedup colapsa duplicata preservando todos os anos", () => {
+  const rows = fromExcel(fxExcelMultiAno);
+  const out = cleanBalanceteRows(rows, { dataKind: "balanco" });
+  const caixas = out.filter((r) => r.conta === "1.1.01.001");
+  assertEquals(caixas.length, 1);
+  assertEquals(Object.keys(caixas[0].values).sort(), ["2022", "2023", "2024"]);
+  assertEquals(caixas[0].values["2023"], 40_000);
+});
+
+Deno.test("excel-multi-ano: anos heterogêneos entre linhas são todos preservados", () => {
+  const mixed: ExcelRowRaw[] = [
+    { conta: "1.1.01.001", descricao: "Caixa", valores: { "2023": 100 } },
+    { conta: "1.1.01.002", descricao: "Bancos", valores: { "2024": 200 } },
+    { conta: "1.1.01.003", descricao: "Aplicações", valores: { "2022": 50, "2023": 60, "2024": 70 } },
+  ];
+  const rows = fromExcel(mixed);
+  assertValidContract(rows);
+  assertEquals(Object.keys(rows[0].values), ["2023"]);
+  assertEquals(Object.keys(rows[1].values), ["2024"]);
+  assertEquals(Object.keys(rows[2].values).sort(), ["2022", "2023", "2024"]);
 });
 
