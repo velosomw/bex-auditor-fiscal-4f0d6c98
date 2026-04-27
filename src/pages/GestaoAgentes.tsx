@@ -16,8 +16,7 @@ import {
   Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap, XCircle,
 } from "lucide-react";
 import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/auditAIService";
-import { listCompanies } from "@/services/companiesService";
-import type { Company } from "@/types/dashboard";
+import { listCompanies, type Company } from "@/services/companiesService";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
