@@ -1588,16 +1588,22 @@ const ReportPage = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz }: { onGerarBex: () => void; onGerarKanitz: () => void }) => (
+const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecnico" }: { onGerarBex: () => void; onGerarKanitz: () => void; selectedDepth?: "executivo" | "tecnico" }) => {
+  const bexAvailable = selectedDepth === "executivo";
+  const kanitzAvailable = selectedDepth === "tecnico";
+  return (
   <div className="space-y-6">
     <div className="text-center space-y-2 mb-2">
       <h2 className="text-lg font-bold text-foreground font-serif">Selecione o Relatório para Gerar</h2>
       <p className="text-sm text-muted-foreground max-w-xl mx-auto">Escolha entre o Relatório BEX (Avaliação Contábil e Solvência) ou o Relatório Kanitz (Termômetro de Insolvência).</p>
+      <p className="text-[11px] text-muted-foreground/80 max-w-xl mx-auto">
+        Conforme o <strong>Nível de Profundidade Técnica</strong> selecionado na configuração, somente o relatório correspondente está liberado para acesso.
+      </p>
     </div>
 
     <div className="grid lg:grid-cols-2 gap-6">
       {/* Card BEX */}
-      <Card className="border-2 hover:border-[hsl(258,90%,66%)]/50 transition-all">
+      <Card className={`border-2 hover:border-[hsl(258,90%,66%)]/50 transition-all ${bexAvailable ? "ring-2 ring-[hsl(258,90%,66%)]/40" : ""}`}>
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
