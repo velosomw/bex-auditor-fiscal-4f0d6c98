@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PlatformLayout from "@/components/PlatformLayout";
-import { listCompanies, createCompany, type Company } from "@/services/companiesService";
+import { listCompanies, createCompany, updateCompany, type Company } from "@/services/companiesService";
+import { Textarea } from "@/components/ui/textarea";
 import { useUser } from "@/contexts/UserContext";
 import {
   getReportsByCompany,
