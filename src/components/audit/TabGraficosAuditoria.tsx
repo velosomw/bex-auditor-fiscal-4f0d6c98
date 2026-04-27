@@ -251,7 +251,7 @@ const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
                 <em>Fluxo de Caixa - Prev x Realiz</em>. Ordem, séries e granularidade preservadas.
               </CardDescription>
             </div>
-            {data.fileName && (
+            {data?.fileName && (
               <span className="text-xs text-muted-foreground font-mono px-2 py-1 rounded bg-background border">
                 📎 {data.fileName}
               </span>
