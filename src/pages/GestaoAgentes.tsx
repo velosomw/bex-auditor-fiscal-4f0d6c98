@@ -104,40 +104,51 @@ const TabUpload = () => {
     setProcessing(true);
     setErrorMsg(null);
     setResult(null);
+    setTimings({});
+    setTotalMs(null);
     setStages({ upload: "running", ocr: "idle", extract: "idle", normalize: "idle", analyze: "idle" });
 
-    try {
-      // 1. Upload (client-side: arquivo já está em memória)
-      setStage("upload", "done");
+    const t0 = performance.now();
+    const mark = (k: StageKey, start: number) =>
+      setTimings(prev => ({ ...prev, [k]: Math.round(performance.now() - start) }));
 
-      // 2. OCR / Parse (chama audit-parse-pdf via parseFile)
+    try {
+      const tUpload = performance.now();
+      setStage("upload", "done");
+      mark("upload", tUpload);
+
+      const tOcr = performance.now();
       setStage("ocr", "running");
       const parsed = await parseFile(files[0]);
       setStage("ocr", "done");
+      mark("ocr", tOcr);
 
-      // 3. Extração (estruturação balanco/dre já vem do parser)
+      const tExt = performance.now();
       setStage("extract", "running");
       if (!parsed.balanco?.length && !parsed.dre?.length) {
         throw new Error("Nenhum balanço ou DRE detectado no documento.");
       }
       setStage("extract", "done");
+      mark("extract", tExt);
 
-      // 4. Normalização (audit-pipeline-process — LLM)
+      const tNorm = performance.now();
       setStage("normalize", "running");
       const pipe = await runAuditPipeline(parsed, files[0].name, empresaId);
       if (!pipe) throw new Error("Pipeline indisponível (sessão ou serviço).");
       setStage("normalize", "done");
+      mark("normalize", tNorm);
 
-      // 5. Análise & score (já calculado pelo pipeline)
+      const tAna = performance.now();
       setStage("analyze", "running");
       setResult(pipe);
       setStage("analyze", "done");
+      mark("analyze", tAna);
 
-      toast.success(`Processado. Quality score ${(pipe.scores.quality * 100).toFixed(0)}%.`);
+      setTotalMs(Math.round(performance.now() - t0));
+      toast.success(`Processado em ${((performance.now() - t0) / 1000).toFixed(1)}s · Quality ${(pipe.scores.quality * 100).toFixed(0)}%`);
     } catch (e: any) {
       const msg = e?.message || "Falha no pipeline.";
       setErrorMsg(msg);
-      // marca a etapa em execução como erro
       setStages(prev => {
         const next = { ...prev };
         (Object.keys(next) as StageKey[]).forEach(k => {
