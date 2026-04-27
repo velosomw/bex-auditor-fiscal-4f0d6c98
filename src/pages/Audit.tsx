@@ -421,7 +421,7 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
-const UploadPhase = ({ onProcess, onFilesReady }: { onProcess: () => void; onFilesReady: (files: File[]) => void }) => {
+const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
