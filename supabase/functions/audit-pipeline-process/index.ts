@@ -58,20 +58,15 @@ function classifyAccount(desc: string): { tipo: string; categoria: string } {
   return { tipo: "ativo", categoria: "ativo_circulante" };
 }
 
-/* ──────────────── Normalização semântica em lote via LLM ──────────────── */
-async function normalizeAccountsLLM(
-  rows: Array<{ conta: string; descricao: string }>,
-  // deno-lint-ignore no-explicit-any
-  dictionary: any[],
-): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
-  // Dicionário compacto para o prompt
-  const dictText = dictionary
-    .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
-    .join("\n");
+/* ──────────────── Normalização semântica em lote via LLM (com chunking + paralelização) ──────────────── */
+const CHUNK_SIZE = 40; // contas por requisição — equilibra latência vs throughput
+const MAX_PARALLEL = 4; // lotes simultâneos
 
-  const inputList = rows
-    .map((r, i) => `${i}. ${r.descricao || r.conta}`)
-    .join("\n");
+async function normalizeChunk(
+  rows: Array<{ conta: string; descricao: string }>,
+  dictText: string,
+): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
+  const inputList = rows.map((r, i) => `${i}. ${r.descricao || r.conta}`).join("\n");
 
   const systemPrompt = `Você é um CONTADOR ESPECIALISTA em classificação contábil brasileira (CPC/IFRS/NBC TA/Lei 6.404/76).
 
