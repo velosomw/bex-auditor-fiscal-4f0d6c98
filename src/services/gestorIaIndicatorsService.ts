@@ -35,6 +35,7 @@ export interface GestorIaIndicators {
   trend: TrendPoint[];
   riskDistribution: RiskSlice[];
   auditTypes: AuditTypeSlice[];
+  accuracyDistribution: AccuracySlice[];
   context: ContextBlocks;
 }
 
