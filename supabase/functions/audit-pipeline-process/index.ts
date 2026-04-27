@@ -457,7 +457,7 @@ function resolveDedupParams(
   };
 }
 
-function cleanBalanceteRows<T extends { conta: string; descricao: string; values: Record<string, number> }>(
+export function cleanBalanceteRows<T extends { conta: string; descricao: string; values: Record<string, number> }>(
   rows: T[],
   opts: DedupOptions = {},
 ): T[] {
