@@ -4029,7 +4029,9 @@ const AuditContent = () => {
         {phase === "upload" && (
           <UploadPhase 
             onProcess={() => setPhase("processing")} 
-            onFilesReady={setUploadedFiles} 
+            onFilesReady={setUploadedFiles}
+            dedupConfig={dedupConfig}
+            onDedupChange={setDedupConfig}
           />
         )}
         {phase === "processing" && (
@@ -4037,6 +4039,7 @@ const AuditContent = () => {
             onComplete={() => setPhase("results")} 
             files={uploadedFiles}
             onAnalysisReady={handleAnalysisReady}
+            dedupConfig={dedupConfig}
           />
         )}
         {phase === "results" && (
