@@ -1,13 +1,70 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
-import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Activity, PieChart, ArrowRight, Info, Bot, Brain, FileText, DollarSign, Gauge, SlidersHorizontal } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Activity, PieChart, ArrowRight, Info, Bot, Brain, FileText, DollarSign, Gauge, SlidersHorizontal, Building2, Database, FlaskConical, Loader2 } from "lucide-react";
 import { defaultEntityData, defaultFinancialAnalysis } from "@/data/auditMockData";
 import PlatformLayout from "@/components/PlatformLayout";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { listCompanies, type Company } from "@/services/companiesService";
+import { loadRealEntityData } from "@/services/entityFinancialDataService";
+import type { CompanyDataMultiYear, FinancialAnalysis, FinancialIndicators, CompanyData } from "@/types/audit";
+
+function calcIndicatorsLocal(d: CompanyData): FinancialIndicators {
+  const at = d.ativoCirculante + d.ativoNaoCirculante;
+  const pt = d.passivoCirculante + d.passivoNaoCirculante;
+  const idadeEst = d.custoMercadoriasVendidas ? (d.estoques * 360) / d.custoMercadoriasVendidas : 0;
+  const pmr = d.receitaLiquida ? (d.contasReceber * 360) / d.receitaLiquida : 0;
+  const pmp = d.custoMercadoriasVendidas ? (d.fornecedores * 360) / d.custoMercadoriasVendidas : 0;
+  return {
+    liquidezCorrente: d.passivoCirculante ? d.ativoCirculante / d.passivoCirculante : 0,
+    liquidezSeca: d.passivoCirculante ? (d.ativoCirculante - d.estoques) / d.passivoCirculante : 0,
+    liquidezGeral: (d.passivoCirculante + d.passivoNaoCirculante) ? (d.ativoCirculante + d.ativoNaoCirculante * 0.1) / (d.passivoCirculante + d.passivoNaoCirculante) : 0,
+    liquidezImediata: d.passivoCirculante ? d.caixaEquivalentes / d.passivoCirculante : 0,
+    endividamentoGeral: at ? pt / at : 0,
+    composicaoEndividamento: pt ? d.passivoCirculante / pt : 0,
+    imobilizacaoPL: d.patrimonioLiquido ? d.imobilizado / d.patrimonioLiquido : 0,
+    giroAtivo: at ? d.receitaLiquida / at : 0,
+    pmr,
+    pmp,
+    margemLiquida: d.receitaLiquida ? d.lucroLiquido / d.receitaLiquida : 0,
+    margemOperacional: d.receitaLiquida ? d.resultadoOperacional / d.receitaLiquida : 0,
+    roa: at ? d.lucroLiquido / at : 0,
+    roe: d.patrimonioLiquido ? d.lucroLiquido / d.patrimonioLiquido : 0,
+    idadeMediaEstoque: idadeEst,
+    cicloOperacional: idadeEst + pmr,
+    cicloCaixa: idadeEst + pmr - pmp,
+    coberturaJuros: d.despesasFinanceiras ? d.resultadoOperacional / d.despesasFinanceiras : 0,
+  };
+}
+
+function buildAnalysisFromData(entity: CompanyDataMultiYear): FinancialAnalysis {
+  const indicators: { [y: string]: FinancialIndicators } = {};
+  const yrs = Object.keys(entity);
+  for (const y of yrs) indicators[y] = calcIndicatorsLocal(entity[y]);
+  const lastYear = yrs.sort().slice(-1)[0];
+  const d = lastYear ? entity[lastYear] : null;
+  let score = 0;
+  if (d) {
+    const at = d.ativoCirculante + d.ativoNaoCirculante;
+    const pt = d.passivoCirculante + d.passivoNaoCirculante;
+    const lg = pt ? (d.ativoCirculante + d.ativoNaoCirculante * 0.1) / pt : 0;
+    const rent = at ? d.lucroLiquido / at : 0;
+    const endiv = at ? pt / at : 0;
+    score = lg * 0.4 + rent * 0.3 - endiv * 0.3;
+  }
+  return {
+    indicators,
+    horizontalAnalysis: { rows: [] },
+    verticalAnalysis: { rows: [] },
+    insolvencyScore: score,
+    insolvencyClassification: score < 0 ? "insolvencia" : score <= 1 ? "atencao" : "solidez",
+    solvencyConclusion: "Análise gerada a partir dos dados reais carregados pelo Pipeline IA.",
+  };
+}
 
 const fmt = (v: number, dec = 2) => v.toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const fmtPct = (v: number) => fmt(v * 100) + "%";
