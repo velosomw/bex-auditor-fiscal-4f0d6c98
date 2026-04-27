@@ -164,68 +164,81 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
 
   const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem e tamanho do input (${rows.length} itens):\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts com ${rows.length} elementos no array.`;
 
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "return_normalized_accounts",
-            description: `Retorna lista de EXATAMENTE ${rows.length} contas normalizadas na mesma ordem do input.`,
-            parameters: {
-              type: "object",
-              properties: {
-                accounts: {
-                  type: "array",
-                  minItems: rows.length,
-                  maxItems: rows.length,
-                  items: {
-                    type: "object",
-                    properties: {
-                      conta_normalizada: { type: "string" },
-                      categoria: {
-                        type: "string",
-                        enum: [
-                          "ativo_circulante",
-                          "ativo_nao_circulante",
-                          "passivo_circulante",
-                          "passivo_nao_circulante",
-                          "patrimonio_liquido",
-                          "receita",
-                          "custo",
-                          "despesa",
-                        ],
+  // v4: timeout agressivo (45s) — evita travar 148s em 503 do upstream
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 45_000);
+
+  let r: Response;
+  try {
+    r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "return_normalized_accounts",
+              description: `Retorna lista de EXATAMENTE ${rows.length} contas normalizadas na mesma ordem do input.`,
+              parameters: {
+                type: "object",
+                properties: {
+                  accounts: {
+                    type: "array",
+                    minItems: rows.length,
+                    maxItems: rows.length,
+                    items: {
+                      type: "object",
+                      properties: {
+                        conta_normalizada: { type: "string" },
+                        categoria: {
+                          type: "string",
+                          enum: [
+                            "ativo_circulante",
+                            "ativo_nao_circulante",
+                            "passivo_circulante",
+                            "passivo_nao_circulante",
+                            "patrimonio_liquido",
+                            "receita",
+                            "custo",
+                            "despesa",
+                          ],
+                        },
+                        tipo: {
+                          type: "string",
+                          enum: ["ativo", "passivo", "pl", "receita", "despesa"],
+                        },
+                        matched: { type: "boolean" },
                       },
-                      tipo: {
-                        type: "string",
-                        enum: ["ativo", "passivo", "pl", "receita", "despesa"],
-                      },
-                      matched: { type: "boolean" },
+                      required: ["conta_normalizada", "categoria", "tipo", "matched"],
+                      additionalProperties: false,
                     },
-                    required: ["conta_normalizada", "categoria", "tipo", "matched"],
-                    additionalProperties: false,
                   },
                 },
+                required: ["accounts"],
+                additionalProperties: false,
               },
-              required: ["accounts"],
-              additionalProperties: false,
             },
           },
-        },
-      ],
-      tool_choice: { type: "function", function: { name: "return_normalized_accounts" } },
-    }),
-  });
+        ],
+        tool_choice: { type: "function", function: { name: "return_normalized_accounts" } },
+      }),
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    console.warn("LLM normalize aborted/network", e instanceof Error ? e.message : e);
+    return null;
+  }
+  clearTimeout(timer);
 
   if (!r.ok) {
     console.warn("LLM normalize HTTP", r.status, (await r.text()).slice(0, 300));
