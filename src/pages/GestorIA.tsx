@@ -947,7 +947,6 @@ const GestorIA = () => {
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
           <TabsContent value="integracoes"><TabIntegracoes /></TabsContent>
           <TabsContent value="base-conhecimento"><TabBaseConhecimento /></TabsContent>
-          <TabsContent value="agentes"><TabAgentes /></TabsContent>
           <TabsContent value="governanca"><TabGovernanca /></TabsContent>
           <TabsContent value="logs"><TabLogs /></TabsContent>
           <TabsContent value="risk-engine"><TabRiskEngineDash /></TabsContent>
