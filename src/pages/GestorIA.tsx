@@ -88,7 +88,7 @@ const TabVisaoGeral = () => {
     );
   }
 
-  const { kpis, trend, riskDistribution, auditTypes, context } = data;
+  const { kpis, trend, riskDistribution, auditTypes, accuracyDistribution, context } = data;
 
   const kpiCards = [
     {
@@ -104,16 +104,16 @@ const TabVisaoGeral = () => {
       positive: kpis.auditoriasVariacao >= 0, icon: CheckCircle2, color: "hsl(152,70%,45%)",
     },
     {
-      label: "Conformidade Geral", value: `${kpis.conformidadeGeral}%`,
-      sub: "Média ponderada",
-      change: `${kpis.conformidadeVariacao >= 0 ? "+" : ""}${kpis.conformidadeVariacao}%`,
-      positive: kpis.conformidadeVariacao >= 0, icon: ShieldCheck, color: "hsl(152,70%,45%)",
+      label: "Disponibilidade Agente IA", value: `${kpis.agenteIaDisponibilidade}%`,
+      sub: "Uptime de processamento",
+      change: `${kpis.agenteIaVariacao >= 0 ? "+" : ""}${kpis.agenteIaVariacao}%`,
+      positive: kpis.agenteIaVariacao >= 0, icon: Activity, color: "hsl(152,70%,45%)",
     },
     {
-      label: "Riscos Identificados", value: String(kpis.riscosIdentificados),
-      sub: `${kpis.riscosCriticos} críticos`,
-      change: `${kpis.riscosVariacao >= 0 ? "+" : ""}${kpis.riscosVariacao}%`,
-      positive: kpis.riscosVariacao <= 0, icon: AlertTriangle, color: "hsl(38,90%,55%)",
+      label: "Acurácia IA", value: `${kpis.acuraciaIA}%`,
+      sub: "Extração OCR/IA documentos",
+      change: `${kpis.acuraciaVariacao >= 0 ? "+" : ""}${kpis.acuraciaVariacao}%`,
+      positive: kpis.acuraciaVariacao >= 0, icon: Brain, color: "hsl(258,90%,66%)",
     },
   ];
 
