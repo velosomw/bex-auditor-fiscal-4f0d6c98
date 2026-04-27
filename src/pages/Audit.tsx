@@ -3990,7 +3990,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
           ) : reportType === "kanitz" ? (
             <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarBex} variant="completo" />
           ) : (
-            <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} />
+            <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} selectedDepth={selectedDepth} />
           )}
         </TabsContent>
       </Tabs>
