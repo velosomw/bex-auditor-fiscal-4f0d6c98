@@ -203,7 +203,9 @@ const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
     );
   }
 
-  if ((!files?.length && !parsedData?.balanco?.length) || !data?.hasData) {
+  // Só mostra empty se não há nem dados de template nem dados executivos derivados
+  const hasAnyData = !!data?.hasData || !!exec;
+  if ((!files?.length && !parsedData?.balanco?.length && !parsedData?.dre?.length) || !hasAnyData) {
     return (
       <Card>
         <CardHeader>
