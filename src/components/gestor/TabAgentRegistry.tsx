@@ -275,7 +275,9 @@ const TabAgentRegistry = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
