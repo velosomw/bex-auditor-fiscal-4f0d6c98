@@ -685,8 +685,13 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
               undefined,
               undefined,
               dedupConfig,
+              (ev) => {
+                if (ev.progress) setPipelineProgress(ev.progress);
+                else if (ev.status) setPipelineProgress(`Status: ${ev.status}`);
+              },
             );
             if (pipelineResult) {
+              setPipelineProgress(null);
               console.log(
                 `Pipeline IA — qualidade ${(pipelineResult.scores.quality * 100).toFixed(1)}% | mapeadas ${pipelineResult.normalized.filter(r => r.matched).length}/${pipelineResult.normalized.length} | few-shot ${pipelineResult.few_shot_examples.length}`
               );
