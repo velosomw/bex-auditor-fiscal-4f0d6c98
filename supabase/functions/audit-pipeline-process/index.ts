@@ -35,6 +35,11 @@ interface PipelineRequest {
   balanco: BalanceteRow[];
   dre: BalanceteRow[];
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
+  /** Configuração opcional de deduplicação por tipo de dado (override por payload) */
+  dedup?: {
+    balanco?: DedupOptions;
+    dre?: DedupOptions;
+  };
 }
 
 type NormResult = { conta_normalizada: string; categoria: string; tipo: string; matched: boolean };
