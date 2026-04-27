@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, ComposedChart,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, ComposedChart, PieChart, Pie, Cell,
+  RadialBarChart, RadialBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Activity, DollarSign, Gauge } from "lucide-react";
 import {
   resolveBalanceteCharts,
   type BalanceteChartsResult,
