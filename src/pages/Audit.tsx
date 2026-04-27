@@ -624,6 +624,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: {
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
 
