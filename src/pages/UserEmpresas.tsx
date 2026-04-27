@@ -206,6 +206,60 @@ const UserEmpresas = () => {
     navigate(`/audit?company=${c.id}`);
   };
 
+  const startEdit = (c: Company) => {
+    setEditForm({
+      name: c.name,
+      cnpj: c.cnpj || "",
+      sector: c.sector || "",
+      cnae: c.cnae || "",
+      contact_name: c.contact_name || "",
+      email: c.email || "",
+      phone: c.phone || "",
+      phone_fixed: c.phone_fixed || "",
+      address: c.address || "",
+      city: c.city || "",
+      uf: c.uf || "",
+      zip: c.zip || "",
+      notes: c.notes || "",
+    });
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selected) return;
+    const trimmedName = (editForm.name || "").trim();
+    if (!trimmedName) { toast({ title: "Razão Social é obrigatória", variant: "destructive" }); return; }
+    const cnpjDigits = (editForm.cnpj || "").replace(/\D/g, "");
+    if (cnpjDigits && cnpjDigits.length !== 14) { toast({ title: "CNPJ inválido", description: "Informe os 14 dígitos.", variant: "destructive" }); return; }
+    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) { toast({ title: "E-mail inválido", variant: "destructive" }); return; }
+
+    setSavingEdit(true);
+    try {
+      await updateCompany(selected.company.id, {
+        name: trimmedName,
+        cnpj: editForm.cnpj || undefined,
+        sector: editForm.sector || undefined,
+        cnae: editForm.cnae || undefined,
+        contact_name: editForm.contact_name || undefined,
+        email: editForm.email || undefined,
+        phone: editForm.phone || undefined,
+        phone_fixed: editForm.phone_fixed || undefined,
+        address: editForm.address || undefined,
+        city: editForm.city || undefined,
+        uf: editForm.uf || undefined,
+        zip: editForm.zip || undefined,
+        notes: editForm.notes || undefined,
+      });
+      toast({ title: "Empresa atualizada", description: trimmedName });
+      setEditing(false);
+      reload();
+    } catch (e: any) {
+      toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-6 space-y-6">
