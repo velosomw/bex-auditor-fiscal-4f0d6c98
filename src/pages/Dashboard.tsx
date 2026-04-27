@@ -43,6 +43,9 @@ const Dashboard = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [stats, setStats] = useState<DashboardStats>(emptyStats);
+  const [loading, setLoading] = useState(true);
+  const lastAuditOverview = stats.lastAudit ?? emptyAuditOverview;
 
   const norm = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const onlyDigits = (s: string) => (s || "").replace(/\D/g, "");
