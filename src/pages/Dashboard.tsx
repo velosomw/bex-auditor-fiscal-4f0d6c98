@@ -310,14 +310,17 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-end gap-3">
-                    <span className="text-4xl font-bold text-foreground">{mockCompliance.overallCompliance}%</span>
-                    <span className="flex items-center gap-1 text-xs text-[hsl(142,76%,36%)] mb-1"><TrendingUp className="w-3 h-3" /> +2.1%</span>
+                    <span className="text-4xl font-bold text-foreground">{stats.overallCompliance}%</span>
+                    <span className="text-xs text-muted-foreground mb-1">média real</span>
                   </div>
-                  <Progress value={mockCompliance.overallCompliance} className="h-2" />
+                  <Progress value={stats.overallCompliance} className="h-2" />
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Normas Aplicadas</p><p className="font-semibold text-foreground">{mockCompliance.normsApplied}</p></div>
-                    <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Desvios</p><p className="font-semibold text-[hsl(38,92%,50%)]">{mockCompliance.normsWithDeviations}</p></div>
+                    <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Auditorias</p><p className="font-semibold text-foreground">{stats.totalAudits}</p></div>
+                    <div className="p-3 rounded-lg bg-muted/50"><p className="text-xs text-muted-foreground">Empresas</p><p className="font-semibold text-foreground">{stats.totalCompanies}</p></div>
                   </div>
+                  {stats.overallCompliance === 0 && !loading && (
+                    <p className="text-[11px] text-muted-foreground italic">Sem dados de conformidade ainda. Execute uma auditoria para popular os indicadores.</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -328,25 +331,29 @@ const Dashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[
-                        { name: "Baixo", value: mockRisks.lowRisk, fill: "hsl(142,76%,36%)" },
-                        { name: "Médio", value: mockRisks.mediumRisk, fill: "hsl(38,92%,50%)" },
-                        { name: "Alto", value: mockRisks.highRisk, fill: "hsl(0,84%,60%)" },
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,90%)" />
-                        <XAxis dataKey="name" fontSize={12} />
-                        <YAxis fontSize={12} />
-                        <Tooltip />
-                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                          {[{ fill: "hsl(142,76%,36%)" }, { fill: "hsl(38,92%,50%)" }, { fill: "hsl(0,84%,60%)" }].map((entry, i) => (
-                            <Cell key={i} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {(stats.highRisk + stats.mediumRisk + stats.lowRisk) === 0 ? (
+                    <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">Sem auditorias classificadas por risco.</div>
+                  ) : (
+                    <div className="h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={[
+                          { name: "Baixo", value: stats.lowRisk, fill: "hsl(142,76%,36%)" },
+                          { name: "Médio", value: stats.mediumRisk, fill: "hsl(38,92%,50%)" },
+                          { name: "Alto", value: stats.highRisk, fill: "hsl(0,84%,60%)" },
+                        ]}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,20%,90%)" />
+                          <XAxis dataKey="name" fontSize={12} />
+                          <YAxis fontSize={12} allowDecimals={false} />
+                          <Tooltip />
+                          <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                            {[{ fill: "hsl(142,76%,36%)" }, { fill: "hsl(38,92%,50%)" }, { fill: "hsl(0,84%,60%)" }].map((entry, i) => (
+                              <Cell key={i} fill={entry.fill} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -354,15 +361,9 @@ const Dashboard = () => {
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">Áreas Críticas</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {mockCriticalAreas.map((area) => (
-                    <div key={area.name} className="flex items-center gap-3">
-                      <span className="text-sm text-foreground w-48 shrink-0">{area.name}</span>
-                      <Progress value={area.riskLevel} className="flex-1 h-2" />
-                      <Badge variant={area.riskLevel >= 80 ? "destructive" : area.riskLevel >= 65 ? "secondary" : "outline"} className="w-12 justify-center text-xs">{area.riskLevel}%</Badge>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  Mapa de áreas críticas será gerado automaticamente a partir das próximas auditorias (necessário ≥ 3 relatórios concluídos).
+                </p>
               </CardContent>
             </Card>
 
