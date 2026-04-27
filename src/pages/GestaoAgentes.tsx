@@ -57,15 +57,27 @@ const errorReduction = [
 ];
 
 // ─── TELA 1 — Upload & Processamento (REAL: parseFile + runAuditPipeline) ─────
-type StageKey = "upload" | "ocr" | "extract" | "normalize" | "analyze";
-type StageStatus = "idle" | "running" | "done" | "error";
+type StageKey = "upload" | "ocr" | "extract" | "normalize" | "validate" | "analyze";
+type StageStatus = "idle" | "running" | "done" | "error" | "warning";
 
 const STAGE_LABELS: Record<StageKey, string> = {
   upload: "Upload",
   ocr: "OCR / Parse",
   extract: "Extração",
   normalize: "Normalização",
+  validate: "Validação Contábil",
   analyze: "Análise & Score",
+};
+
+// Tolerância contábil: R$ 1,00 absoluto OU 0,5% do Ativo (o que for maior)
+const checkBalanceIntegrity = (ativo: number, passivo: number, pl: number) => {
+  const somaPP = passivo + pl;
+  const diff = ativo - somaPP;
+  const absDiff = Math.abs(diff);
+  const tolerance = Math.max(1, Math.abs(ativo) * 0.005);
+  const balanced = absDiff <= tolerance;
+  const pctDiff = ativo !== 0 ? (absDiff / Math.abs(ativo)) * 100 : 0;
+  return { balanced, diff, absDiff, tolerance, pctDiff, somaPP };
 };
 
 const TabUpload = () => {
