@@ -367,8 +367,94 @@ async function normalizeAccountsLLM(
    3. Excel mal formatado: mesma conta aparece como [código] + [descrição] em linhas separadas
       com valores idênticos → soma dupla
    Esta função aplica 3 filtros em sequência. */
+/* Opções de deduplicação por tipo/escala de dado.
+   - dataKind: 'balanco' (BRL) | 'dre' (BRL) | 'indice' (índices/percentuais) | 'unidade' (R$ mil/milhão) | 'auto'
+   - eps: tolerância absoluta para considerar dois valores "iguais"
+   - decimals: precisão de arredondamento ao calcular a chave de valor
+   - proxWindow: janela de proximidade (linhas adjacentes) para considerar duplicata
+   - relTol: tolerância RELATIVA (ex.: 1e-4 = 0,01%) — adicional ao eps absoluto.
+   Quando 'auto', os parâmetros são derivados da magnitude mediana dos valores:
+     |mediana| < 1         → eps=1e-4, decimals=4 (índices)
+     |mediana| < 1.000     → eps=1e-2, decimals=2 (BRL pequeno)
+     |mediana| < 1.000.000 → eps=1e-2, decimals=2 (BRL padrão)
+     |mediana| ≥ 1.000.000 → eps=1,    decimals=0 (BRL grande / R$ mil-milhão)
+   relTol fixo em 1e-5 quando auto. */
+export type DedupDataKind = "balanco" | "dre" | "indice" | "unidade" | "auto";
+export interface DedupOptions {
+  dataKind?: DedupDataKind;
+  eps?: number;
+  decimals?: number;
+  proxWindow?: number;
+  relTol?: number;
+}
+
+function resolveDedupParams(
+  values: number[],
+  opts: DedupOptions,
+): { eps: number; decimals: number; proxWindow: number; relTol: number; scale: string } {
+  const proxWindow = opts.proxWindow ?? 3;
+
+  // Overrides explícitos vencem qualquer auto-detecção
+  if (opts.eps !== undefined && opts.decimals !== undefined) {
+    return {
+      eps: opts.eps,
+      decimals: opts.decimals,
+      proxWindow,
+      relTol: opts.relTol ?? 0,
+      scale: "manual",
+    };
+  }
+
+  // Presets por tipo de dado
+  const kind = opts.dataKind ?? "auto";
+  const presets: Record<Exclude<DedupDataKind, "auto">, { eps: number; decimals: number; relTol: number }> = {
+    balanco: { eps: 0.01, decimals: 2, relTol: 1e-5 },
+    dre: { eps: 0.01, decimals: 2, relTol: 1e-5 },
+    indice: { eps: 1e-4, decimals: 4, relTol: 1e-4 },
+    unidade: { eps: 1, decimals: 0, relTol: 1e-5 },
+  };
+
+  if (kind !== "auto") {
+    const p = presets[kind];
+    return {
+      eps: opts.eps ?? p.eps,
+      decimals: opts.decimals ?? p.decimals,
+      proxWindow,
+      relTol: opts.relTol ?? p.relTol,
+      scale: kind,
+    };
+  }
+
+  // AUTO: deriva da magnitude mediana
+  const abs = values.map((v) => Math.abs(Number(v) || 0)).filter((v) => v > 0);
+  if (abs.length === 0) {
+    return { eps: opts.eps ?? 0.01, decimals: opts.decimals ?? 2, proxWindow, relTol: opts.relTol ?? 1e-5, scale: "auto:empty" };
+  }
+  abs.sort((a, b) => a - b);
+  const median = abs[Math.floor(abs.length / 2)];
+
+  let eps: number, decimals: number, scale: string;
+  if (median < 1) {
+    eps = 1e-4; decimals = 4; scale = "auto:indice";
+  } else if (median < 1_000) {
+    eps = 0.01; decimals = 2; scale = "auto:brl-small";
+  } else if (median < 1_000_000) {
+    eps = 0.01; decimals = 2; scale = "auto:brl";
+  } else {
+    eps = 1; decimals = 0; scale = "auto:brl-large";
+  }
+  return {
+    eps: opts.eps ?? eps,
+    decimals: opts.decimals ?? decimals,
+    proxWindow,
+    relTol: opts.relTol ?? 1e-5,
+    scale,
+  };
+}
+
 function cleanBalanceteRows<T extends { conta: string; descricao: string; values: Record<string, number> }>(
   rows: T[],
+  opts: DedupOptions = {},
 ): T[] {
   if (rows.length === 0) return rows;
 
