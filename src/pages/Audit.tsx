@@ -4088,24 +4088,51 @@ const AuditContent = () => {
         )}
         {phase === "upload" && (
           <UploadPhase 
-            onProcess={() => setPhase("processing")} 
+            onProcess={async () => {
+              if (uploadedFiles.length === 0) { setPhase("processing"); return; }
+              setPreParsing(true);
+              try {
+                // Pré-parse rápido só p/ detectar meses; ProcessingPhase reutiliza o resultado.
+                const items = await Promise.all(uploadedFiles.map(async (f) => ({
+                  fileName: f.name,
+                  parsed: await parseFile(f),
+                })));
+                const merged = mergeMultiMonth(items);
+                setMultiMonth(merged);
+                setFilteredMonths(defaultLast3(merged));
+                setPhase("confirm-months");
+              } catch (e) {
+                console.error("Pré-parse falhou:", e);
+                toast({ title: "Erro ao ler arquivos", description: "Tentando análise direta...", variant: "destructive" });
+                setPhase("processing");
+              } finally {
+                setPreParsing(false);
+              }
+            }} 
             onFilesReady={setUploadedFiles}
             dedupConfig={dedupConfig}
             onDedupChange={setDedupConfig}
             onDepthChange={setSelectedDepth}
           />
         )}
+        <MonthsConfirmDialog
+          open={phase === "confirm-months" && !!multiMonth}
+          data={multiMonth}
+          onConfirm={(keys) => { setFilteredMonths(keys); setPhase("processing"); }}
+          onCancel={() => { setMultiMonth(null); setPhase("upload"); }}
+        />
         {phase === "processing" && (
           <ProcessingPhase 
             onComplete={() => setPhase("results")} 
             files={uploadedFiles}
+            preParsed={multiMonth ? pickMonths(multiMonth, filteredMonths) : null}
             onAnalysisReady={handleAnalysisReady}
             dedupConfig={dedupConfig}
           />
         )}
         {phase === "results" && (
           <ResultsPhase 
-            onBack={() => { setPhase("upload"); setAiAnalysis(null); setParsedData(null); setBatchId(""); setSourceDocs([]); }} 
+            onBack={() => { setPhase("upload"); setAiAnalysis(null); setParsedData(null); setBatchId(""); setSourceDocs([]); setMultiMonth(null); }} 
             aiAnalysis={aiAnalysis}
             parsedData={parsedData}
             batchId={batchId}
