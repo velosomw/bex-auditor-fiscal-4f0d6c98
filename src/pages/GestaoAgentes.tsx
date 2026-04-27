@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PlatformLayout from "@/components/PlatformLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,9 +12,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import {
   ArrowLeft, Upload, Brain, BookOpen, Database, Activity, FileText,
-  CheckCircle2, AlertCircle, Sparkles, Save, RefreshCw, Star,
-  Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap,
+  CheckCircle2, AlertCircle, Sparkles, Save, RefreshCw, Star, Loader2,
+  Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap, XCircle,
 } from "lucide-react";
+import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/auditAIService";
+import { listCompanies } from "@/services/companiesService";
+import type { Company } from "@/types/dashboard";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
