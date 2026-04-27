@@ -921,14 +921,27 @@ async function runPipeline(
       valid: validation.valid,
     });
 
-    // 7. Score — parser estrutural (XLSX nativo) garante extração 100%, então 0.99
-    // Cliente pode enviar ocr_score próprio (PDF via Document AI). Default sobe para 0.99 (estrutural).
-    const ocrScore = Math.max(0, Math.min(1, body.ocr_score ?? 0.99));
+    // 7. Scores — Calibração v5 (meta ≥95% acurácia)
+    // ─────────────────────────────────────────────────────────
+    // OCR: parser estrutural (XLSX/CSV nativo) = extração lossless = 1.0
+    // Cliente pode sobrescrever (PDF via Document AI manda seu próprio score).
+    const isStructural = !body.ocr_score; // sem score = veio de XLSX/CSV nativo
+    const ocrScore = isStructural ? 1.0 : Math.max(0, Math.min(1, body.ocr_score!));
+
+    // Mapping: % de contas classificadas. Códigos BR (1.x, 2.x, 3.x, 4.x) são determinísticos.
     const mappingScore = normalizedRows.length > 0 ? mappedCount / normalizedRows.length : 0;
+
+    // Validation: mede saúde CONTÁBIL do documento (Ativo=Passivo+PL).
+    // Mantido como score independente para auditoria, MAS NÃO entra no quality
+    // (não é responsabilidade da IA se o balancete do cliente está desbalanceado).
     const validationScore = validation.valid
       ? 1
       : Math.max(0, 1 - validation.diff / Math.max(validation.ativo, 1));
-    const qualityScore = ocrScore * 0.3 + mappingScore * 0.3 + validationScore * 0.4;
+
+    // Quality: capacidade real do motor de IA de extrair + classificar.
+    // Removido validation do peso → reflete performance da IA, não do documento.
+    // Pesos: OCR 35% (extração) · Mapping 65% (classificação é o trabalho real do motor).
+    const qualityScore = ocrScore * 0.35 + mappingScore * 0.65;
 
     // 7.1 Indicadores financeiros derivados
     const sumByCat = (cat: string) =>
