@@ -1,13 +1,70 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Slider } from "@/components/ui/slider";
-import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Activity, PieChart, ArrowRight, Info, Bot, Brain, FileText, DollarSign, Gauge, SlidersHorizontal } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Shield, BarChart3, Activity, PieChart, ArrowRight, Info, Bot, Brain, FileText, DollarSign, Gauge, SlidersHorizontal, Building2, Database, FlaskConical, Loader2 } from "lucide-react";
 import { defaultEntityData, defaultFinancialAnalysis } from "@/data/auditMockData";
 import PlatformLayout from "@/components/PlatformLayout";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { listCompanies, type Company } from "@/services/companiesService";
+import { loadRealEntityData } from "@/services/entityFinancialDataService";
+import type { CompanyDataMultiYear, FinancialAnalysis, FinancialIndicators, CompanyData } from "@/types/audit";
+
+function calcIndicatorsLocal(d: CompanyData): FinancialIndicators {
+  const at = d.ativoCirculante + d.ativoNaoCirculante;
+  const pt = d.passivoCirculante + d.passivoNaoCirculante;
+  const idadeEst = d.custoMercadoriasVendidas ? (d.estoques * 360) / d.custoMercadoriasVendidas : 0;
+  const pmr = d.receitaLiquida ? (d.contasReceber * 360) / d.receitaLiquida : 0;
+  const pmp = d.custoMercadoriasVendidas ? (d.fornecedores * 360) / d.custoMercadoriasVendidas : 0;
+  return {
+    liquidezCorrente: d.passivoCirculante ? d.ativoCirculante / d.passivoCirculante : 0,
+    liquidezSeca: d.passivoCirculante ? (d.ativoCirculante - d.estoques) / d.passivoCirculante : 0,
+    liquidezGeral: (d.passivoCirculante + d.passivoNaoCirculante) ? (d.ativoCirculante + d.ativoNaoCirculante * 0.1) / (d.passivoCirculante + d.passivoNaoCirculante) : 0,
+    liquidezImediata: d.passivoCirculante ? d.caixaEquivalentes / d.passivoCirculante : 0,
+    endividamentoGeral: at ? pt / at : 0,
+    composicaoEndividamento: pt ? d.passivoCirculante / pt : 0,
+    imobilizacaoPL: d.patrimonioLiquido ? d.imobilizado / d.patrimonioLiquido : 0,
+    giroAtivo: at ? d.receitaLiquida / at : 0,
+    pmr,
+    pmp,
+    margemLiquida: d.receitaLiquida ? d.lucroLiquido / d.receitaLiquida : 0,
+    margemOperacional: d.receitaLiquida ? d.resultadoOperacional / d.receitaLiquida : 0,
+    roa: at ? d.lucroLiquido / at : 0,
+    roe: d.patrimonioLiquido ? d.lucroLiquido / d.patrimonioLiquido : 0,
+    idadeMediaEstoque: idadeEst,
+    cicloOperacional: idadeEst + pmr,
+    cicloCaixa: idadeEst + pmr - pmp,
+    coberturaJuros: d.despesasFinanceiras ? d.resultadoOperacional / d.despesasFinanceiras : 0,
+  };
+}
+
+function buildAnalysisFromData(entity: CompanyDataMultiYear): FinancialAnalysis {
+  const indicators: { [y: string]: FinancialIndicators } = {};
+  const yrs = Object.keys(entity);
+  for (const y of yrs) indicators[y] = calcIndicatorsLocal(entity[y]);
+  const lastYear = yrs.sort().slice(-1)[0];
+  const d = lastYear ? entity[lastYear] : null;
+  let score = 0;
+  if (d) {
+    const at = d.ativoCirculante + d.ativoNaoCirculante;
+    const pt = d.passivoCirculante + d.passivoNaoCirculante;
+    const lg = pt ? (d.ativoCirculante + d.ativoNaoCirculante * 0.1) / pt : 0;
+    const rent = at ? d.lucroLiquido / at : 0;
+    const endiv = at ? pt / at : 0;
+    score = lg * 0.4 + rent * 0.3 - endiv * 0.3;
+  }
+  return {
+    indicators,
+    horizontalAnalysis: { rows: [] },
+    verticalAnalysis: { rows: [] },
+    insolvencyScore: score,
+    insolvencyClassification: score < 0 ? "insolvencia" : score <= 1 ? "atencao" : "solidez",
+    solvencyConclusion: "Análise gerada a partir dos dados reais carregados pelo Pipeline IA.",
+  };
+}
 
 const fmt = (v: number, dec = 2) => v.toLocaleString("pt-BR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const fmtPct = (v: number) => fmt(v * 100) + "%";
@@ -872,16 +929,75 @@ const TabRiskEngine = () => {
 
 // ─── Main Page ───────────────────────────────────────────────
 const ModeloMatematico = () => {
-  const [selectedYear, setSelectedYear] = useState("2023");
-  const years = Object.keys(defaultEntityData).sort();
-  const d = defaultEntityData[selectedYear];
-  const ind = defaultFinancialAnalysis.indicators[selectedYear];
+  // ── Empresa selecionada + carregamento de dados reais ──
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("__demo__");
+  const [realEntity, setRealEntity] = useState<CompanyDataMultiYear | null>(null);
+  const [loadingReal, setLoadingReal] = useState(false);
+  const [dataSource, setDataSource] = useState<"demo" | "real" | "empty">("demo");
+  const [docsCount, setDocsCount] = useState(0);
+
+  useEffect(() => {
+    listCompanies()
+      .then(setCompanies)
+      .catch(() => setCompanies([]));
+  }, []);
+
+  useEffect(() => {
+    if (selectedCompanyId === "__demo__") {
+      setRealEntity(null);
+      setDataSource("demo");
+      setDocsCount(0);
+      return;
+    }
+    setLoadingReal(true);
+    loadRealEntityData(selectedCompanyId)
+      .then((res) => {
+        setDocsCount(res.documentsCount);
+        if (res.source === "real" && res.years.length > 0) {
+          setRealEntity(res.data);
+          setDataSource("real");
+        } else {
+          setRealEntity(null);
+          setDataSource("empty");
+        }
+      })
+      .catch(() => {
+        setRealEntity(null);
+        setDataSource("empty");
+      })
+      .finally(() => setLoadingReal(false));
+  }, [selectedCompanyId]);
+
+  // Fonte efetiva: dados reais quando disponíveis, caso contrário fallback didático
+  const entityData = useMemo<CompanyDataMultiYear>(
+    () => (dataSource === "real" && realEntity ? realEntity : defaultEntityData),
+    [dataSource, realEntity]
+  );
+  const analysis = useMemo<FinancialAnalysis>(
+    () => (dataSource === "real" && realEntity ? buildAnalysisFromData(realEntity) : defaultFinancialAnalysis),
+    [dataSource, realEntity]
+  );
+
+  const years = Object.keys(entityData).sort();
+  const [selectedYear, setSelectedYear] = useState<string>(years[years.length - 1] || "2023");
+
+  // Reajusta ano se o conjunto de anos mudou
+  useEffect(() => {
+    if (!years.includes(selectedYear) && years.length > 0) {
+      setSelectedYear(years[years.length - 1]);
+    }
+  }, [years, selectedYear]);
+
+  const safeYear = years.includes(selectedYear) ? selectedYear : years[years.length - 1] || "2023";
+  const d = entityData[safeYear] || defaultEntityData["2023"];
+  const ind = analysis.indicators[safeYear] || defaultFinancialAnalysis.indicators["2023"];
 
   const at = d.ativoCirculante + d.ativoNaoCirculante;
   const pt = d.passivoCirculante + d.passivoNaoCirculante;
 
-  const baseYear = years[0];
-  const dBase = defaultEntityData[baseYear];
+  const baseYear = years[0] || "2023";
+  const dBase = entityData[baseYear] || defaultEntityData["2021"];
   const atBase = dBase.ativoCirculante + dBase.ativoNaoCirculante;
   const ptBase = dBase.passivoCirculante + dBase.passivoNaoCirculante;
 
@@ -913,7 +1029,7 @@ const ModeloMatematico = () => {
   const insolvencyScore = lg * 0.4 + roa * 0.3 - eg * 0.3;
   const insolvencyClass = insolvencyScore < 0 ? "Insolvência" : insolvencyScore <= 1 ? "Atenção" : "Solidez";
 
-  // Modelo Kanitz — Planilha Giannini
+  // Modelo Kanitz — agora calculado com base nos dados da empresa selecionada
   const x1 = d.patrimonioLiquido ? d.lucroLiquido / d.patrimonioLiquido : 0;  // RPL
   const x2 = pt ? (d.ativoCirculante + (d.ativoNaoCirculante * 0.1)) / pt : 0; // LG
   const x3 = d.passivoCirculante ? (d.ativoCirculante - d.estoques) / d.passivoCirculante : 0; // LS
@@ -933,42 +1049,109 @@ const ModeloMatematico = () => {
   else if (endivStatus === "Alta" && rentStatus === "Baixa") riskClassification = "Alto";
   else if (endivStatus === "Média" || liquidezStatus === "Média") riskClassification = "Moderado";
 
+  const selectedCompany = companies.find((c) => c.id === selectedCompanyId);
+
   return (
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-4 md:p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <Calculator className="w-6 h-6 text-primary" />
               Modelo Matemático Detalhado
             </h1>
-            <p className="text-sm text-muted-foreground">Índices Financeiros & Sistema de Persona — Plataforma de Contábil IA v3.0</p>
+            <p className="text-sm text-muted-foreground">
+              Índices Financeiros & Persona — exemplos calculados sobre dados reais da empresa selecionada
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Ano:</span>
-            {years.map((y) => (
-              <button
-                key={y}
-                onClick={() => setSelectedYear(y)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  selectedYear === y
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {y}
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Seletor de empresa */}
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-muted-foreground" />
+              <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                <SelectTrigger className="w-[260px] h-9 text-sm">
+                  <SelectValue placeholder="Selecione a empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__demo__">
+                    <span className="flex items-center gap-2">
+                      <FlaskConical className="w-3.5 h-3.5" /> Exemplo didático (Kanitz/BEX)
+                    </span>
+                  </SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}{c.cnpj ? ` — ${c.cnpj}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingReal && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Ano:</span>
+              {years.map((y) => (
+                <button
+                  key={y}
+                  onClick={() => setSelectedYear(y)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    safeYear === y
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Banner de origem dos dados */}
+        {dataSource === "real" && selectedCompany && (
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 flex items-start gap-3">
+            <Database className="w-4 h-4 text-emerald-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">
+                Dados reais — {selectedCompany.name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Indicadores e fórmulas Kanitz/BEX abaixo calculados a partir de {docsCount} documento(s) processado(s) pelo Pipeline IA.
+              </p>
+            </div>
+          </div>
+        )}
+        {dataSource === "empty" && selectedCompany && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 flex items-start gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">
+                {selectedCompany.name} ainda não possui balancetes processados
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Carregue um balancete em <strong>Gestor IA → Pipeline</strong> vinculando a empresa para alimentar este modelo. Exibindo exemplo didático enquanto isso.
+              </p>
+            </div>
+          </div>
+        )}
+        {dataSource === "demo" && (
+          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 flex items-start gap-3">
+            <FlaskConical className="w-4 h-4 text-muted-foreground mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground">Exemplo didático ativo</p>
+              <p className="text-xs text-muted-foreground">
+                Selecione uma empresa acima para ver os modelos Kanitz e BEX calculados com seus dados reais.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Variables summary */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Info className="w-4 h-4 text-primary" />
-              Variáveis Base — Inputs do Modelo ({selectedYear})
+              Variáveis Base — Inputs do Modelo ({safeYear})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1107,7 +1290,7 @@ const ModeloMatematico = () => {
                     </div>
                     <FormulaBlock formula={item.formula} description={item.rules} />
                     <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-                      <p className="text-xs text-muted-foreground mb-1">Cálculo aplicado ({selectedYear}):</p>
+                      <p className="text-xs text-muted-foreground mb-1">Cálculo aplicado ({safeYear}):</p>
                       <p className="text-sm font-mono text-foreground">{item.calc}</p>
                       <p className="text-2xl font-bold text-primary mt-2">{fmt(item.value, 4)}</p>
                       <p className="text-xs text-muted-foreground mt-1">{item.interp.text}</p>
@@ -1153,7 +1336,7 @@ const ModeloMatematico = () => {
                     </div>
                     <FormulaBlock formula={item.formula} description={item.trigger} />
                     <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-                      <p className="text-xs text-muted-foreground mb-1">Cálculo ({selectedYear}):</p>
+                      <p className="text-xs text-muted-foreground mb-1">Cálculo ({safeYear}):</p>
                       <p className="text-sm font-mono text-foreground">{item.calc}</p>
                       <p className="text-2xl font-bold text-primary mt-2">{item.isPct ? fmtPct(item.value) : fmt(item.value, 4)}</p>
                       <p className="text-xs text-muted-foreground mt-1">{item.interp.text}</p>
@@ -1218,7 +1401,7 @@ const ModeloMatematico = () => {
 
           {/* AH */}
           <TabsContent value="ah" className="space-y-4">
-            <SectionTitle icon={TrendingUp} title="Análise Horizontal (AH)" subtitle={`Base: ${baseYear} → Atual: ${selectedYear}`} />
+            <SectionTitle icon={TrendingUp} title="Análise Horizontal (AH)" subtitle={`Base: ${baseYear} → Atual: ${safeYear}`} />
             <FormulaBlock formula="AH = (Valor Ano Atual − Valor Ano Base) / Valor Ano Base" description="Gatilhos: Crescimento > 30% → Expansão agressiva | Queda > 25% → Alerta estrutural" />
             <Card>
               <CardContent className="p-0">
@@ -1227,7 +1410,7 @@ const ModeloMatematico = () => {
                     <TableRow>
                       <TableHead>Conta</TableHead>
                       <TableHead className="text-right">Base ({baseYear})</TableHead>
-                      <TableHead className="text-right">Atual ({selectedYear})</TableHead>
+                      <TableHead className="text-right">Atual ({safeYear})</TableHead>
                       <TableHead className="text-right">Variação</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -1265,7 +1448,7 @@ const ModeloMatematico = () => {
 
           {/* AV */}
           <TabsContent value="av" className="space-y-4">
-            <SectionTitle icon={PieChart} title="Análise Vertical (AV)" subtitle={`Ano: ${selectedYear}`} />
+            <SectionTitle icon={PieChart} title="Análise Vertical (AV)" subtitle={`Ano: ${safeYear}`} />
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <FormulaBlock formula="AV (Balanço) = Conta / Ativo Total" description="Detecta concentração excessiva e mudanças estruturais" />
@@ -1392,7 +1575,7 @@ const ModeloMatematico = () => {
                 <FormulaBlock formula={`PT ajustado = PT + DD\nEG ajustado = (PT + DD) / AT\nPL ajustado = AT − PT ajustado`} description="Se PL ajustado < 0 → Empresa tecnicamente insolvente" />
                 <Card>
                   <CardContent className="p-5 space-y-4">
-                    <h4 className="text-sm font-semibold text-foreground">Cálculos ({selectedYear})</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Cálculos ({safeYear})</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between"><span className="text-muted-foreground">PT original</span><span className="font-mono">{fmtMoney(pt)}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Duplicatas Descontadas (DD)</span><span className="font-mono">{fmtMoney(d.duplicatasDescontadas)}</span></div>
@@ -1477,7 +1660,7 @@ const ModeloMatematico = () => {
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-primary/5 to-transparent">
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Classificação Atual ({selectedYear})</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Classificação Atual ({safeYear})</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3 text-sm">
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/60">
