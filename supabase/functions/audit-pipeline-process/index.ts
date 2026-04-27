@@ -133,8 +133,8 @@ function classifyByCode(conta: string): { tipo: string; categoria: string } | nu
 }
 
 /* ──────────────── Normalização semântica em lote via LLM ──────────────── */
-const CHUNK_SIZE = 80; // Quick Win 2: era 40
-const MAX_PARALLEL = 6; // Quick Win 2: era 4
+const CHUNK_SIZE = 120; // v3: era 80 (#1 paralelismo)
+const MAX_PARALLEL = 12; // v3: era 6 (#1 paralelismo)
 
 async function normalizeChunk(
   rows: Array<{ conta: string; descricao: string }>,
