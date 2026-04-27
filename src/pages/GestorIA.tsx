@@ -943,6 +943,9 @@ const GestorIA = () => {
             <TabsTrigger value="limites" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <Gauge className="w-3.5 h-3.5" /> Limite de Relatórios
             </TabsTrigger>
+            <TabsTrigger value="orfaos" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <FileText className="w-3.5 h-3.5" /> Documentos Órfãos
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
@@ -952,6 +955,7 @@ const GestorIA = () => {
           <TabsContent value="logs"><TabLogs /></TabsContent>
           <TabsContent value="risk-engine"><TabRiskEngineDash /></TabsContent>
           <TabsContent value="limites"><TabReportLimits /></TabsContent>
+          <TabsContent value="orfaos"><TabOrphanDocuments /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
