@@ -20,6 +20,7 @@ import UserDashboard from "./pages/UserDashboard";
 import Audit from "./pages/Audit";
 import ModeloMatematico from "./pages/ModeloMatematico";
 import GestorIA from "./pages/GestorIA";
+import GestaoAgentes from "./pages/GestaoAgentes";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/user/report/:id" element={<ReportView />} />
             <Route path="/audit" element={<Audit />} />
             <Route path="/gestor-ia" element={<GestorIA />} />
+            <Route path="/gestor-ia/agentes" element={<GestaoAgentes />} />
             <Route path="/modelo-matematico" element={<ModeloMatematico />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/usuarios" element={<UserManagement />} />

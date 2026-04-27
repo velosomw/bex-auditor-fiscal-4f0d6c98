@@ -896,6 +896,9 @@ const GestorIA = () => {
             <p className="text-sm text-muted-foreground">Visão consolidada com inteligência artificial</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/gestor-ia/agentes")}>
+              <Bot className="w-3.5 h-3.5" /> Gestão de Agentes
+            </Button>
             <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={() => navigate("/usuarios")}>
               <Plus className="w-3.5 h-3.5" /> Cadastrar Usuário
             </Button>
@@ -927,9 +930,6 @@ const GestorIA = () => {
             <TabsTrigger value="base-conhecimento" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <BookOpen className="w-3.5 h-3.5" /> Base de Conhecimento
             </TabsTrigger>
-            <TabsTrigger value="agentes" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
-              <Bot className="w-3.5 h-3.5" /> Gestão de Agentes
-            </TabsTrigger>
             <TabsTrigger value="governanca" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <ShieldCheck className="w-3.5 h-3.5" /> Governança
             </TabsTrigger>
@@ -947,7 +947,6 @@ const GestorIA = () => {
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
           <TabsContent value="integracoes"><TabIntegracoes /></TabsContent>
           <TabsContent value="base-conhecimento"><TabBaseConhecimento /></TabsContent>
-          <TabsContent value="agentes"><TabAgentes /></TabsContent>
           <TabsContent value="governanca"><TabGovernanca /></TabsContent>
           <TabsContent value="logs"><TabLogs /></TabsContent>
           <TabsContent value="risk-engine"><TabRiskEngineDash /></TabsContent>
