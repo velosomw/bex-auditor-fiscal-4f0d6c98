@@ -929,16 +929,75 @@ const TabRiskEngine = () => {
 
 // ─── Main Page ───────────────────────────────────────────────
 const ModeloMatematico = () => {
-  const [selectedYear, setSelectedYear] = useState("2023");
-  const years = Object.keys(defaultEntityData).sort();
-  const d = defaultEntityData[selectedYear];
-  const ind = defaultFinancialAnalysis.indicators[selectedYear];
+  // ── Empresa selecionada + carregamento de dados reais ──
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("__demo__");
+  const [realEntity, setRealEntity] = useState<CompanyDataMultiYear | null>(null);
+  const [loadingReal, setLoadingReal] = useState(false);
+  const [dataSource, setDataSource] = useState<"demo" | "real" | "empty">("demo");
+  const [docsCount, setDocsCount] = useState(0);
+
+  useEffect(() => {
+    listCompanies()
+      .then(setCompanies)
+      .catch(() => setCompanies([]));
+  }, []);
+
+  useEffect(() => {
+    if (selectedCompanyId === "__demo__") {
+      setRealEntity(null);
+      setDataSource("demo");
+      setDocsCount(0);
+      return;
+    }
+    setLoadingReal(true);
+    loadRealEntityData(selectedCompanyId)
+      .then((res) => {
+        setDocsCount(res.documentsCount);
+        if (res.source === "real" && res.years.length > 0) {
+          setRealEntity(res.data);
+          setDataSource("real");
+        } else {
+          setRealEntity(null);
+          setDataSource("empty");
+        }
+      })
+      .catch(() => {
+        setRealEntity(null);
+        setDataSource("empty");
+      })
+      .finally(() => setLoadingReal(false));
+  }, [selectedCompanyId]);
+
+  // Fonte efetiva: dados reais quando disponíveis, caso contrário fallback didático
+  const entityData = useMemo<CompanyDataMultiYear>(
+    () => (dataSource === "real" && realEntity ? realEntity : defaultEntityData),
+    [dataSource, realEntity]
+  );
+  const analysis = useMemo<FinancialAnalysis>(
+    () => (dataSource === "real" && realEntity ? buildAnalysisFromData(realEntity) : defaultFinancialAnalysis),
+    [dataSource, realEntity]
+  );
+
+  const years = Object.keys(entityData).sort();
+  const [selectedYear, setSelectedYear] = useState<string>(years[years.length - 1] || "2023");
+
+  // Reajusta ano se o conjunto de anos mudou
+  useEffect(() => {
+    if (!years.includes(selectedYear) && years.length > 0) {
+      setSelectedYear(years[years.length - 1]);
+    }
+  }, [years, selectedYear]);
+
+  const safeYear = years.includes(selectedYear) ? selectedYear : years[years.length - 1] || "2023";
+  const d = entityData[safeYear] || defaultEntityData["2023"];
+  const ind = analysis.indicators[safeYear] || defaultFinancialAnalysis.indicators["2023"];
 
   const at = d.ativoCirculante + d.ativoNaoCirculante;
   const pt = d.passivoCirculante + d.passivoNaoCirculante;
 
-  const baseYear = years[0];
-  const dBase = defaultEntityData[baseYear];
+  const baseYear = years[0] || "2023";
+  const dBase = entityData[baseYear] || defaultEntityData["2021"];
   const atBase = dBase.ativoCirculante + dBase.ativoNaoCirculante;
   const ptBase = dBase.passivoCirculante + dBase.passivoNaoCirculante;
 
@@ -970,7 +1029,7 @@ const ModeloMatematico = () => {
   const insolvencyScore = lg * 0.4 + roa * 0.3 - eg * 0.3;
   const insolvencyClass = insolvencyScore < 0 ? "Insolvência" : insolvencyScore <= 1 ? "Atenção" : "Solidez";
 
-  // Modelo Kanitz — Planilha Giannini
+  // Modelo Kanitz — agora calculado com base nos dados da empresa selecionada
   const x1 = d.patrimonioLiquido ? d.lucroLiquido / d.patrimonioLiquido : 0;  // RPL
   const x2 = pt ? (d.ativoCirculante + (d.ativoNaoCirculante * 0.1)) / pt : 0; // LG
   const x3 = d.passivoCirculante ? (d.ativoCirculante - d.estoques) / d.passivoCirculante : 0; // LS
@@ -987,7 +1046,11 @@ const ModeloMatematico = () => {
   const rentStatus = ind.margemLiquida < 0 ? "Negativa" : ind.margemLiquida < 0.05 ? "Baixa" : "Positiva";
   let riskClassification: RiskLevel = "Saudável";
   if (liquidezStatus === "Baixa" && endivStatus === "Alta" && rentStatus === "Negativa") riskClassification = "Crítico";
-  // Header (vai ser ajustado para incluir seletor de empresa) — fim dos cálculos.
+  else if (endivStatus === "Alta" && rentStatus === "Baixa") riskClassification = "Alto";
+  else if (endivStatus === "Média" || liquidezStatus === "Média") riskClassification = "Moderado";
+
+  const selectedCompany = companies.find((c) => c.id === selectedCompanyId);
+
   return (
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-4 md:p-6 space-y-6">
