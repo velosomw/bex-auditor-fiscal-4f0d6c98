@@ -7,6 +7,8 @@ export interface ParsedFinancialData {
   pdfType?: string;
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
   documentType?: string; // balancete, balanço, dre, dfc, extrato
+  ocrScore?: number;     // 0..1 — qualidade da extração reportada pelo backend
+  persisted?: boolean;   // true se ocr_results foi gravado para o documentId fornecido
 }
 
 export interface ConsolidatedFinancialData {
