@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Plus, Search, FileText, Eye, TrendingUp, AlertTriangle, Loader2, X, List, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Building2, Plus, Search, FileText, Eye, TrendingUp, AlertTriangle, Loader2, X, List, LayoutGrid, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -408,10 +408,36 @@ const UserEmpresas = () => {
           <Card className="h-fit">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Empresas Atendidas</CardTitle>
-              <div className="relative mt-2">
+
+              {/* Lista suspensa para seleção rápida */}
+              <div className="mt-2">
+                <Label className="text-[11px] text-muted-foreground">Selecionar empresa</Label>
+                <Select
+                  value={selectedId || ""}
+                  onValueChange={(v) => { setSelectedId(v); setShowRegister(false); }}
+                  disabled={loading || aggregates.length === 0}
+                >
+                  <SelectTrigger className="h-9 mt-1">
+                    <SelectValue placeholder={aggregates.length === 0 ? "Nenhuma empresa cadastrada" : "Selecione uma empresa"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[320px]">
+                    {aggregates.map(a => (
+                      <SelectItem key={a.company.id} value={a.company.id}>
+                        <span className="flex items-center gap-2">
+                          <Building2 className="w-3.5 h-3.5 text-[hsl(217,91%,50%)]" />
+                          <span className="font-medium">{a.company.name}</span>
+                          {a.company.cnpj && <span className="text-[11px] text-muted-foreground">— {a.company.cnpj}</span>}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="relative mt-3">
                 <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nome, CNPJ, cidade..."
+                  placeholder="Ou buscar por nome, CNPJ, cidade..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="pl-8 h-9 text-sm"

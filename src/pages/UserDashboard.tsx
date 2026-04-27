@@ -134,7 +134,9 @@ const UserDashboard = () => {
     report: GeneratedReportEntry;
     docs: AuditHistoryEntry[] | { fileName: string; fileSize: number; format: string; date: string }[];
   };
-  const groups: ReportGroup[] = reports.slice(0, 5).map(r => {
+  // Mostra apenas o ÚLTIMO par documento↔relatório no dashboard.
+  // Histórico completo fica em /user/empresas.
+  const groups: ReportGroup[] = reports.slice(0, 1).map(r => {
     let docs: any[] = [];
     if (r.batchId && docsByBatch.has(r.batchId)) {
       docs = docsByBatch.get(r.batchId)!;
@@ -144,14 +146,18 @@ const UserDashboard = () => {
     return { report: r, docs };
   });
 
-  // Documentos que não têm relatório gerado ainda
+  // Apenas o ÚLTIMO documento sem relatório gerado.
   const usedBatchIds = new Set(reports.map(r => r.batchId).filter(Boolean) as string[]);
   const unmatchedDocs = [
     ...Array.from(docsByBatch.entries())
       .filter(([bid]) => !usedBatchIds.has(bid))
       .flatMap(([, docs]) => docs),
     ...orphanDocs,
-  ].slice(0, 5);
+  ].slice(0, 1);
+
+  const hasMoreHistory = reports.length > 1 || (
+    [...Array.from(docsByBatch.entries()).filter(([bid]) => !usedBatchIds.has(bid)).flatMap(([, docs]) => docs), ...orphanDocs].length > 1
+  );
 
   const kpis = [
     { label: "Total de Auditorias", value: history.length, icon: FileText, bgClass: "bg-[hsl(217,91%,50%)]/10", colorClass: "text-[hsl(217,91%,50%)]" },
@@ -216,16 +222,28 @@ const UserDashboard = () => {
         </div>
 
         {/* Section header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Documentos & Relatórios Correspondentes</h2>
-            <p className="text-xs text-muted-foreground">Cada relatório gerado é gerado a partir de um ou mais documentos analisados (relação N:1).</p>
+            <h2 className="text-lg font-semibold text-foreground">Última Auditoria — Documentos & Relatório Correspondente</h2>
+            <p className="text-xs text-muted-foreground">
+              Exibimos apenas a auditoria mais recente. Para visualizar o histórico completo, acesse{" "}
+              <button onClick={() => navigate("/user/empresas")} className="text-[hsl(217,91%,50%)] hover:underline font-medium">
+                Empresas → Histórico de Relatórios
+              </button>.
+            </p>
           </div>
-          {history.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={handleClear} className="text-xs text-muted-foreground gap-1">
-              <Trash2 className="w-3 h-3" /> Limpar
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {hasMoreHistory && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/user/empresas")} className="gap-1.5 text-xs">
+                <Building2 className="w-3.5 h-3.5" /> Ver histórico completo
+              </Button>
+            )}
+            {history.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={handleClear} className="text-xs text-muted-foreground gap-1">
+                <Trash2 className="w-3 h-3" /> Limpar
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Pares: Documentos Analisados ↔ Relatório Gerado */}
