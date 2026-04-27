@@ -35,6 +35,11 @@ interface PipelineRequest {
   balanco: BalanceteRow[];
   dre: BalanceteRow[];
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
+  /** Configuração opcional de deduplicação por tipo de dado (override por payload) */
+  dedup?: {
+    balanco?: DedupOptions;
+    dre?: DedupOptions;
+  };
 }
 
 type NormResult = { conta_normalizada: string; categoria: string; tipo: string; matched: boolean };
@@ -367,8 +372,94 @@ async function normalizeAccountsLLM(
    3. Excel mal formatado: mesma conta aparece como [código] + [descrição] em linhas separadas
       com valores idênticos → soma dupla
    Esta função aplica 3 filtros em sequência. */
+/* Opções de deduplicação por tipo/escala de dado.
+   - dataKind: 'balanco' (BRL) | 'dre' (BRL) | 'indice' (índices/percentuais) | 'unidade' (R$ mil/milhão) | 'auto'
+   - eps: tolerância absoluta para considerar dois valores "iguais"
+   - decimals: precisão de arredondamento ao calcular a chave de valor
+   - proxWindow: janela de proximidade (linhas adjacentes) para considerar duplicata
+   - relTol: tolerância RELATIVA (ex.: 1e-4 = 0,01%) — adicional ao eps absoluto.
+   Quando 'auto', os parâmetros são derivados da magnitude mediana dos valores:
+     |mediana| < 1         → eps=1e-4, decimals=4 (índices)
+     |mediana| < 1.000     → eps=1e-2, decimals=2 (BRL pequeno)
+     |mediana| < 1.000.000 → eps=1e-2, decimals=2 (BRL padrão)
+     |mediana| ≥ 1.000.000 → eps=1,    decimals=0 (BRL grande / R$ mil-milhão)
+   relTol fixo em 1e-5 quando auto. */
+export type DedupDataKind = "balanco" | "dre" | "indice" | "unidade" | "auto";
+export interface DedupOptions {
+  dataKind?: DedupDataKind;
+  eps?: number;
+  decimals?: number;
+  proxWindow?: number;
+  relTol?: number;
+}
+
+function resolveDedupParams(
+  values: number[],
+  opts: DedupOptions,
+): { eps: number; decimals: number; proxWindow: number; relTol: number; scale: string } {
+  const proxWindow = opts.proxWindow ?? 3;
+
+  // Overrides explícitos vencem qualquer auto-detecção
+  if (opts.eps !== undefined && opts.decimals !== undefined) {
+    return {
+      eps: opts.eps,
+      decimals: opts.decimals,
+      proxWindow,
+      relTol: opts.relTol ?? 0,
+      scale: "manual",
+    };
+  }
+
+  // Presets por tipo de dado
+  const kind = opts.dataKind ?? "auto";
+  const presets: Record<Exclude<DedupDataKind, "auto">, { eps: number; decimals: number; relTol: number }> = {
+    balanco: { eps: 0.01, decimals: 2, relTol: 1e-5 },
+    dre: { eps: 0.01, decimals: 2, relTol: 1e-5 },
+    indice: { eps: 1e-4, decimals: 4, relTol: 1e-4 },
+    unidade: { eps: 1, decimals: 0, relTol: 1e-5 },
+  };
+
+  if (kind !== "auto") {
+    const p = presets[kind];
+    return {
+      eps: opts.eps ?? p.eps,
+      decimals: opts.decimals ?? p.decimals,
+      proxWindow,
+      relTol: opts.relTol ?? p.relTol,
+      scale: kind,
+    };
+  }
+
+  // AUTO: deriva da magnitude mediana
+  const abs = values.map((v) => Math.abs(Number(v) || 0)).filter((v) => v > 0);
+  if (abs.length === 0) {
+    return { eps: opts.eps ?? 0.01, decimals: opts.decimals ?? 2, proxWindow, relTol: opts.relTol ?? 1e-5, scale: "auto:empty" };
+  }
+  abs.sort((a, b) => a - b);
+  const median = abs[Math.floor(abs.length / 2)];
+
+  let eps: number, decimals: number, scale: string;
+  if (median < 1) {
+    eps = 1e-4; decimals = 4; scale = "auto:indice";
+  } else if (median < 1_000) {
+    eps = 0.01; decimals = 2; scale = "auto:brl-small";
+  } else if (median < 1_000_000) {
+    eps = 0.01; decimals = 2; scale = "auto:brl";
+  } else {
+    eps = 1; decimals = 0; scale = "auto:brl-large";
+  }
+  return {
+    eps: opts.eps ?? eps,
+    decimals: opts.decimals ?? decimals,
+    proxWindow,
+    relTol: opts.relTol ?? 1e-5,
+    scale,
+  };
+}
+
 function cleanBalanceteRows<T extends { conta: string; descricao: string; values: Record<string, number> }>(
   rows: T[],
+  opts: DedupOptions = {},
 ): T[] {
   if (rows.length === 0) return rows;
 
@@ -422,8 +513,12 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
     const years = Object.keys(step2[0]?.values || {});
     return years.sort().reverse()[0] || "_";
   })();
-  const EPS = 0.01;
-  const PROX_WINDOW = 3; // linhas adjacentes consideradas "mesma conta repetida pelo parser"
+
+  // Resolve parâmetros (auto-detecta escala se não vier override)
+  const sampleValues = step2.map((r) => Number(r.values?.[lastYear] || 0));
+  const { eps: EPS, decimals: DEC, proxWindow: PROX_WINDOW, relTol: REL_TOL } =
+    resolveDedupParams(sampleValues, opts);
+  const factor = Math.pow(10, DEC);
 
   const normCode = (s: string) =>
     String(s || "").trim().toLowerCase().replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
@@ -441,8 +536,14 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
   const descRichness = (s: string) => {
     const t = normDesc(s);
     if (!t) return 0;
-    if (/^\d+$/.test(t)) return 1; // só dígitos
-    return t.split(/\s+/).filter(Boolean).length + 2; // # de palavras
+    if (/^\d+$/.test(t)) return 1;
+    return t.split(/\s+/).filter(Boolean).length + 2;
+  };
+  // Igualdade tolerante: |Δ| <= max(EPS, relTol * max(|a|,|b|))
+  const valuesEqual = (a: number, b: number) => {
+    const d = Math.abs(a - b);
+    const tol = Math.max(EPS, REL_TOL * Math.max(Math.abs(a), Math.abs(b)));
+    return d <= tol;
   };
 
   type Indexed = { row: T; idx: number; code: string; desc: string; valR: number };
@@ -451,14 +552,10 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
     idx,
     code: normCode(row.conta),
     desc: normDesc(row.descricao),
-    valR: Math.round((Number(row.values?.[lastYear] || 0)) * 100) / 100,
+    valR: Math.round((Number(row.values?.[lastYear] || 0)) * factor) / factor,
   }));
 
-  // Conjunto de índices a remover
   const dropped = new Set<number>();
-  // Map de chave forte → primeiro índice já mantido (dentro da janela)
-  // Chave forte: code + "|" + desc + "|" + val (todas obrigatórias e não vazias)
-  // Chave fraca: usada apenas para o caso "código vs descrição em linhas vizinhas"
   for (let i = 0; i < indexed.length; i++) {
     if (dropped.has(i)) continue;
     const a = indexed[i];
@@ -469,42 +566,36 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
       if (dropped.has(j)) continue;
       const b = indexed[j];
 
-      // Sem valor → não considera duplicata por valor
       if (a.valR === 0 || b.valR === 0) continue;
-      if (Math.abs(a.valR - b.valR) >= EPS) continue;
+      if (!valuesEqual(a.valR, b.valR)) continue;
 
       const bHasCode = !!b.code;
       const bHasDesc = !!b.desc && !isCodeLike(b.row.descricao);
 
-      // CASO 1 — Chave forte: mesmo código + mesma descrição + mesmo valor → duplicata exata
+      // CASO 1 — chave forte
       if (aHasCode && bHasCode && a.code === b.code && aHasDesc && bHasDesc && a.desc === b.desc) {
         dropped.add(j);
         continue;
       }
 
-      // CASO 2 — Mesmo código (não vazio) + mesmo valor + descrições compatíveis
-      // (uma é prefixo da outra, ou uma é vazia/code-like)
+      // CASO 2 — mesmo código + descrições compatíveis
       if (aHasCode && bHasCode && a.code === b.code) {
         const oneEmpty = !aHasDesc || !bHasDesc;
         const oneContainsOther =
           aHasDesc && bHasDesc && (a.desc.includes(b.desc) || b.desc.includes(a.desc));
         if (oneEmpty || oneContainsOther) {
-          // Mantém a linha com descrição mais rica
           const keepA = descRichness(a.row.descricao) >= descRichness(b.row.descricao);
           dropped.add(keepA ? j : i);
-          if (!keepA) break; // i foi descartado, próximo i
+          if (!keepA) break;
           continue;
         }
       }
 
-      // CASO 3 — Artefato típico do Excel: linha [só código] + linha [só descrição]
-      // adjacentes (j === i+1) com mesmo valor → 2 linhas representam a MESMA conta.
-      // Só aplica para vizinhos imediatos para não colapsar contas distintas.
+      // CASO 3 — artefato Excel: vizinho imediato código vs descrição
       if (j === i + 1) {
         const aIsCodeOnly = isCodeLike(a.row.descricao);
         const bIsCodeOnly = isCodeLike(b.row.descricao);
         if (aIsCodeOnly !== bIsCodeOnly) {
-          // Mantém a com descrição textual; descarta a só-código
           if (aIsCodeOnly) {
             dropped.add(i);
             break;
@@ -514,8 +605,6 @@ function cleanBalanceteRows<T extends { conta: string; descricao: string; values
           }
         }
       }
-
-      // Caso contrário: NÃO deduplica (contas distintas que coincidem em valor)
     }
   }
 
@@ -580,8 +669,14 @@ async function runPipeline(
 
     // 3.1 Filtrar contas sintéticas (totalizadoras) — manter apenas analíticas (folhas)
     // Evita dupla contagem hierárquica que inflava ativo em ~10x
-    const balancoLeaves = cleanBalanceteRows(body.balanco || []);
-    const dreLeaves = cleanBalanceteRows(body.dre || []);
+    const balancoLeaves = cleanBalanceteRows(
+      body.balanco || [],
+      body.dedup?.balanco ?? { dataKind: "balanco" },
+    );
+    const dreLeaves = cleanBalanceteRows(
+      body.dre || [],
+      body.dedup?.dre ?? { dataKind: "dre" },
+    );
     const allRows = [
       ...balancoLeaves.map((r) => ({ ...r, _src: "balanco" as const })),
       ...dreLeaves.map((r) => ({ ...r, _src: "dre" as const })),
