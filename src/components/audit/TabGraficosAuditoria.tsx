@@ -261,6 +261,23 @@ const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
         </CardHeader>
       </Card>
 
+      {/* ── 6 GRÁFICOS DO RELATÓRIO BEX/KANITZ — base única mensal ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-[hsl(217,91%,50%)]" />
+            Indicadores Operacionais e Estruturais (mensal)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            CMV/RL · CMV+Despesa/RL · Resultado/RL · EBITDA · Liquidez · Endividamento — calculados a
+            partir do dataset mensal padronizado (mesma base usada no relatório final).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AuditCharts parsedData={parsedData} />
+        </CardContent>
+      </Card>
+
       {/* RESUMO EXECUTIVO + KANITZ + ALERTAS — derivados da DRE/Balanço */}
       {exec && (
         <>
