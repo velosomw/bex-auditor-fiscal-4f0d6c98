@@ -1151,7 +1151,7 @@ const ModeloMatematico = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Info className="w-4 h-4 text-primary" />
-              Variáveis Base — Inputs do Modelo ({selectedYear})
+              Variáveis Base — Inputs do Modelo ({safeYear})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1290,7 +1290,7 @@ const ModeloMatematico = () => {
                     </div>
                     <FormulaBlock formula={item.formula} description={item.rules} />
                     <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-                      <p className="text-xs text-muted-foreground mb-1">Cálculo aplicado ({selectedYear}):</p>
+                      <p className="text-xs text-muted-foreground mb-1">Cálculo aplicado ({safeYear}):</p>
                       <p className="text-sm font-mono text-foreground">{item.calc}</p>
                       <p className="text-2xl font-bold text-primary mt-2">{fmt(item.value, 4)}</p>
                       <p className="text-xs text-muted-foreground mt-1">{item.interp.text}</p>
@@ -1336,7 +1336,7 @@ const ModeloMatematico = () => {
                     </div>
                     <FormulaBlock formula={item.formula} description={item.trigger} />
                     <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-                      <p className="text-xs text-muted-foreground mb-1">Cálculo ({selectedYear}):</p>
+                      <p className="text-xs text-muted-foreground mb-1">Cálculo ({safeYear}):</p>
                       <p className="text-sm font-mono text-foreground">{item.calc}</p>
                       <p className="text-2xl font-bold text-primary mt-2">{item.isPct ? fmtPct(item.value) : fmt(item.value, 4)}</p>
                       <p className="text-xs text-muted-foreground mt-1">{item.interp.text}</p>
@@ -1401,7 +1401,7 @@ const ModeloMatematico = () => {
 
           {/* AH */}
           <TabsContent value="ah" className="space-y-4">
-            <SectionTitle icon={TrendingUp} title="Análise Horizontal (AH)" subtitle={`Base: ${baseYear} → Atual: ${selectedYear}`} />
+            <SectionTitle icon={TrendingUp} title="Análise Horizontal (AH)" subtitle={`Base: ${baseYear} → Atual: ${safeYear}`} />
             <FormulaBlock formula="AH = (Valor Ano Atual − Valor Ano Base) / Valor Ano Base" description="Gatilhos: Crescimento > 30% → Expansão agressiva | Queda > 25% → Alerta estrutural" />
             <Card>
               <CardContent className="p-0">
@@ -1410,7 +1410,7 @@ const ModeloMatematico = () => {
                     <TableRow>
                       <TableHead>Conta</TableHead>
                       <TableHead className="text-right">Base ({baseYear})</TableHead>
-                      <TableHead className="text-right">Atual ({selectedYear})</TableHead>
+                      <TableHead className="text-right">Atual ({safeYear})</TableHead>
                       <TableHead className="text-right">Variação</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -1448,7 +1448,7 @@ const ModeloMatematico = () => {
 
           {/* AV */}
           <TabsContent value="av" className="space-y-4">
-            <SectionTitle icon={PieChart} title="Análise Vertical (AV)" subtitle={`Ano: ${selectedYear}`} />
+            <SectionTitle icon={PieChart} title="Análise Vertical (AV)" subtitle={`Ano: ${safeYear}`} />
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <FormulaBlock formula="AV (Balanço) = Conta / Ativo Total" description="Detecta concentração excessiva e mudanças estruturais" />
@@ -1575,7 +1575,7 @@ const ModeloMatematico = () => {
                 <FormulaBlock formula={`PT ajustado = PT + DD\nEG ajustado = (PT + DD) / AT\nPL ajustado = AT − PT ajustado`} description="Se PL ajustado < 0 → Empresa tecnicamente insolvente" />
                 <Card>
                   <CardContent className="p-5 space-y-4">
-                    <h4 className="text-sm font-semibold text-foreground">Cálculos ({selectedYear})</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Cálculos ({safeYear})</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between"><span className="text-muted-foreground">PT original</span><span className="font-mono">{fmtMoney(pt)}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Duplicatas Descontadas (DD)</span><span className="font-mono">{fmtMoney(d.duplicatasDescontadas)}</span></div>
@@ -1660,7 +1660,7 @@ const ModeloMatematico = () => {
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-primary/5 to-transparent">
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Classificação Atual ({selectedYear})</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Classificação Atual ({safeYear})</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3 text-sm">
                     <div className="flex items-center justify-between p-2 rounded-lg bg-background/60">
