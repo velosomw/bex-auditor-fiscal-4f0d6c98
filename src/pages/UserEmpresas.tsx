@@ -128,16 +128,29 @@ const UserEmpresas = () => {
     });
   }, [companies]);
 
-  const filtered = useMemo(() => {
+  // Ordena por mais recente: usa lastDate (relatório/doc) com fallback para created_at da empresa.
+  const sortedByRecent = useMemo(() => {
+    const ts = (a: CompanyAggregate) => {
+      const d = a.lastDate || a.company.updated_at || a.company.created_at;
+      const t = d ? new Date(d).getTime() : 0;
+      return Number.isFinite(t) ? t : 0;
+    };
+    return [...aggregates].sort((a, b) => ts(b) - ts(a));
+  }, [aggregates]);
+
+  const filteredAll = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return aggregates;
-    return aggregates.filter(a =>
+    if (!q) return sortedByRecent;
+    return sortedByRecent.filter(a =>
       a.company.name.toLowerCase().includes(q) ||
       (a.company.cnpj || "").toLowerCase().includes(q) ||
       (a.company.city || "").toLowerCase().includes(q) ||
       (a.company.sector || "").toLowerCase().includes(q)
     );
-  }, [aggregates, search]);
+  }, [sortedByRecent, search]);
+
+  // Visão detalhada / lista suspensa: até 5 mais recentes.
+  const filtered = useMemo(() => filteredAll.slice(0, 5), [filteredAll]);
 
   const selected = useMemo(() => aggregates.find(a => a.company.id === selectedId) || null, [aggregates, selectedId]);
 
@@ -394,7 +407,7 @@ const UserEmpresas = () => {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
                   <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
                 </div>
-              ) : filtered.length === 0 ? (
+              ) : filteredAll.length === 0 ? (
                 <div className="text-center py-10 px-4">
                   <Building2 className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
@@ -416,7 +429,7 @@ const UserEmpresas = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map(a => (
+                    {filteredAll.map(a => (
                       <TableRow key={a.company.id}>
                         <TableCell className="font-medium text-foreground">{a.company.name}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{a.company.cnpj || "—"}</TableCell>
@@ -467,21 +480,26 @@ const UserEmpresas = () => {
           {/* Lista */}
           <Card className="h-fit">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Empresas Atendidas</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm">Empresas Atendidas</CardTitle>
+                <Badge variant="outline" className="text-[10px]">
+                  {filtered.length} de {filteredAll.length} (mais recentes)
+                </Badge>
+              </div>
 
-              {/* Lista suspensa para seleção rápida */}
+              {/* Lista suspensa para seleção rápida — exibe até 5 mais recentes */}
               <div className="mt-2">
                 <Label className="text-[11px] text-muted-foreground">Selecionar empresa</Label>
                 <Select
                   value={selectedId || ""}
                   onValueChange={(v) => { setSelectedId(v); setShowRegister(false); }}
-                  disabled={loading || aggregates.length === 0}
+                  disabled={loading || filtered.length === 0}
                 >
                   <SelectTrigger className="h-9 mt-1">
-                    <SelectValue placeholder={aggregates.length === 0 ? "Nenhuma empresa cadastrada" : "Selecione uma empresa"} />
+                    <SelectValue placeholder={filtered.length === 0 ? "Nenhuma empresa encontrada" : "Selecione uma empresa"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[320px]">
-                    {aggregates.map(a => (
+                    {filtered.map(a => (
                       <SelectItem key={a.company.id} value={a.company.id}>
                         <span className="flex items-center gap-2">
                           <Building2 className="w-3.5 h-3.5 text-[hsl(217,91%,50%)]" />
@@ -490,6 +508,11 @@ const UserEmpresas = () => {
                         </span>
                       </SelectItem>
                     ))}
+                    {filteredAll.length > filtered.length && (
+                      <div className="px-2 py-1.5 text-[11px] text-muted-foreground border-t mt-1">
+                        Exibindo as 5 mais recentes. Refine a busca ou use a "Lista de Empresas" para ver todas.
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
