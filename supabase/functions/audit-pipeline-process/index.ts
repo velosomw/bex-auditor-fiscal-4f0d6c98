@@ -32,6 +32,7 @@ interface BalanceteRow {
 
 interface PipelineRequest {
   company_id?: string;
+  document_id?: string; // se já criado pelo cliente (para vincular ocr_results)
   file_name: string;
   ocr_score?: number;
   balanco: BalanceteRow[];
