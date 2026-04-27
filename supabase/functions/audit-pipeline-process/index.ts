@@ -181,6 +181,32 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
   }
 }
 
+/* Wrapper: chunkifica e paraleliza chamadas LLM (reduz latência ~3-4x em balancetes grandes) */
+async function normalizeAccountsLLM(
+  rows: Array<{ conta: string; descricao: string }>,
+  // deno-lint-ignore no-explicit-any
+  dictionary: any[],
+): Promise<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> {
+  if (rows.length === 0) return [];
+  const dictText = (dictionary || [])
+    .slice(0, 80)
+    .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
+    .join("\n");
+
+  const chunks: Array<{ conta: string; descricao: string }[]> = [];
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    chunks.push(rows.slice(i, i + CHUNK_SIZE));
+  }
+
+  const results: Array<Array<{ conta_normalizada: string; categoria: string; tipo: string; matched: boolean }>> = [];
+  for (let i = 0; i < chunks.length; i += MAX_PARALLEL) {
+    const wave = chunks.slice(i, i + MAX_PARALLEL);
+    const settled = await Promise.all(wave.map((c) => normalizeChunk(c, dictText)));
+    results.push(...settled);
+  }
+  return results.flat();
+}
+
 /* ──────────────── Validador contábil ──────────────── */
 function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   valid: boolean;
