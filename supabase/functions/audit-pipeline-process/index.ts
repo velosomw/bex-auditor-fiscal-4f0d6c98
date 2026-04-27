@@ -97,6 +97,35 @@ function classifyAccount(desc: string): { tipo: string; categoria: string } {
   return { tipo: "ativo", categoria: "ativo_circulante" };
 }
 
+/* ──────────────── Classificação por código de conta brasileiro ────────────────
+   Plano de contas padrão BR:
+   1.x = Ativo  | 2.x = Passivo + PL  | 3.x = Receita  | 4.x = Custo/Despesa
+   Subdivisão típica: 2.1/2.2 = Passivo, 2.3/2.4/2.5 = PL */
+function classifyByCode(conta: string): { tipo: string; categoria: string } | null {
+  const c = String(conta || "").trim().replace(/[\s\-]+/g, ".");
+  if (!c) return null;
+  const first = c.charAt(0);
+  const second = c.charAt(2); // após o primeiro ponto
+  if (first === "1") {
+    // Ativo: 1.1/1.2 = circulante, 1.3+ = não circulante
+    if (second === "1" || second === "2") return { tipo: "ativo", categoria: "ativo_circulante" };
+    return { tipo: "ativo", categoria: "ativo_nao_circulante" };
+  }
+  if (first === "2") {
+    // PL: 2.3, 2.4, 2.5 (Capital, Reservas, Lucros)
+    if (second === "3" || second === "4" || second === "5") {
+      return { tipo: "pl", categoria: "patrimonio_liquido" };
+    }
+    if (second === "1") return { tipo: "passivo", categoria: "passivo_circulante" };
+    if (second === "2") return { tipo: "passivo", categoria: "passivo_nao_circulante" };
+    return { tipo: "passivo", categoria: "passivo_circulante" };
+  }
+  if (first === "3") return { tipo: "receita", categoria: "receita" };
+  if (first === "4") return { tipo: "despesa", categoria: "despesa" };
+  if (first === "5") return { tipo: "despesa", categoria: "custo" };
+  return null;
+}
+
 /* ──────────────── Normalização semântica em lote via LLM ──────────────── */
 const CHUNK_SIZE = 80; // Quick Win 2: era 40
 const MAX_PARALLEL = 6; // Quick Win 2: era 4
