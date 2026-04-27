@@ -309,3 +309,75 @@ Deno.test("excel-coerce: cenário misto (vazias + numéricas + BR + duplicata)",
   assertEquals(contas.filter((c) => c === "1.1.01.001").length, 1); // duplicata colapsada
 });
 
+/* ════════════════════════════════════════════════════════════
+   FIXTURE XLSX REAL — gerada por openpyxl em
+   ./fixtures/balancete_real.xlsx (com formatação BRL "R$ #,##0,00",
+   células vazias, código numérico e descrições mistas).
+   Lemos o arquivo via SheetJS exatamente como o pipeline real faz
+   (parseFile no edge function), aplicamos a coerção e validamos.
+   ════════════════════════════════════════════════════════════ */
+
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+import { fromFileUrl } from "https://deno.land/std@0.224.0/path/mod.ts";
+
+const FIXTURE_PATH = fromFileUrl(new URL("./fixtures/balancete_real.xlsx", import.meta.url));
+
+function readBalanceteXlsx(path: string): ExcelRowRaw[] {
+  const bytes = Deno.readFileSync(path);
+  const wb = XLSX.read(bytes, { type: "array", cellDates: false });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  // raw:true → mantém numbers como numbers (simula como o parser real entrega)
+  const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, {
+    header: ["conta", "descricao", "valor"],
+    range: 1, // pula cabeçalho
+    raw: true,
+    defval: null,
+  });
+  return json.map((r) => ({
+    conta: r.conta as ExcelCell,
+    descricao: r.descricao as ExcelCell,
+    valor: r.valor as ExcelCell,
+  }));
+}
+
+Deno.test("xlsx-real: lê fixture, coage e valida contrato", () => {
+  const raw = readBalanceteXlsx(FIXTURE_PATH);
+  // 14 linhas de dados (uma totalmente vazia inclusa)
+  assertEquals(raw.length >= 13, true, `linhas lidas: ${raw.length}`);
+  const rows = fromExcel(raw);
+  assertValidContract(rows);
+  // BRL grande exportado como número numérico vem direto: 1_000_000
+  const ativo = rows.find((r) => r.descricao === "Ativo");
+  assertEquals(ativo?.values["2024"], 1_000_000);
+  // Conta numérica 1.1 vira string "1.1"
+  const circulante = rows.find((r) => r.descricao === "Ativo Circulante");
+  assertEquals(circulante?.conta, "1.1");
+});
+
+Deno.test("xlsx-real: cleanBalanceteRows produz resultado esperado", () => {
+  const rows = fromExcel(readBalanceteXlsx(FIXTURE_PATH));
+  const out = cleanBalanceteRows(rows, { dataKind: "auto" });
+
+  const contas = out.map((r) => r.conta);
+  const descs = out.map((r) => r.descricao);
+
+  // 1) Sintéticos removidos (têm folhas abaixo OU descrição totalizadora)
+  assertEquals(descs.includes("Ativo"), false, "sintético 'Ativo' deve sair");
+  assertEquals(descs.includes("Ativo Circulante"), false, "sintético '1.1' deve sair");
+  assertEquals(descs.includes("DRE"), false, "sintético 'DRE' deve sair");
+
+  // 2) Duplicata exata "1.1.01.001"/Caixa Geral colapsada
+  assertEquals(contas.filter((c) => c === "1.1.01.001").length, 1);
+
+  // 3) Artefato Excel "1.1.01.002" (desc vazia + Bancos) colapsado mantendo a rica
+  const bancos = out.find((r) => r.conta === "1.1.01.002");
+  assertEquals(bancos?.descricao, "Bancos Conta Movimento");
+
+  // 4) Contas distintas com mesmo valor preservadas
+  const emprestimos = out.filter((r) => r.descricao?.startsWith("Empréstimo Banco"));
+  assertEquals(emprestimos.length, 2);
+
+  // 5) Tolerância relativa: vendas 10M vs 10M+50 colapsam (relTol em modo auto)
+  assertEquals(contas.filter((c) => c === "3.1.01.001").length, 1);
+});
+
