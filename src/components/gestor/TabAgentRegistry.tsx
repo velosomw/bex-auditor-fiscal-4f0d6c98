@@ -12,6 +12,7 @@ import {
   Bot, KeyRound, Trash2, Settings, CheckCircle2, XCircle, Pause,
   Cloud, FileSearch, Sparkles, Brain, Cpu,
 } from "lucide-react";
+import ImportValidatedReferenceDialog from "./ImportValidatedReferenceDialog";
 
 // ─── Tipos ──────────────────────────────────────────────────
 type Origem = "IA Gateway" | "Externa" | "Google Cloud" | "OpenAI" | "Personalizada";
@@ -202,12 +203,14 @@ const TabAgentRegistry = () => {
           <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Plug className="w-4 h-4 text-[hsl(200,90%,50%)]" /> Integrações & APIs externas
           </h4>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
-                <Plus className="w-3.5 h-3.5" /> Nova Integração / API
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <ImportValidatedReferenceDialog />
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
+                  <Plus className="w-3.5 h-3.5" /> Nova Integração / API
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
@@ -272,7 +275,9 @@ const TabAgentRegistry = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
