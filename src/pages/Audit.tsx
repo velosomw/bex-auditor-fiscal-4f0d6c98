@@ -3855,7 +3855,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles }: { 
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico" }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -3864,6 +3864,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
   company?: Company | null;
   source?: "auditor_chefe" | "usuario" | "empresa";
   uploadedFiles?: File[];
+  selectedDepth?: "executivo" | "tecnico";
 }) => {
   const navigate = useNavigate();
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
