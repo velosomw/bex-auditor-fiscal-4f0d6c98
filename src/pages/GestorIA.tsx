@@ -19,6 +19,7 @@ import {
 import TabReportLimits from "@/components/gestor/TabReportLimits";
 import AIProvidersConfig from "@/components/gestor/AIProvidersConfig";
 import TabOrphanDocuments from "@/components/gestor/TabOrphanDocuments";
+import TabExecutionTime from "@/components/gestor/TabExecutionTime";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 
 // ─── Mock Data ───────────────────────────────────────────────
@@ -946,6 +947,9 @@ const GestorIA = () => {
             <TabsTrigger value="orfaos" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <FileText className="w-3.5 h-3.5" /> Documentos Órfãos
             </TabsTrigger>
+            <TabsTrigger value="exec-time" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <Clock className="w-3.5 h-3.5" /> Tempo de execução
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
@@ -956,6 +960,7 @@ const GestorIA = () => {
           <TabsContent value="risk-engine"><TabRiskEngineDash /></TabsContent>
           <TabsContent value="limites"><TabReportLimits /></TabsContent>
           <TabsContent value="orfaos"><TabOrphanDocuments /></TabsContent>
+          <TabsContent value="exec-time"><TabExecutionTime /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
