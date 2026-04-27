@@ -136,7 +136,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { logout(); navigate("/login"); }}
+              onClick={() => { logout(); navigate("/"); }}
               className="text-[hsl(220,15%,50%)] hover:text-white hover:bg-[hsl(222,25%,22%)] text-xs gap-1.5"
             >
               <LogOut className="w-3.5 h-3.5" />
