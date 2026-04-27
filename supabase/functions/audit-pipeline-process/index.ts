@@ -438,10 +438,24 @@ async function runPipeline(
     });
 
     // 3. Combinar balanço + DRE
-    const allRows = [
+    const allRowsRaw = [
       ...(body.balanco || []).map((r) => ({ ...r, _src: "balanco" as const })),
       ...(body.dre || []).map((r) => ({ ...r, _src: "dre" as const })),
     ];
+
+    // 3.1 Filtrar contas sintéticas (totalizadoras) — manter apenas analíticas (folhas)
+    // Evita dupla contagem hierárquica que inflava ativo em ~10x
+    const balancoLeaves = keepOnlyLeafAccounts(body.balanco || []);
+    const dreLeaves = keepOnlyLeafAccounts(body.dre || []);
+    const allRows = [
+      ...balancoLeaves.map((r) => ({ ...r, _src: "balanco" as const })),
+      ...dreLeaves.map((r) => ({ ...r, _src: "dre" as const })),
+    ];
+    stageLog(reqId, "hierarchy.filtered", {
+      raw_rows: allRowsRaw.length,
+      leaf_rows: allRows.length,
+      removed_synthetic: allRowsRaw.length - allRows.length,
+    });
 
     if (allRows.length === 0) {
       await supabase
@@ -463,19 +477,32 @@ async function runPipeline(
     );
     stageLog(reqId, "normalize.total", { duration_ms: Date.now() - tNorm, rows: allRows.length });
 
+    // 4.1 Override por código de conta (mais confiável que descrição)
     let mappedCount = 0;
+    let codeOverrides = 0;
     const normalizedRows = allRows.map((row, i) => {
       const n = normalized[i];
-      if (n.matched) mappedCount++;
+      const byCode = classifyByCode(row.conta);
+      // Código tem precedência: 1.x sempre é Ativo, 2.3+ sempre é PL, etc.
+      const finalTipo = byCode?.tipo || n.tipo;
+      const finalCat = byCode?.categoria || n.categoria;
+      if (byCode && (byCode.tipo !== n.tipo || byCode.categoria !== n.categoria)) codeOverrides++;
+      // mapping_score = % com classificação válida (matched OU código reconhecido)
+      if (n.matched || byCode) mappedCount++;
       const valor = Number(row.values?.[lastYear] || 0);
       return {
         conta_original: row.descricao || row.conta,
         conta_normalizada: n.conta_normalizada,
         valor,
-        tipo: n.tipo,
-        categoria: n.categoria,
-        matched: n.matched,
+        tipo: finalTipo,
+        categoria: finalCat,
+        matched: n.matched || !!byCode,
       };
+    });
+    stageLog(reqId, "classification.done", {
+      total: normalizedRows.length,
+      mapped: mappedCount,
+      code_overrides: codeOverrides,
     });
 
     // 5. Persistir balancete_data
