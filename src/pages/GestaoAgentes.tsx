@@ -80,6 +80,8 @@ const TabUpload = () => {
   });
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [timings, setTimings] = useState<Partial<Record<StageKey, number>>>({});
+  const [totalMs, setTotalMs] = useState<number | null>(null);
 
   useEffect(() => {
     listCompanies().then(setCompanies).catch(() => {});
