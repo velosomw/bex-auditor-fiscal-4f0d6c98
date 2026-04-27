@@ -348,71 +348,16 @@ function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   return { valid: diff <= tolerance, ativo, passivo, pl, diff, alertas };
 }
 
-/* ──────────────── Handler ──────────────── */
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  const reqId = crypto.randomUUID().slice(0, 8);
-  const tStart = Date.now();
-
+/* ──────────────── Worker assíncrono (roda em background, sem idle timeout) ──────────────── */
+async function runPipeline(
+  reqId: string,
+  body: PipelineRequest,
+  documentId: string,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  tStart: number,
+) {
   try {
-    const body: PipelineRequest = await req.json();
-    stageLog(reqId, "request.received", {
-      file: body.file_name,
-      balanco_rows: body.balanco?.length || 0,
-      dre_rows: body.dre?.length || 0,
-      has_company: !!body.company_id,
-      has_document: !!body.document_id,
-    });
-
-    const authHeader = req.headers.get("Authorization") || "";
-    const jwt = authHeader.replace("Bearer ", "");
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: userData } = await supabase.auth.getUser(jwt);
-    const userId = userData?.user?.id;
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Usuário não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 1. Registrar (ou reutilizar) documento
-    let documentId: string;
-    if (body.document_id) {
-      const { data: existingDoc } = await supabase
-        .from("pipeline_documents")
-        .select("id")
-        .eq("id", body.document_id)
-        .maybeSingle();
-      if (!existingDoc) throw new Error(`document_id ${body.document_id} não encontrado`);
-      // deno-lint-ignore no-explicit-any
-      documentId = (existingDoc as any).id;
-      const updatePayload: Record<string, unknown> = { status: "normalizing" };
-      if (body.company_id) updatePayload.company_id = body.company_id;
-      await supabase.from("pipeline_documents").update(updatePayload).eq("id", documentId);
-    } else {
-      const { data: doc, error: docErr } = await supabase
-        .from("pipeline_documents")
-        .insert({
-          company_id: body.company_id || null,
-          file_name: body.file_name,
-          file_type: body.file_name.split(".").pop() || "unknown",
-          status: "normalizing",
-          created_by: userId,
-        })
-        .select()
-        .single();
-
-      if (docErr || !doc) throw new Error(`Falha ao registrar documento: ${docErr?.message}`);
-      // deno-lint-ignore no-explicit-any
-      documentId = (doc as any).id;
-    }
-    stageLog(reqId, "document.ready", { document_id: documentId });
-
     // 2. Carregar dicionário
     const tDict = Date.now();
     const { data: dictionary } = await supabase
@@ -435,26 +380,20 @@ serve(async (req) => {
         .from("pipeline_documents")
         .update({ status: "failed", error_message: "Sem linhas para processar" })
         .eq("id", documentId);
-      return new Response(JSON.stringify({ error: "Sem linhas para processar" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return;
     }
 
     const years = Object.keys(body.balanco?.[0]?.values || body.dre?.[0]?.values || { _: 0 });
     const lastYear = years.sort().reverse()[0] || "_";
 
-    // 4. Normalização em lote (com cache + dedup + paralelização)
+    // 4. Normalização em lote
     const tNorm = Date.now();
     const normalized = await normalizeAccountsLLM(
       allRows.map((r) => ({ conta: r.conta, descricao: r.descricao })),
       dictionary || [],
       reqId,
     );
-    stageLog(reqId, "normalize.total", {
-      duration_ms: Date.now() - tNorm,
-      rows: allRows.length,
-    });
+    stageLog(reqId, "normalize.total", { duration_ms: Date.now() - tNorm, rows: allRows.length });
 
     let mappedCount = 0;
     const normalizedRows = allRows.map((row, i) => {
@@ -486,7 +425,7 @@ serve(async (req) => {
       if (bdErr) console.warn("balancete_data insert warn:", bdErr.message);
     }
 
-    // 6. Validação contábil
+    // 6. Validação
     const validation = validateBalanco(normalizedRows);
     stageLog(reqId, "validation.done", {
       ativo: validation.ativo,
@@ -496,20 +435,7 @@ serve(async (req) => {
       valid: validation.valid,
     });
 
-    // 7. Few-shot
-    const { data: fsRows } = await supabase
-      .from("dataset_validated")
-      .select("input_json, output_corrected")
-      .order("created_at", { ascending: false })
-      .limit(3);
-    const fewShot = (fsRows || []).map((r) => ({
-      // deno-lint-ignore no-explicit-any
-      input: (r as any).input_json,
-      // deno-lint-ignore no-explicit-any
-      output: (r as any).output_corrected,
-    }));
-
-    // 8. Score
+    // 7. Score
     const ocrScore = Math.max(0, Math.min(1, body.ocr_score ?? 0.85));
     const mappingScore = normalizedRows.length > 0 ? mappedCount / normalizedRows.length : 0;
     const validationScore = validation.valid
@@ -517,7 +443,7 @@ serve(async (req) => {
       : Math.max(0, 1 - validation.diff / Math.max(validation.ativo, 1));
     const qualityScore = ocrScore * 0.3 + mappingScore * 0.3 + validationScore * 0.4;
 
-    // 9. Persistir analysis_results
+    // 8. Persistir analysis_results
     await supabase.from("pipeline_analysis_results").insert({
       document_id: documentId,
       indicadores: {
@@ -536,32 +462,109 @@ serve(async (req) => {
 
     await supabase.from("pipeline_documents").update({ status: "completed" }).eq("id", documentId);
 
-    const totalMs = Date.now() - tStart;
     stageLog(reqId, "request.complete", {
-      total_ms: totalMs,
+      total_ms: Date.now() - tStart,
       quality_score: qualityScore,
       cache_size: NORMALIZE_CACHE.size,
     });
+  } catch (e) {
+    stageLog(reqId, "worker.error", { error: e instanceof Error ? e.message : String(e) });
+    console.error("audit-pipeline-process worker error:", e);
+    await supabase
+      .from("pipeline_documents")
+      .update({
+        status: "failed",
+        error_message: e instanceof Error ? e.message.slice(0, 500) : "Unknown error",
+      })
+      .eq("id", documentId);
+  }
+}
 
+/* ──────────────── Handler (202 + background) ──────────────── */
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const reqId = crypto.randomUUID().slice(0, 8);
+  const tStart = Date.now();
+
+  try {
+    const body: PipelineRequest = await req.json();
+    stageLog(reqId, "request.received", {
+      file: body.file_name,
+      balanco_rows: body.balanco?.length || 0,
+      dre_rows: body.dre?.length || 0,
+      has_company: !!body.company_id,
+      has_document: !!body.document_id,
+    });
+
+    const authHeader = req.headers.get("Authorization") || "";
+    const jwt = authHeader.replace("Bearer ", "");
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: userData } = await supabase.auth.getUser(jwt);
+    const userId = userData?.user?.id;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Usuário não autenticado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 1. Registrar (ou reutilizar) documento — sincronamente
+    let documentId: string;
+    if (body.document_id) {
+      const { data: existingDoc } = await supabase
+        .from("pipeline_documents")
+        .select("id")
+        .eq("id", body.document_id)
+        .maybeSingle();
+      if (!existingDoc) throw new Error(`document_id ${body.document_id} não encontrado`);
+      // deno-lint-ignore no-explicit-any
+      documentId = (existingDoc as any).id;
+      const updatePayload: Record<string, unknown> = { status: "normalizing" };
+      if (body.company_id) updatePayload.company_id = body.company_id;
+      await supabase.from("pipeline_documents").update(updatePayload).eq("id", documentId);
+    } else {
+      const { data: doc, error: docErr } = await supabase
+        .from("pipeline_documents")
+        .insert({
+          company_id: body.company_id || null,
+          file_name: body.file_name,
+          file_type: body.file_name.split(".").pop() || "unknown",
+          status: "normalizing",
+          created_by: userId,
+        })
+        .select()
+        .single();
+      if (docErr || !doc) throw new Error(`Falha ao registrar documento: ${docErr?.message}`);
+      // deno-lint-ignore no-explicit-any
+      documentId = (doc as any).id;
+    }
+    stageLog(reqId, "document.ready", { document_id: documentId });
+
+    // 2. Dispara worker em background (não bloqueia a resposta — sem idle timeout)
+    // deno-lint-ignore no-explicit-any
+    const edgeRt = (globalThis as any).EdgeRuntime;
+    const workerPromise = runPipeline(reqId, body, documentId, supabase, tStart);
+    if (edgeRt?.waitUntil) {
+      edgeRt.waitUntil(workerPromise);
+    } else {
+      // Fallback local: apenas dispara sem await
+      workerPromise.catch((e) => console.error("worker bg error:", e));
+    }
+
+    // 3. Retorna 202 imediatamente — cliente faz polling em pipeline_documents.status
     return new Response(
       JSON.stringify({
+        status: "processing",
         document_id: documentId,
-        normalized: normalizedRows,
-        few_shot_examples: fewShot,
-        validation,
-        scores: {
-          ocr: ocrScore,
-          mapping: mappingScore,
-          validation: validationScore,
-          quality: qualityScore,
-        },
-        meta: {
-          req_id: reqId,
-          total_ms: totalMs,
-          cache_size: NORMALIZE_CACHE.size,
-        },
+        req_id: reqId,
+        message:
+          "Documento enfileirado para processamento em background. Faça polling em pipeline_documents.status até 'completed' ou 'failed'.",
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     stageLog(reqId, "request.error", { error: e instanceof Error ? e.message : String(e) });
