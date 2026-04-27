@@ -266,7 +266,7 @@ const TabUpload = () => {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Empresa</Label>
+          <Label className="text-xs">Empresa <span className="text-destructive">*</span></Label>
           <Select value={empresaId} onValueChange={setEmpresaId}>
             <SelectTrigger><SelectValue placeholder={companies.length ? "Selecionar empresa" : "Sem empresas cadastradas"} /></SelectTrigger>
             <SelectContent>

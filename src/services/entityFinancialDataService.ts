@@ -61,7 +61,7 @@ export async function loadRealEntityData(companyId: string): Promise<EntityRealD
     .from("pipeline_documents")
     .select("id, created_at, status")
     .eq("company_id", companyId)
-    .eq("status", "completed");
+    .in("status", ["completed", "done"]);
 
   if (docsErr) throw docsErr;
   if (!docs || docs.length === 0) {
