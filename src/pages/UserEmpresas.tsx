@@ -128,16 +128,29 @@ const UserEmpresas = () => {
     });
   }, [companies]);
 
+  // Ordena por mais recente: usa lastDate (relatório/doc) com fallback para created_at da empresa.
+  const sortedByRecent = useMemo(() => {
+    const ts = (a: CompanyAggregate) => {
+      const d = a.lastDate || a.company.updated_at || a.company.created_at;
+      const t = d ? new Date(d).getTime() : 0;
+      return Number.isFinite(t) ? t : 0;
+    };
+    return [...aggregates].sort((a, b) => ts(b) - ts(a));
+  }, [aggregates]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return aggregates;
-    return aggregates.filter(a =>
-      a.company.name.toLowerCase().includes(q) ||
-      (a.company.cnpj || "").toLowerCase().includes(q) ||
-      (a.company.city || "").toLowerCase().includes(q) ||
-      (a.company.sector || "").toLowerCase().includes(q)
-    );
-  }, [aggregates, search]);
+    const base = q
+      ? sortedByRecent.filter(a =>
+          a.company.name.toLowerCase().includes(q) ||
+          (a.company.cnpj || "").toLowerCase().includes(q) ||
+          (a.company.city || "").toLowerCase().includes(q) ||
+          (a.company.sector || "").toLowerCase().includes(q)
+        )
+      : sortedByRecent;
+    // Limita a exibição a 5 empresas (mais recentes primeiro) na visão detalhada / lista suspensa
+    return base.slice(0, 5);
+  }, [sortedByRecent, search]);
 
   const selected = useMemo(() => aggregates.find(a => a.company.id === selectedId) || null, [aggregates, selectedId]);
 
