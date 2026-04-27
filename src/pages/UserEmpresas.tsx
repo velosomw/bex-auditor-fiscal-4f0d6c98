@@ -619,7 +619,7 @@ const UserEmpresas = () => {
                             onClick={() => handleNewAudit(selected.company)}
                             className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
                           >
-                            <Plus className="w-4 h-4" /> Nova Auditoria
+                            <Plus className="w-4 h-4" /> Fazer Auditoria
                           </Button>
                         )}
                       </div>
