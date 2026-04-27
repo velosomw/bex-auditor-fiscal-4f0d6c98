@@ -960,6 +960,7 @@ const GestorIA = () => {
           <TabsContent value="risk-engine"><TabRiskEngineDash /></TabsContent>
           <TabsContent value="limites"><TabReportLimits /></TabsContent>
           <TabsContent value="orfaos"><TabOrphanDocuments /></TabsContent>
+          <TabsContent value="exec-time"><TabExecutionTime /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
