@@ -3907,11 +3907,27 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
   };
 
   const handleGerarBex = () => {
+    if (selectedDepth !== "executivo") {
+      toast({
+        title: "Relatório bloqueado",
+        description: "Para acessar o Relatório BEx_Resumido_Kanitz, selecione esse nível em 'Nível de Profundidade Técnica' na etapa de configuração.",
+        variant: "destructive",
+      });
+      return;
+    }
     setReportType("bex");
     persistReport("resumido");
   };
 
   const handleGerarKanitz = () => {
+    if (selectedDepth !== "tecnico") {
+      toast({
+        title: "Relatório bloqueado",
+        description: "Para acessar o Relatório BEx_Completo_Kanitz, selecione esse nível em 'Nível de Profundidade Técnica' na etapa de configuração.",
+        variant: "destructive",
+      });
+      return;
+    }
     setReportType("kanitz");
     persistReport("completo");
   };
