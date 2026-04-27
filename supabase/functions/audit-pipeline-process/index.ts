@@ -1058,7 +1058,10 @@ DRE:
       quality_score: qualityScore,
     });
 
-    await supabase.from("pipeline_documents").update({ status: "completed" }).eq("id", documentId);
+    await supabase
+      .from("pipeline_documents")
+      .update({ status: "completed", progress: "Concluído" })
+      .eq("id", documentId);
 
     stageLog(reqId, "request.complete", {
       total_ms: Date.now() - tStart,
