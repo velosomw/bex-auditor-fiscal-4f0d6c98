@@ -222,15 +222,15 @@ const Dashboard = () => {
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Liquidez Corrente</span>
-                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.liquidezCorrente.toFixed(2)}x</span>
+                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.liquidezCorrente != null ? `${lastAuditOverview.indicadores.liquidezCorrente.toFixed(2)}x` : "—"}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Endividamento</span>
-                    <span className="font-mono font-bold text-foreground">{(lastAuditOverview.indicadores.endividamento * 100).toFixed(1)}%</span>
+                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.endividamento != null ? `${(lastAuditOverview.indicadores.endividamento * 100).toFixed(1)}%` : "—"}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Kanitz (FI)</span>
-                    <span className="font-mono font-bold text-[hsl(142,76%,36%)]">{lastAuditOverview.indicadores.kanitz.toFixed(2)}</span>
+                    <span className="font-mono font-bold text-[hsl(142,76%,36%)]">{lastAuditOverview.indicadores.kanitz != null ? lastAuditOverview.indicadores.kanitz.toFixed(2) : "—"}</span>
                   </div>
                 </div>
               </div>
