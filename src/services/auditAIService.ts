@@ -322,14 +322,18 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   const years = new Set<string>();
 
   // 1) Tenta primeiro o template "Balancete Mensal BR" (Extenso/Descrição/Saldo Atual)
+  //    Se múltiplas sheets baterem o template, mantém a sheet com mais contas
+  //    (mais granular) para evitar dupla contagem entre abas duplicadas.
+  let bestTplRows: BalanceteRowParsed[] = [];
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
     const tpl = tryParseBalanceteMensalBR(jsonData);
-    if (tpl) {
-      tpl.rows.forEach(r => allRows.push(r));
-      years.add(tpl.periodLabel);
-    }
+    if (tpl && tpl.rows.length > bestTplRows.length) bestTplRows = tpl.rows;
+  }
+  if (bestTplRows.length > 0) {
+    bestTplRows.forEach(r => allRows.push(r));
+    years.add("atual");
   }
   if (allRows.length > 0) {
     // separa balanço x DRE pelo prefixo do código (1/2 = patrimoniais, 3/4/5 = resultado)
