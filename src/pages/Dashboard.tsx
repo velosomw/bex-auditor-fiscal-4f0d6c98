@@ -274,11 +274,11 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
-            { label: "Documentos", value: mockStats.totalDocuments, icon: FileText, color: "hsl(217,91%,50%)" },
-            { label: "Auditorias", value: mockStats.totalAudits, icon: BarChart3, color: "hsl(200,98%,55%)" },
-            { label: "Em Andamento", value: mockStats.auditsInProgress, icon: Clock, color: "hsl(38,92%,50%)" },
-            { label: "Concluídas", value: mockStats.auditsCompleted, icon: CheckCircle2, color: "hsl(142,76%,36%)" },
-            { label: "Pareceres", value: mockStats.opinionsIssued, icon: Award, color: "hsl(217,85%,45%)" },
+            { label: "Documentos", value: stats.totalDocuments, icon: FileText, color: "hsl(217,91%,50%)" },
+            { label: "Auditorias", value: stats.totalAudits, icon: BarChart3, color: "hsl(200,98%,55%)" },
+            { label: "Em Andamento", value: stats.auditsInProgress, icon: Clock, color: "hsl(38,92%,50%)" },
+            { label: "Concluídas", value: stats.auditsCompleted, icon: CheckCircle2, color: "hsl(142,76%,36%)" },
+            { label: "Pareceres", value: stats.opinionsIssued, icon: Award, color: "hsl(217,85%,45%)" },
           ].map((kpi) => (
             <Card key={kpi.label} className="border-border/50">
               <CardContent className="p-4">
