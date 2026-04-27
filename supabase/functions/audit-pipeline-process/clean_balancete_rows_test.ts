@@ -107,17 +107,19 @@ Deno.test("cleanBalanceteRows: lista vazia retorna lista vazia", () => {
   assertEquals(cleanBalanceteRows([], { dataKind: "balanco" }).length, 0);
 });
 
-Deno.test("cleanBalanceteRows: respeita override de eps/decimals (escala grande)", () => {
-  // Valores em milhões com diferença de R$ 0,50 — com eps padrão (0,01) NÃO seriam iguais.
-  // Com eps=1, devem ser tratados como duplicata.
+Deno.test("cleanBalanceteRows: respeita override de eps/decimals (escala pequena)", () => {
+  // Valores pequenos com diferença de R$ 0,40. Com eps padrão (0,01) NÃO são iguais.
+  // Com eps=0,5, devem ser tratados como duplicata.
   const rows: Row[] = [
-    row("1.1.01.001", "Caixa", 12_500_000.25),
-    row("1.1.01.001", "Caixa", 12_500_000.75),
+    row("1.1.01.001", "Caixa", 100.20),
+    row("1.1.01.001", "Caixa", 100.60),
   ];
+  // Sem override: relTol pequena (1e-5 * 100 = 0.001) e eps=0.01 → diff 0.40 > tol → mantém ambas
   const semOverride = cleanBalanceteRows(rows, { dataKind: "balanco" });
-  assertEquals(semOverride.length, 2); // diff > eps padrão
-  const comOverride = cleanBalanceteRows(rows, { eps: 1, decimals: 0 });
-  assertEquals(comOverride.length, 1); // colapsa com eps=1
+  assertEquals(semOverride.length, 2);
+  // Com eps=0.5: colapsa
+  const comOverride = cleanBalanceteRows(rows, { eps: 0.5, decimals: 2 });
+  assertEquals(comOverride.length, 1);
 });
 
 Deno.test("cleanBalanceteRows: tolerância relativa em valores muito grandes (modo auto)", () => {
