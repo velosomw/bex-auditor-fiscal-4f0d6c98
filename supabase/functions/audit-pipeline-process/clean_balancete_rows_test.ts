@@ -148,3 +148,164 @@ Deno.test("cleanBalanceteRows: janela de proximidade evita colapsar duplicatas d
   const out = cleanBalanceteRows(rows, { dataKind: "balanco", proxWindow: 3 });
   assertEquals(out.filter((r) => r.conta === "1.1.01.001").length, 2);
 });
+
+/* ════════════════════════════════════════════════════════════
+   CAMADA DE SIMULAÇÃO — EXPORT DO EXCEL
+   Reproduz como cada célula chega do parser do XLSX/CSV:
+   - empty   → célula em branco (undefined / null / "")
+   - number  → célula numérica (ex.: código "1.1.01.001" virou number 1.101001
+               OU descrição preenchida apenas com o código numérico)
+   - string  → célula texto normal
+   Antes de chamar cleanBalanceteRows, normalizamos para o contrato
+   { conta: string; descricao: string; values: Record<string, number> }
+   exatamente como o pipeline real faz após o parseFile.
+   ════════════════════════════════════════════════════════════ */
+
+type ExcelCell = string | number | null | undefined;
+interface ExcelRowRaw {
+  conta: ExcelCell;
+  descricao: ExcelCell;
+  valor: ExcelCell;
+}
+
+/** Coerção idêntica à que o parser do Excel aplica antes do dedup. */
+function coerceExcelRow(raw: ExcelRowRaw, year = "2024"): Row {
+  const cellToString = (c: ExcelCell): string => {
+    if (c === null || c === undefined) return "";
+    if (typeof c === "number") {
+      // Excel pode exportar "1.1" como número 1.1; preserva precisão e remove .0 final
+      const s = Number.isInteger(c) ? String(c) : String(c);
+      return s;
+    }
+    return String(c).trim();
+  };
+  const cellToNumber = (c: ExcelCell): number => {
+    if (c === null || c === undefined || c === "") return 0;
+    if (typeof c === "number") return c;
+    // strings com vírgula decimal BR ("1.234,56")
+    const cleaned = String(c).replace(/\./g, "").replace(",", ".").replace(/[^\d.\-]/g, "");
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  };
+  return {
+    conta: cellToString(raw.conta),
+    descricao: cellToString(raw.descricao),
+    values: { [year]: cellToNumber(raw.valor) },
+  };
+}
+
+function fromExcel(rows: ExcelRowRaw[], year = "2024"): Row[] {
+  return rows.map((r) => coerceExcelRow(r, year));
+}
+
+/** Validação mínima do contrato pós-coerção (antes do dedup). */
+function assertValidContract(rows: Row[]) {
+  for (const [i, r] of rows.entries()) {
+    assertEquals(typeof r.conta, "string", `row ${i}: conta deve ser string`);
+    assertEquals(typeof r.descricao, "string", `row ${i}: descricao deve ser string`);
+    assertEquals(typeof r.values, "object", `row ${i}: values deve ser object`);
+    for (const [y, v] of Object.entries(r.values)) {
+      assertEquals(typeof v, "number", `row ${i}/${y}: valor deve ser number`);
+      assertEquals(Number.isFinite(v), true, `row ${i}/${y}: valor deve ser finito`);
+    }
+  }
+}
+
+// ──────────────── FIXTURES "EXCEL-LIKE" ────────────────
+
+// Excel-like 1: célula DESCRIÇÃO vazia (null/undefined/"") em uma das duplicatas.
+// Caso clássico: parser entrega 2 linhas para o mesmo código — uma com descrição
+// vazia (linha de cabeçalho da conta) e outra com a descrição real.
+const fxExcelDescVazia: ExcelRowRaw[] = [
+  { conta: "1.1.01.001", descricao: null,                  valor: 350_000 },
+  { conta: "1.1.01.001", descricao: "Imobilizado Industrial", valor: 350_000 },
+  { conta: "1.1.01.002", descricao: "",                    valor: 80_000 }, // string vazia
+  { conta: "1.1.01.002", descricao: "Veículos",            valor: 80_000 },
+];
+
+// Excel-like 2: célula CONTA chega como NUMBER (Excel converte "1.1" em 1.1).
+const fxExcelContaNumerica: ExcelRowRaw[] = [
+  { conta: 1.1,           descricao: "Ativo Circulante",     valor: 170_000 }, // sintética → removida
+  { conta: "1.1.01.001",  descricao: "Caixa",                valor: 50_000 },
+  { conta: "1.1.01.002",  descricao: "Bancos",               valor: 120_000 },
+];
+
+// Excel-like 3: célula DESCRIÇÃO chega como NUMBER (Excel armazenou o código
+// na coluna de descrição como número puro). Formato BR no valor (string com vírgula).
+const fxExcelDescNumerica: ExcelRowRaw[] = [
+  { conta: "1.2.01.005", descricao: 1.201005,                valor: "350.000,00" }, // descrição = código numérico
+  { conta: "1.2.01.005", descricao: "Imobilizado Industrial", valor: 350_000 },
+  { conta: "1.2.01.006", descricao: "Veículos",               valor: 80_000 },
+];
+
+// Excel-like 4: mistura de tipos + valores em formato BR + linhas em branco intercaladas.
+const fxExcelMixed: ExcelRowRaw[] = [
+  { conta: "1",          descricao: "Ativo",         valor: "1.000.000,00" }, // sintética
+  { conta: undefined,    descricao: undefined,       valor: undefined },       // linha vazia
+  { conta: "1.1.01.001", descricao: "Caixa",         valor: 50_000 },
+  { conta: "1.1.01.001", descricao: "Caixa",         valor: 50_000 },          // duplicata exata
+  { conta: 2.101,        descricao: "",              valor: 200_000 },         // conta numérica + desc vazia
+  { conta: "2.1.01",     descricao: "Fornecedores",  valor: 200_000 },
+];
+
+// ──────────────── TESTES DA CAMADA EXCEL ────────────────
+
+Deno.test("excel-coerce: contrato pós-coerção é sempre {string, string, number}", () => {
+  const rows = fromExcel(fxExcelMixed);
+  assertValidContract(rows);
+});
+
+Deno.test("excel-coerce: descrição vazia (null/'') colapsa duplicata via Caso 2", () => {
+  const rows = fromExcel(fxExcelDescVazia);
+  assertValidContract(rows);
+  const out = cleanBalanceteRows(rows, { dataKind: "balanco" });
+  assertEquals(out.length, 2);
+  assertEquals(out.find((r) => r.conta === "1.1.01.001")?.descricao, "Imobilizado Industrial");
+  assertEquals(out.find((r) => r.conta === "1.1.01.002")?.descricao, "Veículos");
+});
+
+Deno.test("excel-coerce: conta exportada como number (1.1) ainda é tratada como sintética", () => {
+  const rows = fromExcel(fxExcelContaNumerica);
+  assertValidContract(rows);
+  // Após coerção, conta "1.1" é detectada como pai das folhas "1.1.01.x" → removida
+  const out = cleanBalanceteRows(rows, { dataKind: "balanco" });
+  assertEquals(out.length, 2);
+  assertEquals(out.every((r) => r.conta.startsWith("1.1.01.")), true);
+});
+
+Deno.test("excel-coerce: descrição como number (código puro) — coerção e formato BR", () => {
+  const rows = fromExcel(fxExcelDescNumerica);
+  assertValidContract(rows);
+  // Validação principal: valor BR "350.000,00" → 350000 numérico após coerção
+  assertEquals(rows[0].values["2024"], 350_000);
+  // Descrição numérica é coagida para string ("1.201005") — não é vazia,
+  // então a heurística atual NÃO colapsa via Caso 2. Documenta o comportamento:
+  // ambas as linhas do código "1.2.01.005" são preservadas (descrição numérica
+  // pode ser legítima em alguns balancetes).
+  const out = cleanBalanceteRows(rows, { dataKind: "balanco" });
+  const cinco = out.filter((r) => r.conta === "1.2.01.005");
+  assertEquals(cinco.length, 2);
+  // Confirma que a versão textual está presente entre as preservadas
+  assertEquals(cinco.some((r) => r.descricao === "Imobilizado Industrial"), true);
+});
+
+Deno.test("excel-coerce: cenário misto (vazias + numéricas + BR + duplicata)", () => {
+  const rows = fromExcel(fxExcelMixed);
+  assertValidContract(rows);
+  // Coerção: "1.000.000,00" → 1_000_000; conta vazia → ""; conta 2.101 → "2.101"
+  assertEquals(rows[0].values["2024"], 1_000_000);
+  assertEquals(rows[1].conta, "");
+  assertEquals(rows[4].conta, "2.101");
+
+  const out = cleanBalanceteRows(rows, { dataKind: "balanco" });
+  // - "Ativo" (sintético) removido por descrição
+  // - linha vazia: conta "" e desc "" → não casa hierarquia nem dedup; mantida
+  //   (não polui o resultado contábil pois valor=0 a deixa fora dos somatórios)
+  // - duplicata exata "1.1.01.001"/Caixa colapsa
+  // - "2.101" (conta-only num) e "2.1.01"/Fornecedores: códigos normalizam para "2.101" vs "2.1.01"
+  //   → códigos diferentes; valor igual mas distintos → mantém ambos
+  const contas = out.map((r) => r.conta);
+  assertEquals(contas.includes("1"), false); // sintético removido
+  assertEquals(contas.filter((c) => c === "1.1.01.001").length, 1); // duplicata colapsada
+});
+
