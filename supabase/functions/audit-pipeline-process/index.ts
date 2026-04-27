@@ -594,6 +594,132 @@ async function runPipeline(
       : Math.max(0, 1 - validation.diff / Math.max(validation.ativo, 1));
     const qualityScore = ocrScore * 0.3 + mappingScore * 0.3 + validationScore * 0.4;
 
+    // 7.1 Indicadores financeiros derivados
+    const sumByCat = (cat: string) =>
+      normalizedRows
+        .filter((r) => r.categoria === cat)
+        .reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
+    const ativoCirc = sumByCat("ativo_circulante");
+    const ativoNaoCirc = sumByCat("ativo_nao_circulante");
+    const passivoCirc = sumByCat("passivo_circulante");
+    const passivoNaoCirc = sumByCat("passivo_nao_circulante");
+    const receita = normalizedRows
+      .filter((r) => r.tipo === "receita")
+      .reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
+    const despesa = normalizedRows
+      .filter((r) => r.tipo === "despesa")
+      .reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
+    const resultado = receita - despesa;
+
+    const indicadoresFinanceiros = {
+      liquidez_corrente: passivoCirc > 0 ? +(ativoCirc / passivoCirc).toFixed(3) : null,
+      endividamento_geral:
+        validation.ativo > 0
+          ? +((validation.passivo / validation.ativo) * 100).toFixed(2)
+          : null,
+      composicao_endividamento:
+        validation.passivo > 0 ? +((passivoCirc / validation.passivo) * 100).toFixed(2) : null,
+      margem_liquida: receita > 0 ? +((resultado / receita) * 100).toFixed(2) : null,
+      roe: validation.pl > 0 ? +((resultado / validation.pl) * 100).toFixed(2) : null,
+      receita_total: receita,
+      despesa_total: despesa,
+      resultado_periodo: resultado,
+    };
+
+    // 7.2 Análise contextual via LLM (Auditor Contábil Sênior IA)
+    const tAnalysis = Date.now();
+    let aiInsights: { resumo: string; pontos_atencao: string[]; recomendacoes: string[] } | null = null;
+    try {
+      const ctx = `Empresa: ${body.documentInfo?.empresa || "N/D"}
+Período: ${body.documentInfo?.periodo || lastYear}
+
+INDICADORES CONSOLIDADOS:
+- Ativo Total: R$ ${validation.ativo.toLocaleString("pt-BR")}
+- Passivo Total: R$ ${validation.passivo.toLocaleString("pt-BR")}
+- Patrimônio Líquido: R$ ${validation.pl.toLocaleString("pt-BR")}
+- Equação Contábil: ${validation.valid ? "BALANCEADA" : `DESBALANCEADA (Δ R$ ${validation.diff.toLocaleString("pt-BR")})`}
+
+ESTRUTURA:
+- Ativo Circulante: R$ ${ativoCirc.toLocaleString("pt-BR")}
+- Ativo Não Circulante: R$ ${ativoNaoCirc.toLocaleString("pt-BR")}
+- Passivo Circulante: R$ ${passivoCirc.toLocaleString("pt-BR")}
+- Passivo Não Circulante: R$ ${passivoNaoCirc.toLocaleString("pt-BR")}
+
+DRE:
+- Receita: R$ ${receita.toLocaleString("pt-BR")}
+- Despesa: R$ ${despesa.toLocaleString("pt-BR")}
+- Resultado: R$ ${resultado.toLocaleString("pt-BR")}
+
+ÍNDICES:
+- Liquidez Corrente: ${indicadoresFinanceiros.liquidez_corrente ?? "N/D"}
+- Endividamento Geral: ${indicadoresFinanceiros.endividamento_geral ?? "N/D"}%
+- Composição Endividamento (curto prazo): ${indicadoresFinanceiros.composicao_endividamento ?? "N/D"}%
+- Margem Líquida: ${indicadoresFinanceiros.margem_liquida ?? "N/D"}%
+- ROE: ${indicadoresFinanceiros.roe ?? "N/D"}%`;
+
+      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `Você é o Auditor Contábil Sênior IA da BEX Auditoria, especialista em análise financeira pelas normas CPC/IFRS/Lei 6.404/76 com foco em diagnóstico de solvência, recuperação judicial e governança corporativa. Seja direto, técnico e cite valores absolutos quando relevante. Limite cada item a 1 frase objetiva.`,
+            },
+            {
+              role: "user",
+              content: `Analise este balancete e retorne JSON via tool call:\n\n${ctx}`,
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "return_audit_insights",
+                description: "Retorna análise contextual estruturada do auditor.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    resumo: {
+                      type: "string",
+                      description: "1-2 frases sobre saúde financeira geral.",
+                    },
+                    pontos_atencao: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "3-5 alertas técnicos (liquidez, endividamento, margem, etc.)",
+                    },
+                    recomendacoes: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "2-4 ações sugeridas pelo auditor.",
+                    },
+                  },
+                  required: ["resumo", "pontos_atencao", "recomendacoes"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "return_audit_insights" } },
+        }),
+      });
+      if (aiResp.ok) {
+        const aj = await aiResp.json();
+        const tc = aj.choices?.[0]?.message?.tool_calls?.[0];
+        aiInsights = JSON.parse(tc?.function?.arguments || "null");
+      } else {
+        console.warn("ai insights HTTP", aiResp.status);
+      }
+    } catch (e) {
+      console.warn("ai insights error:", e instanceof Error ? e.message : e);
+    }
+    stageLog(reqId, "ai_insights.done", {
+      duration_ms: Date.now() - tAnalysis,
+      has_insights: !!aiInsights,
+    });
+
     // 8. Persistir analysis_results
     await supabase.from("pipeline_analysis_results").insert({
       document_id: documentId,
@@ -601,8 +727,14 @@ async function runPipeline(
         ativo_total: validation.ativo,
         passivo_total: validation.passivo,
         pl: validation.pl,
+        ativo_circulante: ativoCirc,
+        ativo_nao_circulante: ativoNaoCirc,
+        passivo_circulante: passivoCirc,
+        passivo_nao_circulante: passivoNaoCirc,
         contas_total: normalizedRows.length,
         contas_mapeadas: mappedCount,
+        ...indicadoresFinanceiros,
+        ai_insights: aiInsights,
       },
       alertas: validation.alertas,
       ocr_score: ocrScore,
