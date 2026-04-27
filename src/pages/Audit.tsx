@@ -1653,7 +1653,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
       </Card>
 
       {/* Card Kanitz */}
-      <Card className="border-2 hover:border-amber-500/50 transition-all">
+      <Card className={`border-2 hover:border-amber-500/50 transition-all ${kanitzAvailable ? "ring-2 ring-amber-500/40" : ""}`}>
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
@@ -1669,8 +1669,11 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
           <p className="text-xs text-muted-foreground leading-relaxed">
             Relatório de análise preditiva de falência com cálculo do Fator de Insolvência (FI), classificação de risco, análise técnica automatizada e recomendações estratégicas.
            </p>
-           <div className="flex justify-center">
+           <div className="flex justify-center gap-2">
              <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30 text-xs font-semibold px-3 py-1">Versão Paga</Badge>
+             {kanitzAvailable && (
+               <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 text-xs font-semibold px-3 py-1">Selecionado</Badge>
+             )}
            </div>
           <div className="space-y-2">
             {reportTopicsKanitz.map(t => {
@@ -1703,7 +1706,8 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
       </Card>
     </div>
   </div>
-);
+  );
+};
 
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
