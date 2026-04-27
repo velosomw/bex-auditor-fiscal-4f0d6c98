@@ -165,37 +165,49 @@ type ExcelCell = string | number | null | undefined;
 interface ExcelRowRaw {
   conta: ExcelCell;
   descricao: ExcelCell;
-  valor: ExcelCell;
+  /** Valor único (ano default) — modo legado de coluna única */
+  valor?: ExcelCell;
+  /** Valores por ano — modo multi-ano: { "2022": ..., "2023": ..., "2024": ... } */
+  valores?: Record<string, ExcelCell>;
 }
 
-/** Coerção idêntica à que o parser do Excel aplica antes do dedup. */
-function coerceExcelRow(raw: ExcelRowRaw, year = "2024"): Row {
-  const cellToString = (c: ExcelCell): string => {
-    if (c === null || c === undefined) return "";
-    if (typeof c === "number") {
-      // Excel pode exportar "1.1" como número 1.1; preserva precisão e remove .0 final
-      const s = Number.isInteger(c) ? String(c) : String(c);
-      return s;
+const cellToString = (c: ExcelCell): string => {
+  if (c === null || c === undefined) return "";
+  if (typeof c === "number") return String(c);
+  return String(c).trim();
+};
+
+const cellToNumber = (c: ExcelCell): number => {
+  if (c === null || c === undefined || c === "") return 0;
+  if (typeof c === "number") return c;
+  // strings com vírgula decimal BR ("1.234,56") ou prefixo "R$"
+  const cleaned = String(c).replace(/\./g, "").replace(",", ".").replace(/[^\d.\-]/g, "");
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Coerção Excel → contrato Row.
+ * Aceita modo legado (`valor` + `year`) ou multi-ano (`valores` mapeando ano→célula).
+ */
+function coerceExcelRow(raw: ExcelRowRaw, defaultYear = "2024"): Row {
+  const values: Record<string, number> = {};
+  if (raw.valores && typeof raw.valores === "object") {
+    for (const [year, cell] of Object.entries(raw.valores)) {
+      values[year] = cellToNumber(cell);
     }
-    return String(c).trim();
-  };
-  const cellToNumber = (c: ExcelCell): number => {
-    if (c === null || c === undefined || c === "") return 0;
-    if (typeof c === "number") return c;
-    // strings com vírgula decimal BR ("1.234,56")
-    const cleaned = String(c).replace(/\./g, "").replace(",", ".").replace(/[^\d.\-]/g, "");
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : 0;
-  };
+  } else {
+    values[defaultYear] = cellToNumber(raw.valor);
+  }
   return {
     conta: cellToString(raw.conta),
     descricao: cellToString(raw.descricao),
-    values: { [year]: cellToNumber(raw.valor) },
+    values,
   };
 }
 
-function fromExcel(rows: ExcelRowRaw[], year = "2024"): Row[] {
-  return rows.map((r) => coerceExcelRow(r, year));
+function fromExcel(rows: ExcelRowRaw[], defaultYear = "2024"): Row[] {
+  return rows.map((r) => coerceExcelRow(r, defaultYear));
 }
 
 /** Validação mínima do contrato pós-coerção (antes do dedup). */
