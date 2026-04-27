@@ -235,20 +235,33 @@ const TabUpload = () => {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 flex-1">
             {(Object.keys(STAGE_LABELS) as StageKey[]).map((k) => {
               const s = stages[k];
+              const ms = timings[k];
               return (
                 <div key={k} className="flex items-center gap-2">
                   {s === "done" && <CheckCircle2 className="w-5 h-5 text-[hsl(152,70%,45%)]" />}
                   {s === "running" && <Loader2 className="w-5 h-5 text-[hsl(258,90%,66%)] animate-spin" />}
                   {s === "error" && <XCircle className="w-5 h-5 text-[hsl(0,70%,55%)]" />}
                   {s === "idle" && <div className="w-5 h-5 rounded-full border-2 border-border" />}
-                  <span className="text-xs sm:text-sm text-foreground">{STAGE_LABELS[k]}</span>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-xs sm:text-sm text-foreground">{STAGE_LABELS[k]}</span>
+                    {ms != null && (
+                      <span className="text-[10px] font-mono text-muted-foreground">{(ms / 1000).toFixed(1)}s</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
-          <Button onClick={startPipeline} disabled={processing} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5 shrink-0">
-            <Sparkles className="w-3.5 h-3.5" /> {processing ? "Processando..." : "Processar com IA"}
-          </Button>
+          <div className="flex items-center gap-3 shrink-0">
+            {totalMs != null && (
+              <span className="text-xs font-mono text-muted-foreground">
+                Total: <strong className="text-foreground">{(totalMs / 1000).toFixed(1)}s</strong>
+              </span>
+            )}
+            <Button onClick={startPipeline} disabled={processing} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> {processing ? "Processando..." : "Processar com IA"}
+            </Button>
+          </div>
         </div>
 
         {errorMsg && (
