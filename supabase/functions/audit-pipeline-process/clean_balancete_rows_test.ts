@@ -28,9 +28,10 @@ const fxDescricoesCompativeis: Row[] = [
   row("1.1.02.002", "Duplicatas a Receber", 200_000),
 ];
 
-// Fixture 3: artefato Excel — linha [só código] + linha [descrição] adjacentes, mesmo valor
+// Fixture 3: artefato Excel — linha [descrição vazia/numérica] + linha [descrição real]
+// adjacentes com mesmo código e valor (parser do Excel quebra a célula em duas linhas)
 const fxArtefatoExcel: Row[] = [
-  row("1.2.01.005", "1.2.01.005", 350_000), // só código na descrição
+  row("1.2.01.005", "", 350_000), // descrição vazia → "code-like"
   row("1.2.01.005", "Imobilizado Industrial", 350_000), // descrição real
   row("1.2.01.006", "Veículos", 80_000),
 ];
