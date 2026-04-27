@@ -184,9 +184,9 @@ async function parseDocumentAI_internal(fileBase64: string, fileName: string, mi
 }
 
 /* ── Parse any supported file ── */
-export async function parseFile(file: File): Promise<ParsedFinancialData> {
+export async function parseFile(file: File, documentId?: string): Promise<ParsedFinancialData> {
   if (isPDF(file) || isDocument(file)) {
-    return parseDocumentAI(file);
+    return parseDocumentAI(file, documentId);
   }
   if (isDataFile(file)) {
     return parseDataFileAI(file);
