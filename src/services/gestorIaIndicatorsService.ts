@@ -6,16 +6,22 @@ export interface KpiCardData {
   auditoriasRealizadas: number;
   auditoriasConcluidas: number;
   auditoriasVariacao: number;
-  conformidadeGeral: number; // %
+  conformidadeGeral: number; // % (mantido para blocos de contexto)
   conformidadeVariacao: number;
   riscosIdentificados: number;
   riscosCriticos: number;
   riscosVariacao: number;
+  // Novos KPIs
+  agenteIaDisponibilidade: number; // % uptime do agente IA
+  agenteIaVariacao: number;
+  acuraciaIA: number; // % média OCR/extração
+  acuraciaVariacao: number;
 }
 
 export interface TrendPoint { month: string; value: number; }
 export interface RiskSlice { name: string; value: number; color: string; }
 export interface AuditTypeSlice { name: string; value: number; }
+export interface AccuracySlice { name: string; value: number; color: string; }
 
 export interface ContextBlocks {
   conformidade: { geral: number; total: number; comDesvios: number };
