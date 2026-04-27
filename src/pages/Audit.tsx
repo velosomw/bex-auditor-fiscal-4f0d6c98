@@ -611,10 +611,11 @@ const processingSteps = [
   { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
-const ProcessingPhase = ({ onComplete, files, onAnalysisReady }: { 
+const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig }: { 
   onComplete: () => void; 
   files: File[];
   onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
+  dedupConfig?: import("@/services/auditAIService").DedupConfig;
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
