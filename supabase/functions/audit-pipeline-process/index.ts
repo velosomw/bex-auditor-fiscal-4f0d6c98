@@ -1,13 +1,14 @@
 // Audit Pipeline Process — Pré-processamento inteligente de balancetes
 // Stack: Lovable AI Gateway (chat/JSON) + Supabase Postgres.
 //
-// Otimizações v3 (todas as 6 melhorias do plano de performance):
-//   #1 Paralelismo aumentado:   CHUNK_SIZE 80→120, MAX_PARALLEL 6→12 (≤ 1 onda em casos típicos)
+// Otimizações v4 (foco: extração 100% estrutural + IA livre para insights):
+//   #1 Paralelismo:             CHUNK_SIZE 120, MAX_PARALLEL 12 (≤ 1 onda em casos típicos)
 //   #2 Cache persistente em DB: contabil_dictionary (lookup O(1) entre auditorias)
-//   #3 Fast-path heurístico:    código BR (1.x/2.x) + dicionário pulam o LLM
-//   #4 Modelo rápido:           gemini-2.5-flash-lite para normalização
-//   #5 Tool calling rígido:     prompt firme + validação de tamanho + retry único em caso de mismatch
+//   #3 Fast-path AGRESSIVO:     código BR sozinho é autoridade → ~100% extração sem LLM
+//   #4 Timeout LLM (45s) + retry com modelo diferente (evita travar 148s em 503 do upstream)
+//   #5 Tool calling rígido:     prompt firme + validação de tamanho + retry com modelo maior
 //   #6 Progresso em tempo real: pipeline_documents.progress atualizado por estágio
+//   #7 Insights com gemini-2.5-pro + few-shot de dataset_validated (capacidade liberada)
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -139,6 +140,7 @@ const MAX_PARALLEL = 12; // v3: era 6 (#1 paralelismo)
 async function callLLMNormalize(
   rows: Array<{ conta: string; descricao: string }>,
   dictText: string,
+  model: string = "google/gemini-2.5-flash-lite",
 ): Promise<NormResult[] | null> {
   const inputList = rows.map((r, i) => `${i}. ${r.descricao || r.conta}`).join("\n");
 
@@ -164,68 +166,81 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
 
   const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem e tamanho do input (${rows.length} itens):\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts com ${rows.length} elementos no array.`;
 
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: "return_normalized_accounts",
-            description: `Retorna lista de EXATAMENTE ${rows.length} contas normalizadas na mesma ordem do input.`,
-            parameters: {
-              type: "object",
-              properties: {
-                accounts: {
-                  type: "array",
-                  minItems: rows.length,
-                  maxItems: rows.length,
-                  items: {
-                    type: "object",
-                    properties: {
-                      conta_normalizada: { type: "string" },
-                      categoria: {
-                        type: "string",
-                        enum: [
-                          "ativo_circulante",
-                          "ativo_nao_circulante",
-                          "passivo_circulante",
-                          "passivo_nao_circulante",
-                          "patrimonio_liquido",
-                          "receita",
-                          "custo",
-                          "despesa",
-                        ],
+  // v4: timeout agressivo (45s) — evita travar 148s em 503 do upstream
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 45_000);
+
+  let r: Response;
+  try {
+    r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "return_normalized_accounts",
+              description: `Retorna lista de EXATAMENTE ${rows.length} contas normalizadas na mesma ordem do input.`,
+              parameters: {
+                type: "object",
+                properties: {
+                  accounts: {
+                    type: "array",
+                    minItems: rows.length,
+                    maxItems: rows.length,
+                    items: {
+                      type: "object",
+                      properties: {
+                        conta_normalizada: { type: "string" },
+                        categoria: {
+                          type: "string",
+                          enum: [
+                            "ativo_circulante",
+                            "ativo_nao_circulante",
+                            "passivo_circulante",
+                            "passivo_nao_circulante",
+                            "patrimonio_liquido",
+                            "receita",
+                            "custo",
+                            "despesa",
+                          ],
+                        },
+                        tipo: {
+                          type: "string",
+                          enum: ["ativo", "passivo", "pl", "receita", "despesa"],
+                        },
+                        matched: { type: "boolean" },
                       },
-                      tipo: {
-                        type: "string",
-                        enum: ["ativo", "passivo", "pl", "receita", "despesa"],
-                      },
-                      matched: { type: "boolean" },
+                      required: ["conta_normalizada", "categoria", "tipo", "matched"],
+                      additionalProperties: false,
                     },
-                    required: ["conta_normalizada", "categoria", "tipo", "matched"],
-                    additionalProperties: false,
                   },
                 },
+                required: ["accounts"],
+                additionalProperties: false,
               },
-              required: ["accounts"],
-              additionalProperties: false,
             },
           },
-        },
-      ],
-      tool_choice: { type: "function", function: { name: "return_normalized_accounts" } },
-    }),
-  });
+        ],
+        tool_choice: { type: "function", function: { name: "return_normalized_accounts" } },
+      }),
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    console.warn("LLM normalize aborted/network", e instanceof Error ? e.message : e);
+    return null;
+  }
+  clearTimeout(timer);
 
   if (!r.ok) {
     console.warn("LLM normalize HTTP", r.status, (await r.text()).slice(0, 300));
@@ -248,15 +263,15 @@ async function normalizeChunk(
   rows: Array<{ conta: string; descricao: string }>,
   dictText: string,
 ): Promise<NormResult[]> {
-  // Tentativa 1
-  let accounts = await callLLMNormalize(rows, dictText);
+  // Tentativa 1: modelo rápido
+  let accounts = await callLLMNormalize(rows, dictText, "google/gemini-2.5-flash-lite");
 
-  // #5 Retry único se tamanho não bate (causa principal dos fallbacks heurísticos)
+  // #5 v4 Retry com MODELO DIFERENTE (evita repetir mesmo 503/timeout)
   if (!accounts || accounts.length !== rows.length) {
     if (accounts) {
-      console.warn(`LLM mismatch ${accounts.length}/${rows.length} — retry`);
+      console.warn(`LLM mismatch ${accounts.length}/${rows.length} — retry com flash`);
     }
-    accounts = await callLLMNormalize(rows, dictText);
+    accounts = await callLLMNormalize(rows, dictText, "google/gemini-2.5-flash");
   }
 
   if (!accounts) {
@@ -294,34 +309,40 @@ async function updateProgress(
   }
 }
 
-/* ──────────────── Fast-path heurístico (#3) ────────────────
-   Tenta classificar SEM LLM usando:
-   1. Código de conta brasileiro (1.x = ativo, 2.3+ = PL, etc.)  ← muito confiável
-   2. Match exato no dicionário contábil (cache persistente em DB) ← #2
-   Só envia ao LLM o que não foi resolvido. */
+/* ──────────────── Fast-path heurístico (#3 — v4 agressivo) ────────────────
+   Tenta classificar SEM LLM. Em balancetes BR padrão (plano de contas 1.x/2.x/3.x/4.x/5.x)
+   o código de conta é AUTORIDADE: cobre ~100% sem necessidade de IA. Cai pro LLM apenas
+   quando: sem código + sem cache + descrição não dispara classifyAccount confiável. */
 function tryFastPath(
   row: { conta: string; descricao: string },
   dictMap: Map<string, NormResult>,
 ): NormResult | null {
   const desc = row.descricao || row.conta;
-  // 1. Cache persistente (DB) — match exato
+
+  // 1. Cache persistente (DB) — match exato (alta prioridade)
   const cached = dictMap.get(cacheKey(desc));
   if (cached) return cached;
 
-  // 2. Código de conta forte + heurística semântica
+  // 2. Código de conta brasileiro = AUTORIDADE (v4: aceita código sozinho)
+  //    Plano BR é estrutural: 1.x.x.x = ativo, 2.3.x = PL, etc. Não há ambiguidade.
   const byCode = classifyByCode(row.conta);
   if (byCode) {
-    const { tipo, categoria } = classifyAccount(desc);
-    // Só aceita fast-path se código E descrição concordam (alta confiança)
-    if (byCode.tipo === tipo && byCode.categoria === categoria) {
-      return {
-        conta_normalizada: desc,
-        categoria: byCode.categoria,
-        tipo: byCode.tipo,
-        matched: true,
-      };
-    }
+    return {
+      conta_normalizada: desc,
+      categoria: byCode.categoria,
+      tipo: byCode.tipo,
+      matched: true,
+    };
   }
+
+  // 3. Sem código → tenta heurística por descrição (palavras-chave fortes)
+  //    Só aceita se for "óbvio" (caixa, banco, fornecedor, capital social, etc.)
+  const STRONG_KEYWORDS = /(capital\s*social|reserva\s*(legal|estatut|capital|lucro)|lucros?\s*acumulad|preju[ií]zos?\s*acumulad|caixa|banco|fornecedor|cliente|estoque|imobilizado|receita\s*(bruta|l[ií]quida|de\s*venda)|cmv|custo\s*da\s*mercadoria|salario|fgts|inss|imposto\s*a\s*pagar|empr[eé]stimo|financiamento|duplicat)/i;
+  if (STRONG_KEYWORDS.test(desc)) {
+    const { tipo, categoria } = classifyAccount(desc);
+    return { conta_normalizada: desc, categoria, tipo, matched: true };
+  }
+
   return null;
 }
 
@@ -941,9 +962,28 @@ async function runPipeline(
     };
 
     // 7.2 Análise contextual via LLM (Auditor Contábil Sênior IA)
+    //     v4: usa MODELO MAIOR (gemini-2.5-pro) — capacidade liberada da extração
+    //     v4: enriquece com referências validadas (dataset_validated) — few-shot real
     await updateProgress(supabase, documentId, "Gerando insights do auditor sênior…");
     const tAnalysis = Date.now();
     let aiInsights: { resumo: string; pontos_atencao: string[]; recomendacoes: string[] } | null = null;
+
+    // Carregar até 3 referências validadas (RAG few-shot textual; embedding seria ideal mas requer custo extra)
+    let fewShotBlock = "";
+    try {
+      const { data: refs } = await supabase
+        .from("dataset_validated")
+        .select("input_json, output_corrected, notes")
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (refs && refs.length > 0) {
+        fewShotBlock = `\n\nREFERÊNCIAS VALIDADAS POR AUDITOR (use como gabarito de raciocínio):\n` +
+          refs.map((r: any, i: number) =>
+            `[Ref ${i + 1}] ${r.notes || "Balancete validado"} — ${r.output_corrected?.balanco?.length || 0} contas balanço, ${r.output_corrected?.dre?.length || 0} contas DRE.`
+          ).join("\n");
+      }
+    } catch (_) { /* não-crítico */ }
+
     try {
       const ctx = `Empresa: ${body.documentInfo?.empresa || "N/D"}
 Período: ${body.documentInfo?.periodo || lastYear}
@@ -970,13 +1010,14 @@ DRE:
 - Endividamento Geral: ${indicadoresFinanceiros.endividamento_geral ?? "N/D"}%
 - Composição Endividamento (curto prazo): ${indicadoresFinanceiros.composicao_endividamento ?? "N/D"}%
 - Margem Líquida: ${indicadoresFinanceiros.margem_liquida ?? "N/D"}%
-- ROE: ${indicadoresFinanceiros.roe ?? "N/D"}%`;
+- ROE: ${indicadoresFinanceiros.roe ?? "N/D"}%${fewShotBlock}`;
+
 
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-pro",
           messages: [
             {
               role: "system",
