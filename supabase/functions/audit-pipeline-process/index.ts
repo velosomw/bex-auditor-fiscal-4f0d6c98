@@ -277,6 +277,15 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
     const tc = j.choices?.[0]?.message?.tool_calls?.[0];
     const args = JSON.parse(tc?.function?.arguments || "{}");
     const accounts = Array.isArray(args.accounts) ? (args.accounts as NormResult[]) : [];
+    // tracking de uso (mapeamento via LLM)
+    trackUsage({
+      type: "mapping", provider: "google",
+      service: model.includes("flash-lite") ? "gemini_flash" : model.includes("flash") ? "gemini_flash" : "gemini_pro",
+      tokens_input: j.usage?.prompt_tokens ?? Math.ceil((systemPrompt.length + userPrompt.length) / 4),
+      tokens_output: j.usage?.completion_tokens ?? Math.ceil(JSON.stringify(args).length / 4),
+      requests: 1,
+      metadata: { model, phase: "normalize", chunk_size: rows.length },
+    }).catch(() => {});
     return accounts;
   } catch (e) {
     console.warn("LLM normalize parse error", e);
