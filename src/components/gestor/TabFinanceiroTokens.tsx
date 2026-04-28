@@ -330,7 +330,9 @@ const TabFinanceiroTokens = () => {
                   <TableRow key={row.id}>
                     <TableCell className="text-xs">
                       <div className="font-semibold text-foreground">{row.label}</div>
-                      <div className="text-[10px] text-muted-foreground">{row.provider} · {row.service}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {row.provider} · {row.service.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </div>
                     </TableCell>
                     {(["cost_per_1k_input","cost_per_1k_output","cost_per_request","cost_per_page","cost_fixed"] as (keyof CostConfigRow)[]).map((field) => (
                       <TableCell key={field as string} className="text-right">
