@@ -135,12 +135,13 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
     const cfg = cfgByService.get(key);
     const label = cfg?.label || key;
     const prev = grouped.get(key) ?? {
-      service: key, label, cost: 0, pct: 0, tokens_input: 0, tokens_output: 0, requests: 0,
+      service: key, label, cost: 0, pct: 0, tokens_input: 0, tokens_output: 0, requests: 0, pages: 0,
     };
     prev.cost += Number(l.cost_calculated || 0);
     prev.tokens_input += Number(l.tokens_input || 0);
     prev.tokens_output += Number(l.tokens_output || 0);
     prev.requests += Number(l.requests || 0);
+    prev.pages += Number(l.pages || 0);
     grouped.set(key, prev);
   }
   const breakdown = Array.from(grouped.values())
