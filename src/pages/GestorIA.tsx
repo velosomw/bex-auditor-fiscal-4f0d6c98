@@ -187,7 +187,10 @@ const TabVisaoGeral = () => {
         ))}
       </div>
 
-      {/* Charts Row */}
+      {/* Diagnóstico do Pipeline IA */}
+      <PipelineDiagnosticPanel onComplete={reloadKpis} />
+
+
       <div>
         <h3 className="text-lg font-bold font-serif text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 rounded-full bg-[hsl(258,90%,66%)]" /> Visão Geral
