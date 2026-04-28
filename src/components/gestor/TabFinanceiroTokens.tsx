@@ -290,14 +290,30 @@ const TabFinanceiroTokens = () => {
                       <div className="text-[10px] text-muted-foreground">{row.provider} · {row.service}</div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input type="number" step="0.000001" value={v("cost_per_1k_input")}
-                        onChange={(e) => updateDraft(row.service, "cost_per_1k_input", parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto" />
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={(v("cost_per_1k_input") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                          updateDraft(row.service, "cost_per_1k_input", parseFloat(raw) || 0);
+                        }}
+                        placeholder="0,000"
+                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
+                      />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input type="number" step="0.000001" value={v("cost_per_1k_output")}
-                        onChange={(e) => updateDraft(row.service, "cost_per_1k_output", parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto" />
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={(v("cost_per_1k_output") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                          updateDraft(row.service, "cost_per_1k_output", parseFloat(raw) || 0);
+                        }}
+                        placeholder="0,000"
+                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <Input
@@ -313,14 +329,30 @@ const TabFinanceiroTokens = () => {
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input type="number" step="0.000001" value={v("cost_per_page")}
-                        onChange={(e) => updateDraft(row.service, "cost_per_page", parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto" />
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={(v("cost_per_page") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                          updateDraft(row.service, "cost_per_page", parseFloat(raw) || 0);
+                        }}
+                        placeholder="0,000"
+                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
+                      />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input type="number" step="0.000001" value={v("cost_fixed")}
-                        onChange={(e) => updateDraft(row.service, "cost_fixed", parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto" />
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={(v("cost_fixed") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                          updateDraft(row.service, "cost_fixed", parseFloat(raw) || 0);
+                        }}
+                        placeholder="0,000"
+                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
