@@ -85,6 +85,16 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
       .lt("created_at", sinceIso),
   ]);
 
+  // Loga erros de RLS/network — antes ficavam silenciosamente como [] e os KPIs zeravam
+  for (const [name, res] of [
+    ["pipelineDocs", pipelineDocs], ["audits", audits], ["prevAudits", prevAudits],
+    ["prevPipeline", prevPipeline], ["analysis", analysis], ["prevAnalysis", prevAnalysis],
+  ] as const) {
+    if ((res as any).error) {
+      console.warn(`[GestorIaIndicators] ${name} erro:`, (res as any).error.message);
+    }
+  }
+
   const docs = pipelineDocs.data || [];
   const reports = audits.data || [];
   const prevReports = prevAudits.data || [];

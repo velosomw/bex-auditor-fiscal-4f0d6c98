@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchGestorIaIndicators, type GestorIaIndicators } from "@/services/gestorIaIndicatorsService";
+import { useUser } from "@/contexts/UserContext";
 import { Loader2 } from "lucide-react";
 import PlatformLayout from "@/components/PlatformLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -69,28 +70,50 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 // ─── Tab: Visão Geral (dados reais) ──────────────────────────
 const TabVisaoGeral = () => {
+  const { authenticated, loading: authLoading } = useUser();
   const [data, setData] = useState<GestorIaIndicators | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const reloadKpis = () => {
+    if (!authenticated) {
+      console.warn("[GestorIA] reload ignorado: usuário não autenticado");
+      return;
+    }
     fetchGestorIaIndicators(12)
-      .then((d) => setData(d))
-      .catch((err) => console.error("[GestorIA] reload indicadores:", err));
+      .then((d) => { setData(d); setErrorMsg(null); })
+      .catch((err) => {
+        console.error("[GestorIA] reload indicadores:", err);
+        setErrorMsg(err?.message || "Falha ao recarregar indicadores");
+      });
   };
 
   useEffect(() => {
+    if (authLoading) return;          // aguarda Supabase resolver sessão
+    if (!authenticated) {              // sem JWT → RLS bloqueia tudo
+      setLoading(false);
+      setErrorMsg("Sessão não encontrada — faça login para visualizar os indicadores.");
+      return;
+    }
     let alive = true;
+    setLoading(true);
     fetchGestorIaIndicators(12)
-      .then(d => { if (alive) setData(d); })
-      .catch(err => { console.error("[GestorIA] indicadores:", err); })
+      .then(d => { if (alive) { setData(d); setErrorMsg(null); } })
+      .catch(err => {
+        console.error("[GestorIA] indicadores:", err);
+        if (alive) setErrorMsg(err?.message || "Falha ao carregar indicadores");
+      })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, []);
+  }, [authenticated, authLoading]);
 
-  if (loading || !data) {
+  if (loading || authLoading || !data) {
     return (
-      <div className="flex items-center justify-center py-24">
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        {errorMsg && (
+          <div className="text-xs text-destructive max-w-md text-center">{errorMsg}</div>
+        )}
       </div>
     );
   }
