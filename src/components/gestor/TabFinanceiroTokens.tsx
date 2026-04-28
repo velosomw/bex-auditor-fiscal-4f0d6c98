@@ -457,6 +457,33 @@ const TabFinanceiroTokens = () => {
                   </TableCell>
                 </TableRow>
               )}
+
+              {/* ─── Infraestrutura (valores estimados, somente leitura) ─── */}
+              <TableRow className="bg-muted/30">
+                <TableCell colSpan={8} className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground py-2">
+                  Valores estimados de infraestrutura — referência E2E ≈ 700 relatórios/mês
+                </TableCell>
+              </TableRow>
+              {INFRA_ROWS.map((r) => (
+                <TableRow key={r.service} className="bg-muted/10">
+                  <TableCell className="text-xs">
+                    <div className="font-semibold text-foreground">{r.label}</div>
+                    <div className="text-[10px] text-muted-foreground">{r.spec}</div>
+                  </TableCell>
+                  <TableCell colSpan={4} className="text-[11px] text-muted-foreground">
+                    <span className="font-mono">{r.monthly}</span>
+                    <span className="mx-1.5">·</span>
+                    <span>Ref.: {r.refNote}</span>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">
+                    {r.perReport}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant="outline" className="text-[10px]">infra</Badge>
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              ))}
             </TableBody>
             {config.length > 0 && (() => {
               const sum = (k: keyof CostConfigRow) =>
