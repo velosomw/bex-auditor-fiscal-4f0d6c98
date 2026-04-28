@@ -225,7 +225,7 @@ const TabFinanceiroTokens = () => {
           icon={<DollarSign className="w-4 h-4" />}
           label="Custo Total (E2E)"
           value={fmtUSDc(indicators?.custoTotal ?? 0)}
-          sub="Acumulado"
+          sub={indicators?.periodLabel ?? "Acumulado"}
           color="hsl(152,70%,45%)"
         />
         <KpiCard
