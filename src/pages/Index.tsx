@@ -40,8 +40,7 @@ const Index = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold text-primary-foreground leading-tight max-w-5xl mb-6">
-            
+            className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold text-primary-foreground leading-[1.05] tracking-tight -ml-px max-w-5xl mt-0 mb-6">
             Transparência na Reestruturação e Recuperação de Empresas
           </motion.h1>
           <motion.p
