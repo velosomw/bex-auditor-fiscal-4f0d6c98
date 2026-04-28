@@ -237,7 +237,7 @@ export async function runCostDiagnostics(): Promise<{ updated: number; total: nu
     const cfg = cfgByService.get(l.service);
     if (!cfg) continue;
     const recalculated = calculateCost(
-      { tokens_input: l.tokens_input, tokens_output: l.tokens_output, requests: l.requests },
+      { tokens_input: l.tokens_input, tokens_output: l.tokens_output, requests: l.requests, pages: l.pages },
       cfg,
     );
     const delta = Number((recalculated - Number(l.cost_calculated || 0)).toFixed(6));
@@ -251,6 +251,7 @@ export async function runCostDiagnostics(): Promise<{ updated: number; total: nu
         tokens_input: 0,
         tokens_output: 0,
         requests: 0,
+        pages: 0,
         cost_calculated: delta,
         metadata: { source_log_id: l.id, reason: "diagnostic_recalc", original: l.cost_calculated, recalculated },
         created_by: user?.id ?? null,
