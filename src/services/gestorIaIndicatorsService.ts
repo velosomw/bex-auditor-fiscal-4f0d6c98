@@ -76,11 +76,11 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
       .lt("created_at", sinceIso),
     supabase
       .from("pipeline_analysis_results")
-      .select("ocr_score, quality_score, validation_score, mapping_score, created_at")
+      .select("ocr_score, quality_score, validation_score, mapping_score, created_at, document_id, indicadores, pipeline_documents!inner(file_name)")
       .gte("created_at", sinceIso),
     supabase
       .from("pipeline_analysis_results")
-      .select("ocr_score, quality_score, validation_score, mapping_score")
+      .select("ocr_score, quality_score, validation_score, mapping_score, indicadores, pipeline_documents!inner(file_name)")
       .gte("created_at", prevSinceIso)
       .lt("created_at", sinceIso),
   ]);
@@ -125,17 +125,30 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
   // ── Acurácia IA/OCR: média ponderada das pontuações de extração
   // Filtra runs falhos (quality_score < 0.5 = teste antigo / extração quebrada)
   // para refletir a performance real do motor v4 (parser estrutural).
-  const isValidRun = (r: any) => Number(r.quality_score || 0) >= 0.5;
+  // ── Acurácia IA/OCR: média PONDERADA por nº de contas extraídas ──
+  // Filtros aplicados:
+  //   1. quality_score ≥ 0.7  (runs falhos/parciais ficam fora)
+  //   2. nº contas ≥ 20       (mocks/diagnósticos < 20 linhas ficam fora)
+  //   3. file_name não começa com "DIAG-" (runs do painel de diagnóstico)
+  // Ponderação: documento de 500 contas pesa 25× mais que mock de 20 contas.
+  const isValidRun = (r: any) => {
+    if (Number(r.quality_score || 0) < 0.7) return false;
+    const contas = Number(r.indicadores?.contas_total || 0);
+    if (contas < 20) return false;
+    const fname = String(r.pipeline_documents?.file_name || "");
+    if (/^DIAG[-_]/i.test(fname)) return false;
+    return true;
+  };
   const validAnalyses = analyses.filter(isValidRun);
   const validPrev = prevAnalyses.filter(isValidRun);
 
   // Acurácia da IA = capacidade de EXTRAIR e MAPEAR dados.
-  // validation_score reflete saúde contábil do documento (Ativo=Passivo+PL),
-  // que é problema do balancete e não da IA — por isso fica fora da acurácia.
-  // Pesos: OCR 30% · Quality 30% · Mapping 40% (mapeamento é o core do motor v4).
+  // validation_score fica fora (saúde contábil ≠ acurácia da IA).
+  // Pesos métricas: OCR 30% · Quality 30% · Mapping 40%.
+  // Peso por run: nº de contas extraídas (máx 1000 para não distorcer).
   const avgScore = (rows: any[]) => {
     if (!rows.length) return 0;
-    let sum = 0, n = 0;
+    let weightedSum = 0, totalWeight = 0;
     for (const r of rows) {
       const ocr  = Number(r.ocr_score || 0);
       const qual = Number(r.quality_score || 0);
@@ -147,9 +160,11 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
       if (!parts.length) continue;
       const wsum = parts.reduce((a,[,w]) => a + w, 0);
       const score = parts.reduce((a,[v,w]) => a + v * w, 0) / wsum;
-      sum += score; n++;
+      const runWeight = Math.min(1000, Math.max(20, Number(r.indicadores?.contas_total || 20)));
+      weightedSum += score * runWeight;
+      totalWeight += runWeight;
     }
-    return n ? (sum / n) : 0;
+    return totalWeight ? (weightedSum / totalWeight) : 0;
   };
   // scores podem vir em escala 0-1 ou 0-100 — normaliza
   const normalize = (v: number) => v <= 1 ? v * 100 : v;
