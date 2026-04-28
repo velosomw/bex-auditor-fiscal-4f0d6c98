@@ -30,9 +30,9 @@ const PIE_COLORS = [
 ];
 
 const fmtUSD = (n: number) =>
-  `$ ${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 6 })}`;
+  `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })}`;
 const fmtUSDc = (n: number) =>
-  `$ ${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 
 const TabFinanceiroTokens = () => {
   const [loading, setLoading] = useState(true);
@@ -382,18 +382,18 @@ const TabFinanceiroTokens = () => {
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Tabela de preços por serviço</h3>
-          <Badge variant="outline" className="text-[10px]">USD — editável (Gestor IA / Coordenadora)</Badge>
+          <Badge variant="outline" className="text-[10px]">BRL — editável (Gestor IA / Coordenadora)</Badge>
         </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs">Serviço</TableHead>
-                <TableHead className="text-xs text-right">Input $/1k</TableHead>
-                <TableHead className="text-xs text-right">Output $/1k</TableHead>
-                <TableHead className="text-xs text-right">$ / Requisição</TableHead>
-                <TableHead className="text-xs text-right">$ / Página</TableHead>
-                <TableHead className="text-xs text-right">$ Fixo</TableHead>
+                <TableHead className="text-xs text-right">Input R$/1k</TableHead>
+                <TableHead className="text-xs text-right">Output R$/1k</TableHead>
+                <TableHead className="text-xs text-right">R$ / Requisição</TableHead>
+                <TableHead className="text-xs text-right">R$ / Página</TableHead>
+                <TableHead className="text-xs text-right">R$ Fixo</TableHead>
                 <TableHead className="text-xs text-right">Total Acumulado</TableHead>
                 <TableHead className="text-xs text-right w-28">Ação</TableHead>
               </TableRow>
