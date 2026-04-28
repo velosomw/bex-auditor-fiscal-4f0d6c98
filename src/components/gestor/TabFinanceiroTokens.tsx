@@ -102,7 +102,7 @@ const TabFinanceiroTokens = () => {
         cost_per_page: draft.cost_per_page ?? row.cost_per_page,
         cost_fixed: draft.cost_fixed ?? row.cost_fixed,
       });
-      toast.success(`${row.label} atualizado`);
+      toast.success("Item Salvo");
       setDrafts((d) => { const n = { ...d }; delete n[row.service]; return n; });
       // limpa buffers da linha salva
       setInputBuffers((b) => {
@@ -330,7 +330,9 @@ const TabFinanceiroTokens = () => {
                   <TableRow key={row.id}>
                     <TableCell className="text-xs">
                       <div className="font-semibold text-foreground">{row.label}</div>
-                      <div className="text-[10px] text-muted-foreground">{row.provider} · {row.service}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {row.provider} · {row.service.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </div>
                     </TableCell>
                     {(["cost_per_1k_input","cost_per_1k_output","cost_per_request","cost_per_page","cost_fixed"] as (keyof CostConfigRow)[]).map((field) => (
                       <TableCell key={field as string} className="text-right">

@@ -1,0 +1,1 @@
+UPDATE public.ai_cost_config SET service='storage_sql', provider='Internal', label='Storage Cloud' WHERE service='storage_supabase';
