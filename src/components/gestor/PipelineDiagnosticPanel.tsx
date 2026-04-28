@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, CheckCircle2, XCircle, Loader2, PlayCircle, CircleDashed } from "lucide-react";
+import { Activity, CheckCircle2, XCircle, Loader2, PlayCircle, CircleDashed, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { runPipelineDiagnostic, type DiagnosticStep, type DiagnosticResult } from "@/services/pipelineDiagnosticService";
