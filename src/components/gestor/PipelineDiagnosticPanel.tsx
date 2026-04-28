@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, CheckCircle2, XCircle, Loader2, PlayCircle, CircleDashed } from "lucide-react";
+import { Activity, CheckCircle2, XCircle, Loader2, PlayCircle, CircleDashed, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { runPipelineDiagnostic, type DiagnosticStep, type DiagnosticResult } from "@/services/pipelineDiagnosticService";
@@ -56,15 +56,27 @@ export default function PipelineDiagnosticPanel({ onComplete }: Props) {
             </p>
           </div>
         </div>
-        <Button
-          onClick={handleRun}
-          disabled={running}
-          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
-          size="sm"
-        >
-          {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlayCircle className="w-3.5 h-3.5" />}
-          {running ? "Executando…" : "Executar diagnóstico"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {steps && !running && (
+            <Button
+              onClick={() => { setSteps(null); setResult(null); }}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+            >
+              <ChevronUp className="w-3.5 h-3.5" /> Recolher
+            </Button>
+          )}
+          <Button
+            onClick={handleRun}
+            disabled={running}
+            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
+            size="sm"
+          >
+            {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlayCircle className="w-3.5 h-3.5" />}
+            {running ? "Executando…" : "Executar diagnóstico"}
+          </Button>
+        </div>
       </div>
 
       {steps && (
