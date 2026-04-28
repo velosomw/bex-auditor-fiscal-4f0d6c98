@@ -156,8 +156,24 @@ const TabFinanceiroTokens = () => {
             Custo real de cada operação de IA — baseado em <strong>uso efetivo</strong> registrado pelo pipeline.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={reload} disabled={loading} className="gap-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CalendarRange className="w-3.5 h-3.5" />
+            Período:
+          </div>
+          <Select value={period} onValueChange={(v) => onPeriodChange(v as PeriodKey)}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mes">Mês corrente</SelectItem>
+              <SelectItem value="trimestre">Trimestre atual</SelectItem>
+              <SelectItem value="semestre">Semestre atual</SelectItem>
+              <SelectItem value="ano">Ano atual</SelectItem>
+              <SelectItem value="total">Total acumulado</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => reload()} disabled={loading} className="gap-1.5">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Atualizar
           </Button>
           <TooltipProvider delayDuration={150}>
