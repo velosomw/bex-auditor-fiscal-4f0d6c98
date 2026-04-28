@@ -8,17 +8,20 @@ import {
 import { toast } from "sonner";
 import {
   Wallet, DollarSign, FileBarChart, Layers, Activity, RefreshCw,
-  Save, AlertTriangle, Lightbulb, TrendingUp, Loader2, Sparkles, Info,
+  Save, AlertTriangle, Lightbulb, TrendingUp, Loader2, Sparkles, Info, CalendarRange,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   PieChart, Pie, Cell, Tooltip as RTooltip, ResponsiveContainer, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  BarChart, Bar,
+  BarChart, Bar, AreaChart, Area,
 } from "recharts";
 import {
   fetchCostConfig, fetchCostIndicators, upsertCostConfig, runCostDiagnostics,
-  type CostConfigRow, type CostIndicators,
+  type CostConfigRow, type CostIndicators, type PeriodKey,
 } from "@/services/gestorIaCostService";
 
 const PIE_COLORS = [
