@@ -382,7 +382,7 @@ const TabFinanceiroTokens = () => {
       <div className="bg-card border border-border rounded-xl p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Tabela de preços por serviço</h3>
-          <Badge variant="outline" className="text-[10px]">USD — editável (Gestor IA / Coordenadora)</Badge>
+          <Badge variant="outline" className="text-[10px]">BRL — editável (Gestor IA / Coordenadora)</Badge>
         </div>
         <div className="overflow-x-auto">
           <Table>
