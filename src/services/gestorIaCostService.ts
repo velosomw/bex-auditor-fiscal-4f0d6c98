@@ -40,6 +40,7 @@ export interface CostBreakdown {
   tokens_input: number;
   tokens_output: number;
   requests: number;
+  pages: number;
 }
 
 export interface CostInsight {
