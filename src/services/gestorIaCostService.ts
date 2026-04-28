@@ -177,17 +177,17 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
         level: "warning",
         alerta: `Custo concentrado em ${top.label}`,
         causa: `${top.label} representa ${top.pct.toFixed(1)}% do custo total.`,
-        acao: top.service === "gemini_pro"
-          ? "Avaliar mover etapas de mapping para Gemini Flash."
+      acao: (top.service === "gemini_pro" || top.service === "gemini_2_5_pro")
+          ? "Avaliar mover etapas de mapping para Gemini 2.5 Flash."
           : "Revisar volume de uso e amostragem deste serviço.",
       });
     }
-    const proCfg = cfgByService.get("gemini_pro");
-    const flashCfg = cfgByService.get("gemini_flash");
-    const proLogs = breakdown.find((b) => b.service === "gemini_pro");
+    const proCfg = cfgByService.get("gemini_2_5_pro") ?? cfgByService.get("gemini_pro");
+    const flashCfg = cfgByService.get("gemini_2_5_flash") ?? cfgByService.get("gemini_flash");
+    const proLogs = breakdown.find((b) => b.service === "gemini_2_5_pro" || b.service === "gemini_pro");
     if (proCfg && flashCfg && proLogs && proLogs.cost > 0) {
       const projFlash = calculateCost(
-        { tokens_input: proLogs.tokens_input, tokens_output: proLogs.tokens_output, requests: proLogs.requests },
+        { tokens_input: proLogs.tokens_input, tokens_output: proLogs.tokens_output, requests: proLogs.requests, pages: proLogs.pages },
         flashCfg,
       );
       if (proLogs.cost - projFlash > proLogs.cost * 0.3) {
