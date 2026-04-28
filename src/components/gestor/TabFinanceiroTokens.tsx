@@ -8,8 +8,9 @@ import {
 import { toast } from "sonner";
 import {
   Wallet, DollarSign, FileBarChart, Layers, Activity, RefreshCw,
-  Save, AlertTriangle, Lightbulb, TrendingUp, Loader2, Sparkles,
+  Save, AlertTriangle, Lightbulb, TrendingUp, Loader2, Sparkles, Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, ResponsiveContainer, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
