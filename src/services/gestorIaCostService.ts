@@ -9,7 +9,9 @@ export interface CostConfigRow {
   cost_per_1k_input: number;
   cost_per_1k_output: number;
   cost_per_request: number;
+  cost_per_page: number;
   cost_fixed: number;
+  currency?: string;
   active: boolean;
   notes?: string | null;
   updated_at: string;
