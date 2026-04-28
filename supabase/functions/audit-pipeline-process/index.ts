@@ -1113,6 +1113,14 @@ DRE:
         const aj = await aiResp.json();
         const tc = aj.choices?.[0]?.message?.tool_calls?.[0];
         aiInsights = JSON.parse(tc?.function?.arguments || "null");
+        trackUsage({
+          type: "insight", provider: "google", service: "gemini_pro",
+          document_id: documentId,
+          tokens_input: aj.usage?.prompt_tokens ?? Math.ceil(ctx.length / 4),
+          tokens_output: aj.usage?.completion_tokens ?? Math.ceil(JSON.stringify(aiInsights || {}).length / 4),
+          requests: 1,
+          metadata: { model: "gemini-2.5-pro", phase: "audit_insights" },
+        }).catch(() => {});
       } else {
         console.warn("ai insights HTTP", aiResp.status);
       }
