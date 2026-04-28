@@ -70,6 +70,7 @@ const TabFinanceiroTokens = () => {
         cost_per_1k_input: draft.cost_per_1k_input ?? row.cost_per_1k_input,
         cost_per_1k_output: draft.cost_per_1k_output ?? row.cost_per_1k_output,
         cost_per_request: draft.cost_per_request ?? row.cost_per_request,
+        cost_per_page: draft.cost_per_page ?? row.cost_per_page,
         cost_fixed: draft.cost_fixed ?? row.cost_fixed,
       });
       toast.success(`${row.label} atualizado`);
