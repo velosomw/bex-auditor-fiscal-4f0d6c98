@@ -13,9 +13,10 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Upload, Brain, BookOpen, Database, Activity, FileText,
   CheckCircle2, AlertCircle, Sparkles, Save, RefreshCw, Star, Loader2,
-  Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap, XCircle, Plug,
+  Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap, XCircle, Plug, Wallet,
 } from "lucide-react";
 import TabAgentRegistry from "@/components/gestor/TabAgentRegistry";
+import TabFinanceiroTokens from "@/components/gestor/TabFinanceiroTokens";
 import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/auditAIService";
 import { listCompanies, type Company } from "@/services/companiesService";
 import { loadLearningRows, loadDatasetRows, loadPerfStats } from "@/services/agentLearningService";
@@ -791,6 +792,9 @@ const GestaoAgentes = () => {
             <TabsTrigger value="registro" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <Plug className="w-3.5 h-3.5" /> Registro de Agentes e Integrações
             </TabsTrigger>
+            <TabsTrigger value="financeiro" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <Wallet className="w-3.5 h-3.5" /> Controle Financeiro de Tokens & APIs
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="mt-5"><TabUpload /></TabsContent>
@@ -799,6 +803,7 @@ const GestaoAgentes = () => {
           <TabsContent value="dataset" className="mt-5"><TabDataset /></TabsContent>
           <TabsContent value="performance" className="mt-5"><TabPerformance /></TabsContent>
           <TabsContent value="registro" className="mt-5"><TabAgentRegistry /></TabsContent>
+          <TabsContent value="financeiro" className="mt-5"><TabFinanceiroTokens /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>

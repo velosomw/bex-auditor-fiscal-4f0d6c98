@@ -23,6 +23,31 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// ─── Tracking de uso (custos IA) ────────────────────────────────
+async function trackUsage(input: {
+  type: string; provider: string; service: string; document_id?: string | null;
+  tokens_input?: number; tokens_output?: number; requests?: number; metadata?: Record<string, unknown>;
+}) {
+  try {
+    if (!SUPABASE_URL || !SERVICE_KEY) return;
+    const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    const { data: cfg } = await sb.from("ai_cost_config").select("*").eq("service", input.service).maybeSingle();
+    const ti = Number(input.tokens_input || 0), to = Number(input.tokens_output || 0), rq = Number(input.requests || 0);
+    const cost = cfg
+      ? (ti / 1000) * Number(cfg.cost_per_1k_input || 0)
+      + (to / 1000) * Number(cfg.cost_per_1k_output || 0)
+      + rq * Number(cfg.cost_per_request || 0)
+      + Number(cfg.cost_fixed || 0)
+      : 0;
+    await sb.from("ai_usage_logs").insert({
+      type: input.type, provider: input.provider, service: input.service,
+      document_id: input.document_id ?? null,
+      tokens_input: ti, tokens_output: to, requests: rq,
+      cost_calculated: cost, metadata: input.metadata ?? null,
+    });
+  } catch (e) { console.warn("trackUsage failed:", e); }
+}
+
 interface BalanceteRow {
   conta: string;
   descricao: string;
@@ -252,6 +277,15 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
     const tc = j.choices?.[0]?.message?.tool_calls?.[0];
     const args = JSON.parse(tc?.function?.arguments || "{}");
     const accounts = Array.isArray(args.accounts) ? (args.accounts as NormResult[]) : [];
+    // tracking de uso (mapeamento via LLM)
+    trackUsage({
+      type: "mapping", provider: "google",
+      service: model.includes("flash-lite") ? "gemini_flash" : model.includes("flash") ? "gemini_flash" : "gemini_pro",
+      tokens_input: j.usage?.prompt_tokens ?? Math.ceil((systemPrompt.length + userPrompt.length) / 4),
+      tokens_output: j.usage?.completion_tokens ?? Math.ceil(JSON.stringify(args).length / 4),
+      requests: 1,
+      metadata: { model, phase: "normalize", chunk_size: rows.length },
+    }).catch(() => {});
     return accounts;
   } catch (e) {
     console.warn("LLM normalize parse error", e);
@@ -1079,6 +1113,14 @@ DRE:
         const aj = await aiResp.json();
         const tc = aj.choices?.[0]?.message?.tool_calls?.[0];
         aiInsights = JSON.parse(tc?.function?.arguments || "null");
+        trackUsage({
+          type: "insight", provider: "google", service: "gemini_pro",
+          document_id: documentId,
+          tokens_input: aj.usage?.prompt_tokens ?? Math.ceil(ctx.length / 4),
+          tokens_output: aj.usage?.completion_tokens ?? Math.ceil(JSON.stringify(aiInsights || {}).length / 4),
+          requests: 1,
+          metadata: { model: "gemini-2.5-pro", phase: "audit_insights" },
+        }).catch(() => {});
       } else {
         console.warn("ai insights HTTP", aiResp.status);
       }

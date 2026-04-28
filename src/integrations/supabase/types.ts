@@ -65,6 +65,96 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_cost_config: {
+        Row: {
+          active: boolean
+          cost_fixed: number
+          cost_per_1k_input: number
+          cost_per_1k_output: number
+          cost_per_request: number
+          created_at: string
+          id: string
+          label: string
+          notes: string | null
+          provider: string
+          service: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          cost_fixed?: number
+          cost_per_1k_input?: number
+          cost_per_1k_output?: number
+          cost_per_request?: number
+          created_at?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          provider: string
+          service: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          cost_fixed?: number
+          cost_per_1k_input?: number
+          cost_per_1k_output?: number
+          cost_per_request?: number
+          created_at?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          provider?: string
+          service?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_usage_logs: {
+        Row: {
+          cost_calculated: number
+          created_at: string
+          created_by: string | null
+          document_id: string | null
+          id: string
+          metadata: Json | null
+          provider: string
+          requests: number
+          service: string
+          tokens_input: number
+          tokens_output: number
+          type: string
+        }
+        Insert: {
+          cost_calculated?: number
+          created_at?: string
+          created_by?: string | null
+          document_id?: string | null
+          id?: string
+          metadata?: Json | null
+          provider: string
+          requests?: number
+          service: string
+          tokens_input?: number
+          tokens_output?: number
+          type: string
+        }
+        Update: {
+          cost_calculated?: number
+          created_at?: string
+          created_by?: string | null
+          document_id?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string
+          requests?: number
+          service?: string
+          tokens_input?: number
+          tokens_output?: number
+          type?: string
+        }
+        Relationships: []
+      }
       audit_documents: {
         Row: {
           batch_id: string | null
