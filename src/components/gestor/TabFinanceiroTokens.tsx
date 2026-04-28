@@ -299,30 +299,59 @@ const TabFinanceiroTokens = () => {
           }
         />
         {(() => {
-          const totalReports = Number(indicators?.totalRelatorios ?? 0);
-          const infraPeriod = infraPerReportTotal * totalReports;
-          const e2eTotal = (indicators?.custoTotal ?? 0) + infraPeriod;
+          // ─── Cálculo E2E (validado) ─────────────────────────────
+          // Agentes IA agrupados a partir do breakdown (custos reais do período)
+          const bk = indicators?.breakdown ?? [];
+          const sumByMatch = (matchers: string[]) =>
+            bk
+              .filter((b) => matchers.some((m) => (b.service || "").toLowerCase().includes(m)))
+              .reduce((acc, b) => acc + Number(b.cost || 0), 0);
+
+          const costOCR        = sumByMatch(["document_ai", "ocr"]);
+          const costEmbeddings = sumByMatch(["embedding"]);
+          const costFlash      = sumByMatch(["gemini_2_5_flash", "gemini-2.5-flash", "gemini_flash"]);
+          const costPro        = sumByMatch(["gemini_2_5_pro", "gemini-2.5-pro", "gemini_pro"]);
+          const aiKnown        = costOCR + costEmbeddings + costFlash + costPro;
+          // Outros custos de IA não classificados acima (ex.: storage, ajustes)
+          const aiTotal        = Number(indicators?.custoTotal ?? 0);
+          const aiOutros       = Math.max(0, aiTotal - aiKnown);
+
+          // Infra: custo por relatório × nº de relatórios do período
+          const totalReports   = Number(indicators?.totalRelatorios ?? 0);
+          const infraPerRep    = infraPerReportTotal; // Σ (monthly / refReports) das 5 linhas
+          const infraPeriod    = infraPerRep * totalReports;
+
+          const e2eTotal       = aiTotal + infraPeriod;
+
           return (
             <KpiCard
               icon={<DollarSign className="w-4 h-4" />}
               label="Custo Total (E2E)"
               value={fmtUSDc(e2eTotal)}
-              sub={`${indicators?.periodLabel ?? "Acumulado"} · infra ${fmtBRL(infraPeriod)} (${totalReports} rel.)`}
+              sub={`${indicators?.periodLabel ?? "Acumulado"} · IA ${fmtBRL(aiTotal)} + infra ${fmtBRL(infraPeriod)}`}
               color="hsl(152,70%,45%)"
               info={
                 <>
-                  <p className="font-semibold mb-1">Custo Total (E2E)</p>
-                  <p><strong>End-to-End</strong>: custo total de ponta a ponta no período selecionado.</p>
-                  <p className="mt-1">Soma <strong>IA</strong> (uso real) + <strong>Infraestrutura</strong> (estimada por relatório):</p>
+                  <p className="font-semibold mb-1">Custo Total (E2E) — detalhamento</p>
+                  <p className="text-muted-foreground mb-1">Soma de todos os agentes de IA no período + infraestrutura por relatório.</p>
                   <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                    <li><strong>OCR / Document AI</strong>, <strong>Embeddings</strong>, <strong>Gemini Flash/Pro</strong></li>
-                    <li><strong>Compute, Boot disk, BigQuery, Cloud SQL, Storage</strong> (infra)</li>
+                    <li><strong>OCR / Document AI</strong> — leitura do PDF do balancete: <strong>{fmtBRL3(costOCR)}</strong></li>
+                    <li><strong>Embeddings</strong> — vetorização para busca semântica: <strong>{fmtBRL3(costEmbeddings)}</strong></li>
+                    <li><strong>Gemini Flash</strong> — mapping/normalização das contas: <strong>{fmtBRL3(costFlash)}</strong></li>
+                    <li><strong>Gemini Pro</strong> — geração de insights e relatório final: <strong>{fmtBRL3(costPro)}</strong></li>
+                    {aiOutros > 0 && (
+                      <li>Outros (storage, ajustes): <strong>{fmtBRL3(aiOutros)}</strong></li>
+                    )}
                   </ul>
-                  <p className="mt-1 text-muted-foreground">
-                    Fórmula: <code>SUM(cost_calculated)</code> em <code>ai_usage_logs</code> + (Σ custo/relatório de infra × nº de relatórios do período).
+                  <p className="mt-1">Subtotal IA: <strong>{fmtBRL(aiTotal)}</strong></p>
+                  <p className="mt-1">
+                    Infra: <strong>{fmtBRL3(infraPerRep)}</strong>/rel × <strong>{totalReports}</strong> rel = <strong>{fmtBRL(infraPeriod)}</strong>
                   </p>
-                  <p className="mt-1 text-muted-foreground">
-                    Infra Σ por relatório: <strong>{fmtBRL3(infraPerReportTotal)}</strong> × <strong>{totalReports}</strong> relatórios = <strong>{fmtBRL(infraPeriod)}</strong>.
+                  <p className="mt-1 font-semibold">
+                    E2E = IA ({fmtBRL(aiTotal)}) + Infra ({fmtBRL(infraPeriod)}) = <strong>{fmtBRL(e2eTotal)}</strong>
+                  </p>
+                  <p className="mt-1 text-muted-foreground text-[11px]">
+                    Fonte IA: <code>SUM(cost_calculated)</code> em <code>ai_usage_logs</code> agrupado por <code>service</code> dentro do período.
                   </p>
                 </>
               }
