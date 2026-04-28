@@ -271,13 +271,14 @@ export async function logAiUsage(input: {
   tokens_input?: number;
   tokens_output?: number;
   requests?: number;
+  pages?: number;
   metadata?: Record<string, unknown>;
 }): Promise<void> {
   const config = await fetchCostConfig();
   const cfg = config.find((c) => c.service === input.service);
   const cost = cfg
     ? calculateCost(
-        { tokens_input: input.tokens_input, tokens_output: input.tokens_output, requests: input.requests },
+        { tokens_input: input.tokens_input, tokens_output: input.tokens_output, requests: input.requests, pages: input.pages },
         cfg,
       )
     : 0;
@@ -290,6 +291,7 @@ export async function logAiUsage(input: {
     tokens_input: input.tokens_input ?? 0,
     tokens_output: input.tokens_output ?? 0,
     requests: input.requests ?? 0,
+    pages: input.pages ?? 0,
     cost_calculated: cost,
     metadata: input.metadata ?? null,
     created_by: user?.id ?? null,
