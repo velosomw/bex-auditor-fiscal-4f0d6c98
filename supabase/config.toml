@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.audit-pipeline-process]
 verify_jwt = false
+
+[functions.pipeline-diagnostic-seed]
+verify_jwt = false
