@@ -26,6 +26,7 @@ export interface UsageLogRow {
   tokens_input: number;
   tokens_output: number;
   requests: number;
+  pages: number;
   cost_calculated: number;
   metadata?: Record<string, unknown> | null;
   created_at: string;
