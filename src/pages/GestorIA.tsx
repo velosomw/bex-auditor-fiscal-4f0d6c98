@@ -22,6 +22,7 @@ import TabReportLimits from "@/components/gestor/TabReportLimits";
 import AIProvidersConfig from "@/components/gestor/AIProvidersConfig";
 import TabOrphanDocuments from "@/components/gestor/TabOrphanDocuments";
 import TabExecutionTime from "@/components/gestor/TabExecutionTime";
+import PipelineDiagnosticPanel from "@/components/gestor/PipelineDiagnosticPanel";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 
 // ─── Mock Data (somente para abas ainda não conectadas) ─────
@@ -70,6 +71,12 @@ const StatusBadge = ({ status }: { status: string }) => {
 const TabVisaoGeral = () => {
   const [data, setData] = useState<GestorIaIndicators | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const reloadKpis = () => {
+    fetchGestorIaIndicators(12)
+      .then((d) => setData(d))
+      .catch((err) => console.error("[GestorIA] reload indicadores:", err));
+  };
 
   useEffect(() => {
     let alive = true;
@@ -180,7 +187,10 @@ const TabVisaoGeral = () => {
         ))}
       </div>
 
-      {/* Charts Row */}
+      {/* Diagnóstico do Pipeline IA */}
+      <PipelineDiagnosticPanel onComplete={reloadKpis} />
+
+
       <div>
         <h3 className="text-lg font-bold font-serif text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 rounded-full bg-[hsl(258,90%,66%)]" /> Visão Geral
