@@ -30,9 +30,9 @@ const PIE_COLORS = [
 ];
 
 const fmtUSD = (n: number) =>
-  `$ ${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 6 })}`;
+  `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })}`;
 const fmtUSDc = (n: number) =>
-  `$ ${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 
 const TabFinanceiroTokens = () => {
   const [loading, setLoading] = useState(true);
