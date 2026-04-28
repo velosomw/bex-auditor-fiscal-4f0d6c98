@@ -331,7 +331,7 @@ const TabFinanceiroTokens = () => {
               })}
               {config.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-6">
+                  <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
                     {loading ? "Carregando..." : "Nenhuma configuração de custo encontrada."}
                   </TableCell>
                 </TableRow>
