@@ -308,6 +308,15 @@ serve(async (req) => {
     const content = aiData.choices?.[0]?.message?.content ?? "";
     const extracted = extractJson(content);
 
+    await trackUsage({
+      type: "mapping", provider: "google", service: "gemini_flash",
+      document_id: (body as any).documentId ?? null,
+      tokens_input: aiData.usage?.prompt_tokens ?? Math.ceil(inputText.length / 4),
+      tokens_output: aiData.usage?.completion_tokens ?? Math.ceil(content.length / 4),
+      requests: 1,
+      metadata: { fileName, model: "gemini-2.5-flash", phase: "structure" },
+    });
+
     return new Response(
       JSON.stringify({
         ok: true,
