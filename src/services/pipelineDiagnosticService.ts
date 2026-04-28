@@ -123,21 +123,44 @@ export async function runPipelineDiagnostic(
       return data;
     });
 
-    // 5. Verifica persistência
+    // 5. Verifica persistência (polling — pipeline é assíncrono / 202)
     await run(4, async () => {
-      const { data, error } = await supabase
-        .from("pipeline_analysis_results")
-        .select("id, quality_score, validation_score, mapping_score, ocr_score")
-        .eq("document_id", document_id!)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      if (!data) throw new Error("Nenhum registro em pipeline_analysis_results");
-      analysis_id = data.id;
-      quality_score = Number(data.quality_score || 0);
-      steps[4].detail = `quality_score=${(quality_score * 100).toFixed(1)}% · id=${data.id.slice(0, 8)}…`;
-      return data;
+      const maxAttempts = 30; // ~60s
+      const intervalMs = 2000;
+      let lastErr: string | null = null;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        // Verifica status do documento
+        const { data: doc } = await supabase
+          .from("pipeline_documents")
+          .select("status, error_message")
+          .eq("id", document_id!)
+          .maybeSingle();
+        if (doc?.status === "failed") {
+          throw new Error(`Pipeline falhou: ${doc.error_message || "erro desconhecido"}`);
+        }
+
+        const { data, error } = await supabase
+          .from("pipeline_analysis_results")
+          .select("id, quality_score, validation_score, mapping_score, ocr_score")
+          .eq("document_id", document_id!)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) {
+          lastErr = error.message;
+        } else if (data) {
+          analysis_id = data.id;
+          quality_score = Number(data.quality_score || 0);
+          steps[4].detail = `quality_score=${(quality_score * 100).toFixed(1)}% · id=${data.id.slice(0, 8)}… · ${attempt} tentativa(s)`;
+          return data;
+        }
+        steps[4].detail = `aguardando processamento… (${attempt}/${maxAttempts})`;
+        emit();
+        await new Promise((r) => setTimeout(r, intervalMs));
+      }
+      throw new Error(
+        `Timeout aguardando pipeline_analysis_results após ${maxAttempts} tentativas${lastErr ? ` · último erro: ${lastErr}` : ""}`,
+      );
     });
 
     // 6. KPIs (depois) — exige crescimento
