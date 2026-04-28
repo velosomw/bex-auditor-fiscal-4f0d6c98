@@ -8,17 +8,20 @@ import {
 import { toast } from "sonner";
 import {
   Wallet, DollarSign, FileBarChart, Layers, Activity, RefreshCw,
-  Save, AlertTriangle, Lightbulb, TrendingUp, Loader2, Sparkles, Info,
+  Save, AlertTriangle, Lightbulb, TrendingUp, Loader2, Sparkles, Info, CalendarRange,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   PieChart, Pie, Cell, Tooltip as RTooltip, ResponsiveContainer, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  BarChart, Bar,
+  BarChart, Bar, AreaChart, Area,
 } from "recharts";
 import {
   fetchCostConfig, fetchCostIndicators, upsertCostConfig, runCostDiagnostics,
-  type CostConfigRow, type CostIndicators,
+  type CostConfigRow, type CostIndicators, type PeriodKey,
 } from "@/services/gestorIaCostService";
 
 const PIE_COLORS = [
@@ -37,6 +40,7 @@ const TabFinanceiroTokens = () => {
   const [diagRunning, setDiagRunning] = useState(false);
   const [config, setConfig] = useState<CostConfigRow[]>([]);
   const [indicators, setIndicators] = useState<CostIndicators | null>(null);
+  const [period, setPeriod] = useState<PeriodKey>("mes");
   const [drafts, setDrafts] = useState<Record<string, Partial<CostConfigRow>>>({});
   // Buffers de string para permitir digitação livre nos campos numéricos (pt-BR)
   const [inputBuffers, setInputBuffers] = useState<Record<string, string>>({});
@@ -68,10 +72,10 @@ const TabFinanceiroTokens = () => {
     setInputBuffers((b) => ({ ...b, [k]: fmtBR(val) }));
   };
 
-  const reload = async () => {
+  const reload = async (p: PeriodKey = period) => {
     setLoading(true);
     try {
-      const [c, ind] = await Promise.all([fetchCostConfig(), fetchCostIndicators()]);
+      const [c, ind] = await Promise.all([fetchCostConfig(), fetchCostIndicators(p)]);
       setConfig(c);
       setIndicators(ind);
     } catch (e: any) {
@@ -81,7 +85,12 @@ const TabFinanceiroTokens = () => {
     }
   };
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => { reload("mes"); }, []);
+
+  const onPeriodChange = (p: PeriodKey) => {
+    setPeriod(p);
+    reload(p);
+  };
 
   const updateDraft = (service: string, field: keyof CostConfigRow, value: number) => {
     setDrafts((d) => ({ ...d, [service]: { ...d[service], [field]: value } }));
@@ -147,8 +156,24 @@ const TabFinanceiroTokens = () => {
             Custo real de cada operação de IA — baseado em <strong>uso efetivo</strong> registrado pelo pipeline.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={reload} disabled={loading} className="gap-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CalendarRange className="w-3.5 h-3.5" />
+            Período:
+          </div>
+          <Select value={period} onValueChange={(v) => onPeriodChange(v as PeriodKey)}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mes">Mês corrente</SelectItem>
+              <SelectItem value="trimestre">Trimestre atual</SelectItem>
+              <SelectItem value="semestre">Semestre atual</SelectItem>
+              <SelectItem value="ano">Ano atual</SelectItem>
+              <SelectItem value="total">Total acumulado</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => reload()} disabled={loading} className="gap-1.5">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Atualizar
           </Button>
           <TooltipProvider delayDuration={150}>
@@ -200,7 +225,7 @@ const TabFinanceiroTokens = () => {
           icon={<DollarSign className="w-4 h-4" />}
           label="Custo Total (E2E)"
           value={fmtUSDc(indicators?.custoTotal ?? 0)}
-          sub="Acumulado"
+          sub={indicators?.periodLabel ?? "Acumulado"}
           color="hsl(152,70%,45%)"
         />
         <KpiCard
@@ -265,7 +290,28 @@ const TabFinanceiroTokens = () => {
         </ChartCard>
       </div>
 
-      {/* ─── Insights ──────────────────────────────────────────── */}
+      {/* ─── Últimos 6 meses ─────────────────────────────────────── */}
+      <ChartCard title="Custo nos últimos 6 meses">
+        {(indicators?.last6Months ?? []).every((m) => m.custo === 0) ? (
+          <Empty hint="Sem custos registrados nos últimos 6 meses" />
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={indicators!.last6Months}>
+              <defs>
+                <linearGradient id="grad6m" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(217,91%,50%)" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="hsl(217,91%,50%)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <RTooltip formatter={(v: any) => fmtUSD(Number(v))} />
+              <Area type="monotone" dataKey="custo" stroke="hsl(217,91%,50%)" strokeWidth={2} fill="url(#grad6m)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </ChartCard>
       {indicators && indicators.insights.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-2">

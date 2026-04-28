@@ -50,6 +50,8 @@ export interface CostInsight {
   acao: string;
 }
 
+export type PeriodKey = "mes" | "trimestre" | "semestre" | "ano" | "total";
+
 export interface CostIndicators {
   custoTotal: number;
   custoBalancete: number;
@@ -59,8 +61,42 @@ export interface CostIndicators {
   totalRelatorios: number;
   breakdown: CostBreakdown[];
   monthlySeries: { mes: string; custo: number }[];
+  last6Months: { mes: string; custo: number }[];
   byService: { service: string; label: string; custo: number }[];
   insights: CostInsight[];
+  period: PeriodKey;
+  periodLabel: string;
+}
+
+function startOfPeriod(period: PeriodKey, now = new Date()): Date | null {
+  switch (period) {
+    case "mes":
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    case "trimestre": {
+      const q = Math.floor(now.getMonth() / 3) * 3;
+      return new Date(now.getFullYear(), q, 1);
+    }
+    case "semestre": {
+      const s = now.getMonth() < 6 ? 0 : 6;
+      return new Date(now.getFullYear(), s, 1);
+    }
+    case "ano":
+      return new Date(now.getFullYear(), 0, 1);
+    case "total":
+    default:
+      return null;
+  }
+}
+
+function periodLabelOf(period: PeriodKey, now = new Date()): string {
+  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  switch (period) {
+    case "mes": return `${meses[now.getMonth()]}/${now.getFullYear()}`;
+    case "trimestre": return `${Math.floor(now.getMonth()/3)+1}º Trimestre/${now.getFullYear()}`;
+    case "semestre": return `${now.getMonth()<6?1:2}º Semestre/${now.getFullYear()}`;
+    case "ano": return `Ano ${now.getFullYear()}`;
+    case "total": return "Total acumulado";
+  }
 }
 
 // ─── Cálculo central ──────────────────────────────────────────
@@ -110,9 +146,13 @@ export async function fetchUsageLogs(limit = 1000): Promise<UsageLogRow[]> {
 }
 
 // ─── Agregadores ──────────────────────────────────────────────
-export async function fetchCostIndicators(): Promise<CostIndicators> {
-  const [logs, config] = await Promise.all([fetchUsageLogs(2000), fetchCostConfig()]);
+export async function fetchCostIndicators(period: PeriodKey = "mes"): Promise<CostIndicators> {
+  const [allLogs, config] = await Promise.all([fetchUsageLogs(5000), fetchCostConfig()]);
   const cfgByService = new Map(config.map((c) => [c.service, c]));
+
+  const now = new Date();
+  const start = startOfPeriod(period, now);
+  const logs = start ? allLogs.filter((l) => new Date(l.created_at) >= start) : allLogs;
 
   const totalCost = logs.reduce((s, l) => s + Number(l.cost_calculated || 0), 0);
 
@@ -134,7 +174,7 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
   const totalDocs = new Set(logs.map((l) => l.document_id).filter(Boolean)).size || 1;
   const custoMedioExecucao = totalCost / totalDocs;
 
-  // Breakdown por service
+  // Breakdown por service (dentro do período)
   const grouped = new Map<string, CostBreakdown>();
   for (const l of logs) {
     const key = l.service;
@@ -154,9 +194,9 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
     .map((b) => ({ ...b, pct: totalCost > 0 ? (b.cost / totalCost) * 100 : 0 }))
     .sort((a, b) => b.cost - a.cost);
 
-  // Série mensal
+  // Série mensal (todo o histórico, para "Evolução mensal")
   const monthMap = new Map<string, number>();
-  for (const l of logs) {
+  for (const l of allLogs) {
     const d = new Date(l.created_at);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     monthMap.set(key, (monthMap.get(key) ?? 0) + Number(l.cost_calculated || 0));
@@ -165,6 +205,15 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-12)
     .map(([mes, custo]) => ({ mes, custo }));
+
+  // Últimos 6 meses (sempre 6 buckets, preenchendo com 0 quando faltar)
+  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const last6Months: { mes: string; custo: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    last6Months.push({ mes: `${meses[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, custo: monthMap.get(key) ?? 0 });
+  }
 
   const byService = breakdown.map((b) => ({ service: b.service, label: b.label, custo: b.cost }));
 
@@ -200,7 +249,6 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
       }
     }
   }
-  // Anomalias: custo zero com uso > 0
   const zeroCostWithUsage = logs.filter((l) => l.cost_calculated === 0 && (l.tokens_input + l.tokens_output + l.requests) > 0);
   if (zeroCostWithUsage.length > 5) {
     insights.push({
@@ -220,8 +268,11 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
     totalRelatorios: docsRelatorio,
     breakdown,
     monthlySeries,
+    last6Months,
     byService,
     insights,
+    period,
+    periodLabel: periodLabelOf(period, now),
   };
 }
 
