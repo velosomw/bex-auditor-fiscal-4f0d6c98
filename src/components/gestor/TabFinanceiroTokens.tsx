@@ -362,6 +362,11 @@ const TabFinanceiroTokens = () => {
                       />
                     </TableCell>
                     <TableCell className="text-right">
+                      <span className="inline-block font-mono text-xs font-semibold text-foreground tabular-nums">
+                        {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Button
                         size="sm"
                         variant={dirty ? "default" : "outline"}
@@ -378,12 +383,38 @@ const TabFinanceiroTokens = () => {
               })}
               {config.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
+                  <TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-6">
                     {loading ? "Carregando..." : "Nenhuma configuração de custo encontrada."}
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
+            {config.length > 0 && (() => {
+              const sum = (k: keyof CostConfigRow) =>
+                config.reduce((acc, r) => acc + (Number((drafts[r.service]?.[k] ?? r[k]) as number) || 0), 0);
+              const tIn = sum("cost_per_1k_input");
+              const tOut = sum("cost_per_1k_output");
+              const tReq = sum("cost_per_request");
+              const tPg = sum("cost_per_page");
+              const tFix = sum("cost_fixed");
+              const grand = tIn + tOut + tReq + tPg + tFix;
+              const fmt = (n: number) =>
+                n.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+              return (
+                <TableFooter>
+                  <TableRow>
+                    <TableCell className="text-xs font-semibold text-foreground">Total geral</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">{fmt(tIn)}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">{fmt(tOut)}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">{fmt(tReq)}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">{fmt(tPg)}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">{fmt(tFix)}</TableCell>
+                    <TableCell className="text-right font-mono text-xs font-bold text-primary tabular-nums">{fmt(grand)}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
+              );
+            })()}
           </Table>
         </div>
       </div>
