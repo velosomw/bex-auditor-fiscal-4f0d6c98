@@ -111,10 +111,27 @@ const TabFinanceiroTokens = () => {
             Custo real de cada operação de IA — baseado em <strong>uso efetivo</strong> registrado pelo pipeline.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={reload} disabled={loading} className="gap-1.5">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Atualizar
           </Button>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  aria-label="Informação sobre os preços"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
+                Os valores refletem faixa real de mercado <strong>(2025–2026)</strong> e podem variar por contrato/volume do fornecedor de IA.
+                O Gestor IA pode realizar <strong>ajuste fino</strong> diretamente no painel de custos abaixo.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button
             size="sm"
             onClick={runDiagnostic}
