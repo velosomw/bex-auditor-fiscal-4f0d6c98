@@ -38,6 +38,35 @@ const TabFinanceiroTokens = () => {
   const [config, setConfig] = useState<CostConfigRow[]>([]);
   const [indicators, setIndicators] = useState<CostIndicators | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Partial<CostConfigRow>>>({});
+  // Buffers de string para permitir digitação livre nos campos numéricos (pt-BR)
+  const [inputBuffers, setInputBuffers] = useState<Record<string, string>>({});
+
+  const fmtBR = (n: number) =>
+    Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
+  const parseBR = (s: string): number => {
+    const cleaned = (s || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const bufKey = (service: string, field: string) => `${service}::${field}`;
+  const getBuf = (service: string, field: keyof CostConfigRow, fallback: number) => {
+    const k = bufKey(service, field as string);
+    return inputBuffers[k] !== undefined ? inputBuffers[k] : fmtBR(fallback);
+  };
+  const setBuf = (service: string, field: keyof CostConfigRow, raw: string) => {
+    const k = bufKey(service, field as string);
+    // aceita só dígitos, vírgula, ponto
+    const sanitized = raw.replace(/[^\d.,]/g, "");
+    setInputBuffers((b) => ({ ...b, [k]: sanitized }));
+    updateDraft(service, field, parseBR(sanitized));
+  };
+  const blurBuf = (service: string, field: keyof CostConfigRow) => {
+    const k = bufKey(service, field as string);
+    const val = parseBR(inputBuffers[k] ?? "");
+    setInputBuffers((b) => ({ ...b, [k]: fmtBR(val) }));
+  };
 
   const reload = async () => {
     setLoading(true);
@@ -75,6 +104,13 @@ const TabFinanceiroTokens = () => {
       });
       toast.success(`${row.label} atualizado`);
       setDrafts((d) => { const n = { ...d }; delete n[row.service]; return n; });
+      // limpa buffers da linha salva
+      setInputBuffers((b) => {
+        const n = { ...b };
+        ["cost_per_1k_input","cost_per_1k_output","cost_per_request","cost_per_page","cost_fixed"]
+          .forEach((f) => delete n[`${row.service}::${f}`]);
+        return n;
+      });
       await reload();
     } catch (e: any) {
       toast.error(e?.message || "Falha ao salvar (verifique permissão)");
@@ -296,71 +332,19 @@ const TabFinanceiroTokens = () => {
                       <div className="font-semibold text-foreground">{row.label}</div>
                       <div className="text-[10px] text-muted-foreground">{row.provider} · {row.service}</div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={(v("cost_per_1k_input") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
-                          updateDraft(row.service, "cost_per_1k_input", parseFloat(raw) || 0);
-                        }}
-                        placeholder="0,000"
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={(v("cost_per_1k_output") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
-                          updateDraft(row.service, "cost_per_1k_output", parseFloat(raw) || 0);
-                        }}
-                        placeholder="0,000"
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={(v("cost_per_request") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
-                          updateDraft(row.service, "cost_per_request", parseFloat(raw) || 0);
-                        }}
-                        placeholder="0,000"
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={(v("cost_per_page") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
-                          updateDraft(row.service, "cost_per_page", parseFloat(raw) || 0);
-                        }}
-                        placeholder="0,000"
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={(v("cost_fixed") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
-                          updateDraft(row.service, "cost_fixed", parseFloat(raw) || 0);
-                        }}
-                        placeholder="0,000"
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
-                      />
-                    </TableCell>
+                    {(["cost_per_1k_input","cost_per_1k_output","cost_per_request","cost_per_page","cost_fixed"] as (keyof CostConfigRow)[]).map((field) => (
+                      <TableCell key={field as string} className="text-right">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={getBuf(row.service, field, v(field))}
+                          onChange={(e) => setBuf(row.service, field, e.target.value)}
+                          onBlur={() => blurBuf(row.service, field)}
+                          placeholder="0,000"
+                          className="h-8 text-xs text-right font-mono w-28 ml-auto"
+                        />
+                      </TableCell>
+                    ))}
                     <TableCell className="text-right">
                       <span className="inline-block font-mono text-xs font-semibold text-foreground tabular-nums">
                         {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
