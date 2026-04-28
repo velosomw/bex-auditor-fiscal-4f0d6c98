@@ -23,6 +23,31 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// ─── Tracking de uso (custos IA) ────────────────────────────────
+async function trackUsage(input: {
+  type: string; provider: string; service: string; document_id?: string | null;
+  tokens_input?: number; tokens_output?: number; requests?: number; metadata?: Record<string, unknown>;
+}) {
+  try {
+    if (!SUPABASE_URL || !SERVICE_KEY) return;
+    const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    const { data: cfg } = await sb.from("ai_cost_config").select("*").eq("service", input.service).maybeSingle();
+    const ti = Number(input.tokens_input || 0), to = Number(input.tokens_output || 0), rq = Number(input.requests || 0);
+    const cost = cfg
+      ? (ti / 1000) * Number(cfg.cost_per_1k_input || 0)
+      + (to / 1000) * Number(cfg.cost_per_1k_output || 0)
+      + rq * Number(cfg.cost_per_request || 0)
+      + Number(cfg.cost_fixed || 0)
+      : 0;
+    await sb.from("ai_usage_logs").insert({
+      type: input.type, provider: input.provider, service: input.service,
+      document_id: input.document_id ?? null,
+      tokens_input: ti, tokens_output: to, requests: rq,
+      cost_calculated: cost, metadata: input.metadata ?? null,
+    });
+  } catch (e) { console.warn("trackUsage failed:", e); }
+}
+
 interface BalanceteRow {
   conta: string;
   descricao: string;
