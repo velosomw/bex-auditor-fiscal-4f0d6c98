@@ -27,7 +27,7 @@ const Index = () => {
           className="absolute inset-0 w-full h-full object-cover" />
         
         <div className="hero-overlay absolute inset-0" />
-        <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-24">
+        <div className="relative z-10 max-w-7xl mx-auto w-full px-4 lg:px-10 py-24">
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
