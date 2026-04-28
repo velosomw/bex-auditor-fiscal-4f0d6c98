@@ -40,6 +40,7 @@ const TabFinanceiroTokens = () => {
   const [diagRunning, setDiagRunning] = useState(false);
   const [config, setConfig] = useState<CostConfigRow[]>([]);
   const [indicators, setIndicators] = useState<CostIndicators | null>(null);
+  const [period, setPeriod] = useState<PeriodKey>("mes");
   const [drafts, setDrafts] = useState<Record<string, Partial<CostConfigRow>>>({});
   // Buffers de string para permitir digitação livre nos campos numéricos (pt-BR)
   const [inputBuffers, setInputBuffers] = useState<Record<string, string>>({});
