@@ -68,6 +68,45 @@ const TabFinanceiroTokens = () => {
   const [drafts, setDrafts] = useState<Record<string, Partial<CostConfigRow>>>({});
   // Buffers de string para permitir digitação livre nos campos numéricos (pt-BR)
   const [inputBuffers, setInputBuffers] = useState<Record<string, string>>({});
+  // Linhas de infraestrutura editáveis (persistidas em localStorage)
+  const [infraRows, setInfraRows] = useState<InfraRow[]>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(INFRA_LS_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw) as InfraRow[];
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch {}
+    return INFRA_DEFAULTS;
+  });
+  const [infraDirty, setInfraDirty] = useState(false);
+
+  const updateInfra = (service: string, field: keyof InfraRow, value: string | number) => {
+    setInfraRows((rows) => rows.map((r) => (r.service === service ? { ...r, [field]: value } : r)));
+    setInfraDirty(true);
+  };
+  const saveInfra = () => {
+    try {
+      window.localStorage.setItem(INFRA_LS_KEY, JSON.stringify(infraRows));
+      setInfraDirty(false);
+      toast.success("Valores de infraestrutura salvos");
+    } catch {
+      toast.error("Falha ao salvar infraestrutura");
+    }
+  };
+  const resetInfra = () => {
+    setInfraRows(INFRA_DEFAULTS);
+    setInfraDirty(true);
+  };
+
+  const infraMonthlyTotal = useMemo(
+    () => infraRows.reduce((acc, r) => acc + (Number(r.monthly) || 0), 0),
+    [infraRows]
+  );
+  const infraPerReportTotal = useMemo(
+    () => infraRows.reduce((acc, r) => acc + (r.refReports > 0 ? r.monthly / r.refReports : 0), 0),
+    [infraRows]
+  );
 
   const fmtBR = (n: number) =>
     Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
