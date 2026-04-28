@@ -230,6 +230,12 @@ serve(async (req) => {
         );
       }
       extraction = await extractFromDocumentAI(fileBase64, mimeType, projectId, location, processorId, DOC_AI_KEY);
+      await trackUsage({
+        type: "ocr", provider: "google", service: "document_ai",
+        document_id: (body as any).documentId ?? null,
+        requests: extraction.pages || 1,
+        metadata: { fileName, mimeType, engine: extraction.engine },
+      });
     } else if (SPREADSHEET_MIMES.has(mimeType)) {
       extraction = mimeType === "text/csv" || mimeType === "text/tab-separated-values"
         ? extractFromCsv(bytes)
