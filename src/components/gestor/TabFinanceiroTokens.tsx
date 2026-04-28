@@ -275,6 +275,7 @@ const TabFinanceiroTokens = () => {
                 <TableHead className="text-xs text-right">$ / Requisição</TableHead>
                 <TableHead className="text-xs text-right">$ / Página</TableHead>
                 <TableHead className="text-xs text-right">$ Fixo</TableHead>
+                <TableHead className="text-xs text-right">Total Acumulado</TableHead>
                 <TableHead className="text-xs text-right w-28">Ação</TableHead>
               </TableRow>
             </TableHeader>
