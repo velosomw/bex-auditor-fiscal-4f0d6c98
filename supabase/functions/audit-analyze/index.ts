@@ -340,6 +340,15 @@ Execute os 4 agentes em sequência e gere a análise completa conforme a estrutu
 
     const analysis = extractAndRepairJson(content);
 
+    await trackUsage({
+      type: "relatorio", provider: "google", service: "gemini_pro",
+      document_id: (documentInfo as any)?.documentId ?? null,
+      tokens_input: data.usage?.prompt_tokens ?? Math.ceil(userPrompt.length / 4),
+      tokens_output: data.usage?.completion_tokens ?? Math.ceil(content.length / 4),
+      requests: 1,
+      metadata: { model: "gemini-3-flash-preview", phase: "insight", empresa: (documentInfo as any)?.empresa ?? null },
+    });
+
     console.log("Multi-agent analysis complete:", {
       hasDiagnostico: !!analysis.diagnostico,
       pendencias: (analysis.pendencias as any[])?.length || 0,
