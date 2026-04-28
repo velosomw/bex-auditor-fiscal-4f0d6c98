@@ -65,16 +65,18 @@ export interface CostIndicators {
 
 // ─── Cálculo central ──────────────────────────────────────────
 export function calculateCost(
-  usage: { tokens_input?: number; tokens_output?: number; requests?: number },
-  config: Pick<CostConfigRow, "cost_per_1k_input" | "cost_per_1k_output" | "cost_per_request" | "cost_fixed">,
+  usage: { tokens_input?: number; tokens_output?: number; requests?: number; pages?: number },
+  config: Pick<CostConfigRow, "cost_per_1k_input" | "cost_per_1k_output" | "cost_per_request" | "cost_per_page" | "cost_fixed">,
 ): number {
   const ti = Number(usage.tokens_input || 0);
   const to = Number(usage.tokens_output || 0);
   const rq = Number(usage.requests || 0);
+  const pg = Number(usage.pages || 0);
   return (
     (ti / 1000) * Number(config.cost_per_1k_input || 0) +
     (to / 1000) * Number(config.cost_per_1k_output || 0) +
     rq * Number(config.cost_per_request || 0) +
+    pg * Number(config.cost_per_page || 0) +
     Number(config.cost_fixed || 0)
   );
 }
