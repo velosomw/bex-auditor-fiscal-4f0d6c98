@@ -300,9 +300,17 @@ const TabFinanceiroTokens = () => {
                         className="h-8 text-xs text-right font-mono w-28 ml-auto" />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Input type="number" step="0.000001" value={v("cost_per_request")}
-                        onChange={(e) => updateDraft(row.service, "cost_per_request", parseFloat(e.target.value) || 0)}
-                        className="h-8 text-xs text-right font-mono w-28 ml-auto" />
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={(v("cost_per_request") ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\./g, "").replace(",", ".");
+                          updateDraft(row.service, "cost_per_request", parseFloat(raw) || 0);
+                        }}
+                        placeholder="0,000"
+                        className="h-8 text-xs text-right font-mono w-28 ml-auto"
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <Input type="number" step="0.000001" value={v("cost_per_page")}
