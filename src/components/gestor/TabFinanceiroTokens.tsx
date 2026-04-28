@@ -492,13 +492,29 @@ const TabFinanceiroTokens = () => {
 };
 
 // ─── Subcomponentes ────────────────────────────────────────────
-const KpiCard = ({ icon, label, value, sub, color }: {
-  icon: React.ReactNode; label: string; value: string; sub: string; color: string;
+const KpiCard = ({ icon, label, value, sub, color, info }: {
+  icon: React.ReactNode; label: string; value: string; sub: string; color: string; info?: React.ReactNode;
 }) => (
   <div className="bg-card border border-border rounded-xl p-4">
     <div className="flex items-center justify-between mb-2">
       <div className="text-[11px] text-muted-foreground uppercase tracking-wide">{label}</div>
-      <div style={{ color }}>{icon}</div>
+      <div className="flex items-center gap-1.5">
+        {info && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Mais informações">
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-sm text-xs leading-relaxed">
+                {info}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        <div style={{ color }}>{icon}</div>
+      </div>
     </div>
     <div className="text-xl font-bold font-mono text-foreground">{value}</div>
     <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>
