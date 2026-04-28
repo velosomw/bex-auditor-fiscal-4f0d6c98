@@ -104,6 +104,13 @@ const TabFinanceiroTokens = () => {
       });
       toast.success(`${row.label} atualizado`);
       setDrafts((d) => { const n = { ...d }; delete n[row.service]; return n; });
+      // limpa buffers da linha salva
+      setInputBuffers((b) => {
+        const n = { ...b };
+        ["cost_per_1k_input","cost_per_1k_output","cost_per_request","cost_per_page","cost_fixed"]
+          .forEach((f) => delete n[`${row.service}::${f}`]);
+        return n;
+      });
       await reload();
     } catch (e: any) {
       toast.error(e?.message || "Falha ao salvar (verifique permissão)");
