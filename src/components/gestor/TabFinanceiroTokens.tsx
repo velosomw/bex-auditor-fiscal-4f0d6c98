@@ -102,7 +102,7 @@ const TabFinanceiroTokens = () => {
         cost_per_page: draft.cost_per_page ?? row.cost_per_page,
         cost_fixed: draft.cost_fixed ?? row.cost_fixed,
       });
-      toast.success(`${row.label} atualizado`);
+      toast.success("Item Salvo");
       setDrafts((d) => { const n = { ...d }; delete n[row.service]; return n; });
       // limpa buffers da linha salva
       setInputBuffers((b) => {
