@@ -213,6 +213,13 @@ const TabFinanceiroTokens = () => {
           value={fmtUSDc(indicators?.custoRelatorio ?? 0)}
           sub={`${indicators?.totalRelatorios ?? 0} relatórios`}
           color="hsl(217,91%,50%)"
+          info={
+            <>
+              <p className="font-semibold mb-1">Custo por Relatório</p>
+              <p>Custo médio para gerar 1 relatório de auditoria, incluindo a etapa de geração de insights e narrativa final pelo <strong>Gemini Pro</strong>.</p>
+              <p className="mt-1 text-muted-foreground">Fórmula: soma dos custos dos logs do tipo <em>relatorio/insight</em> ÷ nº de relatórios únicos no período.</p>
+            </>
+          }
         />
         <KpiCard
           icon={<Layers className="w-4 h-4" />}
@@ -220,6 +227,13 @@ const TabFinanceiroTokens = () => {
           value={fmtUSDc(indicators?.custoBalancete ?? 0)}
           sub={`${indicators?.totalBalancetes ?? 0} balancetes`}
           color="hsl(258,90%,66%)"
+          info={
+            <>
+              <p className="font-semibold mb-1">Custo por Balancete</p>
+              <p>Custo médio para processar 1 balancete: <strong>OCR/Document AI</strong>, <strong>embeddings</strong> e <strong>mapping/normalização</strong> de contas via Gemini Flash.</p>
+              <p className="mt-1 text-muted-foreground">Fórmula: soma dos custos dos logs de balancete/ocr/mapping ÷ nº de balancetes únicos no período.</p>
+            </>
+          }
         />
         <KpiCard
           icon={<DollarSign className="w-4 h-4" />}
@@ -227,6 +241,22 @@ const TabFinanceiroTokens = () => {
           value={fmtUSDc(indicators?.custoTotal ?? 0)}
           sub={indicators?.periodLabel ?? "Acumulado"}
           color="hsl(152,70%,45%)"
+          info={
+            <>
+              <p className="font-semibold mb-1">Custo Total (E2E)</p>
+              <p><strong>End-to-End</strong>: custo total de ponta a ponta de toda a operação no período selecionado.</p>
+              <p className="mt-1">Soma todos os custos de IA e infraestrutura consumidos em cada etapa do pipeline:</p>
+              <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                <li><strong>OCR / Document AI</strong> — leitura do PDF do balancete</li>
+                <li><strong>Embeddings</strong> — vetorização para busca semântica</li>
+                <li><strong>Gemini Flash</strong> — mapping/normalização de contas</li>
+                <li><strong>Gemini Pro</strong> — insights e relatório final</li>
+                <li><strong>Storage Cloud</strong> — armazenamento de arquivos</li>
+                <li>Requisições, páginas processadas e custos fixos</li>
+              </ul>
+              <p className="mt-1 text-muted-foreground">Fórmula: soma de <code>cost_calculated</code> de todos os registros em <code>ai_usage_logs</code> dentro do período (mês, trimestre, semestre, ano ou total acumulado).</p>
+            </>
+          }
         />
         <KpiCard
           icon={<Activity className="w-4 h-4" />}
@@ -234,6 +264,13 @@ const TabFinanceiroTokens = () => {
           value={fmtUSDc(indicators?.custoMedioExecucao ?? 0)}
           sub="por documento"
           color="hsl(38,90%,55%)"
+          info={
+            <>
+              <p className="font-semibold mb-1">Custo Médio por Execução</p>
+              <p>Custo médio consumido por documento processado de ponta a ponta, considerando todas as etapas do pipeline.</p>
+              <p className="mt-1 text-muted-foreground">Fórmula: Custo Total (E2E) ÷ nº de documentos únicos processados no período.</p>
+            </>
+          }
         />
       </div>
 
