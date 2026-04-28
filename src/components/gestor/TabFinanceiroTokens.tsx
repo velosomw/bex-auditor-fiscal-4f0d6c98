@@ -532,32 +532,100 @@ const TabFinanceiroTokens = () => {
                 </TableRow>
               )}
 
-              {/* ─── Infraestrutura (valores estimados, somente leitura) ─── */}
+              {/* ─── Infraestrutura (valores estimados, EDITÁVEIS) ─── */}
               <TableRow className="bg-muted/30">
-                <TableCell colSpan={8} className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground py-2">
+                <TableCell colSpan={6} className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground py-2">
                   Valores estimados de infraestrutura — referência E2E ≈ 700 relatórios/mês
                 </TableCell>
+                <TableCell colSpan={2} className="text-right py-2">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={resetInfra}
+                      className="h-7 text-[11px]"
+                    >
+                      Restaurar padrão
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={infraDirty ? "default" : "outline"}
+                      disabled={!infraDirty}
+                      onClick={saveInfra}
+                      className="h-7 gap-1.5 text-[11px]"
+                    >
+                      <Save className="w-3 h-3" /> Salvar infra
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
-              {INFRA_ROWS.map((r) => (
-                <TableRow key={r.service} className="bg-muted/10">
-                  <TableCell className="text-xs">
-                    <div className="font-semibold text-foreground">{r.label}</div>
-                    <div className="text-[10px] text-muted-foreground">{r.spec}</div>
-                  </TableCell>
-                  <TableCell colSpan={4} className="text-[11px] text-muted-foreground">
-                    <span className="font-mono">{r.monthly}</span>
-                    <span className="mx-1.5">·</span>
-                    <span>Ref.: {r.refNote}</span>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">
-                    {r.perReport}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant="outline" className="text-[10px]">infra</Badge>
-                  </TableCell>
-                  <TableCell />
-                </TableRow>
-              ))}
+              {infraRows.map((r) => {
+                const perReport = r.refReports > 0 ? r.monthly / r.refReports : 0;
+                return (
+                  <TableRow key={r.service} className="bg-muted/10">
+                    <TableCell className="text-xs align-top">
+                      <Input
+                        type="text"
+                        value={r.label}
+                        onChange={(e) => updateInfra(r.service, "label", e.target.value)}
+                        className="h-7 text-xs font-semibold"
+                      />
+                      <Input
+                        type="text"
+                        value={r.spec}
+                        onChange={(e) => updateInfra(r.service, "spec", e.target.value)}
+                        className="h-6 mt-1 text-[10px] text-muted-foreground"
+                      />
+                    </TableCell>
+                    <TableCell colSpan={2} className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-[10px] text-muted-foreground">R$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={r.monthly}
+                          onChange={(e) => updateInfra(r.service, "monthly", parseFloat(e.target.value) || 0)}
+                          className="h-7 text-xs text-right font-mono w-28"
+                        />
+                        <span className="text-[10px] text-muted-foreground">/mês</span>
+                      </div>
+                    </TableCell>
+                    <TableCell colSpan={2} className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-[10px] text-muted-foreground">Ref.:</span>
+                        <Input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={r.refReports}
+                          onChange={(e) => updateInfra(r.service, "refReports", parseInt(e.target.value) || 1)}
+                          className="h-7 text-xs text-right font-mono w-20"
+                        />
+                        <span className="text-[10px] text-muted-foreground">rel./mês</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">
+                      {fmtBRL3(perReport)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="outline" className="text-[10px]">infra</Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              <TableRow className="bg-muted/20">
+                <TableCell className="text-xs font-semibold text-foreground">Total infraestrutura</TableCell>
+                <TableCell colSpan={2} className="text-right font-mono text-xs tabular-nums text-foreground">
+                  {fmtBRL(infraMonthlyTotal)} <span className="text-[10px] text-muted-foreground">/mês</span>
+                </TableCell>
+                <TableCell colSpan={2} className="text-right text-[10px] text-muted-foreground">
+                  Custo/relatório (Σ):
+                </TableCell>
+                <TableCell className="text-right font-mono text-xs font-bold text-primary tabular-nums">
+                  {fmtBRL3(infraPerReportTotal)}
+                </TableCell>
+                <TableCell colSpan={2} />
+              </TableRow>
             </TableBody>
             {config.length > 0 && (() => {
               const sum = (k: keyof CostConfigRow) =>
