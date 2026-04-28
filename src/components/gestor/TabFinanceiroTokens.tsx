@@ -34,6 +34,52 @@ const fmtUSD = (n: number) =>
 const fmtUSDc = (n: number) =>
   `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 
+// Linhas estáticas de infraestrutura (referência ≈ 700 relatórios/mês)
+const INFRA_ROWS: Array<{
+  service: string; label: string; spec: string; monthly: string; refNote: string; perReport: string;
+}> = [
+  {
+    service: "infra_compute",
+    label: "Compute",
+    spec: "Machine type n4-standard-2 · 2 vCPUs · 8 GB RAM",
+    monthly: "R$ 394,10/mês",
+    refNote: "≈ 600–700 relatórios/mês",
+    perReport: "R$ 0,563",
+  },
+  {
+    service: "infra_boot_disk",
+    label: "Boot disk",
+    spec: "Disco de boot · 10 GiB",
+    monthly: "R$ 4,76/mês",
+    refNote: "≈ 700 relatórios/mês",
+    perReport: "R$ 0,006",
+  },
+  {
+    service: "infra_bigquery",
+    label: "Data Analytics — BigQuery",
+    spec: "On-Demand (BigQuery)",
+    monthly: "R$ 138,82/mês",
+    refNote: "≈ 700 relatórios/mês",
+    perReport: "R$ 0,197",
+  },
+  {
+    service: "infra_cloudsql",
+    label: "Database — Cloud SQL",
+    spec: "PostgreSQL (Cloud SQL)",
+    monthly: "R$ 146,81/mês",
+    refNote: "≈ 700 relatórios/mês",
+    perReport: "R$ 0,209",
+  },
+  {
+    service: "infra_storage",
+    label: "Storage Cloud",
+    spec: "Total armazenado · 1000 GiB",
+    monthly: "R$ 118,45/mês",
+    refNote: "≈ 700 relatórios/mês",
+    perReport: "R$ 0,169",
+  },
+];
+
 const TabFinanceiroTokens = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -457,6 +503,33 @@ const TabFinanceiroTokens = () => {
                   </TableCell>
                 </TableRow>
               )}
+
+              {/* ─── Infraestrutura (valores estimados, somente leitura) ─── */}
+              <TableRow className="bg-muted/30">
+                <TableCell colSpan={8} className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground py-2">
+                  Valores estimados de infraestrutura — referência E2E ≈ 700 relatórios/mês
+                </TableCell>
+              </TableRow>
+              {INFRA_ROWS.map((r) => (
+                <TableRow key={r.service} className="bg-muted/10">
+                  <TableCell className="text-xs">
+                    <div className="font-semibold text-foreground">{r.label}</div>
+                    <div className="text-[10px] text-muted-foreground">{r.spec}</div>
+                  </TableCell>
+                  <TableCell colSpan={4} className="text-[11px] text-muted-foreground">
+                    <span className="font-mono">{r.monthly}</span>
+                    <span className="mx-1.5">·</span>
+                    <span>Ref.: {r.refNote}</span>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">
+                    {r.perReport}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant="outline" className="text-[10px]">infra</Badge>
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              ))}
             </TableBody>
             {config.length > 0 && (() => {
               const sum = (k: keyof CostConfigRow) =>
