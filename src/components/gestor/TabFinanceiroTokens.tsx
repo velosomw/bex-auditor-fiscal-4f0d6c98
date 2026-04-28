@@ -38,6 +38,35 @@ const TabFinanceiroTokens = () => {
   const [config, setConfig] = useState<CostConfigRow[]>([]);
   const [indicators, setIndicators] = useState<CostIndicators | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Partial<CostConfigRow>>>({});
+  // Buffers de string para permitir digitação livre nos campos numéricos (pt-BR)
+  const [inputBuffers, setInputBuffers] = useState<Record<string, string>>({});
+
+  const fmtBR = (n: number) =>
+    Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
+  const parseBR = (s: string): number => {
+    const cleaned = (s || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const bufKey = (service: string, field: string) => `${service}::${field}`;
+  const getBuf = (service: string, field: keyof CostConfigRow, fallback: number) => {
+    const k = bufKey(service, field as string);
+    return inputBuffers[k] !== undefined ? inputBuffers[k] : fmtBR(fallback);
+  };
+  const setBuf = (service: string, field: keyof CostConfigRow, raw: string) => {
+    const k = bufKey(service, field as string);
+    // aceita só dígitos, vírgula, ponto
+    const sanitized = raw.replace(/[^\d.,]/g, "");
+    setInputBuffers((b) => ({ ...b, [k]: sanitized }));
+    updateDraft(service, field, parseBR(sanitized));
+  };
+  const blurBuf = (service: string, field: keyof CostConfigRow) => {
+    const k = bufKey(service, field as string);
+    const val = parseBR(inputBuffers[k] ?? "");
+    setInputBuffers((b) => ({ ...b, [k]: fmtBR(val) }));
+  };
 
   const reload = async () => {
     setLoading(true);
