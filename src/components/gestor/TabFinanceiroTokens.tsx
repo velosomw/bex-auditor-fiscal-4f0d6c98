@@ -72,10 +72,10 @@ const TabFinanceiroTokens = () => {
     setInputBuffers((b) => ({ ...b, [k]: fmtBR(val) }));
   };
 
-  const reload = async () => {
+  const reload = async (p: PeriodKey = period) => {
     setLoading(true);
     try {
-      const [c, ind] = await Promise.all([fetchCostConfig(), fetchCostIndicators()]);
+      const [c, ind] = await Promise.all([fetchCostConfig(), fetchCostIndicators(p)]);
       setConfig(c);
       setIndicators(ind);
     } catch (e: any) {
@@ -85,7 +85,12 @@ const TabFinanceiroTokens = () => {
     }
   };
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => { reload("mes"); }, []);
+
+  const onPeriodChange = (p: PeriodKey) => {
+    setPeriod(p);
+    reload(p);
+  };
 
   const updateDraft = (service: string, field: keyof CostConfigRow, value: number) => {
     setDrafts((d) => ({ ...d, [service]: { ...d[service], [field]: value } }));
