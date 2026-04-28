@@ -45,7 +45,7 @@ export default function PipelineDiagnosticPanel({ onComplete }: Props) {
     <div className="bg-card rounded-xl border border-border p-5">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "hsl(217,91%,50%)15" }}>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "hsla(217,91%,50%,0.1)" }}>
             <Activity className="w-5 h-5" style={{ color: "hsl(217,91%,50%)" }} />
           </div>
           <div>
