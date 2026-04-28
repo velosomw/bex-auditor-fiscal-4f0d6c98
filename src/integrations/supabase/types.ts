@@ -71,8 +71,10 @@ export type Database = {
           cost_fixed: number
           cost_per_1k_input: number
           cost_per_1k_output: number
+          cost_per_page: number
           cost_per_request: number
           created_at: string
+          currency: string
           id: string
           label: string
           notes: string | null
@@ -85,8 +87,10 @@ export type Database = {
           cost_fixed?: number
           cost_per_1k_input?: number
           cost_per_1k_output?: number
+          cost_per_page?: number
           cost_per_request?: number
           created_at?: string
+          currency?: string
           id?: string
           label?: string
           notes?: string | null
@@ -99,8 +103,10 @@ export type Database = {
           cost_fixed?: number
           cost_per_1k_input?: number
           cost_per_1k_output?: number
+          cost_per_page?: number
           cost_per_request?: number
           created_at?: string
+          currency?: string
           id?: string
           label?: string
           notes?: string | null
@@ -118,7 +124,9 @@ export type Database = {
           document_id: string | null
           id: string
           metadata: Json | null
+          pages: number
           provider: string
+          reference_id: string | null
           requests: number
           service: string
           tokens_input: number
@@ -132,7 +140,9 @@ export type Database = {
           document_id?: string | null
           id?: string
           metadata?: Json | null
+          pages?: number
           provider: string
+          reference_id?: string | null
           requests?: number
           service: string
           tokens_input?: number
@@ -146,7 +156,9 @@ export type Database = {
           document_id?: string | null
           id?: string
           metadata?: Json | null
+          pages?: number
           provider?: string
+          reference_id?: string | null
           requests?: number
           service?: string
           tokens_input?: number
@@ -715,9 +727,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ai_cost_summary: {
+        Row: {
+          service: string | null
+          total_cost: number | null
+          total_input_tokens: number | null
+          total_output_tokens: number | null
+          total_pages: number | null
+          total_requests: number | null
+          type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      ai_cost_diagnostics: { Args: never; Returns: Json }
+      calculate_ai_cost: {
+        Args: {
+          p_pages: number
+          p_requests: number
+          p_service: string
+          p_tokens_input: number
+          p_tokens_output: number
+        }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

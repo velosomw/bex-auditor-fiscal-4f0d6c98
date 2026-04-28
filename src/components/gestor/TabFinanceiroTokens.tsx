@@ -8,8 +8,9 @@ import {
 import { toast } from "sonner";
 import {
   Wallet, DollarSign, FileBarChart, Layers, Activity, RefreshCw,
-  Save, AlertTriangle, Lightbulb, TrendingUp, Loader2, Sparkles,
+  Save, AlertTriangle, Lightbulb, TrendingUp, Loader2, Sparkles, Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, ResponsiveContainer, Legend,
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -69,6 +70,7 @@ const TabFinanceiroTokens = () => {
         cost_per_1k_input: draft.cost_per_1k_input ?? row.cost_per_1k_input,
         cost_per_1k_output: draft.cost_per_1k_output ?? row.cost_per_1k_output,
         cost_per_request: draft.cost_per_request ?? row.cost_per_request,
+        cost_per_page: draft.cost_per_page ?? row.cost_per_page,
         cost_fixed: draft.cost_fixed ?? row.cost_fixed,
       });
       toast.success(`${row.label} atualizado`);
@@ -109,10 +111,27 @@ const TabFinanceiroTokens = () => {
             Custo real de cada operação de IA — baseado em <strong>uso efetivo</strong> registrado pelo pipeline.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={reload} disabled={loading} className="gap-1.5">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Atualizar
           </Button>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  aria-label="Informação sobre os preços"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">
+                Os valores refletem faixa real de mercado <strong>(2025–2026)</strong> e podem variar por contrato/volume do fornecedor de IA.
+                O Gestor IA pode realizar <strong>ajuste fino</strong> diretamente no painel de custos abaixo.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button
             size="sm"
             onClick={runDiagnostic}
@@ -254,6 +273,7 @@ const TabFinanceiroTokens = () => {
                 <TableHead className="text-xs text-right">Input $/1k</TableHead>
                 <TableHead className="text-xs text-right">Output $/1k</TableHead>
                 <TableHead className="text-xs text-right">$ / Requisição</TableHead>
+                <TableHead className="text-xs text-right">$ / Página</TableHead>
                 <TableHead className="text-xs text-right">$ Fixo</TableHead>
                 <TableHead className="text-xs text-right w-28">Ação</TableHead>
               </TableRow>
@@ -285,6 +305,11 @@ const TabFinanceiroTokens = () => {
                         className="h-8 text-xs text-right font-mono w-28 ml-auto" />
                     </TableCell>
                     <TableCell className="text-right">
+                      <Input type="number" step="0.000001" value={v("cost_per_page")}
+                        onChange={(e) => updateDraft(row.service, "cost_per_page", parseFloat(e.target.value) || 0)}
+                        className="h-8 text-xs text-right font-mono w-28 ml-auto" />
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Input type="number" step="0.000001" value={v("cost_fixed")}
                         onChange={(e) => updateDraft(row.service, "cost_fixed", parseFloat(e.target.value) || 0)}
                         className="h-8 text-xs text-right font-mono w-28 ml-auto" />
@@ -306,7 +331,7 @@ const TabFinanceiroTokens = () => {
               })}
               {config.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-6">
+                  <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
                     {loading ? "Carregando..." : "Nenhuma configuração de custo encontrada."}
                   </TableCell>
                 </TableRow>

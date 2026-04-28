@@ -9,7 +9,9 @@ export interface CostConfigRow {
   cost_per_1k_input: number;
   cost_per_1k_output: number;
   cost_per_request: number;
+  cost_per_page: number;
   cost_fixed: number;
+  currency?: string;
   active: boolean;
   notes?: string | null;
   updated_at: string;
@@ -24,6 +26,7 @@ export interface UsageLogRow {
   tokens_input: number;
   tokens_output: number;
   requests: number;
+  pages: number;
   cost_calculated: number;
   metadata?: Record<string, unknown> | null;
   created_at: string;
@@ -37,6 +40,7 @@ export interface CostBreakdown {
   tokens_input: number;
   tokens_output: number;
   requests: number;
+  pages: number;
 }
 
 export interface CostInsight {
@@ -61,16 +65,18 @@ export interface CostIndicators {
 
 // ─── Cálculo central ──────────────────────────────────────────
 export function calculateCost(
-  usage: { tokens_input?: number; tokens_output?: number; requests?: number },
-  config: Pick<CostConfigRow, "cost_per_1k_input" | "cost_per_1k_output" | "cost_per_request" | "cost_fixed">,
+  usage: { tokens_input?: number; tokens_output?: number; requests?: number; pages?: number },
+  config: Pick<CostConfigRow, "cost_per_1k_input" | "cost_per_1k_output" | "cost_per_request" | "cost_per_page" | "cost_fixed">,
 ): number {
   const ti = Number(usage.tokens_input || 0);
   const to = Number(usage.tokens_output || 0);
   const rq = Number(usage.requests || 0);
+  const pg = Number(usage.pages || 0);
   return (
     (ti / 1000) * Number(config.cost_per_1k_input || 0) +
     (to / 1000) * Number(config.cost_per_1k_output || 0) +
     rq * Number(config.cost_per_request || 0) +
+    pg * Number(config.cost_per_page || 0) +
     Number(config.cost_fixed || 0)
   );
 }
@@ -110,8 +116,14 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
 
   const totalCost = logs.reduce((s, l) => s + Number(l.cost_calculated || 0), 0);
 
-  const balanceteLogs = logs.filter((l) => l.type === "balancete" || l.type === "ocr" || l.type === "mapping");
-  const relatorioLogs = logs.filter((l) => l.type === "relatorio" || l.type === "insight");
+  const balanceteLogs = logs.filter((l) =>
+    l.type === "balancete" || l.type === "ocr" || l.type === "mapping" ||
+    l.service === "gemini_2_5_flash" || l.service === "gemini_flash" || l.service === "document_ai" || l.service === "embedding"
+  );
+  const relatorioLogs = logs.filter((l) =>
+    l.type === "relatorio" || l.type === "insight" ||
+    l.service === "gemini_2_5_pro" || l.service === "gemini_pro"
+  );
 
   const docsBalancete = new Set(balanceteLogs.map((l) => l.document_id).filter(Boolean)).size || 1;
   const docsRelatorio = new Set(relatorioLogs.map((l) => l.document_id).filter(Boolean)).size || 1;
@@ -129,12 +141,13 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
     const cfg = cfgByService.get(key);
     const label = cfg?.label || key;
     const prev = grouped.get(key) ?? {
-      service: key, label, cost: 0, pct: 0, tokens_input: 0, tokens_output: 0, requests: 0,
+      service: key, label, cost: 0, pct: 0, tokens_input: 0, tokens_output: 0, requests: 0, pages: 0,
     };
     prev.cost += Number(l.cost_calculated || 0);
     prev.tokens_input += Number(l.tokens_input || 0);
     prev.tokens_output += Number(l.tokens_output || 0);
     prev.requests += Number(l.requests || 0);
+    prev.pages += Number(l.pages || 0);
     grouped.set(key, prev);
   }
   const breakdown = Array.from(grouped.values())
@@ -164,17 +177,17 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
         level: "warning",
         alerta: `Custo concentrado em ${top.label}`,
         causa: `${top.label} representa ${top.pct.toFixed(1)}% do custo total.`,
-        acao: top.service === "gemini_pro"
-          ? "Avaliar mover etapas de mapping para Gemini Flash."
+      acao: (top.service === "gemini_pro" || top.service === "gemini_2_5_pro")
+          ? "Avaliar mover etapas de mapping para Gemini 2.5 Flash."
           : "Revisar volume de uso e amostragem deste serviço.",
       });
     }
-    const proCfg = cfgByService.get("gemini_pro");
-    const flashCfg = cfgByService.get("gemini_flash");
-    const proLogs = breakdown.find((b) => b.service === "gemini_pro");
+    const proCfg = cfgByService.get("gemini_2_5_pro") ?? cfgByService.get("gemini_pro");
+    const flashCfg = cfgByService.get("gemini_2_5_flash") ?? cfgByService.get("gemini_flash");
+    const proLogs = breakdown.find((b) => b.service === "gemini_2_5_pro" || b.service === "gemini_pro");
     if (proCfg && flashCfg && proLogs && proLogs.cost > 0) {
       const projFlash = calculateCost(
-        { tokens_input: proLogs.tokens_input, tokens_output: proLogs.tokens_output, requests: proLogs.requests },
+        { tokens_input: proLogs.tokens_input, tokens_output: proLogs.tokens_output, requests: proLogs.requests, pages: proLogs.pages },
         flashCfg,
       );
       if (proLogs.cost - projFlash > proLogs.cost * 0.3) {
@@ -224,7 +237,7 @@ export async function runCostDiagnostics(): Promise<{ updated: number; total: nu
     const cfg = cfgByService.get(l.service);
     if (!cfg) continue;
     const recalculated = calculateCost(
-      { tokens_input: l.tokens_input, tokens_output: l.tokens_output, requests: l.requests },
+      { tokens_input: l.tokens_input, tokens_output: l.tokens_output, requests: l.requests, pages: l.pages },
       cfg,
     );
     const delta = Number((recalculated - Number(l.cost_calculated || 0)).toFixed(6));
@@ -238,6 +251,7 @@ export async function runCostDiagnostics(): Promise<{ updated: number; total: nu
         tokens_input: 0,
         tokens_output: 0,
         requests: 0,
+        pages: 0,
         cost_calculated: delta,
         metadata: { source_log_id: l.id, reason: "diagnostic_recalc", original: l.cost_calculated, recalculated },
         created_by: user?.id ?? null,
@@ -257,13 +271,14 @@ export async function logAiUsage(input: {
   tokens_input?: number;
   tokens_output?: number;
   requests?: number;
+  pages?: number;
   metadata?: Record<string, unknown>;
 }): Promise<void> {
   const config = await fetchCostConfig();
   const cfg = config.find((c) => c.service === input.service);
   const cost = cfg
     ? calculateCost(
-        { tokens_input: input.tokens_input, tokens_output: input.tokens_output, requests: input.requests },
+        { tokens_input: input.tokens_input, tokens_output: input.tokens_output, requests: input.requests, pages: input.pages },
         cfg,
       )
     : 0;
@@ -276,6 +291,7 @@ export async function logAiUsage(input: {
     tokens_input: input.tokens_input ?? 0,
     tokens_output: input.tokens_output ?? 0,
     requests: input.requests ?? 0,
+    pages: input.pages ?? 0,
     cost_calculated: cost,
     metadata: input.metadata ?? null,
     created_by: user?.id ?? null,
