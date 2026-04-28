@@ -34,51 +34,29 @@ const fmtUSD = (n: number) =>
 const fmtUSDc = (n: number) =>
   `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 
-// Linhas estáticas de infraestrutura (referência ≈ 700 relatórios/mês)
-const INFRA_ROWS: Array<{
-  service: string; label: string; spec: string; monthly: string; refNote: string; perReport: string;
-}> = [
-  {
-    service: "infra_compute",
-    label: "Compute",
-    spec: "Machine type n4-standard-2 · 2 vCPUs · 8 GB RAM",
-    monthly: "R$ 394,10/mês",
-    refNote: "≈ 600–700 relatórios/mês",
-    perReport: "R$ 0,563",
-  },
-  {
-    service: "infra_boot_disk",
-    label: "Boot disk",
-    spec: "Disco de boot · 10 GiB",
-    monthly: "R$ 4,76/mês",
-    refNote: "≈ 700 relatórios/mês",
-    perReport: "R$ 0,006",
-  },
-  {
-    service: "infra_bigquery",
-    label: "Data Analytics — BigQuery",
-    spec: "On-Demand (BigQuery)",
-    monthly: "R$ 138,82/mês",
-    refNote: "≈ 700 relatórios/mês",
-    perReport: "R$ 0,197",
-  },
-  {
-    service: "infra_cloudsql",
-    label: "Database — Cloud SQL",
-    spec: "PostgreSQL (Cloud SQL)",
-    monthly: "R$ 146,81/mês",
-    refNote: "≈ 700 relatórios/mês",
-    perReport: "R$ 0,209",
-  },
-  {
-    service: "infra_storage",
-    label: "Storage Cloud",
-    spec: "Total armazenado · 1000 GiB",
-    monthly: "R$ 118,45/mês",
-    refNote: "≈ 700 relatórios/mês",
-    perReport: "R$ 0,169",
-  },
+// Linhas editáveis de infraestrutura (persistidas em localStorage)
+type InfraRow = {
+  service: string;
+  label: string;
+  spec: string;
+  monthly: number;   // R$/mês
+  refReports: number; // relatórios/mês de referência E2E
+};
+
+const INFRA_DEFAULTS: InfraRow[] = [
+  { service: "infra_compute",   label: "Compute",                  spec: "Machine type n4-standard-2 · 2 vCPUs · 8 GB RAM", monthly: 394.10, refReports: 700 },
+  { service: "infra_boot_disk", label: "Boot disk",                spec: "Disco de boot · 10 GiB",                          monthly:   4.76, refReports: 700 },
+  { service: "infra_bigquery",  label: "Data Analytics — BigQuery",spec: "On-Demand (BigQuery)",                            monthly: 138.82, refReports: 700 },
+  { service: "infra_cloudsql",  label: "Database — Cloud SQL",     spec: "PostgreSQL (Cloud SQL)",                          monthly: 146.81, refReports: 700 },
+  { service: "infra_storage",   label: "Storage Cloud",            spec: "Total armazenado · 1000 GiB",                     monthly: 118.45, refReports: 700 },
 ];
+
+const INFRA_LS_KEY = "bex.infraRows.v1";
+
+const fmtBRL = (n: number) =>
+  `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtBRL3 = (n: number) =>
+  `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
 
 const TabFinanceiroTokens = () => {
   const [loading, setLoading] = useState(true);
@@ -90,6 +68,45 @@ const TabFinanceiroTokens = () => {
   const [drafts, setDrafts] = useState<Record<string, Partial<CostConfigRow>>>({});
   // Buffers de string para permitir digitação livre nos campos numéricos (pt-BR)
   const [inputBuffers, setInputBuffers] = useState<Record<string, string>>({});
+  // Linhas de infraestrutura editáveis (persistidas em localStorage)
+  const [infraRows, setInfraRows] = useState<InfraRow[]>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(INFRA_LS_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw) as InfraRow[];
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch {}
+    return INFRA_DEFAULTS;
+  });
+  const [infraDirty, setInfraDirty] = useState(false);
+
+  const updateInfra = (service: string, field: keyof InfraRow, value: string | number) => {
+    setInfraRows((rows) => rows.map((r) => (r.service === service ? { ...r, [field]: value } : r)));
+    setInfraDirty(true);
+  };
+  const saveInfra = () => {
+    try {
+      window.localStorage.setItem(INFRA_LS_KEY, JSON.stringify(infraRows));
+      setInfraDirty(false);
+      toast.success("Valores de infraestrutura salvos");
+    } catch {
+      toast.error("Falha ao salvar infraestrutura");
+    }
+  };
+  const resetInfra = () => {
+    setInfraRows(INFRA_DEFAULTS);
+    setInfraDirty(true);
+  };
+
+  const infraMonthlyTotal = useMemo(
+    () => infraRows.reduce((acc, r) => acc + (Number(r.monthly) || 0), 0),
+    [infraRows]
+  );
+  const infraPerReportTotal = useMemo(
+    () => infraRows.reduce((acc, r) => acc + (r.refReports > 0 ? r.monthly / r.refReports : 0), 0),
+    [infraRows]
+  );
 
   const fmtBR = (n: number) =>
     Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
@@ -281,29 +298,40 @@ const TabFinanceiroTokens = () => {
             </>
           }
         />
-        <KpiCard
-          icon={<DollarSign className="w-4 h-4" />}
-          label="Custo Total (E2E)"
-          value={fmtUSDc(indicators?.custoTotal ?? 0)}
-          sub={indicators?.periodLabel ?? "Acumulado"}
-          color="hsl(152,70%,45%)"
-          info={
-            <>
-              <p className="font-semibold mb-1">Custo Total (E2E)</p>
-              <p><strong>End-to-End</strong>: custo total de ponta a ponta de toda a operação no período selecionado.</p>
-              <p className="mt-1">Soma todos os custos de IA e infraestrutura consumidos em cada etapa do pipeline:</p>
-              <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                <li><strong>OCR / Document AI</strong> — leitura do PDF do balancete</li>
-                <li><strong>Embeddings</strong> — vetorização para busca semântica</li>
-                <li><strong>Gemini Flash</strong> — mapping/normalização de contas</li>
-                <li><strong>Gemini Pro</strong> — insights e relatório final</li>
-                <li><strong>Storage Cloud</strong> — armazenamento de arquivos</li>
-                <li>Requisições, páginas processadas e custos fixos</li>
-              </ul>
-              <p className="mt-1 text-muted-foreground">Fórmula: soma de <code>cost_calculated</code> de todos os registros em <code>ai_usage_logs</code> dentro do período (mês, trimestre, semestre, ano ou total acumulado).</p>
-            </>
-          }
-        />
+        {(() => {
+          const monthsByPeriod: Record<PeriodKey, number> = {
+            mes: 1, trimestre: 3, semestre: 6, ano: 12, total: 12,
+          };
+          const months = monthsByPeriod[period] ?? 1;
+          const infraPeriod = infraMonthlyTotal * months;
+          const e2eTotal = (indicators?.custoTotal ?? 0) + infraPeriod;
+          return (
+            <KpiCard
+              icon={<DollarSign className="w-4 h-4" />}
+              label="Custo Total (E2E)"
+              value={fmtUSDc(e2eTotal)}
+              sub={`${indicators?.periodLabel ?? "Acumulado"} · infra ${fmtBRL(infraPeriod)}`}
+              color="hsl(152,70%,45%)"
+              info={
+                <>
+                  <p className="font-semibold mb-1">Custo Total (E2E)</p>
+                  <p><strong>End-to-End</strong>: custo total de ponta a ponta no período selecionado.</p>
+                  <p className="mt-1">Soma <strong>IA</strong> (uso real) + <strong>Infraestrutura</strong> (estimada):</p>
+                  <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                    <li><strong>OCR / Document AI</strong>, <strong>Embeddings</strong>, <strong>Gemini Flash/Pro</strong></li>
+                    <li><strong>Compute, Boot disk, BigQuery, Cloud SQL, Storage</strong> (infra)</li>
+                  </ul>
+                  <p className="mt-1 text-muted-foreground">
+                    Fórmula: <code>SUM(cost_calculated)</code> em <code>ai_usage_logs</code> + (Σ infra mensal × {months} {months === 1 ? "mês" : "meses"}).
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    Infra mensal atual: <strong>{fmtBRL(infraMonthlyTotal)}</strong> · período: <strong>{fmtBRL(infraPeriod)}</strong>.
+                  </p>
+                </>
+              }
+            />
+          );
+        })()}
         <KpiCard
           icon={<Activity className="w-4 h-4" />}
           label="Custo Médio/Execução"
@@ -504,32 +532,100 @@ const TabFinanceiroTokens = () => {
                 </TableRow>
               )}
 
-              {/* ─── Infraestrutura (valores estimados, somente leitura) ─── */}
+              {/* ─── Infraestrutura (valores estimados, EDITÁVEIS) ─── */}
               <TableRow className="bg-muted/30">
-                <TableCell colSpan={8} className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground py-2">
+                <TableCell colSpan={6} className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground py-2">
                   Valores estimados de infraestrutura — referência E2E ≈ 700 relatórios/mês
                 </TableCell>
+                <TableCell colSpan={2} className="text-right py-2">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={resetInfra}
+                      className="h-7 text-[11px]"
+                    >
+                      Restaurar padrão
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={infraDirty ? "default" : "outline"}
+                      disabled={!infraDirty}
+                      onClick={saveInfra}
+                      className="h-7 gap-1.5 text-[11px]"
+                    >
+                      <Save className="w-3 h-3" /> Salvar infra
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
-              {INFRA_ROWS.map((r) => (
-                <TableRow key={r.service} className="bg-muted/10">
-                  <TableCell className="text-xs">
-                    <div className="font-semibold text-foreground">{r.label}</div>
-                    <div className="text-[10px] text-muted-foreground">{r.spec}</div>
-                  </TableCell>
-                  <TableCell colSpan={4} className="text-[11px] text-muted-foreground">
-                    <span className="font-mono">{r.monthly}</span>
-                    <span className="mx-1.5">·</span>
-                    <span>Ref.: {r.refNote}</span>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">
-                    {r.perReport}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant="outline" className="text-[10px]">infra</Badge>
-                  </TableCell>
-                  <TableCell />
-                </TableRow>
-              ))}
+              {infraRows.map((r) => {
+                const perReport = r.refReports > 0 ? r.monthly / r.refReports : 0;
+                return (
+                  <TableRow key={r.service} className="bg-muted/10">
+                    <TableCell className="text-xs align-top">
+                      <Input
+                        type="text"
+                        value={r.label}
+                        onChange={(e) => updateInfra(r.service, "label", e.target.value)}
+                        className="h-7 text-xs font-semibold"
+                      />
+                      <Input
+                        type="text"
+                        value={r.spec}
+                        onChange={(e) => updateInfra(r.service, "spec", e.target.value)}
+                        className="h-6 mt-1 text-[10px] text-muted-foreground"
+                      />
+                    </TableCell>
+                    <TableCell colSpan={2} className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-[10px] text-muted-foreground">R$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={r.monthly}
+                          onChange={(e) => updateInfra(r.service, "monthly", parseFloat(e.target.value) || 0)}
+                          className="h-7 text-xs text-right font-mono w-28"
+                        />
+                        <span className="text-[10px] text-muted-foreground">/mês</span>
+                      </div>
+                    </TableCell>
+                    <TableCell colSpan={2} className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-[10px] text-muted-foreground">Ref.:</span>
+                        <Input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={r.refReports}
+                          onChange={(e) => updateInfra(r.service, "refReports", parseInt(e.target.value) || 1)}
+                          className="h-7 text-xs text-right font-mono w-20"
+                        />
+                        <span className="text-[10px] text-muted-foreground">rel./mês</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">
+                      {fmtBRL3(perReport)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="outline" className="text-[10px]">infra</Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              <TableRow className="bg-muted/20">
+                <TableCell className="text-xs font-semibold text-foreground">Total infraestrutura</TableCell>
+                <TableCell colSpan={2} className="text-right font-mono text-xs tabular-nums text-foreground">
+                  {fmtBRL(infraMonthlyTotal)} <span className="text-[10px] text-muted-foreground">/mês</span>
+                </TableCell>
+                <TableCell colSpan={2} className="text-right text-[10px] text-muted-foreground">
+                  Custo/relatório (Σ):
+                </TableCell>
+                <TableCell className="text-right font-mono text-xs font-bold text-primary tabular-nums">
+                  {fmtBRL3(infraPerReportTotal)}
+                </TableCell>
+                <TableCell colSpan={2} />
+              </TableRow>
             </TableBody>
             {config.length > 0 && (() => {
               const sum = (k: keyof CostConfigRow) =>
