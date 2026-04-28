@@ -290,7 +290,28 @@ const TabFinanceiroTokens = () => {
         </ChartCard>
       </div>
 
-      {/* ─── Insights ──────────────────────────────────────────── */}
+      {/* ─── Últimos 6 meses ─────────────────────────────────────── */}
+      <ChartCard title="Custo nos últimos 6 meses">
+        {(indicators?.last6Months ?? []).every((m) => m.custo === 0) ? (
+          <Empty hint="Sem custos registrados nos últimos 6 meses" />
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={indicators!.last6Months}>
+              <defs>
+                <linearGradient id="grad6m" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(217,91%,50%)" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="hsl(217,91%,50%)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <RTooltip formatter={(v: any) => fmtUSD(Number(v))} />
+              <Area type="monotone" dataKey="custo" stroke="hsl(217,91%,50%)" strokeWidth={2} fill="url(#grad6m)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </ChartCard>
       {indicators && indicators.insights.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-2">
