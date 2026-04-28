@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchGestorIaIndicators, type GestorIaIndicators } from "@/services/gestorIaIndicatorsService";
+import { useUser } from "@/contexts/UserContext";
 import { Loader2 } from "lucide-react";
 import PlatformLayout from "@/components/PlatformLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
