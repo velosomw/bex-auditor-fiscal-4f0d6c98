@@ -284,6 +284,12 @@ const TabFinanceiroTokens = () => {
                 const draft = drafts[row.service];
                 const dirty = !!draft;
                 const v = (k: keyof CostConfigRow) => (draft?.[k] ?? row[k]) as number;
+                const rowTotal =
+                  (Number(v("cost_per_1k_input")) || 0) +
+                  (Number(v("cost_per_1k_output")) || 0) +
+                  (Number(v("cost_per_request")) || 0) +
+                  (Number(v("cost_per_page")) || 0) +
+                  (Number(v("cost_fixed")) || 0);
                 return (
                   <TableRow key={row.id}>
                     <TableCell className="text-xs">
