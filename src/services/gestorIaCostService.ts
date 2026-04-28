@@ -50,6 +50,8 @@ export interface CostInsight {
   acao: string;
 }
 
+export type PeriodKey = "mes" | "trimestre" | "semestre" | "ano" | "total";
+
 export interface CostIndicators {
   custoTotal: number;
   custoBalancete: number;
@@ -59,8 +61,42 @@ export interface CostIndicators {
   totalRelatorios: number;
   breakdown: CostBreakdown[];
   monthlySeries: { mes: string; custo: number }[];
+  last6Months: { mes: string; custo: number }[];
   byService: { service: string; label: string; custo: number }[];
   insights: CostInsight[];
+  period: PeriodKey;
+  periodLabel: string;
+}
+
+function startOfPeriod(period: PeriodKey, now = new Date()): Date | null {
+  switch (period) {
+    case "mes":
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    case "trimestre": {
+      const q = Math.floor(now.getMonth() / 3) * 3;
+      return new Date(now.getFullYear(), q, 1);
+    }
+    case "semestre": {
+      const s = now.getMonth() < 6 ? 0 : 6;
+      return new Date(now.getFullYear(), s, 1);
+    }
+    case "ano":
+      return new Date(now.getFullYear(), 0, 1);
+    case "total":
+    default:
+      return null;
+  }
+}
+
+function periodLabelOf(period: PeriodKey, now = new Date()): string {
+  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  switch (period) {
+    case "mes": return `${meses[now.getMonth()]}/${now.getFullYear()}`;
+    case "trimestre": return `${Math.floor(now.getMonth()/3)+1}º Trimestre/${now.getFullYear()}`;
+    case "semestre": return `${now.getMonth()<6?1:2}º Semestre/${now.getFullYear()}`;
+    case "ano": return `Ano ${now.getFullYear()}`;
+    case "total": return "Total acumulado";
+  }
 }
 
 // ─── Cálculo central ──────────────────────────────────────────
