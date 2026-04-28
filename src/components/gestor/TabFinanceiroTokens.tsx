@@ -298,29 +298,40 @@ const TabFinanceiroTokens = () => {
             </>
           }
         />
-        <KpiCard
-          icon={<DollarSign className="w-4 h-4" />}
-          label="Custo Total (E2E)"
-          value={fmtUSDc(indicators?.custoTotal ?? 0)}
-          sub={indicators?.periodLabel ?? "Acumulado"}
-          color="hsl(152,70%,45%)"
-          info={
-            <>
-              <p className="font-semibold mb-1">Custo Total (E2E)</p>
-              <p><strong>End-to-End</strong>: custo total de ponta a ponta de toda a operação no período selecionado.</p>
-              <p className="mt-1">Soma todos os custos de IA e infraestrutura consumidos em cada etapa do pipeline:</p>
-              <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                <li><strong>OCR / Document AI</strong> — leitura do PDF do balancete</li>
-                <li><strong>Embeddings</strong> — vetorização para busca semântica</li>
-                <li><strong>Gemini Flash</strong> — mapping/normalização de contas</li>
-                <li><strong>Gemini Pro</strong> — insights e relatório final</li>
-                <li><strong>Storage Cloud</strong> — armazenamento de arquivos</li>
-                <li>Requisições, páginas processadas e custos fixos</li>
-              </ul>
-              <p className="mt-1 text-muted-foreground">Fórmula: soma de <code>cost_calculated</code> de todos os registros em <code>ai_usage_logs</code> dentro do período (mês, trimestre, semestre, ano ou total acumulado).</p>
-            </>
-          }
-        />
+        {(() => {
+          const monthsByPeriod: Record<PeriodKey, number> = {
+            mes: 1, trimestre: 3, semestre: 6, ano: 12, total: 12,
+          };
+          const months = monthsByPeriod[period] ?? 1;
+          const infraPeriod = infraMonthlyTotal * months;
+          const e2eTotal = (indicators?.custoTotal ?? 0) + infraPeriod;
+          return (
+            <KpiCard
+              icon={<DollarSign className="w-4 h-4" />}
+              label="Custo Total (E2E)"
+              value={fmtUSDc(e2eTotal)}
+              sub={`${indicators?.periodLabel ?? "Acumulado"} · infra ${fmtBRL(infraPeriod)}`}
+              color="hsl(152,70%,45%)"
+              info={
+                <>
+                  <p className="font-semibold mb-1">Custo Total (E2E)</p>
+                  <p><strong>End-to-End</strong>: custo total de ponta a ponta no período selecionado.</p>
+                  <p className="mt-1">Soma <strong>IA</strong> (uso real) + <strong>Infraestrutura</strong> (estimada):</p>
+                  <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                    <li><strong>OCR / Document AI</strong>, <strong>Embeddings</strong>, <strong>Gemini Flash/Pro</strong></li>
+                    <li><strong>Compute, Boot disk, BigQuery, Cloud SQL, Storage</strong> (infra)</li>
+                  </ul>
+                  <p className="mt-1 text-muted-foreground">
+                    Fórmula: <code>SUM(cost_calculated)</code> em <code>ai_usage_logs</code> + (Σ infra mensal × {months} {months === 1 ? "mês" : "meses"}).
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    Infra mensal atual: <strong>{fmtBRL(infraMonthlyTotal)}</strong> · período: <strong>{fmtBRL(infraPeriod)}</strong>.
+                  </p>
+                </>
+              }
+            />
+          );
+        })()}
         <KpiCard
           icon={<Activity className="w-4 h-4" />}
           label="Custo Médio/Execução"
