@@ -116,8 +116,14 @@ export async function fetchCostIndicators(): Promise<CostIndicators> {
 
   const totalCost = logs.reduce((s, l) => s + Number(l.cost_calculated || 0), 0);
 
-  const balanceteLogs = logs.filter((l) => l.type === "balancete" || l.type === "ocr" || l.type === "mapping");
-  const relatorioLogs = logs.filter((l) => l.type === "relatorio" || l.type === "insight");
+  const balanceteLogs = logs.filter((l) =>
+    l.type === "balancete" || l.type === "ocr" || l.type === "mapping" ||
+    l.service === "gemini_2_5_flash" || l.service === "gemini_flash" || l.service === "document_ai" || l.service === "embedding"
+  );
+  const relatorioLogs = logs.filter((l) =>
+    l.type === "relatorio" || l.type === "insight" ||
+    l.service === "gemini_2_5_pro" || l.service === "gemini_pro"
+  );
 
   const docsBalancete = new Set(balanceteLogs.map((l) => l.document_id).filter(Boolean)).size || 1;
   const docsRelatorio = new Set(relatorioLogs.map((l) => l.document_id).filter(Boolean)).size || 1;
