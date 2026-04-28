@@ -34,51 +34,29 @@ const fmtUSD = (n: number) =>
 const fmtUSDc = (n: number) =>
   `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 
-// Linhas estáticas de infraestrutura (referência ≈ 700 relatórios/mês)
-const INFRA_ROWS: Array<{
-  service: string; label: string; spec: string; monthly: string; refNote: string; perReport: string;
-}> = [
-  {
-    service: "infra_compute",
-    label: "Compute",
-    spec: "Machine type n4-standard-2 · 2 vCPUs · 8 GB RAM",
-    monthly: "R$ 394,10/mês",
-    refNote: "≈ 600–700 relatórios/mês",
-    perReport: "R$ 0,563",
-  },
-  {
-    service: "infra_boot_disk",
-    label: "Boot disk",
-    spec: "Disco de boot · 10 GiB",
-    monthly: "R$ 4,76/mês",
-    refNote: "≈ 700 relatórios/mês",
-    perReport: "R$ 0,006",
-  },
-  {
-    service: "infra_bigquery",
-    label: "Data Analytics — BigQuery",
-    spec: "On-Demand (BigQuery)",
-    monthly: "R$ 138,82/mês",
-    refNote: "≈ 700 relatórios/mês",
-    perReport: "R$ 0,197",
-  },
-  {
-    service: "infra_cloudsql",
-    label: "Database — Cloud SQL",
-    spec: "PostgreSQL (Cloud SQL)",
-    monthly: "R$ 146,81/mês",
-    refNote: "≈ 700 relatórios/mês",
-    perReport: "R$ 0,209",
-  },
-  {
-    service: "infra_storage",
-    label: "Storage Cloud",
-    spec: "Total armazenado · 1000 GiB",
-    monthly: "R$ 118,45/mês",
-    refNote: "≈ 700 relatórios/mês",
-    perReport: "R$ 0,169",
-  },
+// Linhas editáveis de infraestrutura (persistidas em localStorage)
+type InfraRow = {
+  service: string;
+  label: string;
+  spec: string;
+  monthly: number;   // R$/mês
+  refReports: number; // relatórios/mês de referência E2E
+};
+
+const INFRA_DEFAULTS: InfraRow[] = [
+  { service: "infra_compute",   label: "Compute",                  spec: "Machine type n4-standard-2 · 2 vCPUs · 8 GB RAM", monthly: 394.10, refReports: 700 },
+  { service: "infra_boot_disk", label: "Boot disk",                spec: "Disco de boot · 10 GiB",                          monthly:   4.76, refReports: 700 },
+  { service: "infra_bigquery",  label: "Data Analytics — BigQuery",spec: "On-Demand (BigQuery)",                            monthly: 138.82, refReports: 700 },
+  { service: "infra_cloudsql",  label: "Database — Cloud SQL",     spec: "PostgreSQL (Cloud SQL)",                          monthly: 146.81, refReports: 700 },
+  { service: "infra_storage",   label: "Storage Cloud",            spec: "Total armazenado · 1000 GiB",                     monthly: 118.45, refReports: 700 },
 ];
+
+const INFRA_LS_KEY = "bex.infraRows.v1";
+
+const fmtBRL = (n: number) =>
+  `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtBRL3 = (n: number) =>
+  `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
 
 const TabFinanceiroTokens = () => {
   const [loading, setLoading] = useState(true);
