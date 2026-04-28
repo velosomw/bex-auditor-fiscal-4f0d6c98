@@ -299,33 +299,30 @@ const TabFinanceiroTokens = () => {
           }
         />
         {(() => {
-          const monthsByPeriod: Record<PeriodKey, number> = {
-            mes: 1, trimestre: 3, semestre: 6, ano: 12, total: 12,
-          };
-          const months = monthsByPeriod[period] ?? 1;
-          const infraPeriod = infraMonthlyTotal * months;
+          const totalReports = Number(indicators?.totalRelatorios ?? 0);
+          const infraPeriod = infraPerReportTotal * totalReports;
           const e2eTotal = (indicators?.custoTotal ?? 0) + infraPeriod;
           return (
             <KpiCard
               icon={<DollarSign className="w-4 h-4" />}
               label="Custo Total (E2E)"
               value={fmtUSDc(e2eTotal)}
-              sub={`${indicators?.periodLabel ?? "Acumulado"} · infra ${fmtBRL(infraPeriod)}`}
+              sub={`${indicators?.periodLabel ?? "Acumulado"} · infra ${fmtBRL(infraPeriod)} (${totalReports} rel.)`}
               color="hsl(152,70%,45%)"
               info={
                 <>
                   <p className="font-semibold mb-1">Custo Total (E2E)</p>
                   <p><strong>End-to-End</strong>: custo total de ponta a ponta no período selecionado.</p>
-                  <p className="mt-1">Soma <strong>IA</strong> (uso real) + <strong>Infraestrutura</strong> (estimada):</p>
+                  <p className="mt-1">Soma <strong>IA</strong> (uso real) + <strong>Infraestrutura</strong> (estimada por relatório):</p>
                   <ul className="list-disc pl-4 mt-1 space-y-0.5">
                     <li><strong>OCR / Document AI</strong>, <strong>Embeddings</strong>, <strong>Gemini Flash/Pro</strong></li>
                     <li><strong>Compute, Boot disk, BigQuery, Cloud SQL, Storage</strong> (infra)</li>
                   </ul>
                   <p className="mt-1 text-muted-foreground">
-                    Fórmula: <code>SUM(cost_calculated)</code> em <code>ai_usage_logs</code> + (Σ infra mensal × {months} {months === 1 ? "mês" : "meses"}).
+                    Fórmula: <code>SUM(cost_calculated)</code> em <code>ai_usage_logs</code> + (Σ custo/relatório de infra × nº de relatórios do período).
                   </p>
                   <p className="mt-1 text-muted-foreground">
-                    Infra mensal atual: <strong>{fmtBRL(infraMonthlyTotal)}</strong> · período: <strong>{fmtBRL(infraPeriod)}</strong>.
+                    Infra Σ por relatório: <strong>{fmtBRL3(infraPerReportTotal)}</strong> × <strong>{totalReports}</strong> relatórios = <strong>{fmtBRL(infraPeriod)}</strong>.
                   </p>
                 </>
               }
