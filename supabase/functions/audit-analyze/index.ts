@@ -1,9 +1,37 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// ─── Tracking de uso (custos IA) ────────────────────────────────
+async function trackUsage(input: {
+  type: string; provider: string; service: string; document_id?: string | null;
+  tokens_input?: number; tokens_output?: number; requests?: number; metadata?: Record<string, unknown>;
+}) {
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+    const sb = createClient(url, key, { auth: { persistSession: false } });
+    const { data: cfg } = await sb.from("ai_cost_config").select("*").eq("service", input.service).maybeSingle();
+    const ti = Number(input.tokens_input || 0), to = Number(input.tokens_output || 0), rq = Number(input.requests || 0);
+    const cost = cfg
+      ? (ti / 1000) * Number(cfg.cost_per_1k_input || 0)
+      + (to / 1000) * Number(cfg.cost_per_1k_output || 0)
+      + rq * Number(cfg.cost_per_request || 0)
+      + Number(cfg.cost_fixed || 0)
+      : 0;
+    await sb.from("ai_usage_logs").insert({
+      type: input.type, provider: input.provider, service: input.service,
+      document_id: input.document_id ?? null,
+      tokens_input: ti, tokens_output: to, requests: rq,
+      cost_calculated: cost, metadata: input.metadata ?? null,
+    });
+  } catch (e) { console.warn("trackUsage failed:", e); }
+}
 
 const SYSTEM_PROMPT = `Você é uma plataforma multi-agente de auditoria contábil de nível SÊNIOR composta por 5 agentes que atuam em sequência. Combine ANÁLISE KANITZ AVANÇADA + RELATÓRIO EXECUTIVO ACIONÁVEL.
 
