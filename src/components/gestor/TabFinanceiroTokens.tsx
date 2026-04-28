@@ -305,6 +305,11 @@ const TabFinanceiroTokens = () => {
                         className="h-8 text-xs text-right font-mono w-28 ml-auto" />
                     </TableCell>
                     <TableCell className="text-right">
+                      <Input type="number" step="0.000001" value={v("cost_per_page")}
+                        onChange={(e) => updateDraft(row.service, "cost_per_page", parseFloat(e.target.value) || 0)}
+                        className="h-8 text-xs text-right font-mono w-28 ml-auto" />
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Input type="number" step="0.000001" value={v("cost_fixed")}
                         onChange={(e) => updateDraft(row.service, "cost_fixed", parseFloat(e.target.value) || 0)}
                         className="h-8 text-xs text-right font-mono w-28 ml-auto" />
