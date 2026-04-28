@@ -76,11 +76,11 @@ export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<Gestor
       .lt("created_at", sinceIso),
     supabase
       .from("pipeline_analysis_results")
-      .select("ocr_score, quality_score, validation_score, mapping_score, created_at")
+      .select("ocr_score, quality_score, validation_score, mapping_score, created_at, document_id, indicadores, pipeline_documents!inner(file_name)")
       .gte("created_at", sinceIso),
     supabase
       .from("pipeline_analysis_results")
-      .select("ocr_score, quality_score, validation_score, mapping_score")
+      .select("ocr_score, quality_score, validation_score, mapping_score, indicadores, pipeline_documents!inner(file_name)")
       .gte("created_at", prevSinceIso)
       .lt("created_at", sinceIso),
   ]);
