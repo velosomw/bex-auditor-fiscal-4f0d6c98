@@ -4001,7 +4001,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [] }: { 
+export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [], skipPersist = false }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -4012,6 +4012,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   uploadedFiles?: File[];
   selectedDepth?: "executivo" | "tecnico";
   balanceteEntries?: BalanceteEntry[];
+  skipPersist?: boolean;
 }) => {
   const navigate = useNavigate();
   const isResumido = selectedDepth === "executivo";
