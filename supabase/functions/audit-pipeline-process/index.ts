@@ -411,9 +411,10 @@ async function normalizeAccountsLLM(
 ): Promise<NormResult[]> {
   if (rows.length === 0) return [];
 
+  // #1 otimização: dicionário compacto (40 entradas, formato pipe — ~50% menos tokens)
   const dictText = (dictionary || [])
-    .slice(0, 80)
-    .map((d) => `- "${d.termo_original}" → "${d.termo_padrao}" [${d.categoria}]`)
+    .slice(0, 40)
+    .map((d) => `${d.termo_original}|${d.termo_padrao}|${d.categoria}`)
     .join("\n");
 
   // #2 Index do dicionário em memória para lookup O(1) por termo normalizado
@@ -1061,32 +1062,14 @@ async function runPipeline(
     const insightServiceTag = isCritical ? "gemini_pro" : "gemini_flash";
 
     try {
-      const ctx = `Empresa: ${body.documentInfo?.empresa || "N/D"}
-Período: ${body.documentInfo?.periodo || lastYear}
-
-INDICADORES CONSOLIDADOS:
-- Ativo Total: R$ ${validation.ativo.toLocaleString("pt-BR")}
-- Passivo Total: R$ ${validation.passivo.toLocaleString("pt-BR")}
-- Patrimônio Líquido: R$ ${validation.pl.toLocaleString("pt-BR")}
-- Equação Contábil: ${validation.valid ? "BALANCEADA" : `DESBALANCEADA (Δ R$ ${validation.diff.toLocaleString("pt-BR")})`}
-
-ESTRUTURA:
-- Ativo Circulante: R$ ${ativoCirc.toLocaleString("pt-BR")}
-- Ativo Não Circulante: R$ ${ativoNaoCirc.toLocaleString("pt-BR")}
-- Passivo Circulante: R$ ${passivoCirc.toLocaleString("pt-BR")}
-- Passivo Não Circulante: R$ ${passivoNaoCirc.toLocaleString("pt-BR")}
-
-DRE:
-- Receita: R$ ${receita.toLocaleString("pt-BR")}
-- Despesa: R$ ${despesa.toLocaleString("pt-BR")}
-- Resultado: R$ ${resultado.toLocaleString("pt-BR")}
-
-ÍNDICES:
-- Liquidez Corrente: ${indicadoresFinanceiros.liquidez_corrente ?? "N/D"}
-- Endividamento Geral: ${indicadoresFinanceiros.endividamento_geral ?? "N/D"}%
-- Composição Endividamento (curto prazo): ${indicadoresFinanceiros.composicao_endividamento ?? "N/D"}%
-- Margem Líquida: ${indicadoresFinanceiros.margem_liquida ?? "N/D"}%
-- ROE: ${indicadoresFinanceiros.roe ?? "N/D"}%${fewShotBlock}`;
+      // #3 otimização: contexto compacto (formato chave=valor, sem labels redundantes — ~40% menos tokens)
+      const fmt = (n: number) => n.toLocaleString("pt-BR");
+      const eq = validation.valid ? "OK" : `DESB(Δ${fmt(validation.diff)})`;
+      const ctx = `Empresa:${body.documentInfo?.empresa || "N/D"}|Per:${body.documentInfo?.periodo || lastYear}
+BP: AT=${fmt(validation.ativo)} PT=${fmt(validation.passivo)} PL=${fmt(validation.pl)} eq=${eq}
+Estr: AC=${fmt(ativoCirc)} ANC=${fmt(ativoNaoCirc)} PC=${fmt(passivoCirc)} PNC=${fmt(passivoNaoCirc)}
+DRE: Rec=${fmt(receita)} Desp=${fmt(despesa)} Res=${fmt(resultado)}
+Idx: LC=${indicadoresFinanceiros.liquidez_corrente ?? "ND"} EG=${indicadoresFinanceiros.endividamento_geral ?? "ND"}% CE=${indicadoresFinanceiros.composicao_endividamento ?? "ND"}% ML=${indicadoresFinanceiros.margem_liquida ?? "ND"}% ROE=${indicadoresFinanceiros.roe ?? "ND"}%${fewShotBlock}`;
 
 
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
