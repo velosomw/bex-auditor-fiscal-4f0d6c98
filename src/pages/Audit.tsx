@@ -437,21 +437,21 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
   // mes atribuído por documento: { docId: "2024-03" }
   const [fileMeses, setFileMeses] = useState<Record<string, string>>({});
 
-  // Combo de meses: últimos 36 meses
+  // Ano vigente (atual) até 2029; usuário seleciona mês + ano
+  const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const start = Math.min(currentYear, 2026);
+    const years: number[] = [];
+    for (let y = start; y <= 2029; y++) years.push(y);
+    return years;
+  }, []);
+  const [fileYears, setFileYears] = useState<Record<string, number>>({});
   const monthOptions = useMemo(() => {
-    const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-    const opts: { value: string; label: string }[] = [];
-    const now = new Date();
-    for (let i = 0; i < 36; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const y = d.getFullYear();
-      const m = d.getMonth();
-      opts.push({
-        value: `${y}-${String(m + 1).padStart(2, "0")}`,
-        label: `${MES_FULL[m]} ${y}`,
-      });
-    }
-    return opts;
+    return MES_FULL.map((label, idx) => ({
+      value: String(idx + 1).padStart(2, "0"),
+      label,
+    }));
   }, []);
 
   // Auto-detecta mês a partir do nome do arquivo (ex: "balancete_marco_2024.pdf")
@@ -595,25 +595,55 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                       <button onClick={() => removeFile(f.id)} className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs">✕</button>
                     </div>
 
-                    {/* Combo seletivo de mês de referência */}
-                    <div className={`mt-3 p-3 rounded-lg border ${needsMonth ? "border-red-400/60 bg-red-50/60" : "border-emerald-400/40 bg-emerald-50/40"}`}>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className={`text-[11px] font-semibold uppercase tracking-wide ${needsMonth ? "text-red-600" : "text-emerald-700"}`}>
-                          Mês de referência {needsMonth && "*"}
-                        </span>
-                        {needsMonth && <span className="text-[10px] text-red-600">(obrigatório — atribua para liberar a auditoria)</span>}
-                      </div>
-                      <Select value={mes} onValueChange={(v) => setFileMeses(prev => ({ ...prev, [f.id]: v }))}>
-                        <SelectTrigger className={`h-9 text-xs ${needsMonth ? "border-red-400 bg-white" : "bg-white"}`}>
-                          <SelectValue placeholder="Selecione o mês de referência..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-72">
-                          {monthOptions.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {/* Seletor de Ano + Mês de referência */}
+                    {(() => {
+                      const currentYear = new Date().getFullYear();
+                      const defaultYear = Math.min(Math.max(currentYear, yearOptions[0]), 2029);
+                      const [yearStr, monthStr] = mes ? mes.split("-") : ["", ""];
+                      const selectedYear = fileYears[f.id] ?? (yearStr ? Number(yearStr) : defaultYear);
+                      const selectedMonth = monthStr || "";
+                      const setYear = (y: number) => {
+                        setFileYears(prev => ({ ...prev, [f.id]: y }));
+                        if (selectedMonth) {
+                          setFileMeses(prev => ({ ...prev, [f.id]: `${y}-${selectedMonth}` }));
+                        }
+                      };
+                      const setMonth = (m: string) => {
+                        setFileMeses(prev => ({ ...prev, [f.id]: `${selectedYear}-${m}` }));
+                      };
+                      return (
+                        <div className={`mt-3 p-3 rounded-lg border ${needsMonth ? "border-red-400/60 bg-red-50/60" : "border-emerald-400/40 bg-emerald-50/40"}`}>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className={`text-[11px] font-semibold uppercase tracking-wide ${needsMonth ? "text-red-600" : "text-emerald-700"}`}>
+                              Mês de referência {needsMonth && "*"}
+                            </span>
+                            {needsMonth && <span className="text-[10px] text-red-600">(selecione mês — ano padrão {defaultYear})</span>}
+                          </div>
+                          <div className="grid grid-cols-[1fr_110px] gap-2">
+                            <Select value={selectedMonth} onValueChange={setMonth}>
+                              <SelectTrigger className={`h-9 text-xs ${needsMonth ? "border-red-400 bg-white" : "bg-white"}`}>
+                                <SelectValue placeholder="Selecione o mês..." />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-72">
+                                {monthOptions.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select value={String(selectedYear)} onValueChange={(v) => setYear(Number(v))}>
+                              <SelectTrigger className="h-9 text-xs bg-white">
+                                <SelectValue placeholder="Ano" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {yearOptions.map(y => (
+                                  <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
