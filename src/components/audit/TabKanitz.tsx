@@ -1,16 +1,25 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity, BarChart3, Target, TrendingUp, TrendingDown,
   AlertTriangle, CheckCircle2, Calculator, Shield, Layers,
-  AlertOctagon, Scale, ShieldCheck, ShieldAlert, FileSearch
+  AlertOctagon, Scale, ShieldCheck, ShieldAlert, FileSearch, CalendarDays, Minus
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, ReferenceLine, Legend,
+} from "recharts";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import { buildKanitzSeries, mapToLegacyClass, type KanitzResultV2 } from "@/services/kanitzCalculator";
+import { buildBSDados, type BalanceteEntry, type BSDadosRow } from "@/services/bsDadosBuilder";
+import {
+  buildKanitzMonthlySeries, summarizeKanitzSeries, KANITZ_RATING_META,
+  type KanitzMonthlyResult,
+} from "@/services/kanitzMonthly";
 
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${(n * 100).toFixed(2)}%`;
