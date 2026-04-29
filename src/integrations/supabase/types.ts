@@ -968,6 +968,57 @@ export type Database = {
           },
         ]
       }
+      kanitz_scores: {
+        Row: {
+          ativo_total: number | null
+          audit_id: string
+          created_at: string
+          id: string
+          insight: string | null
+          mes: string
+          patrimonio_liquido: number | null
+          rating: string
+          score: number
+          x1: number | null
+          x2: number | null
+          x3: number | null
+          x4: number | null
+          x5: number | null
+        }
+        Insert: {
+          ativo_total?: number | null
+          audit_id: string
+          created_at?: string
+          id?: string
+          insight?: string | null
+          mes: string
+          patrimonio_liquido?: number | null
+          rating?: string
+          score?: number
+          x1?: number | null
+          x2?: number | null
+          x3?: number | null
+          x4?: number | null
+          x5?: number | null
+        }
+        Update: {
+          ativo_total?: number | null
+          audit_id?: string
+          created_at?: string
+          id?: string
+          insight?: string | null
+          mes?: string
+          patrimonio_liquido?: number | null
+          rating?: string
+          score?: number
+          x1?: number | null
+          x2?: number | null
+          x3?: number | null
+          x4?: number | null
+          x5?: number | null
+        }
+        Relationships: []
+      }
       ocr_results: {
         Row: {
           created_at: string
