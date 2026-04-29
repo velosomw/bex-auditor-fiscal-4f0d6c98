@@ -4054,6 +4054,20 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     saveGeneratedReport(entry);
   };
 
+  // Auto-persist report once aiAnalysis is ready, based on selected depth
+  const persistedRef = useRef(false);
+  useEffect(() => {
+    if (persistedRef.current) return;
+    if (!aiAnalysis) return;
+    persistedRef.current = true;
+    if (isResumido) {
+      persistReport("resumido");
+    } else {
+      persistReport("completo");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiAnalysis, isResumido]);
+
   const handleGerarBex = () => {
     if (selectedDepth !== "executivo") {
       toast({
