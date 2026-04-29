@@ -179,10 +179,11 @@ const TabFinanceiroTokens = () => {
     }
   };
 
-  useEffect(() => { reload("mes"); }, []);
+  useEffect(() => { reload(period); }, []);
 
   const onPeriodChange = (p: PeriodKey) => {
     setPeriod(p);
+    try { localStorage.setItem("gestor.financeiro.period", p); } catch {}
     reload(p);
   };
 
