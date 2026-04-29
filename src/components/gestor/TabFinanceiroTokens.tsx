@@ -374,6 +374,99 @@ const TabFinanceiroTokens = () => {
         />
       </div>
 
+      {/* ─── KPIs: Processamento puro (Balancete + Relatórios, sem Gemini Pro e sem infra) ── */}
+      {(() => {
+        const { costOCR, costEmbeddings, costFlash, aiOutros, totalReports } = e2eBreakdown;
+        const totalBalancetes = Number(indicators?.totalBalancetes ?? 0);
+        // Custo de processamento puro = OCR + Embeddings + Flash + Outros (exclui Gemini Pro e infra)
+        const procTotal = costOCR + costEmbeddings + costFlash + aiOutros;
+        // Aproximação: Flash é o agente que mais participa da redação/geração; OCR+Embeddings dominam o tratamento do balancete
+        const procBalancete = costOCR + costEmbeddings + (costFlash * 0.5);
+        const procRelatorio = (costFlash * 0.5) + aiOutros;
+        const custoPorBalancete = totalBalancetes > 0 ? procBalancete / totalBalancetes : 0;
+        const custoPorRelatorio = totalReports > 0 ? procRelatorio / totalReports : 0;
+        const custoMedioDoc = (totalBalancetes + totalReports) > 0
+          ? procTotal / (totalBalancetes + totalReports)
+          : 0;
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-[hsl(258,90%,66%)]" />
+              <h3 className="text-sm font-semibold text-foreground">
+                Custo de Processamento IA — Balancetes & Relatórios
+              </h3>
+              <Badge variant="outline" className="text-[10px] h-5 border-[hsl(258,90%,66%)]/40 text-[hsl(258,90%,66%)]">
+                Sem Gemini Pro · Sem Infra
+              </Badge>
+              <span className="text-[11px] text-muted-foreground ml-1">
+                Atualizado automaticamente a cada auditoria · {indicators?.periodLabel ?? "Período"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <KpiCard
+                icon={<Layers className="w-4 h-4" />}
+                label="Processar Balancete"
+                value={fmtUSDc(custoPorBalancete)}
+                sub={`${totalBalancetes} balancete(s) · ${fmtBRL3(procBalancete)} no período`}
+                color="hsl(190,70%,50%)"
+                info={
+                  <>
+                    <p className="font-semibold mb-1">Custo por Balancete (somente IA)</p>
+                    <p>Considera <strong>OCR/Document AI</strong> + <strong>Embeddings</strong> + parcela do <strong>Gemini Flash</strong> usada na normalização de contas.</p>
+                    <p className="mt-1">OCR: <strong>{fmtBRL3(costOCR)}</strong> · Embeddings: <strong>{fmtBRL3(costEmbeddings)}</strong> · Flash (50%): <strong>{fmtBRL3(costFlash * 0.5)}</strong></p>
+                    <p className="mt-1 text-muted-foreground">Exclui Gemini Pro e infraestrutura. Atualiza após cada auditoria.</p>
+                  </>
+                }
+              />
+              <KpiCard
+                icon={<FileBarChart className="w-4 h-4" />}
+                label="Gerar Relatório"
+                value={fmtUSDc(custoPorRelatorio)}
+                sub={`${totalReports} relatório(s) · ${fmtBRL3(procRelatorio)} no período`}
+                color="hsl(258,90%,66%)"
+                info={
+                  <>
+                    <p className="font-semibold mb-1">Custo por Relatório (somente IA, sem Gemini Pro)</p>
+                    <p>Considera a parcela do <strong>Gemini Flash</strong> dedicada à montagem do relatório + outros agentes auxiliares.</p>
+                    <p className="mt-1">Flash (50%): <strong>{fmtBRL3(costFlash * 0.5)}</strong> · Outros: <strong>{fmtBRL3(aiOutros)}</strong></p>
+                    <p className="mt-1 text-muted-foreground">Exclui Gemini Pro e infraestrutura. Atualiza após cada auditoria.</p>
+                  </>
+                }
+              />
+              <KpiCard
+                icon={<DollarSign className="w-4 h-4" />}
+                label="Total IA Processamento"
+                value={fmtUSDc(procTotal)}
+                sub={`${indicators?.periodLabel ?? "Acumulado"} · sem Pro/infra`}
+                color="hsl(152,70%,45%)"
+                info={
+                  <>
+                    <p className="font-semibold mb-1">Total de IA — Processamento puro</p>
+                    <p>Soma OCR + Embeddings + Gemini Flash + Outros agentes. Reflete o custo real de IA para tratar balancetes e gerar relatórios.</p>
+                    <p className="mt-1">= {fmtBRL3(costOCR)} + {fmtBRL3(costEmbeddings)} + {fmtBRL3(costFlash)} + {fmtBRL3(aiOutros)}</p>
+                    <p className="mt-1 text-muted-foreground">Exclui Gemini Pro e infraestrutura.</p>
+                  </>
+                }
+              />
+              <KpiCard
+                icon={<Activity className="w-4 h-4" />}
+                label="Médio por Documento"
+                value={fmtUSDc(custoMedioDoc)}
+                sub={`${totalBalancetes + totalReports} documento(s)`}
+                color="hsl(38,90%,55%)"
+                info={
+                  <>
+                    <p className="font-semibold mb-1">Custo médio por documento processado</p>
+                    <p>Total IA de processamento ÷ (balancetes + relatórios) do período.</p>
+                    <p className="mt-1 text-muted-foreground">Atualiza automaticamente a cada nova auditoria registrada em <code>ai_usage_logs</code>.</p>
+                  </>
+                }
+              />
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ─── Detalhamento do Custo E2E ─────────────────────────── */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
