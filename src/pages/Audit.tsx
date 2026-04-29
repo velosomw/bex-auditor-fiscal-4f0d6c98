@@ -704,8 +704,14 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
         <DedupPresetForm value={dedupConfig} onChange={onDedupChange} />
       </div>
 
-      <div className="flex justify-center pt-2">
-        <Button onClick={handleContinue} disabled={!hasFiles}
+      <div className="flex flex-col items-center pt-2 gap-2">
+        {hasFiles && missingMeses.length > 0 && (
+          <p className="text-xs text-red-600 font-medium flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Atribua o mês de referência em {missingMeses.length} documento(s) destacado(s) em vermelho.
+          </p>
+        )}
+        <Button onClick={handleContinue} disabled={!canContinue}
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
           Fazer Auditoria <ArrowRight className="w-5 h-5" />
         </Button>
@@ -3995,7 +4001,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico" }: { 
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [] }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -4005,6 +4011,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
   source?: "auditor_chefe" | "usuario" | "empresa";
   uploadedFiles?: File[];
   selectedDepth?: "executivo" | "tecnico";
+  balanceteEntries?: BalanceteEntry[];
 }) => {
   const navigate = useNavigate();
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
@@ -4102,11 +4109,14 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
           <TabsTrigger value="patrimonial" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Layers className="w-3.5 h-3.5" /> Patrimonial
           </TabsTrigger>
-          <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
-            <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
+          <TabsTrigger value="bs-dados" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+            <Database className="w-3.5 h-3.5" /> BS &amp; Dados
           </TabsTrigger>
           <TabsTrigger value="graficos-auditoria" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <BarChart3 className="w-3.5 h-3.5" /> Gráficos de Auditoria
+          </TabsTrigger>
+          <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+            <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
           </TabsTrigger>
           <TabsTrigger value="kanitz" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Scale className="w-3.5 h-3.5" /> Kanitz
@@ -4121,9 +4131,10 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
         <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="bs-dados"><TabBSDados parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria"><TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
+        <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="relatorio-final">
           {reportType === "bex" ? (
             <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarKanitz} variant="resumido" />
@@ -4158,6 +4169,7 @@ const AuditContent = () => {
   const [multiMonth, setMultiMonth] = useState<import("@/services/auditMonthDetector").MultiMonthParsed | null>(null);
   const [filteredMonths, setFilteredMonths] = useState<string[]>([]);
   const [preParsing, setPreParsing] = useState(false);
+  const [balanceteEntries, setBalanceteEntries] = useState<BalanceteEntry[]>([]);
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
