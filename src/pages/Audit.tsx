@@ -4261,9 +4261,14 @@ const AuditContent = () => {
               setPreParsing(true);
               try {
                 // Pré-parse rápido só p/ detectar meses; ProcessingPhase reutiliza o resultado.
+                // O mês informado pelo usuário (balanceteEntries) sobrescreve o detector automático.
+                const userMonthByName = new Map<string, string | null>(
+                  balanceteEntries.map(e => [e.fileName, e.mesReferencia ?? null])
+                );
                 const items = await Promise.all(uploadedFiles.map(async (f) => ({
                   fileName: f.name,
                   parsed: await parseFile(f),
+                  userMonth: userMonthByName.get(f.name) ?? null,
                 })));
                 const merged = mergeMultiMonth(items);
                 setMultiMonth(merged);
