@@ -593,6 +593,185 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
           </div>
         </TabsContent>
 
+        {/* ── Validação Kanitz (MD Camadas 5/6) ── */}
+        <TabsContent value="validacao">
+          <div className="space-y-4">
+            {/* Bloqueios */}
+            {kanitzResults.some(r => r.blocked) && (
+              <Card className="border-red-500/40 bg-red-500/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2 text-red-700">
+                    <ShieldAlert className="w-4 h-4" /> Cálculo Bloqueado
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Regras críticas do MD impedem o cálculo enquanto os dados não forem corrigidos.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {kanitzResults.filter(r => r.blocked).map(r => (
+                    <div key={r.year} className="text-xs">
+                      <div className="font-semibold text-red-700">{r.year}</div>
+                      <ul className="list-disc list-inside ml-2 text-red-600/90">
+                        {(r.blockReasons || []).map((b, i) => <li key={i}>{b}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Breakdown técnico */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-accent" /> Breakdown Técnico (Validação dos Indicadores)
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Validação automática conforme intervalos do MD: RL ∈ [-5, +5]; LG, LS, LC ≥ 0; GE ≥ 0.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Período</TableHead>
+                      <TableHead className="text-xs text-right">RL</TableHead>
+                      <TableHead className="text-xs text-right">LG</TableHead>
+                      <TableHead className="text-xs text-right">LS</TableHead>
+                      <TableHead className="text-xs text-right">LC</TableHead>
+                      <TableHead className="text-xs text-right">GE</TableHead>
+                      <TableHead className="text-xs text-right">K</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {kanitzResults.map(r => {
+                      const v = r.v;
+                      const valStatus = (s?: string) => s && s !== "ok" ? (
+                        <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-600 border-red-500/30">{s}</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">ok</Badge>
+                      );
+                      return (
+                        <TableRow key={r.year}>
+                          <TableCell className="text-xs font-medium">{r.year}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.rpl.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.lg.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.ls.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.lc.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.ge.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono font-semibold">{r.fi.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs">
+                            <div className="flex flex-wrap gap-1">
+                              {valStatus(v?.validation.rl)}
+                              {valStatus(v?.validation.lg)}
+                              {valStatus(v?.validation.ls)}
+                              {valStatus(v?.validation.lc)}
+                              {valStatus(v?.validation.ge)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+                  K = 0,05·RL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Cross-check Excel (quando IA fornece K como referência) */}
+            {kanitzResults.some(r => r.v?.kExcel !== undefined) && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileSearch className="w-4 h-4 text-accent" /> Cross-check (Plataforma vs Referência)
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Comparação entre o K calculado pela plataforma e o K declarado pela IA / planilha de referência.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Período</TableHead>
+                        <TableHead className="text-xs text-right">K Plataforma</TableHead>
+                        <TableHead className="text-xs text-right">K Referência</TableHead>
+                        <TableHead className="text-xs text-right">Diff</TableHead>
+                        <TableHead className="text-xs">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {kanitzResults.filter(r => r.v?.kExcel !== undefined).map(r => {
+                        const status = r.v?.diffStatus;
+                        const cls =
+                          status === "OK" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" :
+                          status === "WARNING" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" :
+                          "bg-red-500/10 text-red-600 border-red-500/30";
+                        return (
+                          <TableRow key={r.year}>
+                            <TableCell className="text-xs">{r.year}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{r.fi.toFixed(4)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{r.v?.kExcel?.toFixed(4)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{r.v?.diff?.toFixed(4)}</TableCell>
+                            <TableCell><Badge variant="outline" className={`text-[10px] ${cls}`}>{status}</Badge></TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Auditoria de Origem */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-accent" /> Auditoria de Origem
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Rastreabilidade: origem dos dados (OCR / IA / manual) e nível de confiança associado.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Período</TableHead>
+                      <TableHead className="text-xs">Origem</TableHead>
+                      <TableHead className="text-xs text-right">Confiança</TableHead>
+                      <TableHead className="text-xs text-right">AC</TableHead>
+                      <TableHead className="text-xs text-right">PC</TableHead>
+                      <TableHead className="text-xs text-right">ELP</TableHead>
+                      <TableHead className="text-xs text-right">PL</TableHead>
+                      <TableHead className="text-xs text-right">Estoques</TableHead>
+                      <TableHead className="text-xs text-right">LL</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {kanitzResults.map(r => (
+                      <TableRow key={r.year}>
+                        <TableCell className="text-xs font-medium">{r.year}</TableCell>
+                        <TableCell className="text-xs uppercase">{r.origem}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{((r.confianca || 0) * 100).toFixed(0)}%</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.ac || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.pc || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.elp || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.pl || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.estoques || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.lucroLiquido || 0)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* ── Relatório ── */}
         <TabsContent value="relatorio">
           <div className="space-y-4">
