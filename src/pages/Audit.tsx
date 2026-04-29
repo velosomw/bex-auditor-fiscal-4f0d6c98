@@ -4001,7 +4001,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [] }: { 
+export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [], skipPersist = false }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -4012,10 +4012,12 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
   uploadedFiles?: File[];
   selectedDepth?: "executivo" | "tecnico";
   balanceteEntries?: BalanceteEntry[];
+  skipPersist?: boolean;
 }) => {
   const navigate = useNavigate();
-  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
-  const [activeTab, setActiveTab] = useState("diagnostico");
+  const isResumido = selectedDepth === "executivo";
+  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(isResumido ? "bex" : "none");
+  const [activeTab, setActiveTab] = useState(isResumido ? "relatorio-final" : "diagnostico");
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
@@ -4053,6 +4055,21 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
     saveGeneratedReport(entry);
   };
 
+  // Auto-persist report once aiAnalysis is ready, based on selected depth
+  const persistedRef = useRef(false);
+  useEffect(() => {
+    if (skipPersist) return;
+    if (persistedRef.current) return;
+    if (!aiAnalysis) return;
+    persistedRef.current = true;
+    if (isResumido) {
+      persistReport("resumido");
+    } else {
+      persistReport("completo");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiAnalysis, isResumido, skipPersist]);
+
   const handleGerarBex = () => {
     if (selectedDepth !== "executivo") {
       toast({
@@ -4078,6 +4095,22 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
     setReportType("kanitz");
     persistReport("completo");
   };
+
+  // Resumido (executivo): apenas o relatório BEx_Resumido_Kanitz, sem abas de auditoria
+  if (isResumido) {
+    return (
+      <div className="space-y-6">
+        <StepTimeline currentStep={5} />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground font-serif">Relatório BEx_Resumido_Kanitz</h1>
+            <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
+          </div>
+        </div>
+        <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
