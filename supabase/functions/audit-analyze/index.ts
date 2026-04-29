@@ -416,6 +416,57 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // ═══════════════════════════════════════════════════════════
+    // CACHE DE APRENDIZADO — Camadas 1-3 (pré-resolução de contas)
+    // ═══════════════════════════════════════════════════════════
+    const useCache = (config?.useCache ?? true) !== false;
+    let cacheStats = { total: 0, l1: 0, l2: 0, l3: 0, tokensSaved: 0 };
+    let resolvedAccountsBlock = "";
+    let reducedBalanco = balanco;
+    let reducedDre = dre;
+
+    if (useCache) {
+      try {
+        const url = Deno.env.get("SUPABASE_URL");
+        const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (url && key) {
+          const sb = createClient(url, key, { auth: { persistSession: false } });
+          const accounts = [
+            ...flattenAccounts(balanco, "balanco"),
+            ...flattenAccounts(dre, "dre"),
+          ];
+          if (accounts.length > 0) {
+            const { resolved, unresolved, stats } = await resolveAccounts(accounts, sb, LOVABLE_API_KEY);
+            cacheStats = stats;
+            console.log(`[CACHE] L1=${stats.l1} L2=${stats.l2} L3=${stats.l3} | tokens saved≈${stats.tokensSaved}`);
+
+            if (resolved.length > 0) {
+              const sample = resolved.slice(0, 60).map(r =>
+                `  • [${r.layer}] ${r.conta_original} → ${r.conta_normalizada} (${r.categoria ?? "?"}) = ${r.valor.toFixed(0)}`
+              ).join("\n");
+              resolvedAccountsBlock = `
+## CONTAS PRÉ-RESOLVIDAS PELO CACHE DE APRENDIZADO (L1+L2)
+Total resolvidas: ${resolved.length}/${stats.total} contas (${((resolved.length/stats.total)*100).toFixed(1)}%)
+${sample}
+${resolved.length > 60 ? `\n  …e mais ${resolved.length - 60} contas resolvidas (omitidas para reduzir tokens)` : ""}
+
+USE estas contas já normalizadas como base. Os blocos abaixo de Balanço/DRE contêm SOMENTE as contas NÃO resolvidas (Camada 3) — analise-as priorizando contexto.
+`;
+              // L3: substitui balanço/DRE por versão reduzida (apenas não-resolvidas)
+              const unresolvedBalanco = unresolved.filter(u => u.origem === "balanco")
+                .map(u => ({ conta: u.conta_original, valor: u.valor }));
+              const unresolvedDre = unresolved.filter(u => u.origem === "dre")
+                .map(u => ({ conta: u.conta_original, valor: u.valor }));
+              if (unresolvedBalanco.length > 0) reducedBalanco = unresolvedBalanco;
+              if (unresolvedDre.length > 0) reducedDre = unresolvedDre;
+            }
+          }
+        }
+      } catch (cacheErr) {
+        console.warn("[CACHE] Falhou, seguindo sem cache:", cacheErr);
+      }
+    }
+
     // Pipeline pré-processamento (opcional): contas normalizadas + few-shot + validação
     const pipelineBlock = pipeline
       ? `
