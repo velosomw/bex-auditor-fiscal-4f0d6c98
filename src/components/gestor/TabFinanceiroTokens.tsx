@@ -65,7 +65,12 @@ const TabFinanceiroTokens = () => {
   const [diagRunning, setDiagRunning] = useState(false);
   const [config, setConfig] = useState<CostConfigRow[]>([]);
   const [indicators, setIndicators] = useState<CostIndicators | null>(null);
-  const [period, setPeriod] = useState<PeriodKey>("mes");
+  const [period, setPeriod] = useState<PeriodKey>(() => {
+    if (typeof window === "undefined") return "mes";
+    const saved = localStorage.getItem("gestor.financeiro.period");
+    const valid: PeriodKey[] = ["mes", "trimestre", "semestre", "ano", "total"];
+    return (valid.includes(saved as PeriodKey) ? saved : "mes") as PeriodKey;
+  });
   const [showE2EDetail, setShowE2EDetail] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("gestor.e2eDetail.open") !== "0";
@@ -174,10 +179,11 @@ const TabFinanceiroTokens = () => {
     }
   };
 
-  useEffect(() => { reload("mes"); }, []);
+  useEffect(() => { reload(period); }, []);
 
   const onPeriodChange = (p: PeriodKey) => {
     setPeriod(p);
+    try { localStorage.setItem("gestor.financeiro.period", p); } catch {}
     reload(p);
   };
 
