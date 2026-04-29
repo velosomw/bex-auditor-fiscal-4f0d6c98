@@ -475,6 +475,7 @@ const TabFinanceiroTokens = () => {
             </TableRow>
           </TableFooter>
         </Table>
+        )}
       </div>
 
       {/* ─── Gráficos ──────────────────────────────────────────── */}
