@@ -492,11 +492,12 @@ ${documentInfo ? `- Empresa: ${documentInfo.empresa || "Não informado"}
 - Período: ${documentInfo.periodo || "Não informado"}
 - Tipo de Documento: ${documentInfo.tipo || "Não informado"}` : ""}
 ${pipelineBlock}
-## BALANÇO PATRIMONIAL
-${JSON.stringify(balanco, null, 2)}
+${resolvedAccountsBlock}
+## BALANÇO PATRIMONIAL ${reducedBalanco !== balanco ? "(somente contas NÃO resolvidas pelo cache — Camada 3)" : ""}
+${JSON.stringify(reducedBalanco, null, 2)}
 
-## DRE (Demonstração do Resultado do Exercício)
-${JSON.stringify(dre, null, 2)}
+## DRE ${reducedDre !== dre ? "(somente contas NÃO resolvidas pelo cache — Camada 3)" : "(Demonstração do Resultado do Exercício)"}
+${JSON.stringify(reducedDre, null, 2)}
 
 Execute os 4 agentes em sequência e gere a análise completa conforme a estrutura JSON solicitada, incluindo:
 1. Estruturação contábil consolidada
