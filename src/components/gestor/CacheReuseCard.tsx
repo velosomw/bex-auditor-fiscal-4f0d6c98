@@ -50,7 +50,7 @@ async function loadStats(): Promise<Stats> {
     .sort((a, b) => b.count - a.count);
 
   // Dedup: agrupar por (created_by, content_hash) e contar grupos com mais de 1 ocorrência
-  const docs = (dedupRows.data ?? []) as Array<{
+  const docs = ((dedupRows.data ?? []) as unknown) as Array<{
     content_hash: string | null;
     created_by: string | null;
   }>;
