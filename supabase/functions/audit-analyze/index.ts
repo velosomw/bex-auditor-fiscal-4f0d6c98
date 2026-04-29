@@ -500,7 +500,7 @@ serve(async (req) => {
     // CACHE DE APRENDIZADO — Camadas 1-3 (pré-resolução de contas)
     // ═══════════════════════════════════════════════════════════
     const useCache = (config?.useCache ?? true) !== false;
-    let cacheStats = { total: 0, l1: 0, l2: 0, l3: 0, tokensSaved: 0 };
+    let cacheStats = { total: 0, l0: 0, l1: 0, l2: 0, l3: 0, tokensSaved: 0, embeddingsAvoided: 0 };
     let resolvedAccountsBlock = "";
     let reducedBalanco = balanco;
     let reducedDre = dre;
@@ -516,9 +516,29 @@ serve(async (req) => {
             ...flattenAccounts(dre, "dre"),
           ];
           if (accounts.length > 0) {
-            const { resolved, unresolved, stats } = await resolveAccounts(accounts, sb, LOVABLE_API_KEY);
+            // Identifica usuário a partir do JWT (se houver) para créditos de criação
+            let userId: string | null = null;
+            try {
+              const authHeader = req.headers.get("authorization") || "";
+              const token = authHeader.replace(/^Bearer\s+/i, "");
+              if (token) {
+                const sbAuth = createClient(url, Deno.env.get("SUPABASE_ANON_KEY") || "", {
+                  global: { headers: { Authorization: `Bearer ${token}` } },
+                  auth: { persistSession: false },
+                });
+                const { data } = await sbAuth.auth.getUser();
+                userId = data?.user?.id ?? null;
+              }
+            } catch { /* anônimo ok */ }
+
+            const ctx = {
+              companyId: (documentInfo as any)?.companyId ?? null,
+              periodo: (documentInfo as any)?.periodo ?? null,
+              userId,
+            };
+            const { resolved, unresolved, stats } = await resolveAccounts(accounts, sb, LOVABLE_API_KEY, ctx);
             cacheStats = stats;
-            console.log(`[CACHE] L1=${stats.l1} L2=${stats.l2} L3=${stats.l3} | tokens saved≈${stats.tokensSaved}`);
+            console.log(`[CACHE] L0=${stats.l0} L1=${stats.l1} L2=${stats.l2} L3=${stats.l3} | embeddings evitados=${stats.embeddingsAvoided} | tokens saved≈${stats.tokensSaved}`);
 
             if (resolved.length > 0) {
               const sample = resolved.slice(0, 60).map(r =>
