@@ -115,20 +115,41 @@ const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
 
 // ─── Helpers ─────────────────────────────────────────────
 const upper = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+const norm  = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+const pad2  = (n: number | string) => String(n).padStart(2, "0");
 
+const MES_ABREV: Record<string, number> = { jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12 };
+const MES_LONG:  Record<string, number> = { janeiro:1,fevereiro:2,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12 };
+
+function expandYear(y: string | number): number | null {
+  const n = Number(y); if (!Number.isFinite(n)) return null;
+  if (n >= 1900 && n <= 2100) return n;
+  if (n >= 0 && n <= 79) return 2000 + n;
+  if (n >= 80 && n <= 99) return 1900 + n;
+  return null;
+}
+function buildKey(y: number, mm: number): string | null {
+  if (mm < 1 || mm > 12 || y < 1900 || y > 2100) return null;
+  return `${y}-${pad2(mm)}`;
+}
+
+/** Normaliza qualquer rótulo de período → "YYYY-MM" (ou devolve a entrada se falhar). */
 function periodToMesKey(p: string): string {
   if (!p) return p;
-  const s = p.trim();
-  let m = s.match(/^(\d{4})[-/](\d{1,2})$/); if (m) return `${m[1]}-${m[2].padStart(2,"0")}`;
-  m = s.match(/^(\d{1,2})[-/](\d{4})$/);     if (m) return `${m[2]}-${m[1].padStart(2,"0")}`;
-  m = s.match(/^([a-zçãéê]+)[\s/]+(\d{4})$/i);
-  if (m) {
-    const mn = upper(m[1]).slice(0,3);
-    const idx = MES_FULL.findIndex(n => upper(n).startsWith(mn));
-    if (idx >= 0) return `${m[2]}-${String(idx+1).padStart(2,"0")}`;
-  }
-  m = s.match(/^(\d{4})$/); if (m) return `${m[1]}-12`;
-  return s;
+  const raw = String(p).trim();
+  const direct = raw.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  if (direct) return `${direct[1]}-${direct[2]}`;
+  const s = norm(raw);
+  let m = s.match(/^(\d{4})[\s/\-.](\d{1,2})$/);
+  if (m) { const y = expandYear(m[1])!, mm = Number(m[2]); const k = buildKey(y, mm); if (k) return k; }
+  m = s.match(/^(\d{1,2})[\s/\-.](\d{2,4})$/);
+  if (m) { const mm = Number(m[1]), y = expandYear(m[2]); if (y) { const k = buildKey(y, mm); if (k) return k; } }
+  m = s.match(/^([a-z]+)[\s/\-.]+(\d{2,4})$/);
+  if (m) { const mm = MES_LONG[m[1]] ?? MES_ABREV[m[1].slice(0,3)]; const y = expandYear(m[2]); if (mm && y) { const k = buildKey(y, mm); if (k) return k; } }
+  m = s.match(/^(\d{2,4})[\s/\-.]+([a-z]+)$/);
+  if (m) { const y = expandYear(m[1]); const mm = MES_LONG[m[2]] ?? MES_ABREV[m[2].slice(0,3)]; if (mm && y) { const k = buildKey(y, mm); if (k) return k; } }
+  m = s.match(/^(\d{4})$/); if (m) { const y = expandYear(m[1]); if (y) return `${y}-12`; }
+  return raw;
 }
 
 function mesKeyToLabel(k: string): string {
