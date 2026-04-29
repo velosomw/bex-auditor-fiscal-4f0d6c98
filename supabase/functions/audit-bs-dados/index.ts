@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
     }
 
 
-    return new Response(JSON.stringify({ bsDados, indicadores, summary, persisted }), {
+    return new Response(JSON.stringify({ bsDados, indicadores, summary, persisted, audit_id: auditId }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
