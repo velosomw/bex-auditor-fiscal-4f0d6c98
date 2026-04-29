@@ -13,7 +13,7 @@ import {
   Calculator, TrendingUp, TrendingDown, BarChart3, PieChart, Activity,
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
-  Settings, ClipboardCheck, FileSearch, BookOpen
+  Settings, ClipboardCheck, FileSearch, BookOpen, Database
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -4247,6 +4247,7 @@ const AuditContent = () => {
               }
             }} 
             onFilesReady={setUploadedFiles}
+            onMesesReady={setBalanceteEntries}
             dedupConfig={dedupConfig}
             onDedupChange={setDedupConfig}
             onDepthChange={setSelectedDepth}
@@ -4278,6 +4279,7 @@ const AuditContent = () => {
             source={reportSource}
             uploadedFiles={uploadedFiles}
             selectedDepth={selectedDepth}
+            balanceteEntries={balanceteEntries}
           />
         )}
       </div>
