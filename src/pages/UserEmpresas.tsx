@@ -755,7 +755,7 @@ const UserEmpresas = () => {
                           return (
                             <div
                               key={r.id}
-                              onClick={() => navigate(`/user/report/${r.id}`)}
+                              onClick={() => navigate(`/user/report/${r.id}`, { state: { from: "/user/empresas" } })}
                               className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex items-center gap-3 flex-wrap"
                             >
                               <div className="flex-1 min-w-0">
