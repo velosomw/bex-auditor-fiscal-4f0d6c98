@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PlatformLayout from "@/components/PlatformLayout";
@@ -10,6 +10,9 @@ import { AuditProvider } from "@/contexts/AuditContext";
 const ReportView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = (location.state as { from?: string } | null)?.from || "/user";
+  const backLabel = backTo === "/user/empresas" ? "Voltar para Empresas" : "Voltar para Minha Área";
   const [report, setReport] = useState<GeneratedReportEntry | null>(null);
 
   useEffect(() => {
