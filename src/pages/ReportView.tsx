@@ -23,8 +23,8 @@ const ReportView = () => {
     return (
       <PlatformLayout>
         <div className="max-w-[1400px] mx-auto p-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/user")} className="mb-4 gap-1.5">
-            <ArrowLeft className="w-4 h-4" /> Voltar
+          <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="mb-4 gap-1.5">
+            <ArrowLeft className="w-4 h-4" /> {backLabel}
           </Button>
           <div className="text-center py-20">
             <p className="text-muted-foreground">Relatório não encontrado ou expirado.</p>
@@ -39,11 +39,11 @@ const ReportView = () => {
     <AuditProvider>
       <PlatformLayout>
         <div className="max-w-[1400px] mx-auto p-4 md:p-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/user")} className="mb-4 gap-1.5">
-            <ArrowLeft className="w-4 h-4" /> Voltar para Minha Área
+          <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="mb-4 gap-1.5">
+            <ArrowLeft className="w-4 h-4" /> {backLabel}
           </Button>
           <TabRelatorioFinal
-            onBack={() => navigate("/user")}
+            onBack={() => navigate(backTo)}
             aiAnalysis={report.aiAnalysis}
             parsedData={report.parsedData}
             variant={report.variant}
