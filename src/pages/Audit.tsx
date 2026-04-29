@@ -766,12 +766,13 @@ const processingSteps = [
   { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
-const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed }: { 
+const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed, companyId }: { 
   onComplete: () => void; 
   files: File[];
   onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
   dedupConfig?: import("@/services/auditAIService").DedupConfig;
   preParsed?: MultiMonthParsed | null;
+  companyId?: string | null;
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -868,7 +869,10 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         const analysis = await analyzeFinancialData(dataToAnalyze, {
           depth: "tecnico",
           purpose: "externa",
-        }, pipelineResult);
+        }, pipelineResult, {
+          companyId: companyId ?? null,
+          periodo: dataToAnalyze?.documentInfo?.periodo ?? null,
+        });
 
         setCurrentStep(6);
         setProgress(70);
@@ -4302,6 +4306,7 @@ const AuditContent = () => {
             preParsed={multiMonth ? pickMonths(multiMonth, filteredMonths) : null}
             onAnalysisReady={handleAnalysisReady}
             dedupConfig={dedupConfig}
+            companyId={company?.id ?? null}
           />
         )}
         {phase === "results" && (

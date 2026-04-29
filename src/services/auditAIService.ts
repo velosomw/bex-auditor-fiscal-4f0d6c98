@@ -654,10 +654,16 @@ export async function runAuditPipeline(
 export async function analyzeFinancialData(
   parsedData: ParsedFinancialData,
   config: { depth: string; purpose: string },
-  pipeline?: PipelineResult | null
+  pipeline?: PipelineResult | null,
+  ctx?: { companyId?: string | null; periodo?: string | null }
 ): Promise<any> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  // Enriquecer documentInfo com contexto para ativar L0 cache (audit_account_cache)
+  const docInfo: any = { ...(parsedData.documentInfo || {}) };
+  if (ctx?.companyId && !docInfo.companyId) docInfo.companyId = ctx.companyId;
+  if (ctx?.periodo && !docInfo.periodo) docInfo.periodo = ctx.periodo;
 
   const response = await fetch(`${SUPABASE_URL}/functions/v1/audit-analyze`, {
     method: "POST",
@@ -668,7 +674,7 @@ export async function analyzeFinancialData(
     body: JSON.stringify({
       balanco: parsedData.balanco,
       dre: parsedData.dre,
-      documentInfo: parsedData.documentInfo,
+      documentInfo: docInfo,
       config,
       pipeline: pipeline
         ? {
