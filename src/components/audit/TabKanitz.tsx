@@ -203,6 +203,10 @@ const TabKanitz = ({
       <Tabs value={subTab} onValueChange={setSubTab}>
         <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
           <TabsTrigger value="visao-geral" className="text-[10px]">Visão Geral</TabsTrigger>
+          <TabsTrigger value="mensal" className="text-[10px]">
+            <CalendarDays className="w-3 h-3 mr-1" />
+            Análise Mensal {monthlySeries.length > 0 && <span className="ml-1 opacity-70">({monthlySeries.length})</span>}
+          </TabsTrigger>
           <TabsTrigger value="indicadores" className="text-[10px]">Indicadores</TabsTrigger>
           <TabsTrigger value="calculo" className="text-[10px]">Cálculo do FI</TabsTrigger>
           <TabsTrigger value="classificacao" className="text-[10px]">Classificação</TabsTrigger>
@@ -211,6 +215,11 @@ const TabKanitz = ({
           <TabsTrigger value="validacao" className="text-[10px]">Validação</TabsTrigger>
           <TabsTrigger value="relatorio" className="text-[10px]">Relatório</TabsTrigger>
         </TabsList>
+
+        {/* ── Análise Mensal (MD: SCORE KANITZ AUTOMÁTICO) ── */}
+        <TabsContent value="mensal">
+          <KanitzMensalView series={monthlySeries} summary={monthlySummary} />
+        </TabsContent>
 
         {/* ── Visão Geral ── */}
         <TabsContent value="visao-geral">
