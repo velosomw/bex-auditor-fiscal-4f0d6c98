@@ -1032,6 +1032,15 @@ async function runPipeline(
       }
     } catch (_) { /* não-crítico */ }
 
+    // Critério de criticidade: usa Pro só quando há sinais de risco relevante
+    const isCritical =
+      !validation.valid ||
+      validation.pl <= 0 ||
+      (indicadoresFinanceiros.liquidez_corrente !== null && indicadoresFinanceiros.liquidez_corrente < 1) ||
+      (indicadoresFinanceiros.endividamento_geral !== null && indicadoresFinanceiros.endividamento_geral > 80);
+    const insightModel = isCritical ? "google/gemini-2.5-pro" : "google/gemini-3-flash-preview";
+    const insightServiceTag = isCritical ? "gemini_pro" : "gemini_flash";
+
     try {
       const ctx = `Empresa: ${body.documentInfo?.empresa || "N/D"}
 Período: ${body.documentInfo?.periodo || lastYear}
