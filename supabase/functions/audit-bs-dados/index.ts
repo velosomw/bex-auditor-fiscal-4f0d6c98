@@ -301,11 +301,15 @@ Deno.serve(async (req) => {
     };
 
     let persisted = false;
+    let auditId: string | null = null;
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
+    );
+
+    // (a) snapshot legacy em pipeline_analysis_results (compat)
     if (body.document_id && typeof body.document_id === "string") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      );
       const { error } = await supabase.from("pipeline_analysis_results").insert({
         document_id: body.document_id,
         indicadores: { bsDados, indicadores, summary, generated_at: new Date().toISOString() },
@@ -316,7 +320,103 @@ Deno.serve(async (req) => {
       persisted = !error;
     }
 
-    return new Response(JSON.stringify({ bsDados, indicadores, summary, persisted }), {
+    // (b) MD MASTER: cria audit + balancetes + bs_dados + indicadores
+    if (body.company_id && typeof body.company_id === "string") {
+      try {
+        // userId via JWT
+        const { data: userData } = await supabase.auth.getUser(
+          (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, ""),
+        );
+        const createdBy = userData?.user?.id;
+        if (createdBy) {
+          // 1. cria auditoria
+          const { data: auditRow, error: aErr } = await supabase
+            .from("audits")
+            .insert({
+              company_id: body.company_id,
+              created_by: createdBy,
+              name: body.audit_name || `Auditoria ${new Date().toLocaleDateString("pt-BR")}`,
+              variant: body.variant || "completo",
+              status: "completed",
+              meses_count: bsDados.length,
+              metadata: { source: "audit-bs-dados", summary },
+            })
+            .select("id")
+            .single();
+          if (aErr) throw aErr;
+          auditId = auditRow.id as string;
+
+          // 2. balancetes (1 linha por mês)
+          const balancetesIns = balancetes.map((b) => ({
+            audit_id: auditId,
+            created_by: createdBy,
+            mes_referencia: `${periodToMesKey(b.mes)}-01`,
+            file_name: body.file_name || "balancete",
+            total_linhas: (b.linhas || []).length,
+            content_hash: body.content_hash || null,
+            pipeline_document_id: body.document_id || null,
+          }));
+          if (balancetesIns.length > 0) {
+            await supabase.from("balancetes").insert(balancetesIns);
+          }
+
+          // 3. bs_dados (snapshot consolidado)
+          const bsRows = bsDados.map((r) => ({
+            audit_id: auditId,
+            mes: `${r.mesKey}-01`,
+            receita_liquida: r.receita_liquida,
+            cmv: r.cmv,
+            despesas: r.despesas,
+            resultado: r.resultado,
+            ativo_circulante: r.ativo_circulante,
+            passivo_circulante: r.passivo_circulante,
+            estoques: r.estoques,
+            disponivel: r.disponivel,
+            divida_tributaria: r.divida_tributaria,
+            divida_trabalhista: r.divida_trabalhista,
+            divida_financeira: r.divida_financeira,
+            fornecedores: r.fornecedores,
+            credores_rj: r.credores_rj,
+            divida_total: r.divida_total,
+            errors: r.errors,
+          }));
+          if (bsRows.length > 0) {
+            await supabase.from("bs_dados").upsert(bsRows, { onConflict: "audit_id,mes" });
+          }
+
+          // 4. indicadores
+          const indRows = indicadores.map((i, idx) => ({
+            audit_id: auditId,
+            mes: `${bsDados[idx].mesKey}-01`,
+            cmv_percent: i.cmvPercent,
+            despesa_percent: i.despesaPercent,
+            cmv_despesa_percent: i.cmvDespesaPercent,
+            resultado_percent: i.resultadoPercent,
+            liquidez_corrente: i.liquidezCorrente,
+            liquidez_seca: i.liquidezSeca,
+            liquidez_imediata: i.liquidezImediata,
+          }));
+          if (indRows.length > 0) {
+            await supabase.from("indicadores").insert(indRows);
+          }
+
+          // 5. log
+          await supabase.from("audit_logs").insert({
+            audit_id: auditId,
+            etapa: "bs_dados.persist",
+            status: "ok",
+            payload: { meses: bsDados.length, errors: summary.errors },
+          });
+
+          persisted = true;
+        }
+      } catch (mdErr) {
+        console.warn("MD MASTER persist warn:", (mdErr as Error)?.message);
+      }
+    }
+
+
+    return new Response(JSON.stringify({ bsDados, indicadores, summary, persisted, audit_id: auditId }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

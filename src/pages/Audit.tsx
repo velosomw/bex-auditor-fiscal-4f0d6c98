@@ -886,7 +886,11 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
               })).filter(l => Number.isFinite(l.saldo)),
             }));
             if (balancetes.length > 0 && balancetes.some(b => b.linhas.length > 0)) {
-              const persistResp = await consolidateBSDadosOnServer(balancetes);
+              const persistResp = await consolidateBSDadosOnServer(balancetes, {
+                companyId: companyId ?? undefined,
+                fileName: files[0]?.name,
+                variant: "completo",
+              });
               console.log(
                 `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false}`
               );
