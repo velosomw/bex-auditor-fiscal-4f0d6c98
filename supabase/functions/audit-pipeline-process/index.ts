@@ -1032,6 +1032,15 @@ async function runPipeline(
       }
     } catch (_) { /* não-crítico */ }
 
+    // Critério de criticidade: usa Pro só quando há sinais de risco relevante
+    const isCritical =
+      !validation.valid ||
+      validation.pl <= 0 ||
+      (indicadoresFinanceiros.liquidez_corrente !== null && indicadoresFinanceiros.liquidez_corrente < 1) ||
+      (indicadoresFinanceiros.endividamento_geral !== null && indicadoresFinanceiros.endividamento_geral > 80);
+    const insightModel = isCritical ? "google/gemini-2.5-pro" : "google/gemini-3-flash-preview";
+    const insightServiceTag = isCritical ? "gemini_pro" : "gemini_flash";
+
     try {
       const ctx = `Empresa: ${body.documentInfo?.empresa || "N/D"}
 Período: ${body.documentInfo?.periodo || lastYear}
@@ -1065,7 +1074,7 @@ DRE:
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: insightModel,
           messages: [
             {
               role: "system",
@@ -1114,12 +1123,12 @@ DRE:
         const tc = aj.choices?.[0]?.message?.tool_calls?.[0];
         aiInsights = JSON.parse(tc?.function?.arguments || "null");
         trackUsage({
-          type: "insight", provider: "google", service: "gemini_pro",
+          type: "insight", provider: "google", service: insightServiceTag,
           document_id: documentId,
           tokens_input: aj.usage?.prompt_tokens ?? Math.ceil(ctx.length / 4),
           tokens_output: aj.usage?.completion_tokens ?? Math.ceil(JSON.stringify(aiInsights || {}).length / 4),
           requests: 1,
-          metadata: { model: "gemini-2.5-pro", phase: "audit_insights" },
+          metadata: { model: insightModel.replace("google/", ""), phase: "audit_insights", critical: isCritical },
         }).catch(() => {});
       } else {
         console.warn("ai insights HTTP", aiResp.status);
