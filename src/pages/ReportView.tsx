@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PlatformLayout from "@/components/PlatformLayout";
 import { getGeneratedReport, type GeneratedReportEntry } from "@/services/auditHistoryService";
-import { TabRelatorioFinal } from "@/pages/Audit";
+import { TabRelatorioFinal, ResultsPhase } from "@/pages/Audit";
 import { AuditProvider } from "@/contexts/AuditContext";
 
 const ReportView = () => {
@@ -35,6 +35,8 @@ const ReportView = () => {
     );
   }
 
+  const isCompleto = report.variant === "completo";
+
   return (
     <AuditProvider>
       <PlatformLayout>
@@ -42,12 +44,21 @@ const ReportView = () => {
           <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="mb-4 gap-1.5">
             <ArrowLeft className="w-4 h-4" /> {backLabel}
           </Button>
-          <TabRelatorioFinal
-            onBack={() => navigate(backTo)}
-            aiAnalysis={report.aiAnalysis}
-            parsedData={report.parsedData}
-            variant={report.variant}
-          />
+          {isCompleto ? (
+            <ResultsPhase
+              onBack={() => navigate(backTo)}
+              aiAnalysis={report.aiAnalysis}
+              parsedData={report.parsedData}
+              selectedDepth="tecnico"
+            />
+          ) : (
+            <TabRelatorioFinal
+              onBack={() => navigate(backTo)}
+              aiAnalysis={report.aiAnalysis}
+              parsedData={report.parsedData}
+              variant="resumido"
+            />
+          )}
         </div>
       </PlatformLayout>
     </AuditProvider>
