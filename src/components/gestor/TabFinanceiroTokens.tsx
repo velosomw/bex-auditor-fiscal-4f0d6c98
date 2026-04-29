@@ -65,6 +65,10 @@ const TabFinanceiroTokens = () => {
   const [config, setConfig] = useState<CostConfigRow[]>([]);
   const [indicators, setIndicators] = useState<CostIndicators | null>(null);
   const [period, setPeriod] = useState<PeriodKey>("mes");
+  const [showE2EDetail, setShowE2EDetail] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("gestor.e2eDetail.open") !== "0";
+  });
   const [drafts, setDrafts] = useState<Record<string, Partial<CostConfigRow>>>({});
   // Buffers de string para permitir digitação livre nos campos numéricos (pt-BR)
   const [inputBuffers, setInputBuffers] = useState<Record<string, string>>({});
