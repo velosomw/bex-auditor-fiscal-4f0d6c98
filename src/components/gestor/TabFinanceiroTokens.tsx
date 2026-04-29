@@ -108,6 +108,27 @@ const TabFinanceiroTokens = () => {
     [infraRows]
   );
 
+  // ─── Breakdown E2E (reutilizado no card e no painel detalhado) ───
+  const e2eBreakdown = useMemo(() => {
+    const bk = indicators?.breakdown ?? [];
+    const sumByMatch = (matchers: string[]) =>
+      bk
+        .filter((b) => matchers.some((m) => (b.service || "").toLowerCase().includes(m)))
+        .reduce((acc, b) => acc + Number(b.cost || 0), 0);
+    const costOCR        = sumByMatch(["document_ai", "ocr"]);
+    const costEmbeddings = sumByMatch(["embedding"]);
+    const costFlash      = sumByMatch(["gemini_2_5_flash", "gemini-2.5-flash", "gemini_flash"]);
+    const costPro        = sumByMatch(["gemini_2_5_pro", "gemini-2.5-pro", "gemini_pro"]);
+    const aiKnown        = costOCR + costEmbeddings + costFlash + costPro;
+    const aiTotal        = Number(indicators?.custoTotal ?? 0);
+    const aiOutros       = Math.max(0, aiTotal - aiKnown);
+    const totalReports   = Number(indicators?.totalRelatorios ?? 0);
+    const infraPerRep    = infraPerReportTotal;
+    const infraPeriod    = infraPerRep * totalReports;
+    const e2eTotal       = aiTotal + infraPeriod;
+    return { costOCR, costEmbeddings, costFlash, costPro, aiKnown, aiTotal, aiOutros, totalReports, infraPerRep, infraPeriod, e2eTotal };
+  }, [indicators, infraPerReportTotal]);
+
   const fmtBR = (n: number) =>
     Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
