@@ -918,4 +918,233 @@ const TabKanitz = ({
   );
 };
 
+/* ══════════════════════════════════════════════════════
+   SUB-COMPONENTE — Análise Mensal (MD: Score Kanitz Automático)
+   ══════════════════════════════════════════════════════ */
+function KanitzMensalView({
+  series, summary,
+}: {
+  series: KanitzMonthlyResult[];
+  summary: ReturnType<typeof summarizeKanitzSeries>;
+}) {
+  if (series.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center">
+          <CalendarDays className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
+            Nenhum mês detectado no balancete. Carregue um balancete com referência mensal para
+            visualizar o Score Kanitz por mês.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const chartData = series.map(s => ({
+    mes: s.mes,
+    score: Number(s.score.toFixed(2)),
+    rating: s.rating,
+  }));
+
+  const trendIcon = summary?.trend === "up"
+    ? <TrendingUp className="w-4 h-4 text-emerald-500" />
+    : summary?.trend === "down"
+    ? <TrendingDown className="w-4 h-4 text-red-500" />
+    : <Minus className="w-4 h-4 text-muted-foreground" />;
+
+  return (
+    <div className="space-y-4">
+      {/* Header — Termômetro GLOBAL */}
+      {summary && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Scale className="w-4 h-4 text-accent" /> Termômetro Global ({summary.count} {summary.count === 1 ? "mês" : "meses"})
+              </CardTitle>
+              <Badge
+                className="text-xs border"
+                style={{ backgroundColor: `${KANITZ_RATING_META[summary.globalRating].color}20`, color: KANITZ_RATING_META[summary.globalRating].color, borderColor: `${KANITZ_RATING_META[summary.globalRating].color}50` }}
+              >
+                {KANITZ_RATING_META[summary.globalRating].icon} {summary.globalLabel}
+              </Badge>
+            </div>
+            <CardDescription className="text-xs">
+              Score médio consolidado de todos os meses analisados (BS &amp; Dados → Kanitz Automático).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg bg-muted/30 text-center">
+                <p className="text-[10px] text-muted-foreground">Score Médio</p>
+                <p className="text-2xl font-bold font-mono">{summary.avg.toFixed(2)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 text-center">
+                <p className="text-[10px] text-muted-foreground">Mín. / Máx.</p>
+                <p className="text-base font-bold font-mono">
+                  <span className="text-red-500">{summary.min.toFixed(2)}</span>
+                  <span className="text-muted-foreground mx-1">/</span>
+                  <span className="text-emerald-500">{summary.max.toFixed(2)}</span>
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 text-center">
+                <p className="text-[10px] text-muted-foreground">Tendência</p>
+                <div className="flex items-center justify-center gap-1">
+                  {trendIcon}
+                  <span className="text-base font-bold font-mono">
+                    {summary.delta > 0 ? "+" : ""}{summary.delta.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 text-center">
+                <p className="text-[10px] text-muted-foreground">Último Mês</p>
+                <p className="text-sm font-semibold">{summary.latest?.mes}</p>
+                <p className="text-base font-bold font-mono" style={{ color: summary.latest?.color }}>
+                  {summary.latest?.score.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Gráfico Linha — Evolução Mensal */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Activity className="w-4 h-4 text-accent" /> Evolução Mensal do Score Kanitz
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Linhas de referência destacam as zonas: 0 (saudável → atenção), −3 (atenção → risco), −7 (risco → insolvência).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div style={{ width: "100%", height: 280 }}>
+            <ResponsiveContainer>
+              <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="mes" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" domain={["auto", "auto"]} />
+                <RTooltip
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <ReferenceLine y={0} stroke="hsl(150,70%,42%)" strokeDasharray="3 3" label={{ value: "0", fontSize: 10, fill: "hsl(150,70%,42%)" }} />
+                <ReferenceLine y={-3} stroke="hsl(28,92%,55%)" strokeDasharray="3 3" label={{ value: "−3", fontSize: 10, fill: "hsl(28,92%,55%)" }} />
+                <ReferenceLine y={-7} stroke="hsl(0,75%,55%)" strokeDasharray="3 3" label={{ value: "−7", fontSize: 10, fill: "hsl(0,75%,55%)" }} />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  name="Score Kanitz"
+                  stroke="hsl(217,91%,50%)"
+                  strokeWidth={2.5}
+                  dot={{ r: 5, strokeWidth: 2 }}
+                  activeDot={{ r: 7 }}
+                  label={{ position: "top", fontSize: 10, fill: "hsl(var(--foreground))" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cards por Mês */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Score por Mês — Visibilidade Individual</CardTitle>
+          <CardDescription className="text-xs">
+            Cada mês recebe seu próprio Termômetro de Insolvência com classificação A → D e insight automático.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {series.map(s => (
+              <div
+                key={s.mesKey}
+                className="p-4 rounded-lg border space-y-2"
+                style={{ backgroundColor: `${s.color}10`, borderColor: `${s.color}40` }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground">{s.mes}</span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px]"
+                    style={{ color: s.color, borderColor: `${s.color}60` }}
+                  >
+                    {KANITZ_RATING_META[s.rating].icon} {s.rating}
+                  </Badge>
+                </div>
+                <p className="text-3xl font-bold font-mono text-center" style={{ color: s.color }}>
+                  {s.score.toFixed(2)}
+                </p>
+                <p className="text-[10px] text-center font-semibold uppercase tracking-wide" style={{ color: s.color }}>
+                  {s.ratingLabel}
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-snug pt-1 border-t border-border/40">
+                  {s.insight}
+                </p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Memória de Cálculo Mensal */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Calculator className="w-4 h-4 text-accent" /> Memória de Cálculo Mensal
+          </CardTitle>
+          <CardDescription className="text-xs">
+            K = 0,05·X1 + 1,65·X2 + 3,55·X3 − 1,06·X4 − 0,33·X5 — fórmula do MD aplicada por mês.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-[10px]">Mês</TableHead>
+                <TableHead className="text-[10px] text-right">X1<br/><span className="text-muted-foreground font-normal">Lucro/AT</span></TableHead>
+                <TableHead className="text-[10px] text-right">X2<br/><span className="text-muted-foreground font-normal">PL/AT</span></TableHead>
+                <TableHead className="text-[10px] text-right">X3<br/><span className="text-muted-foreground font-normal">Liq. Geral</span></TableHead>
+                <TableHead className="text-[10px] text-right">X4<br/><span className="text-muted-foreground font-normal">Liq. Corr.</span></TableHead>
+                <TableHead className="text-[10px] text-right">X5<br/><span className="text-muted-foreground font-normal">Dív./AT</span></TableHead>
+                <TableHead className="text-[10px] text-right">Score (K)</TableHead>
+                <TableHead className="text-[10px]">Rating</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {series.map(s => (
+                <TableRow key={s.mesKey}>
+                  <TableCell className="text-xs font-medium whitespace-nowrap">{s.mes}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.x1.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.x2.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.x3.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.x4.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.x5.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono font-bold" style={{ color: s.color }}>
+                    {s.score.toFixed(4)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px]" style={{ color: s.color, borderColor: `${s.color}60` }}>
+                      {s.rating}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
+            <strong>Proxies aplicados (transparência):</strong> Ativo Total = Ativo Circulante (quando ANC não capturado);
+            PL = Ativo Total − Dívida Total. Estes proxies tornam o score conservador frente ao Kanitz clássico — utilize
+            a aba "Validação" para o cálculo anual com BP+DRE completos.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default TabKanitz;
