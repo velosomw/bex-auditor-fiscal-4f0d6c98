@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import TabAgentRegistry from "@/components/gestor/TabAgentRegistry";
 import TabFinanceiroTokens from "@/components/gestor/TabFinanceiroTokens";
+import { CacheReuseCard } from "@/components/gestor/CacheReuseCard";
 import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/auditAIService";
 import { listCompanies, type Company } from "@/services/companiesService";
 import { loadLearningRows, loadDatasetRows, loadPerfStats } from "@/services/agentLearningService";
@@ -694,6 +695,7 @@ const TabPerformance = () => {
   ];
   return (
     <div className="space-y-6">
+      <CacheReuseCard />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((k, i) => (
           <div key={i} className="bg-card rounded-xl border border-border p-5">
