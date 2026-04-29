@@ -4306,6 +4306,7 @@ const AuditContent = () => {
             preParsed={multiMonth ? pickMonths(multiMonth, filteredMonths) : null}
             onAnalysisReady={handleAnalysisReady}
             dedupConfig={dedupConfig}
+            companyId={company?.id ?? null}
           />
         )}
         {phase === "results" && (
