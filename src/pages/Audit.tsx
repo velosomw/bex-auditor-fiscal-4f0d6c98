@@ -4094,6 +4094,22 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     persistReport("completo");
   };
 
+  // Resumido (executivo): apenas o relatório BEx_Resumido_Kanitz, sem abas de auditoria
+  if (isResumido) {
+    return (
+      <div className="space-y-6">
+        <StepTimeline currentStep={5} />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground font-serif">Relatório BEx_Resumido_Kanitz</h1>
+            <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
+          </div>
+        </div>
+        <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <StepTimeline currentStep={reportType !== "none" ? 5 : 4} />
