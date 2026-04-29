@@ -1,0 +1,304 @@
+/**
+ * Edge Function: audit-bs-dados
+ *
+ * Backend authoritative implementation of the BS & Dados consolidation engine.
+ * Mirrors the client-side `bsDadosBuilder.ts` so that the same single source of
+ * truth is available for: PDF reports, server exports, audit history snapshots
+ * and any third party integration. Persists the consolidated snapshot into
+ * `pipeline_analysis_results.indicadores` when `document_id` is provided.
+ *
+ * INPUT (POST JSON):
+ * {
+ *   document_id?: string,                  // optional — persists snapshot
+ *   balancetes: Array<{
+ *     mes: string,                         // "YYYY-MM" or "Março 2024"
+ *     linhas: Array<{
+ *       conta?: string,
+ *       descricao?: string,
+ *       ref1?: string | null,              // Ref Capital BEX (A, B, AA…)
+ *       saldo: number
+ *     }>
+ *   }>
+ * }
+ *
+ * OUTPUT:
+ * {
+ *   bsDados: BSDadosRow[],                 // consolidated rows
+ *   indicadores: BSIndicators[],           // derived metrics per month
+ *   summary: { meses: number, total_linhas: number, errors: number },
+ *   persisted?: boolean
+ * }
+ */
+import { createClient } from "npm:@supabase/supabase-js@2.95.0";
+import { corsHeaders } from "npm:@supabase/supabase-js@2.95.0/cors";
+
+// ─── Tipos ───────────────────────────────────────────────
+interface InputLinha {
+  conta?: string;
+  descricao?: string;
+  ref1?: string | null;
+  saldo: number;
+}
+interface InputBalancete {
+  mes: string;
+  linhas: InputLinha[];
+}
+interface BSDadosRow {
+  mes: string;
+  mesKey: string;
+  receita_liquida: number;
+  cmv: number;
+  despesas: number;
+  resultado: number;
+  ativo_circulante: number;
+  passivo_circulante: number;
+  estoques: number;
+  disponivel: number;
+  divida_tributaria: number;
+  divida_trabalhista: number;
+  divida_financeira: number;
+  fornecedores: number;
+  credores_rj: number;
+  divida_total: number;
+  hasReceita: boolean;
+  hasBalanco: boolean;
+  errors: string[];
+}
+interface BSIndicators {
+  mes: string;
+  cmvPercent: number | null;
+  despesaPercent: number | null;
+  cmvDespesaPercent: number | null;
+  resultadoPercent: number | null;
+  liquidezCorrente: number | null;
+  liquidezSeca: number | null;
+  liquidezImediata: number | null;
+}
+
+// ─── Constantes (espelham bsDadosBuilder.ts) ─────────────
+const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+const REF1_MAP: Record<string, keyof BSDadosRow> = {
+  "A": "disponivel", "B": "disponivel", "D": "estoques",
+  "AA": "divida_financeira", "BB": "fornecedores", "CC": "divida_trabalhista",
+  "DD": "divida_tributaria", "II": "credores_rj", "LL": "credores_rj",
+  "II1": "divida_tributaria",
+  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "CC1": "credores_rj",
+  "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
+  "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
+  "ATIVO CIRCULANTE": "ativo_circulante", "PASSIVO CIRCULANTE": "passivo_circulante",
+  "ESTOQUES": "estoques", "ESTOQUE": "estoques", "DISPONIVEL": "disponivel", "DISPONÍVEL": "disponivel",
+  "PASSIVO TRIBUTARIO": "divida_tributaria", "PASSIVO TRIBUTÁRIO": "divida_tributaria",
+  "PASSIVO TRABALHISTA": "divida_trabalhista",
+  "EMPRESTIMOS": "divida_financeira", "EMPRÉSTIMOS": "divida_financeira", "FINANCIAMENTOS": "divida_financeira",
+  "FORNECEDORES": "fornecedores", "CREDORES RJ": "credores_rj", "RECUPERACAO JUDICIAL": "credores_rj",
+};
+
+const AC_REFS = new Set(["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]);
+const PC_REFS = new Set(["AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","II1"]);
+
+const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
+  receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
+  cmv: /\bc(?:mv|sv|pv)\b|\bcusto\s+(?:das?\s+)?(?:mercadoria|servi[cç]o|produto|venda)/i,
+  despesas: /\bdespesa|gasto\s+oper/i,
+  resultado: /\b(?:lucro|preju[ií]zo|resultado)\s+(?:l[ií]quid|do\s+exerc|do\s+per[ií]odo)/i,
+  ativo_circulante: /\bativo\s+circulante\b/i,
+  passivo_circulante: /\bpassivo\s+circulante\b/i,
+  estoques: /\bestoqu/i,
+  disponivel: /\b(?:caixa|disponibilidade|disponivel|bancos?|aplica[cç][aã]o\s+financ|equivalente)/i,
+  divida_tributaria: /\b(?:tribut|impostos?\s+a\s+(?:pagar|recolher)|icms|iss|pis|cofins|irpj|csll)/i,
+  divida_trabalhista: /\b(?:sal[aá]rios?\s+a\s+pagar|f[eé]rias|13[ºo°]?|inss\s+a\s+pagar|fgts\s+a\s+pagar|encargos\s+sociais|trabalhista)/i,
+  divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasing|arrendamento)/i,
+  fornecedores: /\bfornecedor/i,
+  credores_rj: /\b(?:credores?\s+(?:rj|recupera[cç][aã]o)|recupera[cç][aã]o\s+judic)/i,
+};
+
+// ─── Helpers ─────────────────────────────────────────────
+const upper = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
+function periodToMesKey(p: string): string {
+  if (!p) return p;
+  const s = p.trim();
+  let m = s.match(/^(\d{4})[-/](\d{1,2})$/); if (m) return `${m[1]}-${m[2].padStart(2,"0")}`;
+  m = s.match(/^(\d{1,2})[-/](\d{4})$/);     if (m) return `${m[2]}-${m[1].padStart(2,"0")}`;
+  m = s.match(/^([a-zçãéê]+)[\s/]+(\d{4})$/i);
+  if (m) {
+    const mn = upper(m[1]).slice(0,3);
+    const idx = MES_FULL.findIndex(n => upper(n).startsWith(mn));
+    if (idx >= 0) return `${m[2]}-${String(idx+1).padStart(2,"0")}`;
+  }
+  m = s.match(/^(\d{4})$/); if (m) return `${m[1]}-12`;
+  return s;
+}
+
+function mesKeyToLabel(k: string): string {
+  const m = /^(\d{4})-(\d{1,2})$/.exec(k);
+  if (!m) return k;
+  const idx = parseInt(m[2],10)-1;
+  return idx>=0 && idx<12 ? `${MES_FULL[idx]} ${m[1]}` : k;
+}
+
+function emptyRow(mesKey: string): BSDadosRow {
+  return {
+    mes: mesKeyToLabel(mesKey), mesKey,
+    receita_liquida: 0, cmv: 0, despesas: 0, resultado: 0,
+    ativo_circulante: 0, passivo_circulante: 0,
+    estoques: 0, disponivel: 0,
+    divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
+    fornecedores: 0, credores_rj: 0, divida_total: 0,
+    hasReceita: false, hasBalanco: false, errors: [],
+  };
+}
+
+function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
+  if (linha.ref1) {
+    const k = REF1_MAP[upper(linha.ref1)];
+    if (k) return k;
+  }
+  const text = `${linha.descricao || ""} ${linha.conta || ""}`;
+  for (const [k, re] of Object.entries(FALLBACK_PATTERNS)) {
+    if (re && re.test(text)) return k as keyof BSDadosRow;
+  }
+  return null;
+}
+
+interface Buckets { ac: number; pc: number; sawACTotal: boolean; sawPCTotal: boolean }
+
+function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: string | null | undefined, b: Buckets) {
+  if (!Number.isFinite(v)) return;
+  switch (key) {
+    case "receita_liquida": row.receita_liquida += Math.abs(v); break;
+    case "cmv":             row.cmv -= Math.abs(v); break;
+    case "despesas":        row.despesas -= Math.abs(v); break;
+    case "resultado":       row.resultado += v; break;
+    case "ativo_circulante":  row.ativo_circulante  += Math.abs(v); b.sawACTotal = true; break;
+    case "passivo_circulante": row.passivo_circulante += Math.abs(v); b.sawPCTotal = true; break;
+    case "estoques":
+    case "disponivel":
+    case "divida_tributaria":
+    case "divida_trabalhista":
+    case "divida_financeira":
+    case "fornecedores":
+    case "credores_rj":
+      (row as any)[key] += Math.abs(v); break;
+  }
+  const refUp = ref1 ? upper(ref1) : "";
+  if (refUp && AC_REFS.has(refUp)) b.ac += Math.abs(v);
+  else if (refUp && PC_REFS.has(refUp)) b.pc += Math.abs(v);
+}
+
+function finalize(r: BSDadosRow): BSDadosRow {
+  r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
+  r.hasReceita = r.receita_liquida > 0;
+  r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
+  if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
+  if (r.cmv > 0)     r.errors.push("CMV positivo (deveria ser negativo)");
+  return r;
+}
+
+// ─── Núcleo: build + enrich (espelha MD §4 e §5) ─────────
+function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
+  const rowsByMes = new Map<string, BSDadosRow>();
+  const bucketsByMes = new Map<string, Buckets>();
+
+  // Detecta duplicatas
+  const dup: Record<string, number> = {};
+  for (const b of balancetes) {
+    const k = periodToMesKey(b.mes);
+    dup[k] = (dup[k] || 0) + 1;
+  }
+
+  for (const b of balancetes) {
+    const mesKey = periodToMesKey(b.mes);
+    if (!rowsByMes.has(mesKey)) {
+      rowsByMes.set(mesKey, emptyRow(mesKey));
+      bucketsByMes.set(mesKey, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
+    }
+    if (dup[mesKey] > 1) {
+      const r = rowsByMes.get(mesKey)!;
+      if (!r.errors.includes("Mês duplicado entre balancetes")) r.errors.push("Mês duplicado entre balancetes");
+    }
+    const row = rowsByMes.get(mesKey)!;
+    const buckets = bucketsByMes.get(mesKey)!;
+    for (const linha of (b.linhas || [])) {
+      const key = resolveKey(linha);
+      if (!key) continue;
+      applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? null, buckets);
+    }
+  }
+
+  // Fallback AC/PC pelos componentes quando o totalizador não veio
+  for (const [mesKey, row] of rowsByMes) {
+    const b = bucketsByMes.get(mesKey)!;
+    if (!b.sawACTotal && b.ac > 0) row.ativo_circulante = b.ac;
+    if (!b.sawPCTotal && b.pc > 0) row.passivo_circulante = b.pc;
+  }
+
+  return Array.from(rowsByMes.values()).map(finalize)
+    .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+}
+
+const safePct = (a: number, b: number): number | null =>
+  !b || !Number.isFinite(b) ? null : Number(((a / b) * 100).toFixed(2));
+const safeDiv = (a: number, b: number): number | null =>
+  !b || !Number.isFinite(b) ? null : Number((a / b).toFixed(4));
+
+function enrich(rows: BSDadosRow[]): BSIndicators[] {
+  return rows.map(r => ({
+    mes: r.mes,
+    cmvPercent: safePct(Math.abs(r.cmv), r.receita_liquida),
+    despesaPercent: safePct(Math.abs(r.despesas), r.receita_liquida),
+    cmvDespesaPercent: safePct(Math.abs(r.cmv) + Math.abs(r.despesas), r.receita_liquida),
+    resultadoPercent: safePct(r.resultado, r.receita_liquida),
+    liquidezCorrente: safeDiv(r.ativo_circulante, r.passivo_circulante),
+    liquidezSeca: safeDiv(r.ativo_circulante - r.estoques, r.passivo_circulante),
+    liquidezImediata: safeDiv(r.disponivel, r.passivo_circulante),
+  }));
+}
+
+// ─── HTTP handler ────────────────────────────────────────
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const body = await req.json().catch(() => null);
+    if (!body || !Array.isArray(body.balancetes)) {
+      return new Response(JSON.stringify({ error: "balancetes[] obrigatório" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const balancetes: InputBalancete[] = body.balancetes;
+    const bsDados = buildBSDados(balancetes);
+    const indicadores = enrich(bsDados);
+    const summary = {
+      meses: bsDados.length,
+      total_linhas: balancetes.reduce((s, b) => s + (b.linhas?.length || 0), 0),
+      errors: bsDados.reduce((s, r) => s + r.errors.length, 0),
+    };
+
+    let persisted = false;
+    if (body.document_id && typeof body.document_id === "string") {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const { error } = await supabase.from("pipeline_analysis_results").insert({
+        document_id: body.document_id,
+        indicadores: { bsDados, indicadores, summary, generated_at: new Date().toISOString() },
+        mapping_score: bsDados.length ? 1 : 0,
+        validation_score: summary.errors === 0 ? 1 : 0.5,
+        quality_score: summary.errors === 0 && bsDados.length ? 1 : 0.5,
+      });
+      persisted = !error;
+    }
+
+    return new Response(JSON.stringify({ bsDados, indicadores, summary, persisted }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e: any) {
+    return new Response(JSON.stringify({ error: e?.message || "internal_error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
