@@ -108,6 +108,27 @@ const TabFinanceiroTokens = () => {
     [infraRows]
   );
 
+  // ─── Breakdown E2E (reutilizado no card e no painel detalhado) ───
+  const e2eBreakdown = useMemo(() => {
+    const bk = indicators?.breakdown ?? [];
+    const sumByMatch = (matchers: string[]) =>
+      bk
+        .filter((b) => matchers.some((m) => (b.service || "").toLowerCase().includes(m)))
+        .reduce((acc, b) => acc + Number(b.cost || 0), 0);
+    const costOCR        = sumByMatch(["document_ai", "ocr"]);
+    const costEmbeddings = sumByMatch(["embedding"]);
+    const costFlash      = sumByMatch(["gemini_2_5_flash", "gemini-2.5-flash", "gemini_flash"]);
+    const costPro        = sumByMatch(["gemini_2_5_pro", "gemini-2.5-pro", "gemini_pro"]);
+    const aiKnown        = costOCR + costEmbeddings + costFlash + costPro;
+    const aiTotal        = Number(indicators?.custoTotal ?? 0);
+    const aiOutros       = Math.max(0, aiTotal - aiKnown);
+    const totalReports   = Number(indicators?.totalRelatorios ?? 0);
+    const infraPerRep    = infraPerReportTotal;
+    const infraPeriod    = infraPerRep * totalReports;
+    const e2eTotal       = aiTotal + infraPeriod;
+    return { costOCR, costEmbeddings, costFlash, costPro, aiKnown, aiTotal, aiOutros, totalReports, infraPerRep, infraPeriod, e2eTotal };
+  }, [indicators, infraPerReportTotal]);
+
   const fmtBR = (n: number) =>
     Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
@@ -299,30 +320,7 @@ const TabFinanceiroTokens = () => {
           }
         />
         {(() => {
-          // ─── Cálculo E2E (validado) ─────────────────────────────
-          // Agentes IA agrupados a partir do breakdown (custos reais do período)
-          const bk = indicators?.breakdown ?? [];
-          const sumByMatch = (matchers: string[]) =>
-            bk
-              .filter((b) => matchers.some((m) => (b.service || "").toLowerCase().includes(m)))
-              .reduce((acc, b) => acc + Number(b.cost || 0), 0);
-
-          const costOCR        = sumByMatch(["document_ai", "ocr"]);
-          const costEmbeddings = sumByMatch(["embedding"]);
-          const costFlash      = sumByMatch(["gemini_2_5_flash", "gemini-2.5-flash", "gemini_flash"]);
-          const costPro        = sumByMatch(["gemini_2_5_pro", "gemini-2.5-pro", "gemini_pro"]);
-          const aiKnown        = costOCR + costEmbeddings + costFlash + costPro;
-          // Outros custos de IA não classificados acima (ex.: storage, ajustes)
-          const aiTotal        = Number(indicators?.custoTotal ?? 0);
-          const aiOutros       = Math.max(0, aiTotal - aiKnown);
-
-          // Infra: custo por relatório × nº de relatórios do período
-          const totalReports   = Number(indicators?.totalRelatorios ?? 0);
-          const infraPerRep    = infraPerReportTotal; // Σ (monthly / refReports) das 5 linhas
-          const infraPeriod    = infraPerRep * totalReports;
-
-          const e2eTotal       = aiTotal + infraPeriod;
-
+          const { costOCR, costEmbeddings, costFlash, costPro, aiTotal, aiOutros, totalReports, infraPerRep, infraPeriod, e2eTotal } = e2eBreakdown;
           return (
             <KpiCard
               icon={<DollarSign className="w-4 h-4" />}
@@ -335,24 +333,15 @@ const TabFinanceiroTokens = () => {
                   <p className="font-semibold mb-1">Custo Total (E2E) — detalhamento</p>
                   <p className="text-muted-foreground mb-1">Soma de todos os agentes de IA no período + infraestrutura por relatório.</p>
                   <ul className="list-disc pl-4 mt-1 space-y-0.5">
-                    <li><strong>OCR / Document AI</strong> — leitura do PDF do balancete: <strong>{fmtBRL3(costOCR)}</strong></li>
-                    <li><strong>Embeddings</strong> — vetorização para busca semântica: <strong>{fmtBRL3(costEmbeddings)}</strong></li>
-                    <li><strong>Gemini Flash</strong> — mapping/normalização das contas: <strong>{fmtBRL3(costFlash)}</strong></li>
-                    <li><strong>Gemini Pro</strong> — geração de insights e relatório final: <strong>{fmtBRL3(costPro)}</strong></li>
-                    {aiOutros > 0 && (
-                      <li>Outros (storage, ajustes): <strong>{fmtBRL3(aiOutros)}</strong></li>
-                    )}
+                    <li><strong>OCR / Document AI</strong>: <strong>{fmtBRL3(costOCR)}</strong></li>
+                    <li><strong>Embeddings</strong>: <strong>{fmtBRL3(costEmbeddings)}</strong></li>
+                    <li><strong>Gemini Flash</strong>: <strong>{fmtBRL3(costFlash)}</strong></li>
+                    <li><strong>Gemini Pro</strong>: <strong>{fmtBRL3(costPro)}</strong></li>
+                    {aiOutros > 0 && (<li>Outros: <strong>{fmtBRL3(aiOutros)}</strong></li>)}
                   </ul>
                   <p className="mt-1">Subtotal IA: <strong>{fmtBRL(aiTotal)}</strong></p>
-                  <p className="mt-1">
-                    Infra: <strong>{fmtBRL3(infraPerRep)}</strong>/rel × <strong>{totalReports}</strong> rel = <strong>{fmtBRL(infraPeriod)}</strong>
-                  </p>
-                  <p className="mt-1 font-semibold">
-                    E2E = IA ({fmtBRL(aiTotal)}) + Infra ({fmtBRL(infraPeriod)}) = <strong>{fmtBRL(e2eTotal)}</strong>
-                  </p>
-                  <p className="mt-1 text-muted-foreground text-[11px]">
-                    Fonte IA: <code>SUM(cost_calculated)</code> em <code>ai_usage_logs</code> agrupado por <code>service</code> dentro do período.
-                  </p>
+                  <p className="mt-1">Infra: <strong>{fmtBRL3(infraPerRep)}</strong>/rel × <strong>{totalReports}</strong> rel = <strong>{fmtBRL(infraPeriod)}</strong></p>
+                  <p className="mt-1 font-semibold">E2E = IA ({fmtBRL(aiTotal)}) + Infra ({fmtBRL(infraPeriod)}) = <strong>{fmtBRL(e2eTotal)}</strong></p>
                 </>
               }
             />
@@ -372,6 +361,98 @@ const TabFinanceiroTokens = () => {
             </>
           }
         />
+      </div>
+
+      {/* ─── Detalhamento do Custo E2E ─────────────────────────── */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-[hsl(152,70%,45%)]" />
+            <h3 className="text-sm font-semibold">Detalhamento do Custo E2E</h3>
+            <Badge variant="secondary" className="text-[10px]">{indicators?.periodLabel ?? "Acumulado"}</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Fórmula: <code>Σ agentes IA (período) + (Σ infra/relatório × nº relatórios)</code>
+          </p>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[34%]">Componente</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead className="text-right w-[14%]">Valor unitário</TableHead>
+              <TableHead className="text-right w-[10%]">Qtd.</TableHead>
+              <TableHead className="text-right w-[16%]">Subtotal</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="font-medium">OCR / Document AI</TableCell>
+              <TableCell className="text-muted-foreground text-xs">Leitura do PDF do balancete</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.costOCR)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Embeddings</TableCell>
+              <TableCell className="text-muted-foreground text-xs">Vetorização para busca semântica</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.costEmbeddings)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Gemini Flash</TableCell>
+              <TableCell className="text-muted-foreground text-xs">Mapping/normalização das contas contábeis</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.costFlash)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Gemini Pro</TableCell>
+              <TableCell className="text-muted-foreground text-xs">Geração de insights e relatório final</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.costPro)}</TableCell>
+            </TableRow>
+            {e2eBreakdown.aiOutros > 0 && (
+              <TableRow>
+                <TableCell className="font-medium">Outros (storage, ajustes)</TableCell>
+                <TableCell className="text-muted-foreground text-xs">Logs não classificados nos agentes acima</TableCell>
+                <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+                <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+                <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.aiOutros)}</TableCell>
+              </TableRow>
+            )}
+            <TableRow className="bg-muted/40">
+              <TableCell className="font-semibold">Subtotal Agentes IA</TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                Σ <code>cost_calculated</code> em <code>ai_usage_logs</code> agrupado por <code>service</code> no período
+              </TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono font-semibold">{fmtBRL(e2eBreakdown.aiTotal)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Infraestrutura</TableCell>
+              <TableCell className="text-muted-foreground text-xs">
+                Custo/relatório (Σ Compute + Boot disk + BigQuery + Cloud SQL + Storage) × nº de relatórios
+              </TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.infraPerRep)}</TableCell>
+              <TableCell className="text-right font-mono">{e2eBreakdown.totalReports}</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL(e2eBreakdown.infraPeriod)}</TableCell>
+            </TableRow>
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell colSpan={4} className="font-semibold text-right">
+                Custo Total (E2E) = IA ({fmtBRL(e2eBreakdown.aiTotal)}) + Infra ({fmtBRL(e2eBreakdown.infraPeriod)})
+              </TableCell>
+              <TableCell className="text-right font-mono font-bold text-[hsl(152,70%,45%)]">
+                {fmtBRL(e2eBreakdown.e2eTotal)}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
       </div>
 
       {/* ─── Gráficos ──────────────────────────────────────────── */}
