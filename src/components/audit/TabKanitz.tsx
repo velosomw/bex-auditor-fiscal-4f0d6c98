@@ -118,7 +118,7 @@ const TabKanitz = ({
     if (latest.fi < -3) alerts.push("FI abaixo de -3 — empresa na zona de insolvência");
   }
 
-  if (kanitzResults.length === 0) {
+  if (kanitzResults.length === 0 && monthlySeries.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
