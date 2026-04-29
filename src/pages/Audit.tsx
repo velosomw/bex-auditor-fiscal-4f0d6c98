@@ -869,7 +869,10 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         const analysis = await analyzeFinancialData(dataToAnalyze, {
           depth: "tecnico",
           purpose: "externa",
-        }, pipelineResult);
+        }, pipelineResult, {
+          companyId: companyId ?? null,
+          periodo: dataToAnalyze?.documentInfo?.periodo ?? null,
+        });
 
         setCurrentStep(6);
         setProgress(70);
