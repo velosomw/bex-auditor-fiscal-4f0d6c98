@@ -363,6 +363,98 @@ const TabFinanceiroTokens = () => {
         />
       </div>
 
+      {/* ─── Detalhamento do Custo E2E ─────────────────────────── */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-[hsl(152,70%,45%)]" />
+            <h3 className="text-sm font-semibold">Detalhamento do Custo E2E</h3>
+            <Badge variant="secondary" className="text-[10px]">{indicators?.periodLabel ?? "Acumulado"}</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Fórmula: <code>Σ agentes IA (período) + (Σ infra/relatório × nº relatórios)</code>
+          </p>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[34%]">Componente</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead className="text-right w-[14%]">Valor unitário</TableHead>
+              <TableHead className="text-right w-[10%]">Qtd.</TableHead>
+              <TableHead className="text-right w-[16%]">Subtotal</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="font-medium">OCR / Document AI</TableCell>
+              <TableCell className="text-muted-foreground text-xs">Leitura do PDF do balancete</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.costOCR)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Embeddings</TableCell>
+              <TableCell className="text-muted-foreground text-xs">Vetorização para busca semântica</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.costEmbeddings)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Gemini Flash</TableCell>
+              <TableCell className="text-muted-foreground text-xs">Mapping/normalização das contas contábeis</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.costFlash)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Gemini Pro</TableCell>
+              <TableCell className="text-muted-foreground text-xs">Geração de insights e relatório final</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.costPro)}</TableCell>
+            </TableRow>
+            {e2eBreakdown.aiOutros > 0 && (
+              <TableRow>
+                <TableCell className="font-medium">Outros (storage, ajustes)</TableCell>
+                <TableCell className="text-muted-foreground text-xs">Logs não classificados nos agentes acima</TableCell>
+                <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+                <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+                <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.aiOutros)}</TableCell>
+              </TableRow>
+            )}
+            <TableRow className="bg-muted/40">
+              <TableCell className="font-semibold">Subtotal Agentes IA</TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                Σ <code>cost_calculated</code> em <code>ai_usage_logs</code> agrupado por <code>service</code> no período
+              </TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right text-xs text-muted-foreground">—</TableCell>
+              <TableCell className="text-right font-mono font-semibold">{fmtBRL(e2eBreakdown.aiTotal)}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Infraestrutura</TableCell>
+              <TableCell className="text-muted-foreground text-xs">
+                Custo/relatório (Σ Compute + Boot disk + BigQuery + Cloud SQL + Storage) × nº de relatórios
+              </TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL3(e2eBreakdown.infraPerRep)}</TableCell>
+              <TableCell className="text-right font-mono">{e2eBreakdown.totalReports}</TableCell>
+              <TableCell className="text-right font-mono">{fmtBRL(e2eBreakdown.infraPeriod)}</TableCell>
+            </TableRow>
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell colSpan={4} className="font-semibold text-right">
+                Custo Total (E2E) = IA ({fmtBRL(e2eBreakdown.aiTotal)}) + Infra ({fmtBRL(e2eBreakdown.infraPeriod)})
+              </TableCell>
+              <TableCell className="text-right font-mono font-bold text-[hsl(152,70%,45%)]">
+                {fmtBRL(e2eBreakdown.e2eTotal)}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </div>
+
       {/* ─── Gráficos ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <ChartCard title="Distribuição de custos">
