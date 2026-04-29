@@ -1294,26 +1294,31 @@ serve(async (req) => {
     stageLog(reqId, "document.ready", { document_id: documentId, dedup_hit: dedupHit });
 
     // 2. Dispara worker em background (não bloqueia a resposta — sem idle timeout)
-    // deno-lint-ignore no-explicit-any
-    const edgeRt = (globalThis as any).EdgeRuntime;
-    const workerPromise = runPipeline(reqId, body, documentId, supabase, tStart);
-    if (edgeRt?.waitUntil) {
-      edgeRt.waitUntil(workerPromise);
-    } else {
-      // Fallback local: apenas dispara sem await
-      workerPromise.catch((e) => console.error("worker bg error:", e));
+    //    Item 4: se for dedup hit, pula o worker — documento já processado.
+    if (!dedupHit) {
+      // deno-lint-ignore no-explicit-any
+      const edgeRt = (globalThis as any).EdgeRuntime;
+      const workerPromise = runPipeline(reqId, body, documentId, supabase, tStart);
+      if (edgeRt?.waitUntil) {
+        edgeRt.waitUntil(workerPromise);
+      } else {
+        // Fallback local: apenas dispara sem await
+        workerPromise.catch((e) => console.error("worker bg error:", e));
+      }
     }
 
     // 3. Retorna 202 imediatamente — cliente faz polling em pipeline_documents.status
     return new Response(
       JSON.stringify({
-        status: "processing",
+        status: dedupHit ? "completed" : "processing",
         document_id: documentId,
         req_id: reqId,
-        message:
-          "Documento enfileirado para processamento em background. Faça polling em pipeline_documents.status até 'completed' ou 'failed'.",
+        dedup_hit: dedupHit,
+        message: dedupHit
+          ? "Documento já processado anteriormente — reaproveitando resultado (dedup por SHA-256)."
+          : "Documento enfileirado para processamento em background. Faça polling em pipeline_documents.status até 'completed' ou 'failed'.",
       }),
-      { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: dedupHit ? 200 : 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     stageLog(reqId, "request.error", { error: e instanceof Error ? e.message : String(e) });
