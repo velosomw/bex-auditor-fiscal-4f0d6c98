@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Activity, BarChart3, Target, TrendingUp, TrendingDown,
   AlertTriangle, CheckCircle2, Calculator, Shield, Layers,
-  AlertOctagon, Scale
+  AlertOctagon, Scale, ShieldCheck, ShieldAlert, FileSearch
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import { buildKanitzSeries, mapToLegacyClass, type KanitzResultV2 } from "@/services/kanitzCalculator";
 
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${(n * 100).toFixed(2)}%`;
