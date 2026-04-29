@@ -258,20 +258,26 @@ export function buildBSDados(
     ? userMesKeys
     : (periodsRaw.length ? periodsRaw.map(periodToMesKey) : userMesKeys);
 
-  // Detecta duplicatas
-  const dupCheck: Record<string, number> = {};
-  usableMesKeys.forEach(k => { dupCheck[k] = (dupCheck[k] || 0) + 1; });
+  // Detecta duplicatas determinísticas (helper compartilhado).
+  // Regra de mescla padrão p/ duplicidade de balancetes do MESMO mês: SOMA
+  // (assume balancetes complementares — ex.: matriz + filial). Quando o
+  // duplicado é o MESMO arquivo recarregado, o hash dedupe na pipeline já
+  // bloqueia antes de chegar aqui.
+  const { duplicates: dupList } = detectDuplicates(usableMesKeys);
+  const dupSet = new Set(dupList.map(d => d.mesKey));
 
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, ComponentBuckets>();
-  usableMesKeys.forEach(k => {
-    if (!rowsByMes.has(k)) {
-      rowsByMes.set(k, emptyRow(k));
-      bucketsByMes.set(k, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
-    }
-    if (dupCheck[k] > 1) {
+  // Ordem determinística (cronológica) — evita ordens de Set dependentes de inserção.
+  const orderedKeys = Array.from(new Set(usableMesKeys)).sort();
+  orderedKeys.forEach(k => {
+    rowsByMes.set(k, emptyRow(k));
+    bucketsByMes.set(k, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
+    if (dupSet.has(k)) {
       const r = rowsByMes.get(k)!;
-      if (!r.errors.includes("Mês duplicado")) r.errors.push("Mês duplicado entre balancetes");
+      const count = dupList.find(d => d.mesKey === k)?.count ?? 2;
+      const msg = `Mês duplicado entre balancetes (×${count}) — valores somados`;
+      if (!r.errors.includes(msg)) r.errors.push(msg);
     }
   });
 
