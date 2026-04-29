@@ -277,7 +277,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AuditCharts parsedData={parsedData} />
+          <AuditCharts parsedData={parsedData} entries={entries} />
         </CardContent>
       </Card>
 
