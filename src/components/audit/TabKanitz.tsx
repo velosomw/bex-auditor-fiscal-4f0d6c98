@@ -96,24 +96,55 @@ const classColors = {
 const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any }) => {
   const [subTab, setSubTab] = useState("visao-geral");
   let kanitzResults = computeKanitz(parsedData || null);
-  
-  // Fallback: use AI analysis kanitz data when parsed data yields no results
+
+  // If parsed-data computation produced an all-zero row, treat as empty so fallbacks kick in
+  const allZero = kanitzResults.length > 0 && kanitzResults.every(r =>
+    r.fi === 0 && r.lc === 0 && r.ls === 0 && r.lg === 0 && r.rpl === 0 && r.ge === 0
+  );
+  if (allZero) kanitzResults = [];
+
+  // Fallback 1: use AI's pre-computed kanitz block
   if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
     const aiK = aiAnalysis.kanitz;
     const comp = aiK.componentes || {};
-    const fi = aiK.fatorInsolvencia || 0;
-    const classificacao: KanitzResult["classificacao"] = 
-      aiK.classificacao === "solvente" ? "solvente" : 
+    const fi = Number(aiK.fatorInsolvencia) || 0;
+    const classificacao: KanitzResult["classificacao"] =
+      aiK.classificacao === "solvente" ? "solvente" :
       aiK.classificacao === "insolvente" ? "insolvente" : "penumbra";
     kanitzResults = [{
       year: "Análise IA",
-      rpl: comp.rpl || 0,
-      lg: comp.lg || 0,
-      ls: comp.ls || 0,
-      lc: comp.lc || 0,
-      ge: comp.ge || 0,
+      rpl: Number(comp.rpl) || 0,
+      lg: Number(comp.lg) || 0,
+      ls: Number(comp.ls) || 0,
+      lc: Number(comp.lc) || 0,
+      ge: Number(comp.ge) || 0,
       fi,
       classificacao,
+      riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
+    }];
+  }
+
+  // Fallback 2: compute Kanitz from estruturaFinanceira + indicadoresCalculados
+  if (kanitzResults.length === 0 && aiAnalysis?.diagnostico?.estruturaFinanceira) {
+    const ef = aiAnalysis.diagnostico.estruturaFinanceira;
+    const ind = aiAnalysis.indicadoresCalculados || {};
+    const ac = Number(ef.ativo_circulante) || 0;
+    const pc = Number(ef.passivo_circulante) || 0;
+    const pnc = Number(ef.passivo_nao_circulante) || 0;
+    const pl = Number(ef.patrimonio_liquido) || 0;
+    const estoque = Number(ef.estoques) || 0;
+    const ll = Number(ef.lucro_liquido) || 0;
+    const pt = pc + pnc;
+    const rpl = pl !== 0 ? ll / pl : 0;
+    const lg = pt !== 0 ? ac / pt : (Number(ind.liquidezGeral) || 0);
+    const ls = pc !== 0 ? (ac - estoque) / pc : (Number(ind.liquidezSeca) || 0);
+    const lc = pc !== 0 ? ac / pc : (Number(ind.liquidezCorrente) || 0);
+    const ge = pl !== 0 ? -((pc + pnc) / pl) : 0;
+    const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
+    const classificacao: KanitzResult["classificacao"] = fi > 0 ? "solvente" : fi >= -3 ? "penumbra" : "insolvente";
+    kanitzResults = [{
+      year: "Análise IA",
+      rpl, lg, ls, lc, ge, fi, classificacao,
       riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
     }];
   }
