@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Info, TrendingDown } from "lucide-react";
 import { buildMonthlyDataset } from "@/services/auditDatasetBuilder";
+import { buildBSDados, type BalanceteEntry } from "@/services/bsDadosBuilder";
+import { bsDadosToMonthlyDataset } from "@/services/bsDadosToMonthlyDatum";
 import {
   buildCMVOption, buildCMVDespesaOption, buildResultadoOption,
   buildEBITDAOption, buildLiquidezOption, buildEndividamentoOption,
@@ -15,7 +17,11 @@ import {
 } from "@/services/auditChartsOptions";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 
-interface Props { parsedData?: ParsedFinancialData | null }
+interface Props {
+  parsedData?: ParsedFinancialData | null;
+  /** Entradas (arquivo + mês atribuído pelo usuário) — alimentam BS & Dados como fonte única. */
+  entries?: BalanceteEntry[];
+}
 
 const Empty = ({ msg }: { msg: string }) => (
   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
