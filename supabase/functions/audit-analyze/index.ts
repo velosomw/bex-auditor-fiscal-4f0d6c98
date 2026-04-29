@@ -562,7 +562,7 @@ Execute os 4 agentes em sequência e gere a análise completa conforme a estrutu
       alertasIA: (analysis.alertasIA as any[])?.length || 0,
     });
 
-    return new Response(JSON.stringify({ analysis }), {
+    return new Response(JSON.stringify({ analysis, cacheStats }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
