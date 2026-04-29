@@ -17,9 +17,12 @@
  *   - Percentuais derivados → sempre POSITIVOS
  */
 import type { ParsedFinancialData } from "@/services/auditAIService";
-
-// ─── Constantes ──────────────────────────────────────────
-const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+import {
+  MES_FULL,
+  mesKeyToLabel as _mesKeyToLabel,
+  periodToMesKey as _periodToMesKey,
+  detectDuplicates,
+} from "@/services/mesNormalizer";
 
 // Mapeamento Ref 1 (Ref Capital BEX) → chave canônica BS & Dados.
 // Cobertura COMPLETA das 47 referências da aba "BS" do template
