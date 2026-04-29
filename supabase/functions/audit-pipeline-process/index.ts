@@ -69,6 +69,25 @@ interface PipelineRequest {
   };
 }
 
+/* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function buildContentHashSource(body: PipelineRequest): string {
+  const norm = (rows: BalanceteRow[] = []) =>
+    rows.map((r) => `${r.conta || ""}|${r.descricao || ""}|${Number(r.valor) || 0}`).sort().join("\n");
+  return [
+    body.company_id || "",
+    body.documentInfo?.periodo || "",
+    norm(body.balanco),
+    "::dre::",
+    norm(body.dre),
+  ].join("\n");
+}
+
 type NormResult = { conta_normalizada: string; categoria: string; tipo: string; matched: boolean };
 
 /* ──────────────── Logging estruturado (Quick Win 5) ──────────────── */
