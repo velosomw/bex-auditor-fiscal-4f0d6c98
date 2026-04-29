@@ -28,6 +28,9 @@ import PlatformLayout from "@/components/PlatformLayout";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
+import TabBSDados from "@/components/audit/TabBSDados";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { BalanceteEntry } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
@@ -493,29 +496,66 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
 
           {hasFiles ? (
             <div className="space-y-3">
-              {state.config.files.map(f => (
-                <div key={f.id} className="relative border-2 border-dashed border-emerald-400/50 rounded-2xl p-8 text-center bg-emerald-50/30">
-                  <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
-                    {(/\.(pdf)$/i).test(f.fileName) ? (
-                      <FileText className="w-8 h-8 text-emerald-600" />
-                    ) : (/\.(docx?|txt|rtf)$/i).test(f.fileName) ? (
-                      <FileText className="w-8 h-8 text-emerald-600" />
-                    ) : (/\.(json|xml|ofx|sped)$/i).test(f.fileName) ? (
-                      <FileSearch className="w-8 h-8 text-emerald-600" />
-                    ) : (
-                      <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
-                    )}
+              {state.config.files.map(f => {
+                const mes = fileMeses[f.id] || "";
+                const needsMonth = !mes;
+                return (
+                  <div key={f.id} className={`relative border-2 border-dashed rounded-2xl p-5 bg-emerald-50/30 ${needsMonth ? "border-red-400/70" : "border-emerald-400/50"}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        {(/\.(pdf)$/i).test(f.fileName) ? (
+                          <FileText className="w-6 h-6 text-emerald-600" />
+                        ) : (/\.(docx?|txt|rtf)$/i).test(f.fileName) ? (
+                          <FileText className="w-6 h-6 text-emerald-600" />
+                        ) : (/\.(json|xml|ofx|sped)$/i).test(f.fileName) ? (
+                          <FileSearch className="w-6 h-6 text-emerald-600" />
+                        ) : (
+                          <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{f.fileName}</p>
+                        <p className="text-xs text-muted-foreground">{(f.fileSize / 1024).toFixed(2)} KB</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-medium text-emerald-600">Carregado</span>
+                      </div>
+                      <button onClick={() => removeFile(f.id)} className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs">✕</button>
+                    </div>
+
+                    {/* Combo seletivo de mês de referência */}
+                    <div className={`mt-3 p-3 rounded-lg border ${needsMonth ? "border-red-400/60 bg-red-50/60" : "border-emerald-400/40 bg-emerald-50/40"}`}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`text-[11px] font-semibold uppercase tracking-wide ${needsMonth ? "text-red-600" : "text-emerald-700"}`}>
+                          Mês de referência {needsMonth && "*"}
+                        </span>
+                        {needsMonth && <span className="text-[10px] text-red-600">(obrigatório — atribua para liberar a auditoria)</span>}
+                      </div>
+                      <Select value={mes} onValueChange={(v) => setFileMeses(prev => ({ ...prev, [f.id]: v }))}>
+                        <SelectTrigger className={`h-9 text-xs ${needsMonth ? "border-red-400 bg-white" : "bg-white"}`}>
+                          <SelectValue placeholder="Selecione o mês de referência..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {monthOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <p className="text-sm font-semibold text-foreground">{f.fileName}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{(f.fileSize / 1024).toFixed(2)} MB</p>
-                  <div className="flex items-center justify-center gap-1.5 mt-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span className="text-xs font-medium text-emerald-600">Documento carregado</span>
-                  </div>
-                  <button onClick={() => removeFile(f.id)} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs">✕</button>
+                );
+              })}
+              {state.config.files.length < 3 ? (
+                <button onClick={() => document.getElementById("file-input")?.click()} className="w-full py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl hover:bg-muted/30 transition-colors">
+                  + Adicionar outro documento ({state.config.files.length}/3)
+                </button>
+              ) : (
+                <div className="w-full py-2 px-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                  Limite recomendado de 3 documentos atingido. Você pode continuar adicionando, mas a consolidação ideal é com até 3 balancetes.
+                  <button onClick={() => document.getElementById("file-input")?.click()} className="ml-2 underline hover:text-amber-900">+ Adicionar mesmo assim</button>
                 </div>
-              ))}
-              <button onClick={() => document.getElementById("file-input")?.click()} className="w-full py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl hover:bg-muted/30 transition-colors">+ Adicionar outro documento</button>
+              )}
             </div>
           ) : (
             <div
@@ -532,7 +572,7 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
               </div>
               <p className="text-sm font-medium text-foreground">Arraste o documento ou clique para selecionar</p>
               <p className="text-xs text-muted-foreground mt-1">Formatos: PDF, Excel (.xlsx, .xlsm, .xlsb, .xltx, .xltm), Word (.docx), CSV, TXT, JSON, XML, OFX, SPED</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Upload simultâneo de até 20 arquivos</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Carregue até 3 documentos. Defina o mês de referência de cada um após o upload.</p>
             </div>
           )}
           <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.xltx,.xltm,.pdf,.docx,.doc,.txt,.rtf,.json,.xml,.ofx,.sped" onChange={(e) => handleFiles(e.target.files)} />
@@ -576,7 +616,7 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Finalidade do Trabalho</h3>
+            <h3 className="text-sm font-semibold text-foreground">Finalidade do Trabalho (Marcação Opcional)</h3>
             <div className="flex flex-wrap gap-2">
               {purposes.map(p => (
                 <button key={p.id} onClick={() => setPurpose(p.id)}
