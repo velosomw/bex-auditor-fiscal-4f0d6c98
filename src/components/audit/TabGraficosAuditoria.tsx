@@ -11,6 +11,7 @@ import {
   type BalanceteChartsResult,
 } from "@/services/balanceteChartsParser";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import type { BalanceteEntry } from "@/services/bsDadosBuilder";
 import AuditCharts from "@/components/audit/AuditCharts";
 
 interface Props {
@@ -18,6 +19,8 @@ interface Props {
   /** Dados estruturados extraídos pela IA — usados como fallback quando o
    *  arquivo carregado não é o template .xlsm com as abas de gráficos. */
   parsedData?: ParsedFinancialData | null;
+  /** Mês atribuído pelo usuário em cada balancete (consolida BS & Dados). */
+  entries?: BalanceteEntry[];
 }
 
 // Paleta semântica (HSL) — usamos cores fixas para distinção das séries.
