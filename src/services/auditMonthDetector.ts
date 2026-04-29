@@ -227,8 +227,8 @@ export function mergeMultiMonth(
   let docType: string | undefined;
   let ocrScore: number | undefined;
 
-  for (const { fileName, parsed } of items) {
-    const { parsed: p2, months } = relabelYearsAsMonths(parsed, fileName);
+  for (const { fileName, parsed, userMonth } of items) {
+    const { parsed: p2, months } = relabelYearsAsMonths(parsed, fileName, userMonth ?? null);
     perFileMonths.push({ fileName, months });
     months.forEach((m) => {
       if (!allMonths.find((x) => x.key === m.key)) allMonths.push(m);
