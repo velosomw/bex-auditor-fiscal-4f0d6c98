@@ -174,9 +174,14 @@ interface RowLike {
   saldo: number;
 }
 
-// Conjuntos de Refs Capital que agregam totalizadores AC e PC (template BEX)
+// Conjuntos de Refs Capital que agregam totalizadores AC e PC (template BEX).
+// Estes acumuladores SÓ são usados quando o balancete não traz a linha
+// totalizadora explícita "ATIVO CIRCULANTE" / "PASSIVO CIRCULANTE".
 const AC_REFS = new Set(["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]);
 const PC_REFS = new Set(["AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","II1"]);
+
+// Buckets internos por mês para somar componentes (acumulador AC/PC derivado).
+type ComponentBuckets = { ac: number; pc: number; sawACTotal: boolean; sawPCTotal: boolean };
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
@@ -192,7 +197,13 @@ function resolveKey(row: RowLike): keyof BSDadosRow | null {
   return null;
 }
 
-function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number, ref1?: string | null) {
+function applyValue(
+  target: BSDadosRow,
+  key: keyof BSDadosRow,
+  value: number,
+  ref1: string | null | undefined,
+  buckets: ComponentBuckets,
+) {
   const v = Number(value);
   if (!Number.isFinite(v)) return;
   switch (key) {
@@ -204,7 +215,11 @@ function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number, re
     case "resultado":
       (target as any)[key] = (target[key] as number) + v; break;
     case "ativo_circulante":
+      target.ativo_circulante += Math.abs(v);
+      buckets.sawACTotal = true; break;
     case "passivo_circulante":
+      target.passivo_circulante += Math.abs(v);
+      buckets.sawPCTotal = true; break;
     case "estoques":
     case "disponivel":
     case "divida_tributaria":
@@ -215,10 +230,10 @@ function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number, re
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
     default: break;
   }
-  // Agregação dupla: componentes de Ref Capital alimentam totalizadores AC/PC
+  // Acumula componentes para derivar AC/PC SE o balancete não trouxer o total.
   const refUp = ref1 ? toUpperNoAccent(ref1) : "";
-  if (refUp && AC_REFS.has(refUp)) target.ativo_circulante += Math.abs(v);
-  else if (refUp && PC_REFS.has(refUp)) target.passivo_circulante += Math.abs(v);
+  if (refUp && AC_REFS.has(refUp)) buckets.ac += Math.abs(v);
+  else if (refUp && PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
 }
 
 function finalize(row: BSDadosRow): BSDadosRow {
@@ -248,25 +263,40 @@ export function buildBSDados(
   if (!parsed) return [];
   const periodsRaw = parsed.years ?? [];
 
-  // Se o pipeline não detectou meses, usa os atribuídos pelo usuário (1 por entry)
-  const usableMesKeys: string[] = periodsRaw.length
-    ? periodsRaw.map(periodToMesKey)
-    : entries.filter(e => !!e.mesReferencia).map(e => e.mesReferencia!);
+  // Meses atribuídos pelo usuário (autoridade quando presentes).
+  const userMesKeys = entries
+    .map(e => e.mesReferencia)
+    .filter((k): k is string => !!k);
+
+  // Estratégia de meses:
+  //  - Se usuário atribuiu N meses E o pipeline detectou ≤ 1 período, usa entries
+  //    (cenário: 1 balancete sem multi-mês embutido, ou 2-3 balancetes 1-mês cada).
+  //  - Caso contrário, usa periodsRaw (pipeline detectou multi-mês no arquivo).
+  const useUser = userMesKeys.length > 0 && periodsRaw.length <= 1;
+  const usableMesKeys: string[] = useUser
+    ? userMesKeys
+    : (periodsRaw.length ? periodsRaw.map(periodToMesKey) : userMesKeys);
 
   // Detecta duplicatas
   const dupCheck: Record<string, number> = {};
   usableMesKeys.forEach(k => { dupCheck[k] = (dupCheck[k] || 0) + 1; });
 
   const rowsByMes = new Map<string, BSDadosRow>();
+  const bucketsByMes = new Map<string, ComponentBuckets>();
   usableMesKeys.forEach(k => {
-    if (!rowsByMes.has(k)) rowsByMes.set(k, emptyRow(k));
+    if (!rowsByMes.has(k)) {
+      rowsByMes.set(k, emptyRow(k));
+      bucketsByMes.set(k, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
+    }
     if (dupCheck[k] > 1) {
       const r = rowsByMes.get(k)!;
       if (!r.errors.includes("Mês duplicado")) r.errors.push("Mês duplicado entre balancetes");
     }
   });
 
-  // Itera DRE + Balanço, mapeando por período → mesKey
+  // Itera DRE + Balanço, mapeando por período → mesKey.
+  // Quando useUser=true, ignoramos a chave de período do parsed (vem genérica como "2024")
+  // e distribuímos as linhas para todos os meses do usuário (fallback de mês único).
   const allRows = [
     ...((parsed.dre ?? []) as any[]),
     ...((parsed.balanco ?? []) as any[]),
@@ -274,10 +304,11 @@ export function buildBSDados(
 
   for (const row of allRows) {
     const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? null;
-    for (const [period, value] of Object.entries(row.values || {})) {
-      const mesKey = periodToMesKey(period);
-      const target = rowsByMes.get(mesKey);
-      if (!target) continue;
+    const valuesObj = row.values || {};
+    const periodKeys = Object.keys(valuesObj);
+
+    for (const period of periodKeys) {
+      const value = valuesObj[period];
       const key = resolveKey({
         descricao: row.descricao,
         conta: row.conta,
@@ -285,8 +316,30 @@ export function buildBSDados(
         saldo: Number(value) || 0,
       });
       if (!key) continue;
-      applyValue(target, key, Number(value) || 0, ref1);
+
+      // Resolve mesKey: se useUser e parsed só trouxe 1 período, distribuir entre meses do usuário
+      let targetKeys: string[];
+      if (useUser && periodKeys.length <= 1 && userMesKeys.length > 0) {
+        targetKeys = userMesKeys;
+      } else {
+        targetKeys = [periodToMesKey(period)];
+      }
+
+      for (const mesKey of targetKeys) {
+        const target = rowsByMes.get(mesKey);
+        const buckets = bucketsByMes.get(mesKey);
+        if (!target || !buckets) continue;
+        applyValue(target, key, Number(value) || 0, ref1, buckets);
+      }
     }
+  }
+
+  // Se balancete não trouxe linha totalizadora "ATIVO/PASSIVO CIRCULANTE",
+  // usa a soma dos componentes (Refs A..O / AA..II1) como derivado.
+  for (const [mesKey, target] of rowsByMes) {
+    const b = bucketsByMes.get(mesKey)!;
+    if (!b.sawACTotal && b.ac > 0) target.ativo_circulante = b.ac;
+    if (!b.sawPCTotal && b.pc > 0) target.passivo_circulante = b.pc;
   }
 
   return Array.from(rowsByMes.values())
