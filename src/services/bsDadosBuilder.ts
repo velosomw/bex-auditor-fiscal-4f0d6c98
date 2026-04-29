@@ -21,8 +21,29 @@ import type { ParsedFinancialData } from "@/services/auditAIService";
 // ─── Constantes ──────────────────────────────────────────
 const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
-// Mapeamento Ref 1 → chave canônica BS & Dados
+// Mapeamento Ref 1 (Ref Capital BEX) → chave canônica BS & Dados.
+// Cobertura COMPLETA das 47 referências da aba "BS" do template
+// (Ativo Circulante A..O, ANC P..J1, Passivo Circulante AA..II1, PNC PP..FF1, PL GG1/HH1/Resultado).
+// Ref ausente do mapa = ignorada na consolidação (não-zerada apenas se houver fallback regex).
 export const REF1_MAP: Record<string, keyof BSDadosRow> = {
+  // Ativo Circulante (componentes individuais usados pelo dashboard)
+  "A": "disponivel",        // Caixa e Equivalentes
+  "B": "disponivel",        // Aplicações Financeiras
+  "D": "estoques",          // Estoque
+  // Passivo Circulante (componentes da dívida)
+  "AA": "divida_financeira",   // Empréstimos e Financiamentos PC
+  "BB": "fornecedores",        // Fornecedores PC
+  "CC": "divida_trabalhista",  // Obrigações Trabalhistas
+  "DD": "divida_tributaria",   // Obrigações Tributárias
+  "II": "credores_rj",         // Credores RJ
+  "LL": "credores_rj",         // Recuperação Judicial
+  "II1": "divida_tributaria",  // Obrigações tributárias Parceladas PC
+  // Passivo Não Circulante
+  "PP": "fornecedores",        // Fornecedores LP
+  "QQ": "divida_financeira",   // Empréstimos e financiamentos LP
+  "RR": "divida_tributaria",   // Tributárias Parceladas LP
+  "CC1": "credores_rj",        // Credores RJ LP
+  // Aliases textuais (caso o pipeline normalize por nome ao invés de letra)
   "RECEITA": "receita_liquida",
   "RECEITA LIQUIDA": "receita_liquida",
   "RECEITA LÍQUIDA": "receita_liquida",
