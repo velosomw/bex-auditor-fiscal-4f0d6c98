@@ -131,31 +131,9 @@ const toUpperNoAccent = (s: string) =>
     .toUpperCase()
     .trim();
 
-export function mesKeyToLabel(key: string): string {
-  const m = /^(\d{4})-(\d{1,2})$/.exec(key);
-  if (!m) return key;
-  const idx = parseInt(m[2], 10) - 1;
-  if (idx < 0 || idx > 11) return key;
-  return `${MES_FULL[idx]} ${m[1]}`;
-}
-
-export function periodToMesKey(period: string): string {
-  if (!period) return period;
-  const s = period.trim();
-  let m = s.match(/^(\d{4})[-/](\d{1,2})$/);
-  if (m) return `${m[1]}-${m[2].padStart(2, "0")}`;
-  m = s.match(/^(\d{1,2})[-/](\d{4})$/);
-  if (m) return `${m[2]}-${m[1].padStart(2, "0")}`;
-  m = s.match(/^([a-zçãéê]+)[\s\/]+(\d{4})$/i);
-  if (m) {
-    const monthName = toUpperNoAccent(m[1]).slice(0, 3);
-    const idx = MES_FULL.findIndex(n => toUpperNoAccent(n).startsWith(monthName));
-    if (idx >= 0) return `${m[2]}-${String(idx + 1).padStart(2, "0")}`;
-  }
-  m = s.match(/^(\d{4})$/);
-  if (m) return `${m[1]}-12`;
-  return s;
-}
+// Re-exporta para manter compatibilidade dos imports existentes.
+export const mesKeyToLabel = _mesKeyToLabel;
+export const periodToMesKey = _periodToMesKey;
 
 function emptyRow(mesKey: string): BSDadosRow {
   return {
