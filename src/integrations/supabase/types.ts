@@ -167,6 +167,63 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_account_cache: {
+        Row: {
+          categoria: string | null
+          cnpj: string | null
+          company_id: string | null
+          conta_normalizada: string
+          conta_original: string
+          conta_original_normalizada: string
+          created_at: string
+          created_by: string | null
+          hits: number
+          id: string
+          last_value: number | null
+          layer: string
+          periodo: string | null
+          similarity: number | null
+          subcategoria: string | null
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string | null
+          cnpj?: string | null
+          company_id?: string | null
+          conta_normalizada: string
+          conta_original: string
+          conta_original_normalizada: string
+          created_at?: string
+          created_by?: string | null
+          hits?: number
+          id?: string
+          last_value?: number | null
+          layer?: string
+          periodo?: string | null
+          similarity?: number | null
+          subcategoria?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string | null
+          cnpj?: string | null
+          company_id?: string | null
+          conta_normalizada?: string
+          conta_original?: string
+          conta_original_normalizada?: string
+          created_at?: string
+          created_by?: string | null
+          hits?: number
+          id?: string
+          last_value?: number | null
+          layer?: string
+          periodo?: string | null
+          similarity?: number | null
+          subcategoria?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_documents: {
         Row: {
           batch_id: string | null
