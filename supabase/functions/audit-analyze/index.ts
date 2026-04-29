@@ -551,7 +551,7 @@ Execute os 4 agentes em sequência e gere a análise completa conforme a estrutu
       tokens_input: data.usage?.prompt_tokens ?? Math.ceil(userPrompt.length / 4),
       tokens_output: data.usage?.completion_tokens ?? Math.ceil(content.length / 4),
       requests: 1,
-      metadata: { model: "gemini-3-flash-preview", phase: "insight", empresa: (documentInfo as any)?.empresa ?? null },
+      metadata: { model: "gemini-3-flash-preview", phase: "insight", empresa: (documentInfo as any)?.empresa ?? null, cache: cacheStats },
     });
 
     console.log("Multi-agent analysis complete:", {
