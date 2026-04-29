@@ -376,11 +376,28 @@ const TabFinanceiroTokens = () => {
             <h3 className="text-sm font-semibold">Detalhamento do Custo E2E</h3>
             <Badge variant="secondary" className="text-[10px]">{indicators?.periodLabel ?? "Acumulado"}</Badge>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Fórmula: <code>Σ agentes IA (período) + (Σ infra/relatório × nº relatórios)</code>
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-muted-foreground hidden md:block">
+              Fórmula: <code>Σ agentes IA (período) + (Σ infra/relatório × nº relatórios)</code>
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => {
+                const next = !showE2EDetail;
+                setShowE2EDetail(next);
+                try { localStorage.setItem("gestor.e2eDetail.open", next ? "1" : "0"); } catch {}
+              }}
+              aria-expanded={showE2EDetail}
+              aria-controls="e2e-detail-table"
+            >
+              {showE2EDetail ? (<><ChevronUp className="w-3.5 h-3.5 mr-1" />Ocultar</>) : (<><ChevronDown className="w-3.5 h-3.5 mr-1" />Mostrar</>)}
+            </Button>
+          </div>
         </div>
-        <Table>
+        {showE2EDetail && (
+        <Table id="e2e-detail-table">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[34%]">Componente</TableHead>
