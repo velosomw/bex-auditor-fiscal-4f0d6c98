@@ -44,8 +44,13 @@ const ChartTile = ({ option }: { option: any }) => (
   </Card>
 );
 
-const AuditCharts: React.FC<Props> = ({ parsedData }) => {
-  const dataset = useMemo(() => buildMonthlyDataset(parsedData ?? null), [parsedData]);
+const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
+  // FONTE ÚNICA: BS & Dados (Ref Capital). Fallback para builder antigo se vazio.
+  const dataset = useMemo(() => {
+    const bs = buildBSDados(parsedData ?? null, entries);
+    if (bs.length) return bsDadosToMonthlyDataset(bs);
+    return buildMonthlyDataset(parsedData ?? null);
+  }, [parsedData, entries]);
 
   const options = useMemo(() => {
     if (!dataset.length) return null;
