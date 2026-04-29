@@ -848,7 +848,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
             pipelineResult = await runAuditPipeline(
               parsedData,
               files[0]?.name || "balancete",
-              undefined,
+              companyId ?? undefined,
               undefined,
               dedupConfig,
               (ev) => {
@@ -864,6 +864,35 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
             }
           } catch (e) {
             console.warn("Pipeline IA pulado (continuando análise):", e);
+          }
+
+          // P0: Persistência server-side BS & Dados (snapshot auditável em pipeline_analysis_results).
+          // Converte parsedData → balancetes[{mes, linhas[]}] e dispara a Edge Function.
+          try {
+            const { consolidateBSDadosOnServer } = await import("@/services/bsDadosServerClient");
+            const allRows = [...(parsedData?.balanco || []), ...(parsedData?.dre || [])];
+            const periods = parsedData?.years ?? [];
+            const userMeses = (balanceteEntries || [])
+              .map(e => e.mesReferencia)
+              .filter((k): k is string => !!k);
+            const useUser = userMeses.length > 0 && periods.length <= 1;
+            const meses = useUser ? userMeses : (periods.length ? periods : userMeses);
+            const balancetes = meses.map(mes => ({
+              mes,
+              linhas: allRows.map(r => ({
+                conta: r.conta,
+                descricao: r.descricao,
+                saldo: Number(r.values?.[mes] ?? r.values?.[periods.find(p => p === mes) || ""] ?? 0) || 0,
+              })).filter(l => Number.isFinite(l.saldo)),
+            }));
+            if (balancetes.length > 0 && balancetes.some(b => b.linhas.length > 0)) {
+              const persistResp = await consolidateBSDadosOnServer(balancetes);
+              console.log(
+                `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false}`
+              );
+            }
+          } catch (e) {
+            console.warn("Persistência BS & Dados (server) ignorada:", e);
           }
         }
 
