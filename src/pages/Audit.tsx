@@ -1947,7 +1947,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       const lg = kPt !== 0 ? (kAc + kRlp) / kPt : 0;
       const ls = kPc !== 0 ? (kAc - kEstoque) / kPc : 0;
       const lc = kPc !== 0 ? kAc / kPc : 0;
-      const ge = kPl !== 0 ? kPt / kPl : 0;
+      const ge = kPl > 0 ? (kPt / kPl) : 0; // GE positivo conforme MD
       const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
       const classificacao: typeof kanitzResults[0]["classificacao"] =
         fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
@@ -3138,7 +3138,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
       const lg = pt !== 0 ? (ac + rlp) / pt : 0;
       const ls = pc !== 0 ? (ac - estoque) / pc : 0;
       const lc = pc !== 0 ? ac / pc : 0;
-      const ge = pl !== 0 ? pt / pl : 0;
+      const ge = pl > 0 ? (pt / pl) : 0; // GE positivo conforme MD
       const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
 
       const classificacao: typeof kanitzResults[0]["classificacao"] =

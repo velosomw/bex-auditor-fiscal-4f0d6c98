@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Activity, BarChart3, Target, TrendingUp, TrendingDown,
   AlertTriangle, CheckCircle2, Calculator, Shield, Layers,
-  AlertOctagon, Scale
+  AlertOctagon, Scale, ShieldCheck, ShieldAlert, FileSearch
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,12 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import { buildKanitzSeries, mapToLegacyClass, type KanitzResultV2 } from "@/services/kanitzCalculator";
 
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${(n * 100).toFixed(2)}%`;
 const fmtDec = (n: number) => n.toFixed(4);
 
-/* ── Kanitz Computation ── */
+/* ── Kanitz — adapter para o serviço canônico (kanitzCalculator) ── */
 interface KanitzResult {
   year: string;
   rpl: number;
@@ -26,63 +27,33 @@ interface KanitzResult {
   fi: number;
   classificacao: "solvente" | "penumbra" | "insolvente";
   riskScoreNormalized: number;
+  // Camadas 5/6 do MD — preservados para a aba Validação
+  blocked?: boolean;
+  blockReasons?: string[];
+  origem?: string;
+  confianca?: number;
+  v?: KanitzResultV2; // resultado canônico completo
 }
 
-const computeKanitz = (parsedData: ParsedFinancialData | null): KanitzResult[] => {
-  if (!parsedData) return [];
-
-  const findValue = (keyword: string, year: string) => {
-    const allRows = [...parsedData.balanco, ...parsedData.dre];
-    const row = allRows.find(r =>
-      r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword)
-    );
-    return row?.values[year] || 0;
+/** Adapta KanitzResultV2 (canônico) para o shape antigo usado pela UI */
+function toLegacy(r: KanitzResultV2): KanitzResult {
+  return {
+    year: r.periodo,
+    rpl: r.indicators.rl,
+    lg: r.indicators.lg,
+    ls: r.indicators.ls,
+    lc: r.indicators.lc,
+    ge: r.indicators.ge,
+    fi: r.k,
+    classificacao: mapToLegacyClass(r.classificacao),
+    riskScoreNormalized: 0,
+    blocked: r.block.blocked,
+    blockReasons: r.block.reasons,
+    origem: r.input.origem,
+    confianca: r.input.confianca,
+    v: r,
   };
-
-  const results: KanitzResult[] = [];
-
-  for (const year of parsedData.years) {
-    const ac = Math.abs(findValue("total do ativo circulante", year) || findValue("ativo circulante", year));
-    const anc = Math.abs(findValue("total do ativo não circulante", year) || findValue("ativo nao circulante", year));
-    const pc = Math.abs(findValue("total do passivo circulante", year) || findValue("passivo circulante", year));
-    const pnc = Math.abs(findValue("total do passivo não circulante", year) || findValue("passivo nao circulante", year));
-    const pl = Math.abs(findValue("total do patrimônio", year) || findValue("patrimonio líquido", year) || findValue("patrimônio líquido", year));
-    const estoque = Math.abs(findValue("estoque", year));
-    const lucroLiquido = findValue("resultado do exercício", year) || findValue("lucro líquido", year);
-    const rlp = Math.abs(findValue("realizável a longo prazo", year) || findValue("realizavel", year));
-
-    const pt = pc + pnc;
-
-    // Indicadores (Modelo Kanitz — Planilha Giannini)
-    const rpl = pl !== 0 ? lucroLiquido / pl : 0;             // X1 — Rentabilidade do PL
-    const lg = pt !== 0 ? (ac + rlp) / pt : 0;                 // X2 — Liquidez Geral
-    const ls = pc !== 0 ? (ac - estoque) / pc : 0;             // X3 — Liquidez Seca
-    const lc = pc !== 0 ? ac / pc : 0;                          // X4 — Liquidez Corrente
-    const ge = pl !== 0 ? -((pc + pnc) / pl) : 0;              // X5 — Grau de Endividamento (NEGATIVO conforme Giannini)
-
-    // Fator de Insolvência: FI = 0,05·X1 + 1,65·X2 + 3,55·X3 − 1,06·X4 − 0,33·X5
-    const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
-
-    // Classificação
-    const classificacao: KanitzResult["classificacao"] =
-      fi > 0 ? "solvente" : fi >= -3 ? "penumbra" : "insolvente";
-
-    results.push({ year, rpl, lg, ls, lc, ge, fi, classificacao, riskScoreNormalized: 0 });
-  }
-
-  // Normalizar Risk Score (Min-Max)
-  if (results.length > 0) {
-    const fiValues = results.map(r => r.fi);
-    const fiMin = Math.min(...fiValues);
-    const fiMax = Math.max(...fiValues);
-    const range = fiMax - fiMin || 1;
-    results.forEach(r => {
-      r.riskScoreNormalized = Math.round(((r.fi - fiMin) / range) * 100);
-    });
-  }
-
-  return results;
-};
+}
 
 const classColors = {
   solvente: { bg: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", icon: "🟢", label: "Solvente" },
@@ -95,60 +66,22 @@ const classColors = {
    ══════════════════════════════════════════════════════ */
 const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any }) => {
   const [subTab, setSubTab] = useState("visao-geral");
-  let kanitzResults = computeKanitz(parsedData || null);
 
-  // If parsed-data computation produced an all-zero row, treat as empty so fallbacks kick in
-  const allZero = kanitzResults.length > 0 && kanitzResults.every(r =>
-    r.fi === 0 && r.lc === 0 && r.ls === 0 && r.lg === 0 && r.rpl === 0 && r.ge === 0
-  );
-  if (allZero) kanitzResults = [];
+  // ▶ Camadas 1–5 do MD: pipeline canônico (normaliza, calcula, valida, classifica, bloqueia)
+  const v2Series = buildKanitzSeries(parsedData || null, aiAnalysis);
+  const kanitzResults: KanitzResult[] = v2Series.map(toLegacy);
 
-  // Fallback 1: use AI's pre-computed kanitz block
-  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
-    const aiK = aiAnalysis.kanitz;
-    const comp = aiK.componentes || {};
-    const fi = Number(aiK.fatorInsolvencia) || 0;
-    const classificacao: KanitzResult["classificacao"] =
-      aiK.classificacao === "solvente" ? "solvente" :
-      aiK.classificacao === "insolvente" ? "insolvente" : "penumbra";
-    kanitzResults = [{
-      year: "Análise IA",
-      rpl: Number(comp.rpl) || 0,
-      lg: Number(comp.lg) || 0,
-      ls: Number(comp.ls) || 0,
-      lc: Number(comp.lc) || 0,
-      ge: Number(comp.ge) || 0,
-      fi,
-      classificacao,
-      riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
-    }];
+  // Risk Score normalizado (escala min-max do FI por série, exclusivo do display)
+  if (kanitzResults.length > 0) {
+    const fiValues = kanitzResults.map(r => r.fi);
+    const fiMin = Math.min(...fiValues);
+    const fiMax = Math.max(...fiValues);
+    const range = fiMax - fiMin || 1;
+    kanitzResults.forEach(r => {
+      r.riskScoreNormalized = Math.round(((r.fi - fiMin) / range) * 100);
+    });
   }
 
-  // Fallback 2: compute Kanitz from estruturaFinanceira + indicadoresCalculados
-  if (kanitzResults.length === 0 && aiAnalysis?.diagnostico?.estruturaFinanceira) {
-    const ef = aiAnalysis.diagnostico.estruturaFinanceira;
-    const ind = aiAnalysis.indicadoresCalculados || {};
-    const ac = Number(ef.ativo_circulante) || 0;
-    const pc = Number(ef.passivo_circulante) || 0;
-    const pnc = Number(ef.passivo_nao_circulante) || 0;
-    const pl = Number(ef.patrimonio_liquido) || 0;
-    const estoque = Number(ef.estoques) || 0;
-    const ll = Number(ef.lucro_liquido) || 0;
-    const pt = pc + pnc;
-    const rpl = pl !== 0 ? ll / pl : 0;
-    const lg = pt !== 0 ? ac / pt : (Number(ind.liquidezGeral) || 0);
-    const ls = pc !== 0 ? (ac - estoque) / pc : (Number(ind.liquidezSeca) || 0);
-    const lc = pc !== 0 ? ac / pc : (Number(ind.liquidezCorrente) || 0);
-    const ge = pl !== 0 ? -((pc + pnc) / pl) : 0;
-    const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
-    const classificacao: KanitzResult["classificacao"] = fi > 0 ? "solvente" : fi >= -3 ? "penumbra" : "insolvente";
-    kanitzResults = [{
-      year: "Análise IA",
-      rpl, lg, ls, lc, ge, fi, classificacao,
-      riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
-    }];
-  }
-  
   const latest = kanitzResults[kanitzResults.length - 1];
   const previous = kanitzResults.length > 1 ? kanitzResults[kanitzResults.length - 2] : null;
   const fiDelta = previous ? latest?.fi - previous.fi : 0;
@@ -251,6 +184,7 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
           <TabsTrigger value="classificacao" className="text-[10px]">Classificação</TabsTrigger>
           <TabsTrigger value="historico" className="text-[10px]">Histórico Evolutivo</TabsTrigger>
           <TabsTrigger value="risk-engine" className="text-[10px]">Risk Engine</TabsTrigger>
+          <TabsTrigger value="validacao" className="text-[10px]">Validação</TabsTrigger>
           <TabsTrigger value="relatorio" className="text-[10px]">Relatório</TabsTrigger>
         </TabsList>
 
@@ -654,6 +588,185 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
                     </CardContent>
                   </Card>
                 )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ── Validação Kanitz (MD Camadas 5/6) ── */}
+        <TabsContent value="validacao">
+          <div className="space-y-4">
+            {/* Bloqueios */}
+            {kanitzResults.some(r => r.blocked) && (
+              <Card className="border-red-500/40 bg-red-500/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2 text-red-700">
+                    <ShieldAlert className="w-4 h-4" /> Cálculo Bloqueado
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Regras críticas do MD impedem o cálculo enquanto os dados não forem corrigidos.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {kanitzResults.filter(r => r.blocked).map(r => (
+                    <div key={r.year} className="text-xs">
+                      <div className="font-semibold text-red-700">{r.year}</div>
+                      <ul className="list-disc list-inside ml-2 text-red-600/90">
+                        {(r.blockReasons || []).map((b, i) => <li key={i}>{b}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Breakdown técnico */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-accent" /> Breakdown Técnico (Validação dos Indicadores)
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Validação automática conforme intervalos do MD: RL ∈ [-5, +5]; LG, LS, LC ≥ 0; GE ≥ 0.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Período</TableHead>
+                      <TableHead className="text-xs text-right">RL</TableHead>
+                      <TableHead className="text-xs text-right">LG</TableHead>
+                      <TableHead className="text-xs text-right">LS</TableHead>
+                      <TableHead className="text-xs text-right">LC</TableHead>
+                      <TableHead className="text-xs text-right">GE</TableHead>
+                      <TableHead className="text-xs text-right">K</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {kanitzResults.map(r => {
+                      const v = r.v;
+                      const valStatus = (s?: string) => s && s !== "ok" ? (
+                        <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-600 border-red-500/30">{s}</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">ok</Badge>
+                      );
+                      return (
+                        <TableRow key={r.year}>
+                          <TableCell className="text-xs font-medium">{r.year}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.rpl.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.lg.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.ls.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.lc.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono">{r.ge.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs text-right font-mono font-semibold">{r.fi.toFixed(4)}</TableCell>
+                          <TableCell className="text-xs">
+                            <div className="flex flex-wrap gap-1">
+                              {valStatus(v?.validation.rl)}
+                              {valStatus(v?.validation.lg)}
+                              {valStatus(v?.validation.ls)}
+                              {valStatus(v?.validation.lc)}
+                              {valStatus(v?.validation.ge)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+                  K = 0,05·RL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Cross-check Excel (quando IA fornece K como referência) */}
+            {kanitzResults.some(r => r.v?.kExcel !== undefined) && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileSearch className="w-4 h-4 text-accent" /> Cross-check (Plataforma vs Referência)
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Comparação entre o K calculado pela plataforma e o K declarado pela IA / planilha de referência.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Período</TableHead>
+                        <TableHead className="text-xs text-right">K Plataforma</TableHead>
+                        <TableHead className="text-xs text-right">K Referência</TableHead>
+                        <TableHead className="text-xs text-right">Diff</TableHead>
+                        <TableHead className="text-xs">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {kanitzResults.filter(r => r.v?.kExcel !== undefined).map(r => {
+                        const status = r.v?.diffStatus;
+                        const cls =
+                          status === "OK" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" :
+                          status === "WARNING" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" :
+                          "bg-red-500/10 text-red-600 border-red-500/30";
+                        return (
+                          <TableRow key={r.year}>
+                            <TableCell className="text-xs">{r.year}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{r.fi.toFixed(4)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{r.v?.kExcel?.toFixed(4)}</TableCell>
+                            <TableCell className="text-xs text-right font-mono">{r.v?.diff?.toFixed(4)}</TableCell>
+                            <TableCell><Badge variant="outline" className={`text-[10px] ${cls}`}>{status}</Badge></TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Auditoria de Origem */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-accent" /> Auditoria de Origem
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Rastreabilidade: origem dos dados (OCR / IA / manual) e nível de confiança associado.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Período</TableHead>
+                      <TableHead className="text-xs">Origem</TableHead>
+                      <TableHead className="text-xs text-right">Confiança</TableHead>
+                      <TableHead className="text-xs text-right">AC</TableHead>
+                      <TableHead className="text-xs text-right">PC</TableHead>
+                      <TableHead className="text-xs text-right">ELP</TableHead>
+                      <TableHead className="text-xs text-right">PL</TableHead>
+                      <TableHead className="text-xs text-right">Estoques</TableHead>
+                      <TableHead className="text-xs text-right">LL</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {kanitzResults.map(r => (
+                      <TableRow key={r.year}>
+                        <TableCell className="text-xs font-medium">{r.year}</TableCell>
+                        <TableCell className="text-xs uppercase">{r.origem}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{((r.confianca || 0) * 100).toFixed(0)}%</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.ac || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.pc || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.elp || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.pl || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.estoques || 0)}</TableCell>
+                        <TableCell className="text-xs text-right font-mono">{fmt(r.v?.input.lucroLiquido || 0)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </div>
