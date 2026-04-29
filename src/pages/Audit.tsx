@@ -4337,6 +4337,7 @@ const AuditContent = () => {
             onAnalysisReady={handleAnalysisReady}
             dedupConfig={dedupConfig}
             companyId={company?.id ?? null}
+            balanceteEntries={balanceteEntries}
           />
         )}
         {phase === "results" && (
