@@ -4014,8 +4014,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   balanceteEntries?: BalanceteEntry[];
 }) => {
   const navigate = useNavigate();
-  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
-  const [activeTab, setActiveTab] = useState("diagnostico");
+  const isResumido = selectedDepth === "executivo";
+  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(isResumido ? "bex" : "none");
+  const [activeTab, setActiveTab] = useState(isResumido ? "relatorio-final" : "diagnostico");
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
