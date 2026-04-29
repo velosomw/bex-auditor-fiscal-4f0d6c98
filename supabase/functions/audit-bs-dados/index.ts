@@ -237,7 +237,9 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     }
     if (dup[mesKey] > 1) {
       const r = rowsByMes.get(mesKey)!;
-      if (!r.errors.includes("Mês duplicado entre balancetes")) r.errors.push("Mês duplicado entre balancetes");
+      // Regra determinística: SOMA valores (balancetes complementares) + alerta com count.
+      const msg = `Mês duplicado entre balancetes (×${dup[mesKey]}) — valores somados`;
+      if (!r.errors.includes(msg)) r.errors.push(msg);
     }
     const row = rowsByMes.get(mesKey)!;
     const buckets = bucketsByMes.get(mesKey)!;
