@@ -77,52 +77,89 @@ async function resolveAccounts(
   accounts: AccountRow[],
   sb: any,
   apiKey: string,
+  ctx: { companyId?: string | null; periodo?: string | null; userId?: string | null },
 ): Promise<{
   resolved: ResolvedAccount[];
   unresolved: AccountRow[];
-  stats: { total: number; l1: number; l2: number; l3: number; tokensSaved: number };
+  stats: { total: number; l0: number; l1: number; l2: number; l3: number; tokensSaved: number; embeddingsAvoided: number };
 }> {
   const resolved: ResolvedAccount[] = [];
   const unresolved: AccountRow[] = [];
-
-  // ─── L1: match exato no contabil_dictionary ───
   const normMap = new Map(accounts.map(a => [normalizeText(a.conta_original), a]));
   const normKeys = Array.from(normMap.keys());
 
+  // ─── L0: cache persistente por empresa+período (audit_account_cache) ───
+  let cacheRows: any[] = [];
+  if (normKeys.length > 0 && (ctx.companyId || ctx.periodo)) {
+    let q = sb
+      .from("audit_account_cache")
+      .select("conta_original_normalizada, conta_normalizada, categoria, subcategoria, layer, similarity, hits, id")
+      .in("conta_original_normalizada", normKeys);
+    if (ctx.companyId) q = q.eq("company_id", ctx.companyId);
+    if (ctx.periodo) q = q.eq("periodo", ctx.periodo);
+    const { data } = await q;
+    cacheRows = data ?? [];
+  }
+  const cacheByNorm = new Map(cacheRows.map((r: any) => [r.conta_original_normalizada, r]));
+  const l0HitIds: string[] = [];
+  let l0 = 0;
+  const afterL0: AccountRow[] = [];
+  for (const a of accounts) {
+    const hit = cacheByNorm.get(normalizeText(a.conta_original));
+    if (hit) {
+      resolved.push({
+        ...a,
+        conta_normalizada: hit.conta_normalizada,
+        categoria: hit.categoria,
+        subcategoria: hit.subcategoria,
+        layer: "L1_exact", // visualmente como L1 (cache hit é instantâneo)
+        similarity: Number(hit.similarity ?? 0),
+      });
+      l0HitIds.push(hit.id);
+      l0++;
+    } else {
+      afterL0.push(a);
+    }
+  }
+
+  // ─── L1: match exato no contabil_dictionary (somente o que sobrou) ───
+  const remainingNormKeys = afterL0.map(a => normalizeText(a.conta_original));
   let dict: any[] = [];
-  if (normKeys.length > 0) {
+  if (remainingNormKeys.length > 0) {
     const { data } = await sb
       .from("contabil_dictionary")
-      .select("termo_original, termo_original_normalizado, termo_padrao, categoria, subcategoria, frequencia")
-      .in("termo_original_normalizado", normKeys);
+      .select("termo_original_normalizado, termo_padrao, categoria, subcategoria, frequencia")
+      .in("termo_original_normalizado", remainingNormKeys);
     dict = data ?? [];
   }
   const dictByNorm = new Map(dict.map((d: any) => [d.termo_original_normalizado, d]));
 
-  const l1Hits: AccountRow[] = [];
+  const l1Resolved: ResolvedAccount[] = [];
   const remaining: AccountRow[] = [];
-  for (const a of accounts) {
+  for (const a of afterL0) {
     const hit = dictByNorm.get(normalizeText(a.conta_original));
     if (hit && (hit.frequencia ?? 0) >= 3) {
-      resolved.push({
+      const r: ResolvedAccount = {
         ...a,
         conta_normalizada: hit.termo_padrao,
         categoria: hit.categoria,
         subcategoria: hit.subcategoria,
         layer: "L1_exact",
-      });
-      l1Hits.push(a);
+      };
+      resolved.push(r);
+      l1Resolved.push(r);
     } else {
       remaining.push(a);
     }
   }
 
-  // ─── L2: RAG por embedding (apenas para não resolvidas em L1) ───
-  // Limita L2 às top 25 contas mais "valiosas" (por |valor|) para controlar custo de embedding
+  // ─── L2: RAG por embedding (apenas para não resolvidas em L0/L1) ───
+  // Top 25 mais "valiosas" por |valor| para controlar custo de embedding
   const sortedRemaining = [...remaining].sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor));
   const l2Candidates = sortedRemaining.slice(0, 25);
   const l2Skipped = sortedRemaining.slice(25);
 
+  const l2Resolved: ResolvedAccount[] = [];
   for (const a of l2Candidates) {
     const emb = await generateEmbedding(a.conta_original, apiKey);
     if (!emb) { unresolved.push(a); continue; }
@@ -133,29 +170,72 @@ async function resolveAccounts(
     });
     const top = matches?.[0];
     if (top) {
-      resolved.push({
+      const r: ResolvedAccount = {
         ...a,
         conta_normalizada: top.termo_padrao,
         categoria: top.categoria,
         layer: "L2_embedding",
         similarity: Number(top.similarity ?? 0),
-      });
+      };
+      resolved.push(r);
+      l2Resolved.push(r);
     } else {
       unresolved.push(a);
     }
   }
   unresolved.push(...l2Skipped);
 
-  const l1 = l1Hits.length;
-  const l2 = resolved.length - l1;
+  // ─── Persistência: grava L1+L2 novas no cache; incrementa hits dos L0 ───
+  try {
+    if (l0HitIds.length > 0) {
+      // Incrementa hits em batch (sem RPC: select + update individual via upsert)
+      await sb.rpc("noop").catch(() => {}); // placeholder, ignorado
+      // Faz update simples conta a conta (volume baixo)
+      for (const id of l0HitIds) {
+        const row = cacheRows.find((r: any) => r.id === id);
+        if (row) {
+          await sb.from("audit_account_cache")
+            .update({ hits: (row.hits ?? 1) + 1 })
+            .eq("id", id);
+        }
+      }
+    }
+    const toPersist = [...l1Resolved, ...l2Resolved];
+    if (toPersist.length > 0) {
+      const rows = toPersist.map(r => ({
+        company_id: ctx.companyId ?? null,
+        periodo: ctx.periodo ?? null,
+        conta_original: r.conta_original,
+        conta_original_normalizada: normalizeText(r.conta_original),
+        conta_normalizada: r.conta_normalizada,
+        categoria: r.categoria ?? null,
+        subcategoria: r.subcategoria ?? null,
+        layer: r.layer,
+        similarity: r.similarity ?? 0,
+        last_value: r.valor,
+        created_by: ctx.userId ?? null,
+        hits: 1,
+      }));
+      // Upsert pelo índice único (company_id, periodo, conta_original_normalizada)
+      await sb.from("audit_account_cache")
+        .upsert(rows, { onConflict: "company_id,periodo,conta_original_normalizada", ignoreDuplicates: false });
+    }
+  } catch (persistErr) {
+    console.warn("[CACHE] persistência falhou:", persistErr);
+  }
+
+  const l1 = l1Resolved.length;
+  const l2 = l2Resolved.length;
   const l3 = unresolved.length;
-  // Estimativa de tokens economizados (~4 chars/token; conta + valor ~ 60 chars cada)
-  const tokensSaved = Math.round(((l1 + l2) * 60) / 4);
+  // Embeddings evitados = contas que vieram do L0 (e seriam candidatas a embedding)
+  const embeddingsAvoided = l0;
+  // Tokens economizados (~4 chars/token; conta + valor ~ 60 chars cada)
+  const tokensSaved = Math.round(((l0 + l1 + l2) * 60) / 4);
 
   return {
     resolved,
     unresolved,
-    stats: { total: accounts.length, l1, l2, l3, tokensSaved },
+    stats: { total: accounts.length, l0, l1, l2, l3, tokensSaved, embeddingsAvoided },
   };
 }
 
