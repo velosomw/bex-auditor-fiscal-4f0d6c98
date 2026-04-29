@@ -282,16 +282,26 @@ export async function runCostDiagnostics(): Promise<{ updated: number; total: nu
   const cfgByService = new Map(config.map((c) => [c.service, c]));
 
   let updated = 0;
+  let skipped = 0;
   // Recalcula em lote, mas sem permissão de UPDATE em logs → registramos uma "correção" via insert do delta
   // Estratégia: como logs são imutáveis, geramos um log de ajuste (type=adjustment) com a diferença
   for (const l of logs) {
+    if (l.type === "adjustment") continue; // não reaplicar sobre ajustes
     const cfg = cfgByService.get(l.service);
     if (!cfg) continue;
     const recalculated = calculateCost(
       { tokens_input: l.tokens_input, tokens_output: l.tokens_output, requests: l.requests, pages: l.pages },
       cfg,
     );
-    const delta = Number((recalculated - Number(l.cost_calculated || 0)).toFixed(6));
+    const original = Number(l.cost_calculated || 0);
+    const delta = Number((recalculated - original).toFixed(6));
+    // Guard-rail: ignora deltas pequenos e ajustes catastróficos (>10×) que indicam preço corrompido
+    const ratio = original > 0 && recalculated > 0 ? Math.max(original / recalculated, recalculated / original) : 0;
+    if (ratio > 10) {
+      console.warn(`[diagnostic] skipping log ${l.id} (${l.service}): ratio ${ratio.toFixed(1)}× — verifique tabela de preços antes de aplicar.`);
+      skipped += 1;
+      continue;
+    }
     if (Math.abs(delta) > 0.0000001) {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("ai_usage_logs" as any).insert({
