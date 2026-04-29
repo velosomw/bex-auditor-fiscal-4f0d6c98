@@ -57,7 +57,7 @@ const EmptyState = ({ icon: Icon, title }: { icon: any; title: string }) => (
   </div>
 );
 
-const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
+const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
   const [data, setData] = useState<BalanceteChartsResult | null>(null);
   const [loading, setLoading] = useState(false);
 
