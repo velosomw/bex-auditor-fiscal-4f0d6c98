@@ -6,6 +6,159 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ═══════════════════════════════════════════════════════════════
+// CACHE DE APRENDIZADO CONTÁBIL — Camadas 1-3
+// L1: pré-normalização local via contabil_dictionary (match exato)
+// L2: RAG por embedding (match_contabil_dictionary)
+// L3: envia ao Flash somente contas novas (dedupe + chunking)
+// ═══════════════════════════════════════════════════════════════
+
+function normalizeText(s: string): string {
+  return String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+interface AccountRow { conta_original: string; valor: number; origem: "balanco" | "dre" }
+interface ResolvedAccount extends AccountRow {
+  conta_normalizada: string;
+  categoria?: string;
+  subcategoria?: string;
+  layer: "L1_exact" | "L2_embedding" | "L3_ai";
+  similarity?: number;
+}
+
+function flattenAccounts(payload: any, origem: "balanco" | "dre"): AccountRow[] {
+  const out: AccountRow[] = [];
+  const walk = (node: any) => {
+    if (node == null) return;
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+    if (typeof node === "object") {
+      const keys = Object.keys(node);
+      const hasConta = keys.some(k => /conta|descric|nome|titulo/i.test(k));
+      const hasValor = keys.some(k => /valor|saldo|total|montante/i.test(k));
+      if (hasConta && hasValor) {
+        const contaKey = keys.find(k => /conta|descric|nome|titulo/i.test(k))!;
+        const valorKey = keys.find(k => /valor|saldo|total|montante/i.test(k))!;
+        const v = Number(node[valorKey]);
+        const c = String(node[contaKey] ?? "").trim();
+        if (c && Number.isFinite(v)) out.push({ conta_original: c, valor: v, origem });
+      }
+      for (const k of keys) walk(node[k]);
+    }
+  };
+  walk(payload);
+  // dedupe por conta+valor
+  const seen = new Set<string>();
+  return out.filter(r => {
+    const k = `${normalizeText(r.conta_original)}|${r.valor.toFixed(2)}`;
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+}
+
+async function generateEmbedding(text: string, apiKey: string): Promise<number[] | null> {
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/text-embedding-004", input: text }),
+    });
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j?.data?.[0]?.embedding ?? null;
+  } catch { return null; }
+}
+
+async function resolveAccounts(
+  accounts: AccountRow[],
+  sb: any,
+  apiKey: string,
+): Promise<{
+  resolved: ResolvedAccount[];
+  unresolved: AccountRow[];
+  stats: { total: number; l1: number; l2: number; l3: number; tokensSaved: number };
+}> {
+  const resolved: ResolvedAccount[] = [];
+  const unresolved: AccountRow[] = [];
+
+  // ─── L1: match exato no contabil_dictionary ───
+  const normMap = new Map(accounts.map(a => [normalizeText(a.conta_original), a]));
+  const normKeys = Array.from(normMap.keys());
+
+  let dict: any[] = [];
+  if (normKeys.length > 0) {
+    const { data } = await sb
+      .from("contabil_dictionary")
+      .select("termo_original, termo_original_normalizado, termo_padrao, categoria, subcategoria, frequencia")
+      .in("termo_original_normalizado", normKeys);
+    dict = data ?? [];
+  }
+  const dictByNorm = new Map(dict.map((d: any) => [d.termo_original_normalizado, d]));
+
+  const l1Hits: AccountRow[] = [];
+  const remaining: AccountRow[] = [];
+  for (const a of accounts) {
+    const hit = dictByNorm.get(normalizeText(a.conta_original));
+    if (hit && (hit.frequencia ?? 0) >= 3) {
+      resolved.push({
+        ...a,
+        conta_normalizada: hit.termo_padrao,
+        categoria: hit.categoria,
+        subcategoria: hit.subcategoria,
+        layer: "L1_exact",
+      });
+      l1Hits.push(a);
+    } else {
+      remaining.push(a);
+    }
+  }
+
+  // ─── L2: RAG por embedding (apenas para não resolvidas em L1) ───
+  // Limita L2 às top 25 contas mais "valiosas" (por |valor|) para controlar custo de embedding
+  const sortedRemaining = [...remaining].sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor));
+  const l2Candidates = sortedRemaining.slice(0, 25);
+  const l2Skipped = sortedRemaining.slice(25);
+
+  for (const a of l2Candidates) {
+    const emb = await generateEmbedding(a.conta_original, apiKey);
+    if (!emb) { unresolved.push(a); continue; }
+    const { data: matches } = await sb.rpc("match_contabil_dictionary", {
+      query_embedding: emb,
+      match_threshold: 0.85,
+      match_count: 1,
+    });
+    const top = matches?.[0];
+    if (top) {
+      resolved.push({
+        ...a,
+        conta_normalizada: top.termo_padrao,
+        categoria: top.categoria,
+        layer: "L2_embedding",
+        similarity: Number(top.similarity ?? 0),
+      });
+    } else {
+      unresolved.push(a);
+    }
+  }
+  unresolved.push(...l2Skipped);
+
+  const l1 = l1Hits.length;
+  const l2 = resolved.length - l1;
+  const l3 = unresolved.length;
+  // Estimativa de tokens economizados (~4 chars/token; conta + valor ~ 60 chars cada)
+  const tokensSaved = Math.round(((l1 + l2) * 60) / 4);
+
+  return {
+    resolved,
+    unresolved,
+    stats: { total: accounts.length, l1, l2, l3, tokensSaved },
+  };
+}
+
 // ─── Tracking de uso (custos IA) ────────────────────────────────
 async function trackUsage(input: {
   type: string; provider: string; service: string; document_id?: string | null;
