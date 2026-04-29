@@ -73,10 +73,25 @@ const classColors = {
 /* ══════════════════════════════════════════════════════
    TAB KANITZ – TERMÔMETRO DE INSOLVÊNCIA
    ══════════════════════════════════════════════════════ */
-const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any }) => {
+const TabKanitz = ({
+  parsedData, aiAnalysis, balanceteEntries = [], bsDadosRows: bsRowsProp,
+}: {
+  parsedData?: ParsedFinancialData | null;
+  aiAnalysis?: any;
+  balanceteEntries?: BalanceteEntry[];
+  bsDadosRows?: BSDadosRow[];
+}) => {
   const [subTab, setSubTab] = useState("visao-geral");
 
-  // ▶ Camadas 1–5 do MD: pipeline canônico (normaliza, calcula, valida, classifica, bloqueia)
+  // ── BS & Dados (mensal) — fonte canônica para o Score Kanitz Automático ──
+  const bsRows = useMemo<BSDadosRow[]>(
+    () => bsRowsProp ?? buildBSDados(parsedData, balanceteEntries),
+    [bsRowsProp, parsedData, balanceteEntries],
+  );
+  const monthlySeries = useMemo(() => buildKanitzMonthlySeries(bsRows), [bsRows]);
+  const monthlySummary = useMemo(() => summarizeKanitzSeries(monthlySeries), [monthlySeries]);
+
+  // ▶ Camadas 1–5 do MD: pipeline canônico (anual — preservado para compat)
   const v2Series = buildKanitzSeries(parsedData || null, aiAnalysis);
   const kanitzResults: KanitzResult[] = v2Series.map(toLegacy);
 
