@@ -17,9 +17,11 @@
  *   - Percentuais derivados → sempre POSITIVOS
  */
 import type { ParsedFinancialData } from "@/services/auditAIService";
-
-// ─── Constantes ──────────────────────────────────────────
-const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+import {
+  mesKeyToLabel as _mesKeyToLabel,
+  periodToMesKey as _periodToMesKey,
+  detectDuplicates,
+} from "@/services/mesNormalizer";
 
 // Mapeamento Ref 1 (Ref Capital BEX) → chave canônica BS & Dados.
 // Cobertura COMPLETA das 47 referências da aba "BS" do template
@@ -128,31 +130,9 @@ const toUpperNoAccent = (s: string) =>
     .toUpperCase()
     .trim();
 
-export function mesKeyToLabel(key: string): string {
-  const m = /^(\d{4})-(\d{1,2})$/.exec(key);
-  if (!m) return key;
-  const idx = parseInt(m[2], 10) - 1;
-  if (idx < 0 || idx > 11) return key;
-  return `${MES_FULL[idx]} ${m[1]}`;
-}
-
-export function periodToMesKey(period: string): string {
-  if (!period) return period;
-  const s = period.trim();
-  let m = s.match(/^(\d{4})[-/](\d{1,2})$/);
-  if (m) return `${m[1]}-${m[2].padStart(2, "0")}`;
-  m = s.match(/^(\d{1,2})[-/](\d{4})$/);
-  if (m) return `${m[2]}-${m[1].padStart(2, "0")}`;
-  m = s.match(/^([a-zçãéê]+)[\s\/]+(\d{4})$/i);
-  if (m) {
-    const monthName = toUpperNoAccent(m[1]).slice(0, 3);
-    const idx = MES_FULL.findIndex(n => toUpperNoAccent(n).startsWith(monthName));
-    if (idx >= 0) return `${m[2]}-${String(idx + 1).padStart(2, "0")}`;
-  }
-  m = s.match(/^(\d{4})$/);
-  if (m) return `${m[1]}-12`;
-  return s;
-}
+// Re-exporta para manter compatibilidade dos imports existentes.
+export const mesKeyToLabel = _mesKeyToLabel;
+export const periodToMesKey = _periodToMesKey;
 
 function emptyRow(mesKey: string): BSDadosRow {
   return {
@@ -277,20 +257,26 @@ export function buildBSDados(
     ? userMesKeys
     : (periodsRaw.length ? periodsRaw.map(periodToMesKey) : userMesKeys);
 
-  // Detecta duplicatas
-  const dupCheck: Record<string, number> = {};
-  usableMesKeys.forEach(k => { dupCheck[k] = (dupCheck[k] || 0) + 1; });
+  // Detecta duplicatas determinísticas (helper compartilhado).
+  // Regra de mescla padrão p/ duplicidade de balancetes do MESMO mês: SOMA
+  // (assume balancetes complementares — ex.: matriz + filial). Quando o
+  // duplicado é o MESMO arquivo recarregado, o hash dedupe na pipeline já
+  // bloqueia antes de chegar aqui.
+  const { duplicates: dupList } = detectDuplicates(usableMesKeys);
+  const dupSet = new Set(dupList.map(d => d.mesKey));
 
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, ComponentBuckets>();
-  usableMesKeys.forEach(k => {
-    if (!rowsByMes.has(k)) {
-      rowsByMes.set(k, emptyRow(k));
-      bucketsByMes.set(k, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
-    }
-    if (dupCheck[k] > 1) {
+  // Ordem determinística (cronológica) — evita ordens de Set dependentes de inserção.
+  const orderedKeys = Array.from(new Set(usableMesKeys)).sort();
+  orderedKeys.forEach(k => {
+    rowsByMes.set(k, emptyRow(k));
+    bucketsByMes.set(k, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
+    if (dupSet.has(k)) {
       const r = rowsByMes.get(k)!;
-      if (!r.errors.includes("Mês duplicado")) r.errors.push("Mês duplicado entre balancetes");
+      const count = dupList.find(d => d.mesKey === k)?.count ?? 2;
+      const msg = `Mês duplicado entre balancetes (×${count}) — valores somados`;
+      if (!r.errors.includes(msg)) r.errors.push(msg);
     }
   });
 
