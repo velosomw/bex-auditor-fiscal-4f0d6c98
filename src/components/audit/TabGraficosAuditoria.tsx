@@ -11,6 +11,7 @@ import {
   type BalanceteChartsResult,
 } from "@/services/balanceteChartsParser";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import type { BalanceteEntry } from "@/services/bsDadosBuilder";
 import AuditCharts from "@/components/audit/AuditCharts";
 
 interface Props {
@@ -18,6 +19,8 @@ interface Props {
   /** Dados estruturados extraídos pela IA — usados como fallback quando o
    *  arquivo carregado não é o template .xlsm com as abas de gráficos. */
   parsedData?: ParsedFinancialData | null;
+  /** Mês atribuído pelo usuário em cada balancete (consolida BS & Dados). */
+  entries?: BalanceteEntry[];
 }
 
 // Paleta semântica (HSL) — usamos cores fixas para distinção das séries.
@@ -54,7 +57,7 @@ const EmptyState = ({ icon: Icon, title }: { icon: any; title: string }) => (
   </div>
 );
 
-const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
+const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
   const [data, setData] = useState<BalanceteChartsResult | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -274,7 +277,7 @@ const TabGraficosAuditoria = ({ files, parsedData }: Props) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AuditCharts parsedData={parsedData} />
+          <AuditCharts parsedData={parsedData} entries={entries} />
         </CardContent>
       </Card>
 

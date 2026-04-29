@@ -21,8 +21,29 @@ import type { ParsedFinancialData } from "@/services/auditAIService";
 // ─── Constantes ──────────────────────────────────────────
 const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
-// Mapeamento Ref 1 → chave canônica BS & Dados
+// Mapeamento Ref 1 (Ref Capital BEX) → chave canônica BS & Dados.
+// Cobertura COMPLETA das 47 referências da aba "BS" do template
+// (Ativo Circulante A..O, ANC P..J1, Passivo Circulante AA..II1, PNC PP..FF1, PL GG1/HH1/Resultado).
+// Ref ausente do mapa = ignorada na consolidação (não-zerada apenas se houver fallback regex).
 export const REF1_MAP: Record<string, keyof BSDadosRow> = {
+  // Ativo Circulante (componentes individuais usados pelo dashboard)
+  "A": "disponivel",        // Caixa e Equivalentes
+  "B": "disponivel",        // Aplicações Financeiras
+  "D": "estoques",          // Estoque
+  // Passivo Circulante (componentes da dívida)
+  "AA": "divida_financeira",   // Empréstimos e Financiamentos PC
+  "BB": "fornecedores",        // Fornecedores PC
+  "CC": "divida_trabalhista",  // Obrigações Trabalhistas
+  "DD": "divida_tributaria",   // Obrigações Tributárias
+  "II": "credores_rj",         // Credores RJ
+  "LL": "credores_rj",         // Recuperação Judicial
+  "II1": "divida_tributaria",  // Obrigações tributárias Parceladas PC
+  // Passivo Não Circulante
+  "PP": "fornecedores",        // Fornecedores LP
+  "QQ": "divida_financeira",   // Empréstimos e financiamentos LP
+  "RR": "divida_tributaria",   // Tributárias Parceladas LP
+  "CC1": "credores_rj",        // Credores RJ LP
+  // Aliases textuais (caso o pipeline normalize por nome ao invés de letra)
   "RECEITA": "receita_liquida",
   "RECEITA LIQUIDA": "receita_liquida",
   "RECEITA LÍQUIDA": "receita_liquida",
@@ -149,9 +170,13 @@ function emptyRow(mesKey: string): BSDadosRow {
 interface RowLike {
   descricao?: string;
   conta?: string;
-  ref1?: string | null; // pode existir ou não
+  ref1?: string | null;
   saldo: number;
 }
+
+// Conjuntos de Refs Capital que agregam totalizadores AC e PC (template BEX)
+const AC_REFS = new Set(["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]);
+const PC_REFS = new Set(["AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","II1"]);
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
@@ -167,7 +192,7 @@ function resolveKey(row: RowLike): keyof BSDadosRow | null {
   return null;
 }
 
-function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number) {
+function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number, ref1?: string | null) {
   const v = Number(value);
   if (!Number.isFinite(v)) return;
   switch (key) {
@@ -175,9 +200,9 @@ function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number) {
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
     case "cmv":
     case "despesas":
-      (target as any)[key] = (target[key] as number) - Math.abs(v); break; // sempre negativo
+      (target as any)[key] = (target[key] as number) - Math.abs(v); break;
     case "resultado":
-      (target as any)[key] = (target[key] as number) + v; break; // signed
+      (target as any)[key] = (target[key] as number) + v; break;
     case "ativo_circulante":
     case "passivo_circulante":
     case "estoques":
@@ -190,6 +215,10 @@ function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number) {
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
     default: break;
   }
+  // Agregação dupla: componentes de Ref Capital alimentam totalizadores AC/PC
+  const refUp = ref1 ? toUpperNoAccent(ref1) : "";
+  if (refUp && AC_REFS.has(refUp)) target.ativo_circulante += Math.abs(v);
+  else if (refUp && PC_REFS.has(refUp)) target.passivo_circulante += Math.abs(v);
 }
 
 function finalize(row: BSDadosRow): BSDadosRow {
@@ -256,7 +285,7 @@ export function buildBSDados(
         saldo: Number(value) || 0,
       });
       if (!key) continue;
-      applyValue(target, key, Number(value) || 0);
+      applyValue(target, key, Number(value) || 0, ref1);
     }
   }
 
