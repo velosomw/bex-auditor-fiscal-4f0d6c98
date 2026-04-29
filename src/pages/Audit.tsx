@@ -427,13 +427,58 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
-const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDepthChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void }) => {
+const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDedupChange, onDepthChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; onMesesReady?: (entries: BalanceteEntry[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
   useEffect(() => { onDepthChange?.(depth); }, [depth, onDepthChange]);
   const [purpose, setPurpose] = useState<string>("externa");
   const [rawFiles, setRawFiles] = useState<File[]>([]);
+  // mes atribuído por documento: { docId: "2024-03" }
+  const [fileMeses, setFileMeses] = useState<Record<string, string>>({});
+
+  // Combo de meses: últimos 36 meses
+  const monthOptions = useMemo(() => {
+    const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    const opts: { value: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 36; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      opts.push({
+        value: `${y}-${String(m + 1).padStart(2, "0")}`,
+        label: `${MES_FULL[m]} ${y}`,
+      });
+    }
+    return opts;
+  }, []);
+
+  // Auto-detecta mês a partir do nome do arquivo (ex: "balancete_marco_2024.pdf")
+  const detectMesFromName = useCallback((name: string): string | null => {
+    const MES_NAMES: Record<string, number> = {
+      janeiro: 1, jan: 1, fevereiro: 2, fev: 2, marco: 3, "março": 3, mar: 3,
+      abril: 4, abr: 4, maio: 5, mai: 5, junho: 6, jun: 6, julho: 7, jul: 7,
+      agosto: 8, ago: 8, setembro: 9, set: 9, outubro: 10, out: 10,
+      novembro: 11, nov: 11, dezembro: 12, dez: 12,
+    };
+    const lower = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Pattern: nome_mes_ano
+    for (const [k, v] of Object.entries(MES_NAMES)) {
+      const re = new RegExp(`\\b${k}\\b.*?(\\d{4})|\\b(\\d{4})\\b.*?${k}`, "i");
+      const m = lower.match(re);
+      if (m) {
+        const year = m[1] || m[2];
+        return `${year}-${String(v).padStart(2, "0")}`;
+      }
+    }
+    // Pattern: YYYY-MM ou MM-YYYY
+    let m = lower.match(/(\d{4})[-_/](\d{1,2})/);
+    if (m) return `${m[1]}-${m[2].padStart(2, "0")}`;
+    m = lower.match(/(\d{1,2})[-_/](\d{4})/);
+    if (m) return `${m[2]}-${m[1].padStart(2, "0")}`;
+    return null;
+  }, []);
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -448,15 +493,41 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
       tags: ["carregado" as const],
     }));
     setConfig({ files: [...state.config.files, ...newDocs] });
+    // Auto-detect mês para cada novo arquivo
+    setFileMeses(prev => {
+      const next = { ...prev };
+      newDocs.forEach((doc, i) => {
+        const detected = detectMesFromName(filesArr[i].name);
+        if (detected) next[doc.id] = detected;
+      });
+      return next;
+    });
   };
 
   const removeFile = (id: string) => {
     const idx = state.config.files.findIndex(f => f.id === id);
     setConfig({ files: state.config.files.filter(f => f.id !== id) });
     if (idx >= 0) setRawFiles(prev => prev.filter((_, i) => i !== idx));
+    setFileMeses(prev => { const { [id]: _, ...rest } = prev; return rest; });
   };
 
+  const missingMeses = state.config.files.filter(f => !fileMeses[f.id]);
+  const canContinue = state.config.files.length > 0 && missingMeses.length === 0;
+
   const handleContinue = () => {
+    if (!canContinue) {
+      toast({
+        title: "Atribua o mês de referência",
+        description: `${missingMeses.length} documento(s) sem mês. O combo destacado em vermelho é obrigatório.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const entries: BalanceteEntry[] = state.config.files.map(f => ({
+      fileName: f.fileName,
+      mesReferencia: fileMeses[f.id] || null,
+    }));
+    onMesesReady?.(entries);
     onFilesReady(rawFiles);
     onProcess();
   };
