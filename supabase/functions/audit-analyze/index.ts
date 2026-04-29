@@ -341,7 +341,7 @@ Execute os 4 agentes em sequência e gere a análise completa conforme a estrutu
     const analysis = extractAndRepairJson(content);
 
     await trackUsage({
-      type: "relatorio", provider: "google", service: "gemini_pro",
+      type: "relatorio", provider: "google", service: "gemini_flash",
       document_id: (documentInfo as any)?.documentId ?? null,
       tokens_input: data.usage?.prompt_tokens ?? Math.ceil(userPrompt.length / 4),
       tokens_output: data.usage?.completion_tokens ?? Math.ceil(content.length / 4),
