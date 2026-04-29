@@ -170,9 +170,13 @@ function emptyRow(mesKey: string): BSDadosRow {
 interface RowLike {
   descricao?: string;
   conta?: string;
-  ref1?: string | null; // pode existir ou não
+  ref1?: string | null;
   saldo: number;
 }
+
+// Conjuntos de Refs Capital que agregam totalizadores AC e PC (template BEX)
+const AC_REFS = new Set(["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]);
+const PC_REFS = new Set(["AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","II1"]);
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
@@ -188,7 +192,7 @@ function resolveKey(row: RowLike): keyof BSDadosRow | null {
   return null;
 }
 
-function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number) {
+function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number, ref1?: string | null) {
   const v = Number(value);
   if (!Number.isFinite(v)) return;
   switch (key) {
@@ -196,9 +200,9 @@ function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number) {
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
     case "cmv":
     case "despesas":
-      (target as any)[key] = (target[key] as number) - Math.abs(v); break; // sempre negativo
+      (target as any)[key] = (target[key] as number) - Math.abs(v); break;
     case "resultado":
-      (target as any)[key] = (target[key] as number) + v; break; // signed
+      (target as any)[key] = (target[key] as number) + v; break;
     case "ativo_circulante":
     case "passivo_circulante":
     case "estoques":
@@ -211,6 +215,10 @@ function applyValue(target: BSDadosRow, key: keyof BSDadosRow, value: number) {
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
     default: break;
   }
+  // Agregação dupla: componentes de Ref Capital alimentam totalizadores AC/PC
+  const refUp = ref1 ? toUpperNoAccent(ref1) : "";
+  if (refUp && AC_REFS.has(refUp)) target.ativo_circulante += Math.abs(v);
+  else if (refUp && PC_REFS.has(refUp)) target.passivo_circulante += Math.abs(v);
 }
 
 function finalize(row: BSDadosRow): BSDadosRow {
