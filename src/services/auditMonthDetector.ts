@@ -146,25 +146,43 @@ export function detectMonthFromYearLabel(label: string, fallbackMonth?: MonthRef
 export function relabelYearsAsMonths(
   parsed: ParsedFinancialData,
   fileName: string,
+  /** Mês "YYYY-MM" informado manualmente pelo usuário — prioridade máxima sobre detector. */
+  userMonthOverride?: string | null,
 ): { parsed: ParsedFinancialData; months: MonthRef[] } {
+  // Override do usuário: força TODOS os years para o mês informado.
+  let overrideRef: MonthRef | null = null;
+  if (userMonthOverride && /^\d{4}-(0[1-9]|1[0-2])$/.test(userMonthOverride)) {
+    overrideRef = {
+      key: userMonthOverride,
+      label: monthLabel(userMonthOverride),
+      source: "header",
+      confidence: 1,
+    };
+  }
+
   const fnameMonth = detectMonthFromFilename(fileName);
   const map = new Map<string, MonthRef>(); // oldLabel -> month
 
-  for (const y of parsed.years || []) {
-    const m = detectMonthFromYearLabel(y, fnameMonth || undefined);
-    if (m) map.set(y, m);
-  }
-
-  // Se nenhum year mapeou e existe fname → aplica fname a todos
-  if (map.size === 0 && fnameMonth) {
-    for (const y of parsed.years || []) map.set(y, fnameMonth);
-  }
-  // Se ainda assim vazio, usa fallback
-  if (map.size === 0) {
-    const now = new Date();
-    const key = `${now.getFullYear()}-${padMonth(now.getMonth() + 1)}`;
-    const fb: MonthRef = { key, label: monthLabel(key), source: "fallback", confidence: 0.3 };
-    for (const y of parsed.years || ["atual"]) map.set(y, fb);
+  if (overrideRef) {
+    // Usuário definiu — aplica a todos os years existentes (e cria "atual" se vazio).
+    const yrs = parsed.years && parsed.years.length ? parsed.years : ["atual"];
+    for (const y of yrs) map.set(y, overrideRef);
+  } else {
+    for (const y of parsed.years || []) {
+      const m = detectMonthFromYearLabel(y, fnameMonth || undefined);
+      if (m) map.set(y, m);
+    }
+    // Se nenhum year mapeou e existe fname → aplica fname a todos
+    if (map.size === 0 && fnameMonth) {
+      for (const y of parsed.years || []) map.set(y, fnameMonth);
+    }
+    // Se ainda assim vazio, usa fallback
+    if (map.size === 0) {
+      const now = new Date();
+      const key = `${now.getFullYear()}-${padMonth(now.getMonth() + 1)}`;
+      const fb: MonthRef = { key, label: monthLabel(key), source: "fallback", confidence: 0.3 };
+      for (const y of parsed.years || ["atual"]) map.set(y, fb);
+    }
   }
 
   const remap = (rows: ParsedFinancialData["balanco"]) =>
@@ -198,7 +216,7 @@ export function relabelYearsAsMonths(
  * (ex: balancete dividido em 2 abas) — mas como cada arquivo tipicamente é 1 mês, o normal é só agregar.
  */
 export function mergeMultiMonth(
-  items: Array<{ fileName: string; parsed: ParsedFinancialData }>,
+  items: Array<{ fileName: string; parsed: ParsedFinancialData; userMonth?: string | null }>,
 ): MultiMonthParsed {
   const balancoMap = new Map<string, ParsedFinancialData["balanco"][number]>();
   const dreMap = new Map<string, ParsedFinancialData["dre"][number]>();
@@ -209,8 +227,8 @@ export function mergeMultiMonth(
   let docType: string | undefined;
   let ocrScore: number | undefined;
 
-  for (const { fileName, parsed } of items) {
-    const { parsed: p2, months } = relabelYearsAsMonths(parsed, fileName);
+  for (const { fileName, parsed, userMonth } of items) {
+    const { parsed: p2, months } = relabelYearsAsMonths(parsed, fileName, userMonth ?? null);
     perFileMonths.push({ fileName, months });
     months.forEach((m) => {
       if (!allMonths.find((x) => x.key === m.key)) allMonths.push(m);
