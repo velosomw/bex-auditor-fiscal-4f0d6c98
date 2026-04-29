@@ -285,7 +285,7 @@ export function buildBSDados(
         saldo: Number(value) || 0,
       });
       if (!key) continue;
-      applyValue(target, key, Number(value) || 0);
+      applyValue(target, key, Number(value) || 0, ref1);
     }
   }
 
