@@ -649,6 +649,7 @@ export type Database = {
       pipeline_documents: {
         Row: {
           company_id: string | null
+          content_hash: string | null
           created_at: string
           created_by: string
           error_message: string | null
@@ -662,6 +663,7 @@ export type Database = {
         }
         Insert: {
           company_id?: string | null
+          content_hash?: string | null
           created_at?: string
           created_by: string
           error_message?: string | null
@@ -675,6 +677,7 @@ export type Database = {
         }
         Update: {
           company_id?: string | null
+          content_hash?: string | null
           created_at?: string
           created_by?: string
           error_message?: string | null
