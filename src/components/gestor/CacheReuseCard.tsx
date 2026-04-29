@@ -28,8 +28,9 @@ async function loadStats(): Promise<Stats> {
       .limit(2000),
     supabase
       .from("pipeline_documents")
-      .select("content_hash, created_by")
-      .not("content_hash", "is", null)
+      // content_hash recém-criado; cast porque types podem estar atrasados
+      .select("content_hash, created_by" as never)
+      .not("content_hash" as never, "is", null)
       .limit(2000),
     supabase.from("contabil_dictionary").select("embedding").limit(2000),
   ]);
