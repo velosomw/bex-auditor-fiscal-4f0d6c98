@@ -13,7 +13,7 @@ import {
   Calculator, TrendingUp, TrendingDown, BarChart3, PieChart, Activity,
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
-  Settings, ClipboardCheck, FileSearch, BookOpen
+  Settings, ClipboardCheck, FileSearch, BookOpen, Database
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,9 @@ import PlatformLayout from "@/components/PlatformLayout";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
+import TabBSDados from "@/components/audit/TabBSDados";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { BalanceteEntry } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
@@ -424,13 +427,58 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
-const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDepthChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void }) => {
+const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDedupChange, onDepthChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; onMesesReady?: (entries: BalanceteEntry[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
   useEffect(() => { onDepthChange?.(depth); }, [depth, onDepthChange]);
   const [purpose, setPurpose] = useState<string>("externa");
   const [rawFiles, setRawFiles] = useState<File[]>([]);
+  // mes atribuído por documento: { docId: "2024-03" }
+  const [fileMeses, setFileMeses] = useState<Record<string, string>>({});
+
+  // Combo de meses: últimos 36 meses
+  const monthOptions = useMemo(() => {
+    const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    const opts: { value: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 36; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      opts.push({
+        value: `${y}-${String(m + 1).padStart(2, "0")}`,
+        label: `${MES_FULL[m]} ${y}`,
+      });
+    }
+    return opts;
+  }, []);
+
+  // Auto-detecta mês a partir do nome do arquivo (ex: "balancete_marco_2024.pdf")
+  const detectMesFromName = useCallback((name: string): string | null => {
+    const MES_NAMES: Record<string, number> = {
+      janeiro: 1, jan: 1, fevereiro: 2, fev: 2, marco: 3, "março": 3, mar: 3,
+      abril: 4, abr: 4, maio: 5, mai: 5, junho: 6, jun: 6, julho: 7, jul: 7,
+      agosto: 8, ago: 8, setembro: 9, set: 9, outubro: 10, out: 10,
+      novembro: 11, nov: 11, dezembro: 12, dez: 12,
+    };
+    const lower = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Pattern: nome_mes_ano
+    for (const [k, v] of Object.entries(MES_NAMES)) {
+      const re = new RegExp(`\\b${k}\\b.*?(\\d{4})|\\b(\\d{4})\\b.*?${k}`, "i");
+      const m = lower.match(re);
+      if (m) {
+        const year = m[1] || m[2];
+        return `${year}-${String(v).padStart(2, "0")}`;
+      }
+    }
+    // Pattern: YYYY-MM ou MM-YYYY
+    let m = lower.match(/(\d{4})[-_/](\d{1,2})/);
+    if (m) return `${m[1]}-${m[2].padStart(2, "0")}`;
+    m = lower.match(/(\d{1,2})[-_/](\d{4})/);
+    if (m) return `${m[2]}-${m[1].padStart(2, "0")}`;
+    return null;
+  }, []);
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -445,15 +493,41 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
       tags: ["carregado" as const],
     }));
     setConfig({ files: [...state.config.files, ...newDocs] });
+    // Auto-detect mês para cada novo arquivo
+    setFileMeses(prev => {
+      const next = { ...prev };
+      newDocs.forEach((doc, i) => {
+        const detected = detectMesFromName(filesArr[i].name);
+        if (detected) next[doc.id] = detected;
+      });
+      return next;
+    });
   };
 
   const removeFile = (id: string) => {
     const idx = state.config.files.findIndex(f => f.id === id);
     setConfig({ files: state.config.files.filter(f => f.id !== id) });
     if (idx >= 0) setRawFiles(prev => prev.filter((_, i) => i !== idx));
+    setFileMeses(prev => { const { [id]: _, ...rest } = prev; return rest; });
   };
 
+  const missingMeses = state.config.files.filter(f => !fileMeses[f.id]);
+  const canContinue = state.config.files.length > 0 && missingMeses.length === 0;
+
   const handleContinue = () => {
+    if (!canContinue) {
+      toast({
+        title: "Atribua o mês de referência",
+        description: `${missingMeses.length} documento(s) sem mês. O combo destacado em vermelho é obrigatório.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const entries: BalanceteEntry[] = state.config.files.map(f => ({
+      fileName: f.fileName,
+      mesReferencia: fileMeses[f.id] || null,
+    }));
+    onMesesReady?.(entries);
     onFilesReady(rawFiles);
     onProcess();
   };
@@ -493,29 +567,66 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
 
           {hasFiles ? (
             <div className="space-y-3">
-              {state.config.files.map(f => (
-                <div key={f.id} className="relative border-2 border-dashed border-emerald-400/50 rounded-2xl p-8 text-center bg-emerald-50/30">
-                  <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
-                    {(/\.(pdf)$/i).test(f.fileName) ? (
-                      <FileText className="w-8 h-8 text-emerald-600" />
-                    ) : (/\.(docx?|txt|rtf)$/i).test(f.fileName) ? (
-                      <FileText className="w-8 h-8 text-emerald-600" />
-                    ) : (/\.(json|xml|ofx|sped)$/i).test(f.fileName) ? (
-                      <FileSearch className="w-8 h-8 text-emerald-600" />
-                    ) : (
-                      <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
-                    )}
+              {state.config.files.map(f => {
+                const mes = fileMeses[f.id] || "";
+                const needsMonth = !mes;
+                return (
+                  <div key={f.id} className={`relative border-2 border-dashed rounded-2xl p-5 bg-emerald-50/30 ${needsMonth ? "border-red-400/70" : "border-emerald-400/50"}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        {(/\.(pdf)$/i).test(f.fileName) ? (
+                          <FileText className="w-6 h-6 text-emerald-600" />
+                        ) : (/\.(docx?|txt|rtf)$/i).test(f.fileName) ? (
+                          <FileText className="w-6 h-6 text-emerald-600" />
+                        ) : (/\.(json|xml|ofx|sped)$/i).test(f.fileName) ? (
+                          <FileSearch className="w-6 h-6 text-emerald-600" />
+                        ) : (
+                          <FileSpreadsheet className="w-6 h-6 text-emerald-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{f.fileName}</p>
+                        <p className="text-xs text-muted-foreground">{(f.fileSize / 1024).toFixed(2)} KB</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-medium text-emerald-600">Carregado</span>
+                      </div>
+                      <button onClick={() => removeFile(f.id)} className="w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs">✕</button>
+                    </div>
+
+                    {/* Combo seletivo de mês de referência */}
+                    <div className={`mt-3 p-3 rounded-lg border ${needsMonth ? "border-red-400/60 bg-red-50/60" : "border-emerald-400/40 bg-emerald-50/40"}`}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`text-[11px] font-semibold uppercase tracking-wide ${needsMonth ? "text-red-600" : "text-emerald-700"}`}>
+                          Mês de referência {needsMonth && "*"}
+                        </span>
+                        {needsMonth && <span className="text-[10px] text-red-600">(obrigatório — atribua para liberar a auditoria)</span>}
+                      </div>
+                      <Select value={mes} onValueChange={(v) => setFileMeses(prev => ({ ...prev, [f.id]: v }))}>
+                        <SelectTrigger className={`h-9 text-xs ${needsMonth ? "border-red-400 bg-white" : "bg-white"}`}>
+                          <SelectValue placeholder="Selecione o mês de referência..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {monthOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <p className="text-sm font-semibold text-foreground">{f.fileName}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{(f.fileSize / 1024).toFixed(2)} MB</p>
-                  <div className="flex items-center justify-center gap-1.5 mt-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span className="text-xs font-medium text-emerald-600">Documento carregado</span>
-                  </div>
-                  <button onClick={() => removeFile(f.id)} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs">✕</button>
+                );
+              })}
+              {state.config.files.length < 3 ? (
+                <button onClick={() => document.getElementById("file-input")?.click()} className="w-full py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl hover:bg-muted/30 transition-colors">
+                  + Adicionar outro documento ({state.config.files.length}/3)
+                </button>
+              ) : (
+                <div className="w-full py-2 px-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                  Limite recomendado de 3 documentos atingido. Você pode continuar adicionando, mas a consolidação ideal é com até 3 balancetes.
+                  <button onClick={() => document.getElementById("file-input")?.click()} className="ml-2 underline hover:text-amber-900">+ Adicionar mesmo assim</button>
                 </div>
-              ))}
-              <button onClick={() => document.getElementById("file-input")?.click()} className="w-full py-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl hover:bg-muted/30 transition-colors">+ Adicionar outro documento</button>
+              )}
             </div>
           ) : (
             <div
@@ -532,7 +643,7 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
               </div>
               <p className="text-sm font-medium text-foreground">Arraste o documento ou clique para selecionar</p>
               <p className="text-xs text-muted-foreground mt-1">Formatos: PDF, Excel (.xlsx, .xlsm, .xlsb, .xltx, .xltm), Word (.docx), CSV, TXT, JSON, XML, OFX, SPED</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Upload simultâneo de até 20 arquivos</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Carregue até 3 documentos. Defina o mês de referência de cada um após o upload.</p>
             </div>
           )}
           <input id="file-input" type="file" hidden multiple accept=".xlsx,.xls,.csv,.xlsm,.xlsb,.xltx,.xltm,.pdf,.docx,.doc,.txt,.rtf,.json,.xml,.ofx,.sped" onChange={(e) => handleFiles(e.target.files)} />
@@ -576,7 +687,7 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Finalidade do Trabalho</h3>
+            <h3 className="text-sm font-semibold text-foreground">Finalidade do Trabalho (Marcação Opcional)</h3>
             <div className="flex flex-wrap gap-2">
               {purposes.map(p => (
                 <button key={p.id} onClick={() => setPurpose(p.id)}
@@ -593,8 +704,14 @@ const UploadPhase = ({ onProcess, onFilesReady, dedupConfig, onDedupChange, onDe
         <DedupPresetForm value={dedupConfig} onChange={onDedupChange} />
       </div>
 
-      <div className="flex justify-center pt-2">
-        <Button onClick={handleContinue} disabled={!hasFiles}
+      <div className="flex flex-col items-center pt-2 gap-2">
+        {hasFiles && missingMeses.length > 0 && (
+          <p className="text-xs text-red-600 font-medium flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Atribua o mês de referência em {missingMeses.length} documento(s) destacado(s) em vermelho.
+          </p>
+        )}
+        <Button onClick={handleContinue} disabled={!canContinue}
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
           Fazer Auditoria <ArrowRight className="w-5 h-5" />
         </Button>
@@ -3884,7 +4001,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico" }: { 
+const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [] }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -3894,6 +4011,7 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
   source?: "auditor_chefe" | "usuario" | "empresa";
   uploadedFiles?: File[];
   selectedDepth?: "executivo" | "tecnico";
+  balanceteEntries?: BalanceteEntry[];
 }) => {
   const navigate = useNavigate();
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">("none");
@@ -3991,11 +4109,14 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
           <TabsTrigger value="patrimonial" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Layers className="w-3.5 h-3.5" /> Patrimonial
           </TabsTrigger>
-          <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
-            <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
+          <TabsTrigger value="bs-dados" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+            <Database className="w-3.5 h-3.5" /> BS &amp; Dados
           </TabsTrigger>
           <TabsTrigger value="graficos-auditoria" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <BarChart3 className="w-3.5 h-3.5" /> Gráficos de Auditoria
+          </TabsTrigger>
+          <TabsTrigger value="risco-rj" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+            <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
           </TabsTrigger>
           <TabsTrigger value="kanitz" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Scale className="w-3.5 h-3.5" /> Kanitz
@@ -4010,9 +4131,10 @@ const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, com
         <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="bs-dados"><TabBSDados parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria"><TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
+        <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="relatorio-final">
           {reportType === "bex" ? (
             <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} onSwitchToKanitz={handleGerarKanitz} variant="resumido" />
@@ -4047,6 +4169,7 @@ const AuditContent = () => {
   const [multiMonth, setMultiMonth] = useState<import("@/services/auditMonthDetector").MultiMonthParsed | null>(null);
   const [filteredMonths, setFilteredMonths] = useState<string[]>([]);
   const [preParsing, setPreParsing] = useState(false);
+  const [balanceteEntries, setBalanceteEntries] = useState<BalanceteEntry[]>([]);
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
@@ -4124,6 +4247,7 @@ const AuditContent = () => {
               }
             }} 
             onFilesReady={setUploadedFiles}
+            onMesesReady={setBalanceteEntries}
             dedupConfig={dedupConfig}
             onDedupChange={setDedupConfig}
             onDepthChange={setSelectedDepth}
@@ -4155,6 +4279,7 @@ const AuditContent = () => {
             source={reportSource}
             uploadedFiles={uploadedFiles}
             selectedDepth={selectedDepth}
+            balanceteEntries={balanceteEntries}
           />
         )}
       </div>
