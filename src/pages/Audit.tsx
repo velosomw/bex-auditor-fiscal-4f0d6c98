@@ -437,21 +437,21 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
   // mes atribuído por documento: { docId: "2024-03" }
   const [fileMeses, setFileMeses] = useState<Record<string, string>>({});
 
-  // Combo de meses: últimos 36 meses
+  // Ano vigente (atual) até 2029; usuário seleciona mês + ano
+  const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const start = Math.min(currentYear, 2026);
+    const years: number[] = [];
+    for (let y = start; y <= 2029; y++) years.push(y);
+    return years;
+  }, []);
+  const [fileYears, setFileYears] = useState<Record<string, number>>({});
   const monthOptions = useMemo(() => {
-    const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-    const opts: { value: string; label: string }[] = [];
-    const now = new Date();
-    for (let i = 0; i < 36; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const y = d.getFullYear();
-      const m = d.getMonth();
-      opts.push({
-        value: `${y}-${String(m + 1).padStart(2, "0")}`,
-        label: `${MES_FULL[m]} ${y}`,
-      });
-    }
-    return opts;
+    return MES_FULL.map((label, idx) => ({
+      value: String(idx + 1).padStart(2, "0"),
+      label,
+    }));
   }, []);
 
   // Auto-detecta mês a partir do nome do arquivo (ex: "balancete_marco_2024.pdf")
