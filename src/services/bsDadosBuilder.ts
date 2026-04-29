@@ -18,7 +18,6 @@
  */
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import {
-  MES_FULL,
   mesKeyToLabel as _mesKeyToLabel,
   periodToMesKey as _periodToMesKey,
   detectDuplicates,
