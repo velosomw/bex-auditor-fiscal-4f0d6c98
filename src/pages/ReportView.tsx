@@ -50,6 +50,7 @@ const ReportView = () => {
               aiAnalysis={report.aiAnalysis}
               parsedData={report.parsedData}
               selectedDepth="tecnico"
+              skipPersist
             />
           ) : (
             <TabRelatorioFinal
