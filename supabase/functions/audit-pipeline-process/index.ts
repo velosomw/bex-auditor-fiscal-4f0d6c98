@@ -69,6 +69,25 @@ interface PipelineRequest {
   };
 }
 
+/* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function buildContentHashSource(body: PipelineRequest): string {
+  const norm = (rows: BalanceteRow[] = []) =>
+    rows.map((r) => `${r.conta || ""}|${r.descricao || ""}|${Number(r.valor) || 0}`).sort().join("\n");
+  return [
+    body.company_id || "",
+    body.documentInfo?.periodo || "",
+    norm(body.balanco),
+    "::dre::",
+    norm(body.dre),
+  ].join("\n");
+}
+
 type NormResult = { conta_normalizada: string; categoria: string; tipo: string; matched: boolean };
 
 /* ──────────────── Logging estruturado (Quick Win 5) ──────────────── */
@@ -1221,6 +1240,11 @@ serve(async (req) => {
 
     // 1. Registrar (ou reutilizar) documento — sincronamente
     let documentId: string;
+    let dedupHit = false;
+
+    // Item 4: SHA-256 do conteúdo para detectar reprocessamentos idênticos
+    const contentHash = await sha256Hex(buildContentHashSource(body));
+
     if (body.document_id) {
       const { data: existingDoc } = await supabase
         .from("pipeline_documents")
@@ -1230,48 +1254,71 @@ serve(async (req) => {
       if (!existingDoc) throw new Error(`document_id ${body.document_id} não encontrado`);
       // deno-lint-ignore no-explicit-any
       documentId = (existingDoc as any).id;
-      const updatePayload: Record<string, unknown> = { status: "normalizing" };
+      const updatePayload: Record<string, unknown> = { status: "normalizing", content_hash: contentHash };
       if (body.company_id) updatePayload.company_id = body.company_id;
       await supabase.from("pipeline_documents").update(updatePayload).eq("id", documentId);
     } else {
-      const { data: doc, error: docErr } = await supabase
+      // Tenta reaproveitar documento já processado com mesmo content_hash + created_by + status=completed
+      const { data: dup } = await supabase
         .from("pipeline_documents")
-        .insert({
-          company_id: body.company_id || null,
-          file_name: body.file_name,
-          file_type: body.file_name.split(".").pop() || "unknown",
-          status: "normalizing",
-          created_by: userId,
-        })
-        .select()
-        .single();
-      if (docErr || !doc) throw new Error(`Falha ao registrar documento: ${docErr?.message}`);
-      // deno-lint-ignore no-explicit-any
-      documentId = (doc as any).id;
+        .select("id, status")
+        .eq("content_hash", contentHash)
+        .eq("created_by", userId)
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (dup?.id) {
+        documentId = (dup as { id: string }).id;
+        dedupHit = true;
+        stageLog(reqId, "document.dedup_hit", { document_id: documentId, content_hash: contentHash });
+      } else {
+        const { data: doc, error: docErr } = await supabase
+          .from("pipeline_documents")
+          .insert({
+            company_id: body.company_id || null,
+            file_name: body.file_name,
+            file_type: body.file_name.split(".").pop() || "unknown",
+            status: "normalizing",
+            created_by: userId,
+            content_hash: contentHash,
+          })
+          .select()
+          .single();
+        if (docErr || !doc) throw new Error(`Falha ao registrar documento: ${docErr?.message}`);
+        // deno-lint-ignore no-explicit-any
+        documentId = (doc as any).id;
+      }
     }
-    stageLog(reqId, "document.ready", { document_id: documentId });
+    stageLog(reqId, "document.ready", { document_id: documentId, dedup_hit: dedupHit });
 
     // 2. Dispara worker em background (não bloqueia a resposta — sem idle timeout)
-    // deno-lint-ignore no-explicit-any
-    const edgeRt = (globalThis as any).EdgeRuntime;
-    const workerPromise = runPipeline(reqId, body, documentId, supabase, tStart);
-    if (edgeRt?.waitUntil) {
-      edgeRt.waitUntil(workerPromise);
-    } else {
-      // Fallback local: apenas dispara sem await
-      workerPromise.catch((e) => console.error("worker bg error:", e));
+    //    Item 4: se for dedup hit, pula o worker — documento já processado.
+    if (!dedupHit) {
+      // deno-lint-ignore no-explicit-any
+      const edgeRt = (globalThis as any).EdgeRuntime;
+      const workerPromise = runPipeline(reqId, body, documentId, supabase, tStart);
+      if (edgeRt?.waitUntil) {
+        edgeRt.waitUntil(workerPromise);
+      } else {
+        // Fallback local: apenas dispara sem await
+        workerPromise.catch((e) => console.error("worker bg error:", e));
+      }
     }
 
     // 3. Retorna 202 imediatamente — cliente faz polling em pipeline_documents.status
     return new Response(
       JSON.stringify({
-        status: "processing",
+        status: dedupHit ? "completed" : "processing",
         document_id: documentId,
         req_id: reqId,
-        message:
-          "Documento enfileirado para processamento em background. Faça polling em pipeline_documents.status até 'completed' ou 'failed'.",
+        dedup_hit: dedupHit,
+        message: dedupHit
+          ? "Documento já processado anteriormente — reaproveitando resultado (dedup por SHA-256)."
+          : "Documento enfileirado para processamento em background. Faça polling em pipeline_documents.status até 'completed' ou 'failed'.",
       }),
-      { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: dedupHit ? 200 : 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     stageLog(reqId, "request.error", { error: e instanceof Error ? e.message : String(e) });
