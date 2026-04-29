@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_mapping: {
+        Row: {
+          categoria: string
+          confidence: number
+          created_at: string
+          hits: number
+          id: string
+          last_seen_at: string
+          original_name: string
+          original_normalized: string | null
+          ref1: string | null
+          source: string | null
+          subcategoria: string | null
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          confidence?: number
+          created_at?: string
+          hits?: number
+          id?: string
+          last_seen_at?: string
+          original_name: string
+          original_normalized?: string | null
+          ref1?: string | null
+          source?: string | null
+          subcategoria?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          confidence?: number
+          created_at?: string
+          hits?: number
+          id?: string
+          last_seen_at?: string
+          original_name?: string
+          original_normalized?: string | null
+          ref1?: string | null
+          source?: string | null
+          subcategoria?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       accounting_firms: {
         Row: {
           address: string | null
@@ -283,6 +328,47 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          audit_id: string | null
+          created_at: string
+          duration_ms: number | null
+          etapa: string
+          id: string
+          message: string | null
+          payload: Json | null
+          status: string
+        }
+        Insert: {
+          audit_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          etapa: string
+          id?: string
+          message?: string | null
+          payload?: Json | null
+          status: string
+        }
+        Update: {
+          audit_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          etapa?: string
+          id?: string
+          message?: string | null
+          payload?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_reports: {
         Row: {
           ai_analysis: Json | null
@@ -357,6 +443,56 @@ export type Database = {
           },
         ]
       }
+      audits: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          meses_count: number
+          metadata: Json | null
+          name: string
+          status: string
+          updated_at: string
+          variant: string
+          version: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          meses_count?: number
+          metadata?: Json | null
+          name?: string
+          status?: string
+          updated_at?: string
+          variant?: string
+          version?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          meses_count?: number
+          metadata?: Json | null
+          name?: string
+          status?: string
+          updated_at?: string
+          variant?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       balancete_data: {
         Row: {
           categoria: string | null
@@ -400,6 +536,177 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "pipeline_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      balancete_lines: {
+        Row: {
+          balancete_id: string
+          categoria: string | null
+          classification_layer: string | null
+          confidence: number | null
+          conta: string
+          created_at: string
+          descricao: string | null
+          id: string
+          ref1: string | null
+          saldo: number
+          subcategoria: string | null
+        }
+        Insert: {
+          balancete_id: string
+          categoria?: string | null
+          classification_layer?: string | null
+          confidence?: number | null
+          conta: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ref1?: string | null
+          saldo?: number
+          subcategoria?: string | null
+        }
+        Update: {
+          balancete_id?: string
+          categoria?: string | null
+          classification_layer?: string | null
+          confidence?: number | null
+          conta?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ref1?: string | null
+          saldo?: number
+          subcategoria?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balancete_lines_balancete_id_fkey"
+            columns: ["balancete_id"]
+            isOneToOne: false
+            referencedRelation: "balancetes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      balancetes: {
+        Row: {
+          audit_id: string
+          content_hash: string | null
+          created_at: string
+          created_by: string
+          file_name: string
+          id: string
+          mes_referencia: string
+          pipeline_document_id: string | null
+          total_linhas: number
+        }
+        Insert: {
+          audit_id: string
+          content_hash?: string | null
+          created_at?: string
+          created_by: string
+          file_name: string
+          id?: string
+          mes_referencia: string
+          pipeline_document_id?: string | null
+          total_linhas?: number
+        }
+        Update: {
+          audit_id?: string
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          id?: string
+          mes_referencia?: string
+          pipeline_document_id?: string | null
+          total_linhas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balancetes_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bs_dados: {
+        Row: {
+          ativo_circulante: number
+          audit_id: string
+          cmv: number
+          created_at: string
+          credores_rj: number
+          despesas: number
+          disponivel: number
+          divida_financeira: number
+          divida_total: number
+          divida_trabalhista: number
+          divida_tributaria: number
+          errors: Json | null
+          estoques: number
+          fornecedores: number
+          id: string
+          mes: string
+          passivo_circulante: number
+          receita_liquida: number
+          resultado: number
+          updated_at: string
+        }
+        Insert: {
+          ativo_circulante?: number
+          audit_id: string
+          cmv?: number
+          created_at?: string
+          credores_rj?: number
+          despesas?: number
+          disponivel?: number
+          divida_financeira?: number
+          divida_total?: number
+          divida_trabalhista?: number
+          divida_tributaria?: number
+          errors?: Json | null
+          estoques?: number
+          fornecedores?: number
+          id?: string
+          mes: string
+          passivo_circulante?: number
+          receita_liquida?: number
+          resultado?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo_circulante?: number
+          audit_id?: string
+          cmv?: number
+          created_at?: string
+          credores_rj?: number
+          despesas?: number
+          disponivel?: number
+          divida_financeira?: number
+          divida_total?: number
+          divida_trabalhista?: number
+          divida_tributaria?: number
+          errors?: Json | null
+          estoques?: number
+          fornecedores?: number
+          id?: string
+          mes?: string
+          passivo_circulante?: number
+          receita_liquida?: number
+          resultado?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bs_dados_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
             referencedColumns: ["id"]
           },
         ]
@@ -560,6 +867,103 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "pipeline_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      indicadores: {
+        Row: {
+          audit_id: string
+          cmv_despesa_percent: number | null
+          cmv_percent: number | null
+          created_at: string
+          despesa_percent: number | null
+          id: string
+          liquidez_corrente: number | null
+          liquidez_imediata: number | null
+          liquidez_seca: number | null
+          mes: string
+          resultado_percent: number | null
+        }
+        Insert: {
+          audit_id: string
+          cmv_despesa_percent?: number | null
+          cmv_percent?: number | null
+          created_at?: string
+          despesa_percent?: number | null
+          id?: string
+          liquidez_corrente?: number | null
+          liquidez_imediata?: number | null
+          liquidez_seca?: number | null
+          mes: string
+          resultado_percent?: number | null
+        }
+        Update: {
+          audit_id?: string
+          cmv_despesa_percent?: number | null
+          cmv_percent?: number | null
+          created_at?: string
+          despesa_percent?: number | null
+          id?: string
+          liquidez_corrente?: number | null
+          liquidez_imediata?: number | null
+          liquidez_seca?: number | null
+          mes?: string
+          resultado_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicadores_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insights: {
+        Row: {
+          audit_id: string
+          created_at: string
+          diagnostico: string | null
+          generated_by: string | null
+          id: string
+          positivos: Json | null
+          problemas: Json | null
+          recomendacoes: Json | null
+          riscos: Json | null
+          tendencia: string | null
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string
+          diagnostico?: string | null
+          generated_by?: string | null
+          id?: string
+          positivos?: Json | null
+          problemas?: Json | null
+          recomendacoes?: Json | null
+          riscos?: Json | null
+          tendencia?: string | null
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string
+          diagnostico?: string | null
+          generated_by?: string | null
+          id?: string
+          positivos?: Json | null
+          problemas?: Json | null
+          recomendacoes?: Json | null
+          riscos?: Json | null
+          tendencia?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insights_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
             referencedColumns: ["id"]
           },
         ]
