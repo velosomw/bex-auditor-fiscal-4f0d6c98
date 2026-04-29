@@ -184,6 +184,7 @@ const TabKanitz = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialDat
           <TabsTrigger value="classificacao" className="text-[10px]">Classificação</TabsTrigger>
           <TabsTrigger value="historico" className="text-[10px]">Histórico Evolutivo</TabsTrigger>
           <TabsTrigger value="risk-engine" className="text-[10px]">Risk Engine</TabsTrigger>
+          <TabsTrigger value="validacao" className="text-[10px]">Validação</TabsTrigger>
           <TabsTrigger value="relatorio" className="text-[10px]">Relatório</TabsTrigger>
         </TabsList>
 
