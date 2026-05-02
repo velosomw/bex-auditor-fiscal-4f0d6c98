@@ -51,14 +51,11 @@ const ReportView = () => {
               parsedData={report.parsedData}
               selectedDepth="tecnico"
               skipPersist
+              initialReportType="kanitz"
+              availableReports={["bex", "kanitz"]}
             />
           ) : (
-            <TabRelatorioFinal
-              onBack={() => navigate(backTo)}
-              aiAnalysis={report.aiAnalysis}
-              parsedData={report.parsedData}
-              variant="resumido"
-            />
+            <TabRelatorioFinal onBack={() => navigate(backTo)} aiAnalysis={report.aiAnalysis} parsedData={report.parsedData} variant="resumido" />
           )}
         </div>
       </PlatformLayout>

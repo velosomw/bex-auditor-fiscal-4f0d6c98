@@ -4037,7 +4037,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [], skipPersist = false }: { 
+export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [], skipPersist = false, initialReportType, availableReports }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -4049,11 +4049,17 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   selectedDepth?: "executivo" | "tecnico";
   balanceteEntries?: BalanceteEntry[];
   skipPersist?: boolean;
+  initialReportType?: "bex" | "kanitz";
+  availableReports?: Array<"bex" | "kanitz">;
 }) => {
   const navigate = useNavigate();
   const isResumido = selectedDepth === "executivo";
-  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(isResumido ? "bex" : "none");
-  const [activeTab, setActiveTab] = useState(isResumido ? "relatorio-final" : "diagnostico");
+  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(
+    initialReportType ?? (isResumido ? "bex" : "none")
+  );
+  const [activeTab, setActiveTab] = useState(
+    initialReportType || isResumido ? "relatorio-final" : "diagnostico"
+  );
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
@@ -4205,6 +4211,35 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} balanceteEntries={balanceteEntries} /></TabsContent>
         <TabsContent value="relatorio-final">
+          {availableReports && availableReports.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-lg border bg-muted/30">
+              <span className="text-xs font-semibold text-muted-foreground mr-1">Relatórios disponíveis:</span>
+              {availableReports.includes("bex") && (
+                <Button
+                  size="sm"
+                  variant={reportType === "bex" ? "default" : "outline"}
+                  className={`gap-1.5 h-8 ${reportType === "bex" ? "bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white" : ""}`}
+                  onClick={() => setReportType("bex")}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Relatório BEX
+                  <Badge className="ml-1 bg-emerald-500/20 text-emerald-700 border-emerald-500/30 text-[9px] px-1.5 py-0">Disponível</Badge>
+                </Button>
+              )}
+              {availableReports.includes("kanitz") && (
+                <Button
+                  size="sm"
+                  variant={reportType === "kanitz" ? "default" : "outline"}
+                  className={`gap-1.5 h-8 ${reportType === "kanitz" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+                  onClick={() => setReportType("kanitz")}
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  Relatório Kanitz
+                  <Badge className="ml-1 bg-emerald-500/20 text-emerald-700 border-emerald-500/30 text-[9px] px-1.5 py-0">Disponível</Badge>
+                </Button>
+              )}
+            </div>
+          )}
           {reportType === "bex" ? (
             <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" />
           ) : reportType === "kanitz" ? (
