@@ -4037,7 +4037,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [], skipPersist = false }: { 
+export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [], skipPersist = false, initialReportType, availableReports }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -4049,11 +4049,17 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   selectedDepth?: "executivo" | "tecnico";
   balanceteEntries?: BalanceteEntry[];
   skipPersist?: boolean;
+  initialReportType?: "bex" | "kanitz";
+  availableReports?: Array<"bex" | "kanitz">;
 }) => {
   const navigate = useNavigate();
   const isResumido = selectedDepth === "executivo";
-  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(isResumido ? "bex" : "none");
-  const [activeTab, setActiveTab] = useState(isResumido ? "relatorio-final" : "diagnostico");
+  const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(
+    initialReportType ?? (isResumido ? "bex" : "none")
+  );
+  const [activeTab, setActiveTab] = useState(
+    initialReportType || isResumido ? "relatorio-final" : "diagnostico"
+  );
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
