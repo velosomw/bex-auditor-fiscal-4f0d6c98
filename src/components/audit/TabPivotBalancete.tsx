@@ -137,17 +137,33 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   const [selRefs, setSelRefs] = useState<Set<string>>(parseSet("pr"));
   const [selCodigos, setSelCodigos] = useState<Set<string>>(parseSet("pc"));
 
-  // Sincroniza estado → URL (preserva outros params).
+  // Serializa estado atual para comparação idempotente.
+  const serialize = (s: Set<string>) => Array.from(s).sort().join(",");
+  const currentSig = `${textFilter.trim()}|${serialize(selMeses)}|${serialize(selRefs)}|${serialize(selCodigos)}`;
+  const urlSig = `${searchParams.get("pq") ?? ""}|${searchParams.get("pm") ?? ""}|${searchParams.get("pr") ?? ""}|${searchParams.get("pc") ?? ""}`;
+
+  // Estado → URL (preserva outros params). Só escreve se houver divergência.
   useEffect(() => {
+    if (currentSig === urlSig) return;
     const next = new URLSearchParams(searchParams);
     const setOrDel = (k: string, v: string) => v ? next.set(k, v) : next.delete(k);
     setOrDel("pq", textFilter.trim());
-    setOrDel("pm", Array.from(selMeses).sort().join(","));
-    setOrDel("pr", Array.from(selRefs).sort().join(","));
-    setOrDel("pc", Array.from(selCodigos).sort().join(","));
+    setOrDel("pm", serialize(selMeses));
+    setOrDel("pr", serialize(selRefs));
+    setOrDel("pc", serialize(selCodigos));
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textFilter, selMeses, selRefs, selCodigos]);
+
+  // URL → estado (popstate: voltar/avançar do navegador). Só atualiza se houver divergência.
+  useEffect(() => {
+    if (currentSig === urlSig) return;
+    setTextFilter(searchParams.get("pq") ?? "");
+    setSelMeses(parseSet("pm"));
+    setSelRefs(parseSet("pr"));
+    setSelCodigos(parseSet("pc"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const { meses, linhas, refs, codigos } = useMemo(() => {
     if (!parsedData) return { meses: [] as string[], linhas: [] as any[], refs: [] as string[], codigos: [] as string[] };
