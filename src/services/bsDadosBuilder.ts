@@ -349,7 +349,7 @@ export function buildBSDados(
   }
 
   return Array.from(rowsByMes.values())
-    .map(finalize)
+    .map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
 }
 
