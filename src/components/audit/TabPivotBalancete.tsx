@@ -127,10 +127,27 @@ function MultiSelect({
  * Filtros combinados (AND): Mês × Ref Capital × Código contábil + busca livre.
  */
 export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
-  const [textFilter, setTextFilter] = useState("");
-  const [selMeses, setSelMeses] = useState<Set<string>>(new Set());
-  const [selRefs, setSelRefs] = useState<Set<string>>(new Set());
-  const [selCodigos, setSelCodigos] = useState<Set<string>>(new Set());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const parseSet = (k: string) => {
+    const v = searchParams.get(k);
+    return new Set(v ? v.split(",").filter(Boolean) : []);
+  };
+  const [textFilter, setTextFilter] = useState(searchParams.get("pq") ?? "");
+  const [selMeses, setSelMeses] = useState<Set<string>>(parseSet("pm"));
+  const [selRefs, setSelRefs] = useState<Set<string>>(parseSet("pr"));
+  const [selCodigos, setSelCodigos] = useState<Set<string>>(parseSet("pc"));
+
+  // Sincroniza estado → URL (preserva outros params).
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const setOrDel = (k: string, v: string) => v ? next.set(k, v) : next.delete(k);
+    setOrDel("pq", textFilter.trim());
+    setOrDel("pm", Array.from(selMeses).sort().join(","));
+    setOrDel("pr", Array.from(selRefs).sort().join(","));
+    setOrDel("pc", Array.from(selCodigos).sort().join(","));
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textFilter, selMeses, selRefs, selCodigos]);
 
   const { meses, linhas, refs, codigos } = useMemo(() => {
     if (!parsedData) return { meses: [] as string[], linhas: [] as any[], refs: [] as string[], codigos: [] as string[] };
