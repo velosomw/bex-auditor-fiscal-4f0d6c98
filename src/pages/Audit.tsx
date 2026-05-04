@@ -4058,9 +4058,15 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(
     initialReportType ?? (isResumido ? "bex" : "none")
   );
-  const [activeTab, setActiveTab] = useState(
-    initialReportType || isResumido ? "relatorio-final" : "diagnostico"
-  );
+  const [tabParams, setTabParams] = useSearchParams();
+  const defaultTab = initialReportType || isResumido ? "relatorio-final" : "diagnostico";
+  const activeTab = tabParams.get("tab") || defaultTab;
+  const setActiveTab = useCallback((value: string) => {
+    const next = new URLSearchParams(tabParams);
+    if (!value || value === defaultTab) next.delete("tab");
+    else next.set("tab", value);
+    setTabParams(next, { replace: false });
+  }, [tabParams, setTabParams, defaultTab]);
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
