@@ -216,7 +216,10 @@ function applyValue(
   else if (refUp && PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
 }
 
-function finalize(row: BSDadosRow): BSDadosRow {
+// Tolerância padrão para validação Ativo = Passivo + PL (0.5%).
+export const BALANCE_TOLERANCE = 0.005;
+
+function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
   row.divida_total =
     row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
     row.fornecedores + row.credores_rj;
@@ -225,6 +228,23 @@ function finalize(row: BSDadosRow): BSDadosRow {
   // Validações
   if (!row.hasReceita) row.errors.push("Receita líquida ausente ou zerada");
   if (row.cmv > 0) row.errors.push("CMV positivo (deveria ser negativo)");
+  // Validação contábil: AC declarado ≈ soma de componentes (proxy de Ativo=Passivo+PL)
+  if (buckets) {
+    if (buckets.sawACTotal && buckets.ac > 0) {
+      const diff = Math.abs(row.ativo_circulante - buckets.ac);
+      const ref = Math.max(row.ativo_circulante, buckets.ac);
+      if (ref > 0 && diff / ref > BALANCE_TOLERANCE) {
+        row.errors.push(`Ativo Circulante divergente dos componentes (Δ ${(diff/ref*100).toFixed(2)}%)`);
+      }
+    }
+    if (buckets.sawPCTotal && buckets.pc > 0) {
+      const diff = Math.abs(row.passivo_circulante - buckets.pc);
+      const ref = Math.max(row.passivo_circulante, buckets.pc);
+      if (ref > 0 && diff / ref > BALANCE_TOLERANCE) {
+        row.errors.push(`Passivo Circulante divergente dos componentes (Δ ${(diff/ref*100).toFixed(2)}%)`);
+      }
+    }
+  }
   return row;
 }
 
@@ -329,7 +349,7 @@ export function buildBSDados(
   }
 
   return Array.from(rowsByMes.values())
-    .map(finalize)
+    .map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
 }
 

@@ -493,6 +493,60 @@ export type Database = {
           },
         ]
       }
+      balancete_consolidado: {
+        Row: {
+          audit_id: string
+          balancete_id: string | null
+          codigo: string
+          created_at: string
+          credito: number | null
+          debito: number | null
+          descricao: string | null
+          file_name: string | null
+          fonte: string
+          id: string
+          is_leaf: boolean
+          mes_referencia: string
+          ref_capital: string | null
+          saldo_anterior: number | null
+          saldo_atual: number
+        }
+        Insert: {
+          audit_id: string
+          balancete_id?: string | null
+          codigo: string
+          created_at?: string
+          credito?: number | null
+          debito?: number | null
+          descricao?: string | null
+          file_name?: string | null
+          fonte?: string
+          id?: string
+          is_leaf?: boolean
+          mes_referencia: string
+          ref_capital?: string | null
+          saldo_anterior?: number | null
+          saldo_atual?: number
+        }
+        Update: {
+          audit_id?: string
+          balancete_id?: string | null
+          codigo?: string
+          created_at?: string
+          credito?: number | null
+          debito?: number | null
+          descricao?: string | null
+          file_name?: string | null
+          fonte?: string
+          id?: string
+          is_leaf?: boolean
+          mes_referencia?: string
+          ref_capital?: string | null
+          saldo_anterior?: number | null
+          saldo_atual?: number
+        }
+        Relationships: []
+      }
       balancete_data: {
         Row: {
           categoria: string | null
