@@ -343,7 +343,10 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
   }
   const isLeaf = (code: string): boolean => {
     if (!code) return false;
-    // Heurística: se nenhum outro código começa com este + dígito, é folha
+    // Regra estrita BEx: códigos analíticos têm 10 dígitos no "Extenso"
+    const onlyDigits = code.replace(/\D/g, "");
+    if (onlyDigits.length === 10) return true;
+    // Heurística complementar: se nenhum outro código começa com este + dígito, é folha
     for (const other of allCodes) {
       if (other !== code && other.startsWith(code) && other.length > code.length) return false;
     }
@@ -364,7 +367,8 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
       ? rawSaldo
       : parseFloat(String(rawSaldo ?? "0").replace(/[^\d.,-]/g, "").replace(",", "."));
     if (!isFinite(saldoNum)) continue;
-    rows.push({ conta, descricao: desc || conta, values: { [periodLabel]: saldoNum } });
+    const ref1 = inferRefByCode(conta);
+    rows.push({ conta, descricao: desc || conta, ref1, values: { [periodLabel]: saldoNum } });
   }
   return rows.length > 0 ? { rows, periodLabel } : null;
 }
