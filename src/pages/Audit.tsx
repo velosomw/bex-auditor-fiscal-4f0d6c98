@@ -4188,6 +4188,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
           <TabsTrigger value="bs-dados" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <Database className="w-3.5 h-3.5" /> BS &amp; Dados
           </TabsTrigger>
+          <TabsTrigger value="pivot" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
+            <Layers className="w-3.5 h-3.5" /> Pivot
+          </TabsTrigger>
           <TabsTrigger value="graficos-auditoria" className="text-xs gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white">
             <BarChart3 className="w-3.5 h-3.5" /> Gráficos de Auditoria
           </TabsTrigger>
