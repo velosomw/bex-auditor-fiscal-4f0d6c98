@@ -2,11 +2,15 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Layers, Database } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Search, Layers, Database, Filter, X, Check, ChevronDown } from "lucide-react";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import { inferRefByCode } from "@/services/auditAIService";
 import { periodToMesKey, mesKeyToLabel, type BalanceteEntry } from "@/services/bsDadosBuilder";
+import { cn } from "@/lib/utils";
 
 interface Props {
   parsedData: ParsedFinancialData | null;
@@ -17,15 +21,118 @@ const fmt = (n: number) =>
   n === 0 ? "—" : new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(n));
 
 /**
+ * MultiSelect — popover com checkboxes para múltipla seleção + busca interna.
+ * Usado para filtrar Mês, Ref Capital e Código contábil de forma combinada.
+ */
+function MultiSelect({
+  label, icon: Icon, options, selected, onChange, getLabel, width = "w-72",
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  options: string[];
+  selected: Set<string>;
+  onChange: (s: Set<string>) => void;
+  getLabel?: (v: string) => string;
+  width?: string;
+}) {
+  const [q, setQ] = useState("");
+  const filtered = useMemo(() => {
+    if (!q.trim()) return options;
+    const f = q.toLowerCase();
+    return options.filter(o => o.toLowerCase().includes(f) || (getLabel?.(o) ?? "").toLowerCase().includes(f));
+  }, [options, q, getLabel]);
+
+  const toggle = (v: string) => {
+    const next = new Set(selected);
+    next.has(v) ? next.delete(v) : next.add(v);
+    onChange(next);
+  };
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(o => selected.has(o));
+  const toggleAll = () => {
+    const next = new Set(selected);
+    if (allFilteredSelected) filtered.forEach(o => next.delete(o));
+    else filtered.forEach(o => next.add(o));
+    onChange(next);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs justify-between min-w-[160px]">
+          <span className="flex items-center gap-1.5">
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+            {selected.size > 0 && (
+              <Badge className="h-4 px-1.5 text-[10px] bg-[hsl(258,90%,66%)]/15 text-[hsl(258,90%,66%)] border-0">
+                {selected.size}
+              </Badge>
+            )}
+          </span>
+          <ChevronDown className="w-3 h-3 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className={cn("p-0", width)} align="start">
+        <div className="p-2 border-b">
+          <div className="relative">
+            <Search className="absolute left-2 top-2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder={`Buscar ${label.toLowerCase()}…`}
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              className="pl-7 h-7 text-xs"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between px-2 py-1.5 border-b text-[11px]">
+          <button onClick={toggleAll} className="text-[hsl(258,90%,66%)] hover:underline">
+            {allFilteredSelected ? "Limpar filtrados" : "Selecionar filtrados"}
+          </button>
+          {selected.size > 0 && (
+            <button onClick={() => onChange(new Set())} className="text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <X className="w-3 h-3" /> Limpar tudo
+            </button>
+          )}
+        </div>
+        <div className="max-h-72 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">Nenhum resultado</p>
+          ) : (
+            filtered.map(o => (
+              <label
+                key={o}
+                className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-muted/50 cursor-pointer"
+              >
+                <Checkbox
+                  checked={selected.has(o)}
+                  onCheckedChange={() => toggle(o)}
+                  className="h-3.5 w-3.5"
+                />
+                <span className="font-mono text-[10px] text-muted-foreground min-w-0 truncate">{o}</span>
+                {getLabel && getLabel(o) !== o && (
+                  <span className="ml-auto text-[10px] text-muted-foreground truncate">{getLabel(o)}</span>
+                )}
+              </label>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/**
  * Aba Pivot — visualização granular linha-a-linha do balancete consolidado.
- * Agrupa por código contábil (Extenso) com colunas dinâmicas por mês de referência.
- * Permite auditoria do mapeamento Ref Capital → BS & Dados.
+ * Filtros combinados (AND): Mês × Ref Capital × Código contábil + busca livre.
  */
 export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
-  const [filter, setFilter] = useState("");
+  const [textFilter, setTextFilter] = useState("");
+  const [selMeses, setSelMeses] = useState<Set<string>>(new Set());
+  const [selRefs, setSelRefs] = useState<Set<string>>(new Set());
+  const [selCodigos, setSelCodigos] = useState<Set<string>>(new Set());
 
-  const { meses, linhas } = useMemo(() => {
-    if (!parsedData) return { meses: [] as string[], linhas: [] as any[] };
+  const { meses, linhas, refs, codigos } = useMemo(() => {
+    if (!parsedData) return { meses: [] as string[], linhas: [] as any[], refs: [] as string[], codigos: [] as string[] };
 
     const userMesKeys = entries.map(e => e.mesReferencia).filter((k): k is string => !!k);
     const periods = parsedData.years ?? [];
@@ -53,7 +160,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
       const entry = map.get(key)!;
       if (!entry.ref1 && ref1) entry.ref1 = ref1;
 
-      periodKeys.forEach((p, idx) => {
+      periodKeys.forEach(p => {
         const v = Number(valuesObj[p]) || 0;
         const mesKeys = useUser && periodKeys.length <= 1 ? targetMeses : [periodToMesKey(p)];
         for (const mk of mesKeys) {
@@ -65,18 +172,37 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
 
     const meses = Array.from(mesSet).sort();
     const linhas = Array.from(map.values()).sort((a, b) => String(a.conta).localeCompare(String(b.conta)));
-    return { meses, linhas };
+    const refs = Array.from(new Set(linhas.map(l => l.ref1).filter(Boolean) as string[])).sort();
+    const codigos = linhas.map(l => l.conta as string);
+    return { meses, linhas, refs, codigos };
   }, [parsedData, entries]);
 
+  // Aplicação combinada (AND) de todos os filtros.
   const filtered = useMemo(() => {
-    if (!filter.trim()) return linhas;
-    const f = filter.toLowerCase();
-    return linhas.filter(l =>
-      String(l.conta).toLowerCase().includes(f) ||
-      String(l.descricao).toLowerCase().includes(f) ||
-      String(l.ref1).toLowerCase().includes(f)
-    );
-  }, [linhas, filter]);
+    const f = textFilter.trim().toLowerCase();
+    return linhas.filter(l => {
+      if (selRefs.size > 0 && !selRefs.has(l.ref1)) return false;
+      if (selCodigos.size > 0 && !selCodigos.has(l.conta)) return false;
+      if (f && !(
+        String(l.conta).toLowerCase().includes(f) ||
+        String(l.descricao).toLowerCase().includes(f) ||
+        String(l.ref1).toLowerCase().includes(f)
+      )) return false;
+      // Filtro por mês: mantém a linha se houver pelo menos 1 mês selecionado com valor != 0
+      if (selMeses.size > 0) {
+        const hasAny = Array.from(selMeses).some(m => Number(l.byMes[m] || 0) !== 0);
+        if (!hasAny) return false;
+      }
+      return true;
+    });
+  }, [linhas, textFilter, selMeses, selRefs, selCodigos]);
+
+  const visibleMeses = selMeses.size > 0 ? meses.filter(m => selMeses.has(m)) : meses;
+  const totalActiveFilters = selMeses.size + selRefs.size + selCodigos.size + (textFilter.trim() ? 1 : 0);
+
+  const clearAll = () => {
+    setTextFilter(""); setSelMeses(new Set()); setSelRefs(new Set()); setSelCodigos(new Set());
+  };
 
   if (!linhas.length) {
     return (
@@ -91,32 +217,90 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
 
   return (
     <Card className="border-[hsl(258,90%,66%)]/20">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+      <CardHeader className="pb-3 space-y-3">
+        <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <Layers className="w-5 h-5 text-[hsl(258,90%,66%)]" />
               Pivot — Balancete Consolidado (linha-a-linha)
             </CardTitle>
             <CardDescription className="text-xs">
-              Visualização granular por <strong>código contábil</strong> com colunas por mês de referência.
-              Use para auditar o mapeamento <em>Código → Ref Capital → BS &amp; Dados</em>.
+              Filtros combinados (AND): <strong>Mês</strong> × <strong>Ref Capital</strong> × <strong>Código</strong> + busca livre.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">{linhas.length} contas</Badge>
-            <Badge variant="outline" className="text-xs">{meses.length} meses</Badge>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Filtrar conta, descrição ou ref…"
-                value={filter}
-                onChange={e => setFilter(e.target.value)}
-                className="pl-7 h-8 w-64 text-xs"
-              />
-            </div>
+            <Badge variant="outline" className="text-xs">{filtered.length}/{linhas.length} contas</Badge>
+            <Badge variant="outline" className="text-xs">{visibleMeses.length}/{meses.length} meses</Badge>
           </div>
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <MultiSelect
+            label="Mês"
+            icon={Filter}
+            options={meses}
+            selected={selMeses}
+            onChange={setSelMeses}
+            getLabel={mesKeyToLabel}
+          />
+          <MultiSelect
+            label="Ref Capital"
+            icon={Filter}
+            options={refs}
+            selected={selRefs}
+            onChange={setSelRefs}
+            width="w-56"
+          />
+          <MultiSelect
+            label="Código"
+            icon={Filter}
+            options={codigos}
+            selected={selCodigos}
+            onChange={setSelCodigos}
+            width="w-80"
+            getLabel={(c) => linhas.find(l => l.conta === c)?.descricao ?? ""}
+          />
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Busca livre…"
+              value={textFilter}
+              onChange={e => setTextFilter(e.target.value)}
+              className="pl-7 h-8 w-56 text-xs"
+            />
+          </div>
+          {totalActiveFilters > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearAll} className="h-8 text-xs gap-1 text-muted-foreground">
+              <X className="w-3.5 h-3.5" /> Limpar ({totalActiveFilters})
+            </Button>
+          )}
+        </div>
+
+        {totalActiveFilters > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {Array.from(selMeses).sort().map(m => (
+              <Badge key={`m-${m}`} variant="secondary" className="text-[10px] gap-1 cursor-pointer"
+                onClick={() => { const n = new Set(selMeses); n.delete(m); setSelMeses(n); }}>
+                {mesKeyToLabel(m)} <X className="w-2.5 h-2.5" />
+              </Badge>
+            ))}
+            {Array.from(selRefs).sort().map(r => (
+              <Badge key={`r-${r}`} variant="secondary" className="text-[10px] gap-1 cursor-pointer font-mono"
+                onClick={() => { const n = new Set(selRefs); n.delete(r); setSelRefs(n); }}>
+                Ref {r} <X className="w-2.5 h-2.5" />
+              </Badge>
+            ))}
+            {Array.from(selCodigos).sort().slice(0, 6).map(c => (
+              <Badge key={`c-${c}`} variant="secondary" className="text-[10px] gap-1 cursor-pointer font-mono"
+                onClick={() => { const n = new Set(selCodigos); n.delete(c); setSelCodigos(n); }}>
+                {c} <X className="w-2.5 h-2.5" />
+              </Badge>
+            ))}
+            {selCodigos.size > 6 && (
+              <Badge variant="outline" className="text-[10px]">+{selCodigos.size - 6} códigos</Badge>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table className="text-xs">
@@ -125,7 +309,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
               <TableHead className="font-bold whitespace-nowrap">Código</TableHead>
               <TableHead className="font-bold">Descrição</TableHead>
               <TableHead className="font-bold">Ref</TableHead>
-              {meses.map(m => (
+              {visibleMeses.map(m => (
                 <TableHead key={m} className="text-right whitespace-nowrap">{mesKeyToLabel(m)}</TableHead>
               ))}
             </TableRow>
@@ -140,16 +324,23 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
                     <Badge variant="outline" className="text-[10px] font-mono">{l.ref1}</Badge>
                   ) : <span className="text-muted-foreground">—</span>}
                 </TableCell>
-                {meses.map(m => (
+                {visibleMeses.map(m => (
                   <TableCell key={m} className="text-right tabular-nums">{fmt(l.byMes[m] || 0)}</TableCell>
                 ))}
               </TableRow>
             ))}
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={3 + visibleMeses.length} className="text-center text-muted-foreground py-8 text-xs">
+                  Nenhuma linha corresponde aos filtros selecionados.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
         {filtered.length > 500 && (
           <p className="text-[10px] text-muted-foreground mt-2 text-right">
-            Exibindo 500 de {filtered.length} linhas — refine o filtro para ver mais.
+            Exibindo 500 de {filtered.length} linhas — refine os filtros para ver mais.
           </p>
         )}
       </CardContent>
