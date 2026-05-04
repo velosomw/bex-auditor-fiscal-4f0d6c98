@@ -29,6 +29,7 @@ import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, 
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import TabBSDados from "@/components/audit/TabBSDados";
+import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { BalanceteEntry } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
