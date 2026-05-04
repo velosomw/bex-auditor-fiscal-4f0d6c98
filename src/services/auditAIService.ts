@@ -250,7 +250,63 @@ export async function parseMultipleFiles(files: File[]): Promise<{ parsed: Parse
  * Extrai apenas contas analíticas (folha) — códigos de 8+ dígitos OU sem filhos hierárquicos.
  * Retorna null se o template não bater.
  */
-type BalanceteRowParsed = { conta: string; descricao: string; values: Record<string, number> };
+type BalanceteRowParsed = { conta: string; descricao: string; ref1?: string; values: Record<string, number> };
+
+/**
+ * REF_BY_PREFIX — Classificador determinístico do plano de contas BEx.
+ * Mapeia prefixo do código contábil (Extenso) → Ref Capital (Ref 1).
+ * Aplicado ANTES do fallback regex/IA. Cobre layout padrão BEx
+ * (Ativo 1 / Passivo 2 / PL 23-24 / Receita 3 / Custo 4 / Despesa 5).
+ * Ordem importa: o primeiro match vence (do mais específico ao mais genérico).
+ */
+const REF_BY_PREFIX: Array<[RegExp, string]> = [
+  // ── ATIVO CIRCULANTE ─────────────────────────
+  [/^11101/, "A"],   // Caixa e Equivalentes
+  [/^11102/, "B"],   // Aplicações Financeiras
+  [/^1111/,  "C"],   // Clientes / Duplicatas a receber
+  [/^113/,   "D"],   // Estoques
+  [/^1141/,  "E"],   // Tributos a recuperar
+  [/^1142/,  "F"],   // Adiantamentos
+  [/^119/,   "G"],   // Outros Ativos Circulantes
+  // ── ATIVO NÃO CIRCULANTE ─────────────────────
+  [/^121/,   "P"],   // Realizável a Longo Prazo
+  [/^122/,   "Q"],   // Investimentos
+  [/^123/,   "R"],   // Imobilizado
+  [/^124/,   "S"],   // Intangível
+  // ── PASSIVO CIRCULANTE ───────────────────────
+  [/^211/,   "AA"],  // Empréstimos e Financiamentos PC
+  [/^212/,   "BB"],  // Fornecedores PC
+  [/^213/,   "CC"],  // Obrigações Trabalhistas
+  [/^214/,   "DD"],  // Obrigações Tributárias
+  [/^2148/,  "II1"], // Tributos Parcelados PC
+  [/^2151/,  "II"],  // Credores RJ PC
+  [/^2152/,  "LL"],  // Recuperação Judicial PC
+  // ── PASSIVO NÃO CIRCULANTE ───────────────────
+  [/^221/,   "QQ"],  // Empréstimos LP
+  [/^222/,   "PP"],  // Fornecedores LP
+  [/^223/,   "RR"],  // Tributárias Parceladas LP
+  [/^224/,   "CC1"], // Credores RJ LP
+  // ── PATRIMÔNIO LÍQUIDO ───────────────────────
+  [/^231/,   "GG1"], // Capital Social
+  [/^232/,   "HH1"], // Reservas
+  [/^24/,    "GG1"], // PL alternativo
+  // ── DRE ──────────────────────────────────────
+  [/^31/,    "RECEITA"],   // Receita Bruta
+  [/^32/,    "RECEITA"],   // Deduções → tratado pelo sinal
+  [/^4/,     "CMV"],       // Custos
+  [/^5/,     "DESPESAS"],  // Despesas Operacionais
+];
+
+/** Resolve Ref 1 a partir do código contábil (determinístico, sem IA). */
+export function inferRefByCode(code: string): string | undefined {
+  if (!code) return undefined;
+  const c = String(code).replace(/\s+/g, "");
+  for (const [pattern, ref] of REF_BY_PREFIX) {
+    if (pattern.test(c)) return ref;
+  }
+  return undefined;
+}
+
 function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowParsed[]; periodLabel: string } | null {
   // Procura linha de cabeçalho com "saldo atual" + ("extenso" OU "descri")
   let headerIdx = -1;
