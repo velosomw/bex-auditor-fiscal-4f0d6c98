@@ -4069,6 +4069,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     setTabParams(next, { replace: false });
   }, [tabParams, setTabParams, defaultTab]);
 
+  // Sincroniza posição de rolagem com URL (?sy=) para back/forward restaurar o ponto exato.
+  useUrlScrollSync("sy", true);
+
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
   const activePendencias = aiAnalysis?.pendencias || pendencias;
