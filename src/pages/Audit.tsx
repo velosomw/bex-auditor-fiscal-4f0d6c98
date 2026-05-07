@@ -25,6 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import PlatformLayout from "@/components/PlatformLayout";
+import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
@@ -4067,6 +4068,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     else next.set("tab", value);
     setTabParams(next, { replace: false });
   }, [tabParams, setTabParams, defaultTab]);
+
+  // Sincroniza posição de rolagem com URL (?sy=) para back/forward restaurar o ponto exato.
+  useUrlScrollSync("sy", true);
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
