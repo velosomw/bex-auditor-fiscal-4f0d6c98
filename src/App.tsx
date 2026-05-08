@@ -52,6 +52,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <PerfRouteTracker />
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               {/* Site público */}
