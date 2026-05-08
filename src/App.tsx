@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserProvider } from "./contexts/UserContext";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
+import PerfRouteTracker from "./components/PerfRouteTracker";
 import Index from "./pages/Index"; // landing page eager (LCP)
 
 // Code-splitting: cada rota vira um chunk sob demanda — reduz drasticamente o JS inicial.
