@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserProvider } from "./contexts/UserContext";
 import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
+import PerfRouteTracker from "./components/PerfRouteTracker";
 import Index from "./pages/Index"; // landing page eager (LCP)
 
 // Code-splitting: cada rota vira um chunk sob demanda — reduz drasticamente o JS inicial.
@@ -33,6 +34,7 @@ const CompanyPage = lazy(() => import("./pages/CompanyPage"));
 const Empresas = lazy(() => import("./pages/Empresas"));
 const UserEmpresas = lazy(() => import("./pages/UserEmpresas"));
 const SolicitarCadastro = lazy(() => import("./pages/SolicitarCadastro"));
+const PerfReport = lazy(() => import("./pages/PerfReport"));
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <PerfRouteTracker />
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               {/* Site público */}
@@ -78,6 +81,7 @@ const App = () => (
               <Route path="/usuarios" element={<UserManagement />} />
               <Route path="/empresa/:id" element={<CompanyPage />} />
               <Route path="/empresas" element={<Empresas />} />
+              <Route path="/perf-report" element={<PerfReport />} />
 
               <Route path="*" element={<Layout><NotFound /></Layout>} />
             </Routes>
