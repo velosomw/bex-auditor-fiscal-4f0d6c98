@@ -121,177 +121,6 @@ const Dashboard = () => {
         </div>
         <CompanySelectorDialog open={selectorOpen} onOpenChange={setSelectorOpen} onConfirm={handleStartNewAudit} />
 
-        {/* ── Quick Search ── */}
-        <Card className="border-border/60">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 h-9 rounded-md bg-[hsl(217,91%,50%)]/10 text-[hsl(217,91%,50%)] text-xs font-medium shrink-0">
-                <Search className="w-3.5 h-3.5" /> Buscar Empresa
-              </div>
-              <div className="relative flex-1">
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Pesquise por empresa, ID, CNPJ ou setor para abrir a visão 360°..."
-                  className="h-9 text-sm pr-8"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label="Limpar busca"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {searchTerm && (
-              <div className="mt-3 border border-border/60 rounded-lg overflow-hidden">
-                {searchResults.length === 0 ? (
-                  <div className="p-4 text-xs text-muted-foreground text-center">
-                    Nenhuma empresa encontrada para "{searchTerm}".
-                  </div>
-                ) : (
-                  <ul className="divide-y divide-border/60 max-h-72 overflow-y-auto">
-                    {searchResults.map((c) => (
-                      <li key={c.id}>
-                        <button
-                          onClick={() => navigate(`/empresa/${c.id}`)}
-                          className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-muted/50 transition text-left"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-md bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
-                              <Building2 className="w-4 h-4 text-[hsl(258,90%,66%)]" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">
-                                {c.cnpj ? `CNPJ ${c.cnpj}` : "CNPJ não informado"}
-                                {c.sector ? ` · ${c.sector}` : ""}
-                                {` · ID ${c.id.slice(0, 8)}`}
-                              </p>
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="text-[10px] shrink-0">Abrir 360°</Badge>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ── Audit Overview Panel ── */}
-        <Card className="border-2 border-[hsl(258,90%,66%)]/20 bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Última Avaliação Empresarial
-              </CardTitle>
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => navigate("/audit")}>
-                <Eye className="w-3.5 h-3.5" /> Ver Análise Completa
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-3 rounded-lg bg-card border border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Empresa</p>
-                <p className="text-sm font-semibold text-foreground">{lastAuditOverview.empresa}</p>
-                <p className="text-xs text-muted-foreground">{lastAuditOverview.periodo}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-card border border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Status Financeiro</p>
-                <div className="flex items-center gap-2">
-                  <Badge className={`text-xs ${
-                    lastAuditOverview.statusFinanceiro === "Saudável" ? "bg-[hsl(142,76%,36%)]/15 text-[hsl(142,76%,36%)]" :
-                    lastAuditOverview.statusFinanceiro === "Atenção" ? "bg-[hsl(38,92%,50%)]/15 text-[hsl(38,92%,50%)]" :
-                    "bg-[hsl(0,84%,60%)]/15 text-[hsl(0,84%,60%)]"
-                  }`}>
-                    {lastAuditOverview.statusFinanceiro === "Saudável" ? "🟢" : lastAuditOverview.statusFinanceiro === "Atenção" ? "🟡" : "🔴"} {lastAuditOverview.statusFinanceiro}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Score BEX: {lastAuditOverview.scoreRisco}/100</p>
-              </div>
-              <div className="p-3 rounded-lg bg-card border border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Indicadores-Chave</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Liquidez Corrente</span>
-                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.liquidezCorrente != null ? `${lastAuditOverview.indicadores.liquidezCorrente.toFixed(2)}x` : "—"}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Endividamento</span>
-                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.endividamento != null ? `${(lastAuditOverview.indicadores.endividamento * 100).toFixed(1)}%` : "—"}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Kanitz (FI)</span>
-                    <span className="font-mono font-bold text-[hsl(142,76%,36%)]">{lastAuditOverview.indicadores.kanitz != null ? lastAuditOverview.indicadores.kanitz.toFixed(2) : "—"}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 rounded-lg bg-card border border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Score de Risco</p>
-                <div className="flex items-center gap-3">
-                  <p className={`text-3xl font-bold ${
-                    lastAuditOverview.scoreRisco <= 30 ? "text-[hsl(142,76%,36%)]" :
-                    lastAuditOverview.scoreRisco <= 60 ? "text-[hsl(38,92%,50%)]" :
-                    "text-[hsl(0,84%,60%)]"
-                  }`}>{lastAuditOverview.scoreRisco}</p>
-                  <div>
-                    <p className="text-xs text-muted-foreground">de 100</p>
-                    <Progress value={lastAuditOverview.scoreRisco} className="h-1.5 w-20" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Alertas IA */}
-            <div>
-              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                <AlertOctagon className="w-3.5 h-3.5 text-[hsl(38,92%,50%)]" /> Alertas IA
-              </p>
-              <div className="grid sm:grid-cols-2 gap-2">
-                {lastAuditOverview.alertasIA.map((alerta, i) => (
-                  <div key={i} className={`border-l-4 rounded-lg p-3 ${severityStyle[alerta.severidade] || severityStyle.baixo}`}>
-                    <div className="flex items-start gap-2">
-                      <span className="text-sm">{alerta.icone}</span>
-                      <div>
-                        <p className="text-xs font-semibold text-foreground">{alerta.titulo}</p>
-                        <p className="text-[10px] text-muted-foreground">{alerta.descricao}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[
-            { label: "Documentos", value: stats.totalDocuments, icon: FileText, color: "hsl(217,91%,50%)" },
-            { label: "Auditorias", value: stats.totalAudits, icon: BarChart3, color: "hsl(200,98%,55%)" },
-            { label: "Em Andamento", value: stats.auditsInProgress, icon: Clock, color: "hsl(38,92%,50%)" },
-            { label: "Concluídas", value: stats.auditsCompleted, icon: CheckCircle2, color: "hsl(142,76%,36%)" },
-            { label: "Pareceres", value: stats.opinionsIssued, icon: Award, color: "hsl(217,85%,45%)" },
-          ].map((kpi) => (
-            <Card key={kpi.label} className="border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">{kpi.label}</span>
-                  <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
-                </div>
-                <p className="text-2xl font-bold text-foreground">{kpi.value.toLocaleString()}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="bg-muted/50">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
@@ -493,6 +322,177 @@ const Dashboard = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* ── Quick Search ── */}
+        <Card className="border-border/60">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 h-9 rounded-md bg-[hsl(217,91%,50%)]/10 text-[hsl(217,91%,50%)] text-xs font-medium shrink-0">
+                <Search className="w-3.5 h-3.5" /> Buscar Empresa
+              </div>
+              <div className="relative flex-1">
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Pesquise por empresa, ID, CNPJ ou setor para abrir a visão 360°..."
+                  className="h-9 text-sm pr-8"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {searchTerm && (
+              <div className="mt-3 border border-border/60 rounded-lg overflow-hidden">
+                {searchResults.length === 0 ? (
+                  <div className="p-4 text-xs text-muted-foreground text-center">
+                    Nenhuma empresa encontrada para "{searchTerm}".
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-border/60 max-h-72 overflow-y-auto">
+                    {searchResults.map((c) => (
+                      <li key={c.id}>
+                        <button
+                          onClick={() => navigate(`/empresa/${c.id}`)}
+                          className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-muted/50 transition text-left"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-md bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
+                              <Building2 className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {c.cnpj ? `CNPJ ${c.cnpj}` : "CNPJ não informado"}
+                                {c.sector ? ` · ${c.sector}` : ""}
+                                {` · ID ${c.id.slice(0, 8)}`}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] shrink-0">Abrir 360°</Badge>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Audit Overview Panel ── */}
+        <Card className="border-2 border-[hsl(258,90%,66%)]/20 bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Última Avaliação Empresarial
+              </CardTitle>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => navigate("/audit")}>
+                <Eye className="w-3.5 h-3.5" /> Ver Análise Completa
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-3 rounded-lg bg-card border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Empresa</p>
+                <p className="text-sm font-semibold text-foreground">{lastAuditOverview.empresa}</p>
+                <p className="text-xs text-muted-foreground">{lastAuditOverview.periodo}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Status Financeiro</p>
+                <div className="flex items-center gap-2">
+                  <Badge className={`text-xs ${
+                    lastAuditOverview.statusFinanceiro === "Saudável" ? "bg-[hsl(142,76%,36%)]/15 text-[hsl(142,76%,36%)]" :
+                    lastAuditOverview.statusFinanceiro === "Atenção" ? "bg-[hsl(38,92%,50%)]/15 text-[hsl(38,92%,50%)]" :
+                    "bg-[hsl(0,84%,60%)]/15 text-[hsl(0,84%,60%)]"
+                  }`}>
+                    {lastAuditOverview.statusFinanceiro === "Saudável" ? "🟢" : lastAuditOverview.statusFinanceiro === "Atenção" ? "🟡" : "🔴"} {lastAuditOverview.statusFinanceiro}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Score BEX: {lastAuditOverview.scoreRisco}/100</p>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Indicadores-Chave</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Liquidez Corrente</span>
+                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.liquidezCorrente != null ? `${lastAuditOverview.indicadores.liquidezCorrente.toFixed(2)}x` : "—"}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Endividamento</span>
+                    <span className="font-mono font-bold text-foreground">{lastAuditOverview.indicadores.endividamento != null ? `${(lastAuditOverview.indicadores.endividamento * 100).toFixed(1)}%` : "—"}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Kanitz (FI)</span>
+                    <span className="font-mono font-bold text-[hsl(142,76%,36%)]">{lastAuditOverview.indicadores.kanitz != null ? lastAuditOverview.indicadores.kanitz.toFixed(2) : "—"}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-card border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Score de Risco</p>
+                <div className="flex items-center gap-3">
+                  <p className={`text-3xl font-bold ${
+                    lastAuditOverview.scoreRisco <= 30 ? "text-[hsl(142,76%,36%)]" :
+                    lastAuditOverview.scoreRisco <= 60 ? "text-[hsl(38,92%,50%)]" :
+                    "text-[hsl(0,84%,60%)]"
+                  }`}>{lastAuditOverview.scoreRisco}</p>
+                  <div>
+                    <p className="text-xs text-muted-foreground">de 100</p>
+                    <Progress value={lastAuditOverview.scoreRisco} className="h-1.5 w-20" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Alertas IA */}
+            <div>
+              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                <AlertOctagon className="w-3.5 h-3.5 text-[hsl(38,92%,50%)]" /> Alertas IA
+              </p>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {lastAuditOverview.alertasIA.map((alerta, i) => (
+                  <div key={i} className={`border-l-4 rounded-lg p-3 ${severityStyle[alerta.severidade] || severityStyle.baixo}`}>
+                    <div className="flex items-start gap-2">
+                      <span className="text-sm">{alerta.icone}</span>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">{alerta.titulo}</p>
+                        <p className="text-[10px] text-muted-foreground">{alerta.descricao}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[
+            { label: "Documentos", value: stats.totalDocuments, icon: FileText, color: "hsl(217,91%,50%)" },
+            { label: "Auditorias", value: stats.totalAudits, icon: BarChart3, color: "hsl(200,98%,55%)" },
+            { label: "Em Andamento", value: stats.auditsInProgress, icon: Clock, color: "hsl(38,92%,50%)" },
+            { label: "Concluídas", value: stats.auditsCompleted, icon: CheckCircle2, color: "hsl(142,76%,36%)" },
+            { label: "Pareceres", value: stats.opinionsIssued, icon: Award, color: "hsl(217,85%,45%)" },
+          ].map((kpi) => (
+            <Card key={kpi.label} className="border-border/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">{kpi.label}</span>
+                  <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
+                </div>
+                <p className="text-2xl font-bold text-foreground">{kpi.value.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </PlatformLayout>
   );
