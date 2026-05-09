@@ -86,6 +86,9 @@ const UserEmpresas = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
   const [myFirm, setMyFirm] = useState<AccountingFirm | null>(null);
+  const [hiddenList, setHiddenList] = useState(false);
+
+  const toggleHiddenList = () => setHiddenList(v => !v);
 
   // Form state (cadastro)
   const [name, setName] = useState("");
