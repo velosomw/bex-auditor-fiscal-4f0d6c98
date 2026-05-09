@@ -494,7 +494,16 @@ const UserEmpresas = () => {
 
         {/* Layout: Lista + Detalhe */}
         {viewMode === "detail" && (
-        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
+          hiddenList ? (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <Eye className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Lista de empresas oculta.</p>
+                <p className="text-xs text-muted-foreground mt-1">Clique em "Exibir Empresas" para visualizar.</p>
+              </CardContent>
+            </Card>
+          ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
           {/* Lista */}
           <Card className="h-fit">
             <CardHeader className="pb-3">
