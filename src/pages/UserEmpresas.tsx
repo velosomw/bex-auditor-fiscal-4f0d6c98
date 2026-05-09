@@ -86,6 +86,9 @@ const UserEmpresas = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
   const [myFirm, setMyFirm] = useState<AccountingFirm | null>(null);
+  const [hiddenList, setHiddenList] = useState(false);
+
+  const toggleHiddenList = () => setHiddenList(v => !v);
 
   // Form state (cadastro)
   const [name, setName] = useState("");
@@ -302,6 +305,15 @@ const UserEmpresas = () => {
               {viewMode === "table" ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
               {viewMode === "table" ? "Visão Detalhada" : "Lista de Empresas"}
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={toggleHiddenList}
+              className="gap-1.5"
+            >
+              {hiddenList ? <Eye className="w-4 h-4" /> : <X className="w-4 h-4" />}
+              {hiddenList ? "Exibir Empresas" : "Ocultar Empresas"}
+            </Button>
             {!isReadOnly && (
               <Button
                 size="sm"
@@ -403,7 +415,13 @@ const UserEmpresas = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {hiddenList ? (
+                <div className="text-center py-10 px-4">
+                  <Eye className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Lista de empresas oculta.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Clique em "Exibir Empresas" para visualizar.</p>
+                </div>
+              ) : loading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
                   <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
                 </div>
@@ -476,7 +494,16 @@ const UserEmpresas = () => {
 
         {/* Layout: Lista + Detalhe */}
         {viewMode === "detail" && (
-        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
+          hiddenList ? (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <Eye className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Lista de empresas oculta.</p>
+                <p className="text-xs text-muted-foreground mt-1">Clique em "Exibir Empresas" para visualizar.</p>
+              </CardContent>
+            </Card>
+          ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
           {/* Lista */}
           <Card className="h-fit">
             <CardHeader className="pb-3">
@@ -812,7 +839,7 @@ const UserEmpresas = () => {
             )}
           </div>
         </div>
-        )}
+        ))}
       </div>
     </PlatformLayout>
   );
