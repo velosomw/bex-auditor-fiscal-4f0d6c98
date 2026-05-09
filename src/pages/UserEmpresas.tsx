@@ -839,7 +839,7 @@ const UserEmpresas = () => {
             )}
           </div>
         </div>
-        )}
+        ))}
       </div>
     </PlatformLayout>
   );
