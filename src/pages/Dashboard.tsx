@@ -15,6 +15,7 @@ import { loadDashboardStats, emptyStats, type DashboardStats } from "@/services/
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
 import CoordinatorDashboard from "@/components/coordinator/CoordinatorDashboard";
+import FirmsCompaniesPanel from "@/components/dashboard/FirmsCompaniesPanel";
 import { listCompanies, type Company } from "@/services/companiesService";
 
 const COLORS = ["hsl(217,91%,50%)", "hsl(200,98%,55%)", "hsl(142,76%,36%)", "hsl(38,92%,50%)", "hsl(0,84%,60%)"];
@@ -127,6 +128,7 @@ const Dashboard = () => {
             <TabsTrigger value="indicators">Indicadores</TabsTrigger>
             <TabsTrigger value="trends">Tendências</TabsTrigger>
             <TabsTrigger value="alerts">Alertas</TabsTrigger>
+            <TabsTrigger value="firms">Contabilidade & Empresas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -320,6 +322,10 @@ const Dashboard = () => {
                 );
               })
             )}
+          </TabsContent>
+
+          <TabsContent value="firms" className="space-y-4">
+            <FirmsCompaniesPanel />
           </TabsContent>
         </Tabs>
 
