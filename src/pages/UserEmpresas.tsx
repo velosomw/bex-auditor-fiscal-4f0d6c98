@@ -415,7 +415,13 @@ const UserEmpresas = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {hiddenList ? (
+                <div className="text-center py-10 px-4">
+                  <Eye className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Lista de empresas oculta.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Clique em "Exibir Empresas" para visualizar.</p>
+                </div>
+              ) : loading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
                   <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
                 </div>
