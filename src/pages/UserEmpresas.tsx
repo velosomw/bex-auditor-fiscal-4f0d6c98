@@ -305,6 +305,15 @@ const UserEmpresas = () => {
               {viewMode === "table" ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
               {viewMode === "table" ? "Visão Detalhada" : "Lista de Empresas"}
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={toggleHiddenList}
+              className="gap-1.5"
+            >
+              {hiddenList ? <Eye className="w-4 h-4" /> : <X className="w-4 h-4" />}
+              {hiddenList ? "Exibir Empresas" : "Ocultar Empresas"}
+            </Button>
             {!isReadOnly && (
               <Button
                 size="sm"
