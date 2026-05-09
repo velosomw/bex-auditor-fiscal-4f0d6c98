@@ -323,6 +323,10 @@ const Dashboard = () => {
               })
             )}
           </TabsContent>
+
+          <TabsContent value="firms" className="space-y-4">
+            <FirmsCompaniesPanel />
+          </TabsContent>
         </Tabs>
 
         {/* ── Quick Search ── */}
