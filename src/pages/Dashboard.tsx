@@ -189,15 +189,6 @@ const Dashboard = () => {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-base">Áreas Críticas</CardTitle></CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground italic">
-                  Mapa de áreas críticas será gerado automaticamente a partir das próximas auditorias (necessário ≥ 3 relatórios concluídos).
-                </p>
-              </CardContent>
-            </Card>
-
             <Card className="bg-gradient-to-r from-[hsl(217,91%,50%)]/5 to-[hsl(200,98%,55%)]/5 border-[hsl(217,60%,70%)]/20">
               <CardContent className="p-5">
                 <div className="flex items-start gap-3">
@@ -211,6 +202,15 @@ const Dashboard = () => {
                     </p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3"><CardTitle className="text-base">Áreas Críticas</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground italic">
+                  Mapa de áreas críticas será gerado automaticamente a partir das próximas auditorias (necessário ≥ 3 relatórios concluídos).
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
