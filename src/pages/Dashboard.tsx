@@ -128,6 +128,7 @@ const Dashboard = () => {
             <TabsTrigger value="indicators">Indicadores</TabsTrigger>
             <TabsTrigger value="trends">Tendências</TabsTrigger>
             <TabsTrigger value="alerts">Alertas</TabsTrigger>
+            <TabsTrigger value="firms">Contabilidade & Empresas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
