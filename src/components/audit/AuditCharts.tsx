@@ -17,6 +17,7 @@ import {
 } from "@/services/auditChartsOptions";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import WindowSelector, { applyWindow, type Window } from "./WindowSelector";
+import MonthsConsistencyAlert from "./MonthsConsistencyAlert";
 
 interface Props {
   parsedData?: ParsedFinancialData | null;
@@ -72,16 +73,23 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
 
   if (!dataset.length || !options) {
     return (
-      <Card>
-        <CardContent className="py-10">
-          <Empty msg="Carregue um balancete na fase de processamento para gerar os gráficos." />
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <MonthsConsistencyAlert entries={entries} datasetMesKeys={[]} />
+        <Card>
+          <CardContent className="py-10">
+            <Empty msg="Carregue um balancete na fase de processamento para gerar os gráficos." />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <MonthsConsistencyAlert
+        entries={entries}
+        datasetMesKeys={fullDataset.map(d => d.mesKey).filter(Boolean) as string[]}
+      />
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
           {fullDataset.length} mês(es) consolidado(s) — exibindo {dataset.length}
