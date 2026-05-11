@@ -500,8 +500,14 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
     setFileMeses(prev => {
       const next = { ...prev };
       newDocs.forEach((doc, i) => {
-        const detected = detectMesFromName(filesArr[i].name);
-        if (detected) next[doc.id] = detected;
+        const file = filesArr[i];
+        const detected = detectMesFromName(file.name);
+        if (detected) {
+          next[doc.id] = detected;
+        } else if (/\.(xlsx|xls|csv|xlsm|xlsb|xltx|xltm)$/i.test(file.name)) {
+          // Default para auto-detect em planilhas, já que é o cenário comum multi-mês
+          next[doc.id] = "auto";
+        }
       });
       return next;
     });
