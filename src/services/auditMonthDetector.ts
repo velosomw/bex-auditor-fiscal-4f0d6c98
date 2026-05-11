@@ -92,6 +92,40 @@ export function detectMonthFromFilename(fileName: string): MonthRef | null {
 }
 
 /**
+ * Detecta intervalo "MM.YYYY a MM.YYYY" / "MM-YYYY até MM-YYYY" no nome do arquivo
+ * e expande para a lista cronológica de meses (YYYY-MM).
+ * Ex: "Balancetes 08.2025 a 01.2026 (6 meses).xlsx" → ["2025-08","2025-09",...,"2026-01"]
+ */
+export function detectMonthRangeFromFilename(fileName: string): MonthRef[] {
+  const n = norm(fileName.replace(/\.(xlsx|xls|csv|pdf)$/i, ""));
+  // padrões: "08 2025 a 01 2026" / "08/2025 ate 01/2026" / "ago 2025 a jan 2026"
+  const numPat = /(0?[1-9]|1[0-2])[\s/\-.](20\d{2})\s*(?:a|ate|até|-|—|to|—|\.\.)\s*(0?[1-9]|1[0-2])[\s/\-.](20\d{2})/;
+  let m = n.match(numPat);
+  let mm1: number | null = null, yy1: number | null = null, mm2: number | null = null, yy2: number | null = null;
+  if (m) {
+    mm1 = Number(m[1]); yy1 = Number(m[2]); mm2 = Number(m[3]); yy2 = Number(m[4]);
+  } else {
+    const monthRe = Object.keys(MONTH_NAMES_PT).join("|");
+    const namePat = new RegExp(`(${monthRe})[\\s/\\-.]?(20\\d{2})\\s*(?:a|ate|até|-|—|to)\\s*(${monthRe})[\\s/\\-.]?(20\\d{2})`);
+    m = n.match(namePat);
+    if (m) {
+      mm1 = Number(MONTH_NAMES_PT[m[1]]); yy1 = Number(m[2]);
+      mm2 = Number(MONTH_NAMES_PT[m[3]]); yy2 = Number(m[4]);
+    }
+  }
+  if (!mm1 || !yy1 || !mm2 || !yy2) return [];
+  const out: MonthRef[] = [];
+  let y = yy1, mo = mm1, guard = 0;
+  while ((y < yy2 || (y === yy2 && mo <= mm2)) && guard < 60) {
+    const key = `${y}-${padMonth(mo)}`;
+    out.push({ key, label: monthLabel(key), source: "filename", confidence: 0.85 });
+    mo += 1; if (mo > 12) { mo = 1; y += 1; }
+    guard++;
+  }
+  return out;
+}
+
+/**
  * Detecta colunas mensais em headers de planilha BEX (cenário B do MD).
  * Aceita variações: "Saldo Atual JAN/2024", "JAN/24", "01/2024", "Jan 2024",
  * "Saldo 03-2024", "Saldo Final Mar/2024".
