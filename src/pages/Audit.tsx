@@ -4350,6 +4350,7 @@ const AuditContent = () => {
       companyId: company?.id,
       companyName: company?.name,
       source: reportSource,
+      periodos: parsed?.years || [],
     }));
     saveAuditBatch(entries);
   }, [uploadedFiles, company, reportSource]);
