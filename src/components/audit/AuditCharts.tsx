@@ -2,7 +2,7 @@
  * Dashboard Executivo — 6 gráficos pixel-perfect Excel via Apache ECharts.
  * Layout: grid 2 colunas, altura 320px, gap 16px (padrão MD 1).
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
