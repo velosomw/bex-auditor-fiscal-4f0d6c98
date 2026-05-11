@@ -423,15 +423,24 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   //    Se múltiplas sheets baterem o template, mantém a sheet com mais contas
   //    (mais granular) para evitar dupla contagem entre abas duplicadas.
   let bestTplRows: BalanceteRowParsed[] = [];
+  let bestTplMulti = false;
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
     const tpl = tryParseBalanceteMensalBR(jsonData);
-    if (tpl && tpl.rows.length > bestTplRows.length) bestTplRows = tpl.rows;
+    if (tpl && tpl.rows.length > bestTplRows.length) {
+      bestTplRows = tpl.rows;
+      bestTplMulti = !!tpl.multiMonth;
+    }
   }
   if (bestTplRows.length > 0) {
     bestTplRows.forEach(r => allRows.push(r));
-    years.add("atual");
+    if (bestTplMulti) {
+      // Multi-mês: cada linha já traz values com chaves YYYY-MM
+      bestTplRows.forEach(r => Object.keys(r.values).forEach(k => years.add(k)));
+    } else {
+      years.add("atual");
+    }
   }
   if (allRows.length > 0) {
     // separa balanço x DRE pelo prefixo do código (1/2 = patrimoniais, 3/4/5 = resultado)
