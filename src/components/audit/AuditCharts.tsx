@@ -46,12 +46,15 @@ const ChartTile = ({ option }: { option: any }) => (
 );
 
 const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
+  const [windowSize, setWindowSize] = useState<Window>("ALL");
   // FONTE ÚNICA: BS & Dados (Ref Capital). Fallback para builder antigo se vazio.
-  const dataset = useMemo(() => {
+  const fullDataset = useMemo(() => {
     const bs = buildBSDados(parsedData ?? null, entries);
     if (bs.length) return bsDadosToMonthlyDataset(bs);
     return buildMonthlyDataset(parsedData ?? null);
   }, [parsedData, entries]);
+
+  const dataset = useMemo(() => applyWindow(fullDataset, windowSize), [fullDataset, windowSize]);
 
   const options = useMemo(() => {
     if (!dataset.length) return null;
