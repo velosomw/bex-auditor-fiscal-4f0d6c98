@@ -4126,6 +4126,12 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       companyName: company?.name,
       source,
       balanceteEntries,
+      periodos: Array.from(new Set(
+        (balanceteEntries || [])
+          .map(e => e.mesReferencia)
+          .filter((m): m is string => !!m)
+          .map(m => m.slice(0, 7))
+      )).sort(),
     };
     saveGeneratedReport(entry);
   };
