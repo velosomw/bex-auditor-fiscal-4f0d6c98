@@ -40,11 +40,11 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
   const handleConfirmSelect = () => {
     const c = companies.find(c => c.id === selectedId);
     if (!c) return;
-    const { allowed, used, limit } = canGenerateForCompany(c.id);
+    const { allowed, reason, quota } = canGenerateForCompany(c.id, "resumido");
     if (!allowed) {
       toast({
-        title: "Limite de relatórios atingido",
-        description: `${c.name} já emitiu ${used}/${limit} relatórios. Solicite ao Gestor IA aumento do limite.`,
+        title: "Cota mensal esgotada",
+        description: reason ?? `Resumidos: ${quota.resumido.used}/${quota.resumido.limit} · Completos: ${quota.completo.used}/${quota.completo.limit}. Solicite ao Gestor IA cota extra.`,
         variant: "destructive",
       });
       return;

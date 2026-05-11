@@ -6,23 +6,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Search, Save, Trash2, FileBarChart, Building2, Globe2 } from "lucide-react";
+import { Search, Save, Trash2, FileBarChart, Building2, Globe2, FileText, FileStack, CalendarClock } from "lucide-react";
 import {
-  getGlobalLimit, setGlobalLimit,
-  getPerCompanyLimits, setPerCompanyLimit, removePerCompanyLimit,
-  getCompanyReportCount, getCompanyLimit,
+  getGlobalLimits, setGlobalLimits,
+  getPerCompanyExtras, setPerCompanyExtra, removePerCompanyExtra,
+  getCompanyQuota, getCompanyMonthlyUsage,
 } from "@/services/reportLimitsService";
 import { listCompanies, type Company } from "@/services/companiesService";
 import { getGeneratedReports } from "@/services/auditHistoryService";
 
 const TabReportLimits = () => {
-  const [globalLimit, setGlobalLimitState] = useState<number>(getGlobalLimit());
+  const [global, setGlobal] = useState(getGlobalLimits());
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [perLimits, setPerLimits] = useState(getPerCompanyLimits());
+  const [perLimits, setPerLimits] = useState(getPerCompanyExtras());
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState<string>("all");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [extraQty, setExtraQty] = useState<string>("1");
+  const [extraResumido, setExtraResumido] = useState<string>("0");
+  const [extraCompleto, setExtraCompleto] = useState<string>("0");
   const [reports] = useState(getGeneratedReports());
 
   useEffect(() => {
@@ -30,9 +31,16 @@ const TabReportLimits = () => {
   }, []);
 
   const reportsByCompany = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { resumido: number; completo: number }>();
+    const now = new Date();
     reports.forEach(r => {
-      if (r.companyId) map.set(r.companyId, (map.get(r.companyId) || 0) + 1);
+      if (!r.companyId) return;
+      const d = new Date(r.date);
+      if (d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth()) return;
+      const cur = map.get(r.companyId) || { resumido: 0, completo: 0 };
+      if (r.variant === "completo") cur.completo += 1;
+      else cur.resumido += 1;
+      map.set(r.companyId, cur);
     });
     return map;
   }, [reports]);
@@ -52,81 +60,100 @@ const TabReportLimits = () => {
     });
   }, [companies, search, stateFilter]);
 
-  const totalReports = reports.length;
+  const totalResumidos = reports.filter(r => r.variant === "resumido").length;
+  const totalCompletos = reports.filter(r => r.variant === "completo").length;
   const companiesWithReports = reportsByCompany.size;
 
   const handleSaveGlobal = () => {
-    setGlobalLimit(globalLimit);
-    toast.success(`Limite global definido para ${globalLimit} relatórios por empresa`);
+    setGlobalLimits(global);
+    toast.success(`Cotas mensais salvas: ${global.resumido} resumidos · ${global.completo} completos por empresa`);
   };
 
   const handleAddPerCompany = () => {
     const c = companies.find(x => x.id === selectedCompanyId);
     if (!c) return toast.error("Selecione uma empresa");
-    const qty = parseInt(extraQty, 10) || 0;
-    setPerCompanyLimit(c.id, c.name, qty);
-    setPerLimits(getPerCompanyLimits());
-    toast.success(`+${qty} relatórios extras atribuídos a ${c.name}`);
+    const r = parseInt(extraResumido, 10) || 0;
+    const co = parseInt(extraCompleto, 10) || 0;
+    if (r === 0 && co === 0) return toast.error("Informe ao menos 1 unidade extra");
+    setPerCompanyExtra(c.id, c.name, { resumido: r, completo: co });
+    setPerLimits(getPerCompanyExtras());
+    toast.success(`Extras atribuídos a ${c.name}: +${r} resumidos · +${co} completos`);
   };
 
   const handleRemovePer = (id: string) => {
-    removePerCompanyLimit(id);
-    setPerLimits(getPerCompanyLimits());
-    toast.info("Regra removida");
+    removePerCompanyExtra(id);
+    setPerLimits(getPerCompanyExtras());
+    toast.info("Cota extra removida");
   };
 
   return (
     <div className="space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><Globe2 className="w-3.5 h-3.5" /> Limite Global Atual</div>
-          <div className="text-3xl font-bold mt-2">{getGlobalLimit()}</div>
-          <div className="text-xs text-muted-foreground">relatórios / empresa</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileText className="w-3.5 h-3.5" /> Cota Resumidos</div>
+          <div className="text-3xl font-bold mt-2">{global.resumido}</div>
+          <div className="text-xs text-muted-foreground">/empresa/mês</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileBarChart className="w-3.5 h-3.5" /> Total Emitidos</div>
-          <div className="text-3xl font-bold mt-2">{totalReports}</div>
-          <div className="text-xs text-muted-foreground">no portal</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileStack className="w-3.5 h-3.5" /> Cota Completos</div>
+          <div className="text-3xl font-bold mt-2">{global.completo}</div>
+          <div className="text-xs text-muted-foreground">/empresa/mês</div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileBarChart className="w-3.5 h-3.5" /> Emitidos</div>
+          <div className="text-3xl font-bold mt-2">{totalResumidos + totalCompletos}</div>
+          <div className="text-xs text-muted-foreground">{totalResumidos} resumidos · {totalCompletos} completos</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Building2 className="w-3.5 h-3.5" /> Empresas Ativas</div>
           <div className="text-3xl font-bold mt-2">{companiesWithReports}</div>
-          <div className="text-xs text-muted-foreground">com relatórios</div>
+          <div className="text-xs text-muted-foreground">consumindo cota no mês</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">Regras Específicas</div>
-          <div className="text-3xl font-bold mt-2">{perLimits.length}</div>
-          <div className="text-xs text-muted-foreground">empresas com extra</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><CalendarClock className="w-3.5 h-3.5" /> Renovação</div>
+          <div className="text-base font-semibold mt-2">Mensal</div>
+          <div className="text-xs text-muted-foreground">Reseta no dia 1º</div>
         </div>
       </div>
 
-      {/* Limite Global */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-xs text-amber-900 dark:text-amber-300">
+        <strong>Regra de consumo:</strong> selecionar “Relatório BEx_Completo_Kanitz” gera o Completo + Resumido, consumindo <b>1 completo + 1 resumido</b> da cota.
+        Selecionar “Relatório BEx_Resumido_Kanitz” consome apenas <b>1 resumido</b>. Cotas resetam todo dia 1º.
+      </div>
+
+      {/* Limites globais por variante */}
       <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="text-base font-bold mb-1">Limite Global do Portal</h3>
-        <p className="text-xs text-muted-foreground mb-4">Aplicado a todas as empresas cadastradas. Empresas listadas abaixo recebem quantidade adicional acima desse limite.</p>
-        <div className="flex items-end gap-3 max-w-md">
-          <div className="flex-1">
-            <Label className="text-xs">Quantidade total por empresa</Label>
+        <h3 className="text-base font-bold mb-1 flex items-center gap-2"><Globe2 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Cotas Globais por Nível Técnico</h3>
+        <p className="text-xs text-muted-foreground mb-4">Aplicadas a todas as empresas. Empresas com complemento abaixo recebem quantidade adicional acima dessas cotas.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end max-w-2xl">
+          <div>
+            <Label className="text-xs">Resumidos / mês</Label>
             <Input
-              type="number"
-              min={1}
-              max={999}
-              value={globalLimit}
-              onChange={(e) => setGlobalLimitState(parseInt(e.target.value) || 1)}
+              type="number" min={0} max={999}
+              value={global.resumido}
+              onChange={(e) => setGlobal({ ...global, resumido: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Completos / mês</Label>
+            <Input
+              type="number" min={0} max={999}
+              value={global.completo}
+              onChange={(e) => setGlobal({ ...global, completo: parseInt(e.target.value) || 0 })}
             />
           </div>
           <Button onClick={handleSaveGlobal}><Save className="w-4 h-4" /> Salvar</Button>
         </div>
       </div>
 
-      {/* Adicionar regra por empresa */}
+      {/* Complemento por empresa */}
       <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="text-base font-bold mb-1">Limite por Empresa Específica</h3>
-        <p className="text-xs text-muted-foreground mb-4">Adicione uma quantidade adicional (acima do limite global) para uma empresa.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-          <div>
-            <Label className="text-xs">Pesquisar empresa</Label>
+        <h3 className="text-base font-bold mb-1">Complemento por Empresa</h3>
+        <p className="text-xs text-muted-foreground mb-4">Adicione cota extra (acima da global) para uma empresa específica neste mês.</p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+          <div className="md:col-span-2">
+            <Label className="text-xs">Empresa</Label>
             <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
               <SelectTrigger><SelectValue placeholder="Selecione empresa..." /></SelectTrigger>
               <SelectContent className="max-h-72">
@@ -137,17 +164,16 @@ const TabReportLimits = () => {
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Quantidade extra (1-10)</Label>
-            <Select value={extraQty} onValueChange={setExtraQty}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
-                  <SelectItem key={n} value={String(n)}>+{n}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">+ Resumidos</Label>
+            <Input type="number" min={0} max={99} value={extraResumido} onChange={e => setExtraResumido(e.target.value)} />
           </div>
-          <Button onClick={handleAddPerCompany}>Atribuir Limite Extra</Button>
+          <div>
+            <Label className="text-xs">+ Completos</Label>
+            <Input type="number" min={0} max={99} value={extraCompleto} onChange={e => setExtraCompleto(e.target.value)} />
+          </div>
+        </div>
+        <div className="mt-3">
+          <Button onClick={handleAddPerCompany}>Atribuir Cota Extra</Button>
         </div>
 
         {perLimits.length > 0 && (
@@ -156,8 +182,9 @@ const TabReportLimits = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Empresa</TableHead>
-                  <TableHead className="text-center">Limite Total</TableHead>
-                  <TableHead className="text-center">Extra</TableHead>
+                  <TableHead className="text-center">Resumidos (Total)</TableHead>
+                  <TableHead className="text-center">Completos (Total)</TableHead>
+                  <TableHead className="text-center">Extras</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
@@ -165,8 +192,12 @@ const TabReportLimits = () => {
                 {perLimits.map(l => (
                   <TableRow key={l.companyId}>
                     <TableCell className="font-medium">{l.companyName}</TableCell>
-                    <TableCell className="text-center">{getGlobalLimit() + l.extra}</TableCell>
-                    <TableCell className="text-center"><Badge variant="secondary">+{l.extra}</Badge></TableCell>
+                    <TableCell className="text-center font-mono">{global.resumido + l.resumido}</TableCell>
+                    <TableCell className="text-center font-mono">{global.completo + l.completo}</TableCell>
+                    <TableCell className="text-center text-xs">
+                      <Badge variant="secondary" className="mr-1">+{l.resumido} R</Badge>
+                      <Badge variant="secondary">+{l.completo} C</Badge>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" variant="ghost" onClick={() => handleRemovePer(l.companyId)}>
                         <Trash2 className="w-4 h-4" />
@@ -180,12 +211,12 @@ const TabReportLimits = () => {
         )}
       </div>
 
-      {/* Relatórios por empresa */}
+      {/* Consumo mensal por empresa */}
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div>
-            <h3 className="text-base font-bold">Relatórios Emitidos por Empresa</h3>
-            <p className="text-xs text-muted-foreground">Visualize totais por empresa específica, todas, ou filtrando por setor.</p>
+            <h3 className="text-base font-bold">Consumo do Mês por Empresa</h3>
+            <p className="text-xs text-muted-foreground">Cotas e relatórios emitidos no mês corrente, separados por variante.</p>
           </div>
           <div className="flex gap-2">
             <div className="relative">
@@ -208,28 +239,27 @@ const TabReportLimits = () => {
               <TableRow>
                 <TableHead>Empresa</TableHead>
                 <TableHead>CNPJ</TableHead>
-                <TableHead>Setor</TableHead>
-                <TableHead className="text-center">Emitidos</TableHead>
-                <TableHead className="text-center">Limite</TableHead>
+                <TableHead className="text-center">Resumidos</TableHead>
+                <TableHead className="text-center">Completos</TableHead>
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredCompanies.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Nenhuma empresa encontrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Nenhuma empresa encontrada.</TableCell></TableRow>
               )}
               {filteredCompanies.map(c => {
-                const used = reportsByCompany.get(c.id) || 0;
-                const limit = getCompanyLimit(c.id);
-                const pct = limit > 0 ? (used / limit) * 100 : 0;
-                const status = pct >= 100 ? "esgotado" : pct >= 80 ? "alerta" : "ok";
+                const q = getCompanyQuota(c.id);
+                const pctR = q.resumido.limit > 0 ? (q.resumido.used / q.resumido.limit) * 100 : 0;
+                const pctC = q.completo.limit > 0 ? (q.completo.used / q.completo.limit) * 100 : 0;
+                const worst = Math.max(pctR, pctC);
+                const status = worst >= 100 ? "esgotado" : worst >= 80 ? "alerta" : "ok";
                 return (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{c.cnpj || "—"}</TableCell>
-                    <TableCell className="text-xs">{c.sector || "—"}</TableCell>
-                    <TableCell className="text-center font-mono">{used}</TableCell>
-                    <TableCell className="text-center font-mono">{limit}</TableCell>
+                    <TableCell className="text-center font-mono text-xs">{q.resumido.used}/{q.resumido.limit}</TableCell>
+                    <TableCell className="text-center font-mono text-xs">{q.completo.used}/{q.completo.limit}</TableCell>
                     <TableCell className="text-center">
                       {status === "esgotado" ? <Badge variant="destructive">Esgotado</Badge>
                         : status === "alerta" ? <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/20">Alerta</Badge>

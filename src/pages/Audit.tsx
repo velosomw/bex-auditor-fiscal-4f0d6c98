@@ -36,6 +36,7 @@ import type { BalanceteEntry } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
+import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { getFileFormat as getFormat } from "@/services/auditAIService";
 import { mergeMultiMonth, pickMonths, defaultLast3, type MultiMonthParsed } from "@/services/auditMonthDetector";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
@@ -4375,6 +4376,19 @@ const AuditContent = () => {
         {phase === "upload" && (
           <UploadPhase 
             onProcess={async () => {
+              // Validação de cota mensal por variante (configurada no Gestor IA)
+              if (company?.id) {
+                const variant = selectedDepth === "tecnico" ? "completo" : "resumido";
+                const { allowed, reason, quota } = canGenerateForCompany(company.id, variant);
+                if (!allowed) {
+                  toast({
+                    title: "Cota mensal esgotada",
+                    description: reason ?? `Resumidos ${quota.resumido.used}/${quota.resumido.limit} · Completos ${quota.completo.used}/${quota.completo.limit}. Solicite ao Gestor IA cota extra.`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+              }
               if (uploadedFiles.length === 0) { setPhase("processing"); return; }
               setPreParsing(true);
               try {
