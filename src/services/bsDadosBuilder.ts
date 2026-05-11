@@ -74,6 +74,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "RESULTADO": "resultado",
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
+  "DEDUCOES_RECEITA": "receita_liquida",
   "RECEITA LIQUIDA": "receita_liquida",
   "RECEITA LÍQUIDA": "receita_liquida",
   "CMV": "cmv",
@@ -215,7 +216,7 @@ function applyValue(
   if (!Number.isFinite(v)) return;
   switch (key) {
     case "receita_liquida":
-      (target as any)[key] = (target[key] as number) + Math.abs(v); break;
+      (target as any)[key] = (target[key] as number) + (toUpperNoAccent(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v)); break;
     case "cmv":
     case "despesas":
       (target as any)[key] = (target[key] as number) - Math.abs(v); break;
