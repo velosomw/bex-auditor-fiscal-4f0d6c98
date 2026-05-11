@@ -293,9 +293,12 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^24/,    "GG1"], // PL alternativo
   // ── DRE ──────────────────────────────────────
   [/^31/,    "RECEITA"],   // Receita Bruta
-  [/^32/,    "RECEITA"],   // Deduções → tratado pelo sinal
+  [/^32/,    "DEDUCOES_RECEITA"], // Devoluções/abatimentos
+  [/^33/,    "DEDUCOES_RECEITA"], // Impostos sobre vendas
   [/^4/,     "CMV"],       // Custos
   [/^5/,     "DESPESAS"],  // Despesas Operacionais
+  [/^6/,     "DESPESAS"],  // Outras despesas/receitas operacionais
+  [/^7/,     "DESPESAS"],  // Resultado financeiro (proxy no resultado)
 ];
 
 /** Resolve Ref 1 a partir do código contábil (determinístico, sem IA). */
