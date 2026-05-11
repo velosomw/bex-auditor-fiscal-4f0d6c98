@@ -4376,6 +4376,19 @@ const AuditContent = () => {
         {phase === "upload" && (
           <UploadPhase 
             onProcess={async () => {
+              // Validação de cota mensal por variante (configurada no Gestor IA)
+              if (company?.id) {
+                const variant = selectedDepth === "tecnico" ? "completo" : "resumido";
+                const { allowed, reason, quota } = canGenerateForCompany(company.id, variant);
+                if (!allowed) {
+                  toast({
+                    title: "Cota mensal esgotada",
+                    description: reason ?? `Resumidos ${quota.resumido.used}/${quota.resumido.limit} · Completos ${quota.completo.used}/${quota.completo.limit}. Solicite ao Gestor IA cota extra.`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+              }
               if (uploadedFiles.length === 0) { setPhase("processing"); return; }
               setPreParsing(true);
               try {
