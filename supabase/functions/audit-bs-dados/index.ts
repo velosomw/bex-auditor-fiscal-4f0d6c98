@@ -192,8 +192,7 @@ function emptyRow(mesKey: string): BSDadosRow {
 }
 
 function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
-  const inferredRef = String(linha.conta || "").replace(/\s+/g, "");
-  const ref1 = linha.ref1 ?? REF_BY_PREFIX.find(([pattern]) => pattern.test(inferredRef))?.[1];
+  const ref1 = linha.ref1 ?? inferRefByCode(linha.conta);
   if (ref1) {
     const k = REF1_MAP[upper(ref1)];
     if (k) return k;
@@ -268,7 +267,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     for (const linha of (b.linhas || [])) {
       const key = resolveKey(linha);
       if (!key) continue;
-      applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? null, buckets);
+      applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? inferRefByCode(linha.conta), buckets);
     }
   }
 
