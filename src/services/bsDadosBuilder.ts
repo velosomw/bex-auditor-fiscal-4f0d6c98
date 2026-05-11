@@ -28,31 +28,57 @@ import {
 // (Ativo Circulante A..O, ANC P..J1, Passivo Circulante AA..II1, PNC PP..FF1, PL GG1/HH1/Resultado).
 // Ref ausente do mapa = ignorada na consolidação (não-zerada apenas se houver fallback regex).
 export const REF1_MAP: Record<string, keyof BSDadosRow> = {
-  // Ativo Circulante (componentes individuais usados pelo dashboard)
+  // ── Ativo Circulante (A..O) ──
   "A": "disponivel",        // Caixa e Equivalentes
   "B": "disponivel",        // Aplicações Financeiras
+  "C": "ativo_circulante",  // Contas a receber clientes
   "D": "estoques",          // Estoque
-  // Passivo Circulante (componentes da dívida)
-  "AA": "divida_financeira",   // Empréstimos e Financiamentos PC
+  "E": "ativo_circulante",  // Adiantamento Fornecedor
+  "F": "ativo_circulante",  // Partes Relacionadas
+  "G": "ativo_circulante",  // Impostos a recuperar
+  "H": "ativo_circulante",  // Juros a Apropriar
+  "I": "ativo_circulante",  // Outros Créditos
+  "J": "ativo_circulante",  // Adiant. Funcionários
+  "K": "ativo_circulante",  // Depósitos judiciais
+  "L": "ativo_circulante",  // Tributos diferidos
+  "M": "ativo_circulante",  // Investimentos Temporários
+  "N": "ativo_circulante",  // Consórcio
+  "O": "ativo_circulante",  // Seguros a Apropriar
+  // ── Passivo Circulante (AA..II1) ──
+  "AA": "divida_financeira",   // Empréstimos PC
   "BB": "fornecedores",        // Fornecedores PC
   "CC": "divida_trabalhista",  // Obrigações Trabalhistas
   "DD": "divida_tributaria",   // Obrigações Tributárias
+  "EE": "passivo_circulante",  // Contas a pagar
+  "FF": "passivo_circulante",  // Provisões
+  "GG": "passivo_circulante",  // Adiant. Clientes
+  "HH": "passivo_circulante",  // Outras Obrigações
   "II": "credores_rj",         // Credores RJ
+  "JJ": "passivo_circulante",  // Partes Relacionadas PC
+  "KK": "passivo_circulante",  // Dividendos a pagar
   "LL": "credores_rj",         // Recuperação Judicial
-  "II1": "divida_tributaria",  // Obrigações tributárias Parceladas PC
-  // Passivo Não Circulante
+  "MM": "passivo_circulante",  // Compensação Passiva
+  "NN": "divida_tributaria",   // Taxas e Contribuições
+  "OO": "passivo_circulante",  // Adiant. de Câmbio
+  "II1": "divida_tributaria",  // Tributárias Parceladas PC
+  // ── Passivo Não Circulante (PP..FF1) ──
   "PP": "fornecedores",        // Fornecedores LP
-  "QQ": "divida_financeira",   // Empréstimos e financiamentos LP
+  "QQ": "divida_financeira",   // Empréstimos LP
   "RR": "divida_tributaria",   // Tributárias Parceladas LP
+  "SS": "divida_tributaria",   // Provisões para contingências
+  "TT": "divida_financeira",   // Partes Relacionadas PNC (proxy financeiro)
   "CC1": "credores_rj",        // Credores RJ LP
-  // Aliases textuais (caso o pipeline normalize por nome ao invés de letra)
+  // ── Patrimônio Líquido ──
+  "GG1": "resultado",          // Capital Social — entra no balanço pelo PL (proxy)
+  "HH1": "resultado",          // Lucro/Prejuízo Acumulado
+  "RESULTADO": "resultado",
+  // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
   "RECEITA LIQUIDA": "receita_liquida",
   "RECEITA LÍQUIDA": "receita_liquida",
   "CMV": "cmv",
   "DESPESAS": "despesas",
   "DESPESA": "despesas",
-  "RESULTADO": "resultado",
   "ATIVO CIRCULANTE": "ativo_circulante",
   "PASSIVO CIRCULANTE": "passivo_circulante",
   "ESTOQUES": "estoques",
