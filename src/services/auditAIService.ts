@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { extractColumnMonths } from "@/services/auditMonthDetector";
 
 export interface ParsedFinancialData {
   balanco: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
@@ -307,7 +308,7 @@ export function inferRefByCode(code: string): string | undefined {
   return undefined;
 }
 
-function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowParsed[]; periodLabel: string } | null {
+function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowParsed[]; periodLabel: string; multiMonth?: boolean } | null {
   // Procura linha de cabeçalho com "saldo atual" + ("extenso" OU "descri")
   let headerIdx = -1;
   let cols: Record<string, number> = {};
@@ -335,6 +336,26 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
   }
   if (headerIdx === -1) return null;
 
+  // ── MULTI-MÊS (cenário B do MD): detecta múltiplas colunas com headers de mês ──
+  // Verifica o header atual e a linha imediatamente acima (templates BEX costumam
+  // ter "Saldo Atual" na linha N e "JAN/2024 | FEV/2024 | ..." em N-1 ou N+1).
+  const monthCols: Array<{ idx: number; mesKey: string; label: string }> = [];
+  const candidateRows: unknown[][] = [
+    jsonData[headerIdx] || [],
+    headerIdx > 0 ? (jsonData[headerIdx - 1] || []) : [],
+    jsonData[headerIdx + 1] || [],
+  ];
+  for (const r of candidateRows) {
+    const found = extractColumnMonths(r);
+    for (const f of found) {
+      if (!monthCols.find(m => m.idx === f.idx || m.mesKey === f.mesKey)) {
+        monthCols.push(f);
+      }
+    }
+  }
+  // Só ativa multi-mês se houver ≥2 meses distintos detectados
+  const useMultiMonth = monthCols.length >= 2;
+
   // Coleta todos os códigos para identificar quais são analíticos (folha)
   const allCodes = new Set<string>();
   for (let i = headerIdx + 1; i < jsonData.length; i++) {
@@ -353,6 +374,11 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
     return true;
   };
 
+  const parseNumCell = (raw: unknown): number => {
+    if (typeof raw === "number") return raw;
+    return parseFloat(String(raw ?? "0").replace(/[^\d.,-]/g, "").replace(",", "."));
+  };
+
   const periodLabel = "atual";
   const rows: BalanceteRowParsed[] = [];
   for (let i = headerIdx + 1; i < jsonData.length; i++) {
@@ -362,15 +388,27 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
     const desc = String(row[cols.descricao] ?? "").trim();
     if (!conta && !desc) continue;
     if (!isLeaf(conta)) continue; // pula totalizadores para evitar dupla contagem
-    const rawSaldo = row[cols.saldoAtual];
-    const saldoNum = typeof rawSaldo === "number"
-      ? rawSaldo
-      : parseFloat(String(rawSaldo ?? "0").replace(/[^\d.,-]/g, "").replace(",", "."));
-    if (!isFinite(saldoNum)) continue;
     const ref1 = inferRefByCode(conta);
-    rows.push({ conta, descricao: desc || conta, ref1, values: { [periodLabel]: saldoNum } });
+
+    if (useMultiMonth) {
+      // Emite uma entrada por mês detectado nas colunas
+      const values: Record<string, number> = {};
+      let anyValid = false;
+      for (const mc of monthCols) {
+        const v = parseNumCell(row[mc.idx]);
+        if (isFinite(v) && v !== 0) { values[mc.mesKey] = v; anyValid = true; }
+        else if (isFinite(v)) { values[mc.mesKey] = 0; }
+      }
+      if (anyValid) rows.push({ conta, descricao: desc || conta, ref1, values });
+    } else {
+      const saldoNum = parseNumCell(row[cols.saldoAtual]);
+      if (!isFinite(saldoNum)) continue;
+      rows.push({ conta, descricao: desc || conta, ref1, values: { [periodLabel]: saldoNum } });
+    }
   }
-  return rows.length > 0 ? { rows, periodLabel } : null;
+  return rows.length > 0
+    ? { rows, periodLabel: useMultiMonth ? monthCols[0].mesKey : periodLabel, multiMonth: useMultiMonth }
+    : null;
 }
 
 /* ── Parse spreadsheet ── */
@@ -385,15 +423,24 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   //    Se múltiplas sheets baterem o template, mantém a sheet com mais contas
   //    (mais granular) para evitar dupla contagem entre abas duplicadas.
   let bestTplRows: BalanceteRowParsed[] = [];
+  let bestTplMulti = false;
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
     const tpl = tryParseBalanceteMensalBR(jsonData);
-    if (tpl && tpl.rows.length > bestTplRows.length) bestTplRows = tpl.rows;
+    if (tpl && tpl.rows.length > bestTplRows.length) {
+      bestTplRows = tpl.rows;
+      bestTplMulti = !!tpl.multiMonth;
+    }
   }
   if (bestTplRows.length > 0) {
     bestTplRows.forEach(r => allRows.push(r));
-    years.add("atual");
+    if (bestTplMulti) {
+      // Multi-mês: cada linha já traz values com chaves YYYY-MM
+      bestTplRows.forEach(r => Object.keys(r.values).forEach(k => years.add(k)));
+    } else {
+      years.add("atual");
+    }
   }
   if (allRows.length > 0) {
     // separa balanço x DRE pelo prefixo do código (1/2 = patrimoniais, 3/4/5 = resultado)

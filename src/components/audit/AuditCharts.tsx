@@ -2,7 +2,7 @@
  * Dashboard Executivo — 6 gráficos pixel-perfect Excel via Apache ECharts.
  * Layout: grid 2 colunas, altura 320px, gap 16px (padrão MD 1).
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
   generateInsights,
 } from "@/services/auditChartsOptions";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import WindowSelector, { applyWindow, type Window } from "./WindowSelector";
 
 interface Props {
   parsedData?: ParsedFinancialData | null;
@@ -45,12 +46,15 @@ const ChartTile = ({ option }: { option: any }) => (
 );
 
 const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
+  const [windowSize, setWindowSize] = useState<Window>("ALL");
   // FONTE ÚNICA: BS & Dados (Ref Capital). Fallback para builder antigo se vazio.
-  const dataset = useMemo(() => {
+  const fullDataset = useMemo(() => {
     const bs = buildBSDados(parsedData ?? null, entries);
     if (bs.length) return bsDadosToMonthlyDataset(bs);
     return buildMonthlyDataset(parsedData ?? null);
   }, [parsedData, entries]);
+
+  const dataset = useMemo(() => applyWindow(fullDataset, windowSize), [fullDataset, windowSize]);
 
   const options = useMemo(() => {
     if (!dataset.length) return null;
@@ -78,6 +82,12 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
+          {fullDataset.length} mês(es) consolidado(s) — exibindo {dataset.length}
+        </span>
+        <WindowSelector value={windowSize} onChange={setWindowSize} available={fullDataset.length} />
+      </div>
       {/* INSIGHTS automáticos */}
       {insights.length > 0 && (
         <Card className="bg-muted/30">

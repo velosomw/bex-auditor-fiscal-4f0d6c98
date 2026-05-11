@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import {
   type BalanceteEntry,
 } from "@/services/bsDadosBuilder";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import WindowSelector, { applyWindow, type Window } from "./WindowSelector";
+import EquilibrioBadge from "./EquilibrioBadge";
 
 interface Props {
   parsedData: ParsedFinancialData | null;
@@ -47,7 +49,9 @@ const HeaderCell = ({ k, label }: { k: string; label: string }) => (
 );
 
 export default function TabBSDados({ parsedData, entries = [] }: Props) {
-  const rows = useMemo(() => buildBSDados(parsedData, entries), [parsedData, entries]);
+  const allRows = useMemo(() => buildBSDados(parsedData, entries), [parsedData, entries]);
+  const [windowSize, setWindowSize] = useState<Window>("ALL");
+  const rows = useMemo(() => applyWindow(allRows, windowSize), [allRows, windowSize]);
   const totalErrors = rows.reduce((s, r) => s + r.errors.length, 0);
 
   const handleExport = () => {
@@ -87,7 +91,8 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
                 consolidação mensal a partir do <em>Saldo Atual</em>. Esta é a fonte que alimenta gráficos, Kanitz e Relatório BEX.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {rows.length > 0 && <EquilibrioBadge row={rows[rows.length - 1]} />}
               {totalErrors === 0 ? (
                 <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                   <CheckCircle2 className="w-3 h-3 mr-1" /> Validado
@@ -97,6 +102,7 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
                   <AlertTriangle className="w-3 h-3 mr-1" /> {totalErrors} alerta(s)
                 </Badge>
               )}
+              <WindowSelector value={windowSize} onChange={setWindowSize} available={allRows.length} />
               <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
                 <Download className="w-3.5 h-3.5" /> Exportar CSV
               </Button>
