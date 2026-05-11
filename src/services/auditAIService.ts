@@ -343,6 +343,25 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
   // Verifica o header atual e a linha imediatamente acima (templates BEX costumam
   // ter "Saldo Atual" na linha N e "JAN/2024 | FEV/2024 | ..." em N-1 ou N+1).
   const monthCols: Array<{ idx: number; mesKey: string; label: string }> = [];
+  const addMonthCol = (col: { idx: number; mesKey: string; label: string }) => {
+    if (!monthCols.find(m => m.idx === col.idx || m.mesKey === col.mesKey)) monthCols.push(col);
+  };
+  const searchMonthNear = (colIdx: number): { mesKey: string; label: string } | null => {
+    const rowsToSearch = [jsonData[headerIdx] || [], headerIdx > 0 ? (jsonData[headerIdx - 1] || []) : [], headerIdx > 1 ? (jsonData[headerIdx - 2] || []) : []];
+    for (const r of rowsToSearch) {
+      for (let j = colIdx; j >= Math.max(0, colIdx - 8); j--) {
+        const ref = detectMonthFromYearLabel(String(r[j] || ""));
+        if (ref && ref.confidence >= 0.8) return { mesKey: ref.key, label: ref.label };
+      }
+    }
+    return null;
+  };
+  const headerNorm = (jsonData[headerIdx] || []).map(c => String(c || "").toLowerCase().trim());
+  headerNorm.forEach((c, idx) => {
+    if (!(c.includes("saldo atual") || c === "saldo final")) return;
+    const ref = searchMonthNear(idx);
+    if (ref) addMonthCol({ idx, mesKey: ref.mesKey, label: ref.label });
+  });
   const candidateRows: unknown[][] = [
     jsonData[headerIdx] || [],
     headerIdx > 0 ? (jsonData[headerIdx - 1] || []) : [],
@@ -351,9 +370,7 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
   for (const r of candidateRows) {
     const found = extractColumnMonths(r);
     for (const f of found) {
-      if (!monthCols.find(m => m.idx === f.idx || m.mesKey === f.mesKey)) {
-        monthCols.push(f);
-      }
+      addMonthCol(f);
     }
   }
   // Só ativa multi-mês se houver ≥2 meses distintos detectados
