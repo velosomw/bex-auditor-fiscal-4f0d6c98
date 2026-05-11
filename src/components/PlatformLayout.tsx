@@ -45,7 +45,16 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
           <div className="flex items-center gap-3">
             {showBack && (
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => {
+                  // Em /audit (e demais páginas internas) sempre volta ao painel inicial
+                  // do papel atual, evitando navigate(-1) quebrado quando não há histórico.
+                  const home =
+                    role === "gestor_ia" ? "/gestor-ia" :
+                    role === "auditor_chefe" ? "/dashboard" :
+                    "/user";
+                  navigate(home);
+                }}
+                aria-label="Voltar ao painel inicial"
                 className="flex items-center justify-center w-8 h-8 rounded-lg bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white transition-colors mr-1"
               >
                 <ArrowLeft className="w-4 h-4" />
