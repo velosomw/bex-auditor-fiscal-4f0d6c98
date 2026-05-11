@@ -16,6 +16,7 @@ import {
   generateInsights,
 } from "@/services/auditChartsOptions";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import WindowSelector, { applyWindow, type Window } from "./WindowSelector";
 
 interface Props {
   parsedData?: ParsedFinancialData | null;
