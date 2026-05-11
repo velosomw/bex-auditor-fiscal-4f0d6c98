@@ -16,7 +16,7 @@
  *   - Componentes de dívida → POSITIVOS (módulo)
  *   - Percentuais derivados → sempre POSITIVOS
  */
-import type { ParsedFinancialData } from "@/services/auditAIService";
+import { inferRefByCode, type ParsedFinancialData } from "@/services/auditAIService";
 import {
   mesKeyToLabel as _mesKeyToLabel,
   periodToMesKey as _periodToMesKey,
@@ -191,8 +191,9 @@ type ComponentBuckets = { ac: number; pc: number; sawACTotal: boolean; sawPCTota
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
-  if (row.ref1) {
-    const k = REF1_MAP[toUpperNoAccent(row.ref1)];
+  const ref1 = row.ref1 ?? inferRefByCode(row.conta || "");
+  if (ref1) {
+    const k = REF1_MAP[toUpperNoAccent(ref1)];
     if (k) return k;
   }
   const text = `${row.descricao || ""} ${row.conta || ""}`;
@@ -335,7 +336,7 @@ export function buildBSDados(
   ];
 
   for (const row of allRows) {
-    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? null;
+    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta) ?? null;
     const valuesObj = row.values || {};
     const periodKeys = Object.keys(valuesObj);
 
