@@ -339,7 +339,7 @@ Deno.serve(async (req) => {
               variant: body.variant || "completo",
               status: "completed",
               meses_count: bsDados.length,
-              metadata: { source: "audit-bs-dados", summary },
+              metadata: { source: "audit-bs-dados", summary, periodos: bsDados.map(r => r.mesKey) },
             })
             .select("id")
             .single();
