@@ -16,6 +16,7 @@ export interface AuditHistoryEntry {
   companyId?: string;
   companyName?: string;
   source?: ReportSource;
+  periodos?: string[]; // Meses vinculados (ex: ["2024-01", "2024-02"])
 }
 
 export interface SourceDocumentRef {
@@ -146,6 +147,7 @@ async function persistAuditEntry(entry: AuditHistoryEntry): Promise<void> {
       risk_level: entry.riskLevel,
       batch_id: entry.batchId ?? null,
       source: entry.source ?? "usuario",
+      metadata: { periodos: entry.periodos || [] },
     });
   } catch (e) {
     console.warn("[auditHistoryService] persistAuditEntry falhou:", e);
@@ -219,6 +221,7 @@ export async function hydrateFromRemote(opts?: { companyId?: string }): Promise<
         batchId: d.batch_id ?? undefined,
         companyId: d.company_id,
         source: d.source,
+        periodos: d.metadata?.periodos || [],
       }));
       mergeLocal(STORAGE_KEY, remoteDocs, 200);
     }

@@ -292,6 +292,11 @@ const UserDashboard = () => {
                             <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                               <span>{d.date}</span>
                               <span>{formatFileSize(d.fileSize)}</span>
+                              {d.periodos && d.periodos.length > 0 && (
+                                <span className="flex items-center gap-1 text-[hsl(217,91%,50%)] font-medium">
+                                  • {d.periodos.length} períodos: {d.periodos.join(", ")}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
