@@ -178,6 +178,8 @@ async function persistGeneratedReport(entry: GeneratedReportEntry): Promise<void
       ai_analysis: entry.aiAnalysis ?? null,
       parsed_data: entry.parsedData ?? null,
       source_documents: entry.sourceDocuments ?? null,
+      balancete_entries: entry.balanceteEntries ?? null,
+      periodos: entry.periodos ?? null,
     });
   } catch (e) {
     console.warn("[auditHistoryService] persistGeneratedReport falhou:", e);
