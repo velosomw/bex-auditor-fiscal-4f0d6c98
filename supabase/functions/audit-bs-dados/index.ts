@@ -79,11 +79,17 @@ interface BSIndicators {
 const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const REF1_MAP: Record<string, keyof BSDadosRow> = {
-  "A": "disponivel", "B": "disponivel", "D": "estoques",
+  "A": "disponivel", "B": "disponivel", "C": "ativo_circulante", "D": "estoques",
+  "E": "ativo_circulante", "F": "ativo_circulante", "G": "ativo_circulante", "H": "ativo_circulante",
+  "I": "ativo_circulante", "J": "ativo_circulante", "K": "ativo_circulante", "L": "ativo_circulante",
+  "M": "ativo_circulante", "N": "ativo_circulante", "O": "ativo_circulante",
   "AA": "divida_financeira", "BB": "fornecedores", "CC": "divida_trabalhista",
   "DD": "divida_tributaria", "II": "credores_rj", "LL": "credores_rj",
-  "II1": "divida_tributaria",
-  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "CC1": "credores_rj",
+  "EE": "passivo_circulante", "FF": "passivo_circulante", "GG": "passivo_circulante", "HH": "passivo_circulante",
+  "JJ": "passivo_circulante", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
+  "OO": "passivo_circulante", "II1": "divida_tributaria",
+  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "SS": "divida_tributaria", "TT": "divida_financeira", "CC1": "credores_rj",
+  "GG1": "resultado", "HH1": "resultado",
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
   "ATIVO CIRCULANTE": "ativo_circulante", "PASSIVO CIRCULANTE": "passivo_circulante",
@@ -105,6 +111,11 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^231/, "GG1"], [/^232/, "HH1"], [/^24/, "GG1"],
   [/^31/, "RECEITA"], [/^32/, "RECEITA"], [/^4/, "CMV"], [/^5/, "DESPESAS"],
 ];
+
+function inferRefByCode(code?: string): string | null {
+  const c = String(code || "").replace(/\s+/g, "");
+  return REF_BY_PREFIX.find(([pattern]) => pattern.test(c))?.[1] ?? null;
+}
 
 const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
   receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
