@@ -46,6 +46,8 @@ export interface GeneratedReportEntry {
   source?: ReportSource;
   /** Atribuição de mês por arquivo (necessário para reidratar gráficos BS & Dados) */
   balanceteEntries?: { fileName: string; mesReferencia: string | null }[];
+  /** Períodos (YYYY-MM) selecionados na geração — usados para travar os meses dos gráficos */
+  periodos?: string[];
 }
 
 const STORAGE_KEY = "bex_audit_history";
