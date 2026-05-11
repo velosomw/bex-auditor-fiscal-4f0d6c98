@@ -91,6 +91,7 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "SS": "divida_tributaria", "TT": "divida_financeira", "CC1": "credores_rj",
   "GG1": "resultado", "HH1": "resultado",
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
+  "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
   "ATIVO CIRCULANTE": "ativo_circulante", "PASSIVO CIRCULANTE": "passivo_circulante",
   "ESTOQUES": "estoques", "ESTOQUE": "estoques", "DISPONIVEL": "disponivel", "DISPONÍVEL": "disponivel",
@@ -109,7 +110,7 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^211/, "AA"], [/^212/, "BB"], [/^213/, "CC"], [/^2148/, "II1"], [/^214/, "DD"], [/^2151/, "II"], [/^2152/, "LL"],
   [/^221/, "QQ"], [/^222/, "PP"], [/^223/, "RR"], [/^224/, "CC1"],
   [/^231/, "GG1"], [/^232/, "HH1"], [/^24/, "GG1"],
-  [/^31/, "RECEITA"], [/^32/, "RECEITA"], [/^4/, "CMV"], [/^5/, "DESPESAS"],
+  [/^31/, "RECEITA"], [/^32/, "DEDUCOES_RECEITA"], [/^33/, "DEDUCOES_RECEITA"], [/^4/, "CMV"], [/^5/, "DESPESAS"], [/^6/, "DESPESAS"], [/^7/, "DESPESAS"],
 ];
 
 function inferRefByCode(code?: string): string | null {
@@ -209,7 +210,7 @@ interface Buckets { ac: number; pc: number; sawACTotal: boolean; sawPCTotal: boo
 function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: string | null | undefined, b: Buckets) {
   if (!Number.isFinite(v)) return;
   switch (key) {
-    case "receita_liquida": row.receita_liquida += Math.abs(v); break;
+    case "receita_liquida": row.receita_liquida += upper(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v); break;
     case "cmv":             row.cmv -= Math.abs(v); break;
     case "despesas":        row.despesas -= Math.abs(v); break;
     case "resultado":       row.resultado += v; break;
