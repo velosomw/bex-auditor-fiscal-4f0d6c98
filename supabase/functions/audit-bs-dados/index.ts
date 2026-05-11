@@ -97,6 +97,15 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
 const AC_REFS = new Set(["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]);
 const PC_REFS = new Set(["AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","II1"]);
 
+const REF_BY_PREFIX: Array<[RegExp, string]> = [
+  [/^11101/, "A"], [/^11102/, "B"], [/^1111/, "C"], [/^113/, "D"], [/^1141/, "E"], [/^1142/, "F"], [/^119/, "G"],
+  [/^121/, "P"], [/^122/, "Q"], [/^123/, "R"], [/^124/, "S"],
+  [/^211/, "AA"], [/^212/, "BB"], [/^213/, "CC"], [/^2148/, "II1"], [/^214/, "DD"], [/^2151/, "II"], [/^2152/, "LL"],
+  [/^221/, "QQ"], [/^222/, "PP"], [/^223/, "RR"], [/^224/, "CC1"],
+  [/^231/, "GG1"], [/^232/, "HH1"], [/^24/, "GG1"],
+  [/^31/, "RECEITA"], [/^32/, "RECEITA"], [/^4/, "CMV"], [/^5/, "DESPESAS"],
+];
+
 const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
   receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
   cmv: /\bc(?:mv|sv|pv)\b|\bcusto\s+(?:das?\s+)?(?:mercadoria|servi[cç]o|produto|venda)/i,
@@ -172,8 +181,10 @@ function emptyRow(mesKey: string): BSDadosRow {
 }
 
 function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
-  if (linha.ref1) {
-    const k = REF1_MAP[upper(linha.ref1)];
+  const inferredRef = String(linha.conta || "").replace(/\s+/g, "");
+  const ref1 = linha.ref1 ?? REF_BY_PREFIX.find(([pattern]) => pattern.test(inferredRef))?.[1];
+  if (ref1) {
+    const k = REF1_MAP[upper(ref1)];
     if (k) return k;
   }
   const text = `${linha.descricao || ""} ${linha.conta || ""}`;
