@@ -510,7 +510,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
     };
   }
 
-  // 2) Fallback: parser anterior (procura colunas por ano 20XX)
+  // 2) Fallback: parser anterior — agora reconhece colunas mês/ano (MM/YYYY, Ago/2025…)
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
@@ -520,22 +520,40 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
     let headerRowIdx = -1;
     let yearColumns: { idx: number; year: string }[] = [];
 
-    for (let i = 0; i < Math.min(10, jsonData.length); i++) {
+    // Tenta primeiro detectar colunas com mês+ano (preferido)
+    for (let i = 0; i < Math.min(15, jsonData.length); i++) {
       const row = jsonData[i] as unknown[];
       if (!row) continue;
-
-      const foundYears: { idx: number; year: string }[] = [];
-      for (let j = 0; j < row.length; j++) {
-        const cell = String(row[j] || "").trim();
-        const yearMatch = cell.match(/20\d{2}/);
-        if (yearMatch) {
-          foundYears.push({ idx: j, year: yearMatch[0] });
-        }
-      }
-      if (foundYears.length >= 1) {
+      // Combina a linha atual com adjacentes para casos de cabeçalho em duas linhas
+      const combined = row.map((c, j) => {
+        const above = (jsonData[i - 1]?.[j] ?? "") as unknown;
+        const below = (jsonData[i + 1]?.[j] ?? "") as unknown;
+        return `${String(above)} ${String(c)} ${String(below)}`.trim();
+      });
+      const monthCols = extractColumnMonths(combined);
+      if (monthCols.length >= 1) {
         headerRowIdx = i;
-        yearColumns = foundYears;
+        yearColumns = monthCols.map(mc => ({ idx: mc.idx, year: mc.mesKey })); // year aqui já é YYYY-MM
         break;
+      }
+    }
+
+    // Se não achou meses, usa fallback antigo (apenas ano)
+    if (headerRowIdx === -1) {
+      for (let i = 0; i < Math.min(10, jsonData.length); i++) {
+        const row = jsonData[i] as unknown[];
+        if (!row) continue;
+        const foundYears: { idx: number; year: string }[] = [];
+        for (let j = 0; j < row.length; j++) {
+          const cell = String(row[j] || "").trim();
+          const yearMatch = cell.match(/20\d{2}/);
+          if (yearMatch) foundYears.push({ idx: j, year: yearMatch[0] });
+        }
+        if (foundYears.length >= 1) {
+          headerRowIdx = i;
+          yearColumns = foundYears;
+          break;
+        }
       }
     }
 
