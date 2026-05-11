@@ -9,6 +9,7 @@ import Layout from "./components/Layout";
 import ScrollToTop from "./components/ScrollToTop";
 import PerfRouteTracker from "./components/PerfRouteTracker";
 import Index from "./pages/Index"; // landing page eager (LCP)
+import RoleGuard from "./components/RoleGuard";
 
 // Code-splitting: cada rota vira um chunk sob demanda — reduz drasticamente o JS inicial.
 const Solucoes = lazy(() => import("./pages/Solucoes"));
