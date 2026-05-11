@@ -450,10 +450,11 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
   }, []);
   const [fileYears, setFileYears] = useState<Record<string, number>>({});
   const monthOptions = useMemo(() => {
-    return MES_FULL.map((label, idx) => ({
+    const opts = MES_FULL.map((label, idx) => ({
       value: String(idx + 1).padStart(2, "0"),
       label,
     }));
+    return [{ value: "auto", label: "✨ Auto-detectar Períodos (Multi-mês)" }, ...opts];
   }, []);
 
   // Auto-detecta mês a partir do nome do arquivo (ex: "balancete_marco_2024.pdf")
