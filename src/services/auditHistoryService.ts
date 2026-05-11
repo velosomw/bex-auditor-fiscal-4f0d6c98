@@ -43,6 +43,8 @@ export interface GeneratedReportEntry {
   companyId?: string;
   companyName?: string;
   source?: ReportSource;
+  /** Atribuição de mês por arquivo (necessário para reidratar gráficos BS & Dados) */
+  balanceteEntries?: { fileName: string; mesReferencia: string | null }[];
 }
 
 const STORAGE_KEY = "bex_audit_history";

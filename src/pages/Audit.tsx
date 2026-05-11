@@ -4104,6 +4104,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       companyId: company?.id,
       companyName: company?.name,
       source,
+      balanceteEntries,
     };
     saveGeneratedReport(entry);
   };

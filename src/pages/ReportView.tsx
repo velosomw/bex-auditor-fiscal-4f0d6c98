@@ -53,6 +53,7 @@ const ReportView = () => {
               skipPersist
               initialReportType="kanitz"
               availableReports={["bex", "kanitz"]}
+              balanceteEntries={report.balanceteEntries ?? []}
             />
           ) : (
             <TabRelatorioFinal onBack={() => navigate(backTo)} aiAnalysis={report.aiAnalysis} parsedData={report.parsedData} variant="resumido" />
