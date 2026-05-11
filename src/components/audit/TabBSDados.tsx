@@ -91,7 +91,8 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
                 consolidação mensal a partir do <em>Saldo Atual</em>. Esta é a fonte que alimenta gráficos, Kanitz e Relatório BEX.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {rows.length > 0 && <EquilibrioBadge row={rows[rows.length - 1]} />}
               {totalErrors === 0 ? (
                 <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                   <CheckCircle2 className="w-3 h-3 mr-1" /> Validado
@@ -101,6 +102,7 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
                   <AlertTriangle className="w-3 h-3 mr-1" /> {totalErrors} alerta(s)
                 </Badge>
               )}
+              <WindowSelector value={windowSize} onChange={setWindowSize} available={allRows.length} />
               <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
                 <Download className="w-3.5 h-3.5" /> Exportar CSV
               </Button>
