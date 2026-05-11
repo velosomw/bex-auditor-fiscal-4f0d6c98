@@ -280,6 +280,7 @@ export type Database = {
           file_size: number
           format: string
           id: string
+          metadata: Json | null
           riscos: number
           risk_level: string
           source: string
@@ -296,6 +297,7 @@ export type Database = {
           file_size?: number
           format?: string
           id?: string
+          metadata?: Json | null
           riscos?: number
           risk_level?: string
           source?: string
@@ -312,6 +314,7 @@ export type Database = {
           file_size?: number
           format?: string
           id?: string
+          metadata?: Json | null
           riscos?: number
           risk_level?: string
           source?: string
