@@ -49,7 +49,9 @@ const HeaderCell = ({ k, label }: { k: string; label: string }) => (
 );
 
 export default function TabBSDados({ parsedData, entries = [] }: Props) {
-  const rows = useMemo(() => buildBSDados(parsedData, entries), [parsedData, entries]);
+  const allRows = useMemo(() => buildBSDados(parsedData, entries), [parsedData, entries]);
+  const [windowSize, setWindowSize] = useState<Window>("ALL");
+  const rows = useMemo(() => applyWindow(allRows, windowSize), [allRows, windowSize]);
   const totalErrors = rows.reduce((s, r) => s + r.errors.length, 0);
 
   const handleExport = () => {
