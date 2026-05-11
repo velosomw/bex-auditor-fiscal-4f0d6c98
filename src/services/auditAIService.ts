@@ -2,8 +2,8 @@ import * as XLSX from "xlsx";
 import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename } from "@/services/auditMonthDetector";
 
 export interface ParsedFinancialData {
-  balanco: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
-  dre: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
+  balanco: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string; refCapital?: string }>;
+  dre: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string; refCapital?: string }>;
   years: string[];
   pdfType?: string;
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
@@ -416,7 +416,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
 
-  const allRows: Array<{ conta: string; descricao: string; values: Record<string, number> }> = [];
+  const allRows: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string }> = [];
   const years = new Set<string>();
 
   // ── 1) Template "Balancete Mensal BR" — itera TODAS as sheets ──
@@ -486,12 +486,15 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   }
   if (allRows.length > 0) {
     // Mescla linhas do mesmo código (sheets diferentes) somando values por mês
-    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number> }>();
+    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number>; ref1?: string }>();
     for (const r of allRows) {
       const k = `${r.conta}::${r.descricao}`;
       const cur = merged.get(k);
-      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, values: { ...r.values } });
-      else for (const [mk, v] of Object.entries(r.values)) cur.values[mk] = (cur.values[mk] || 0) + v;
+      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, ref1: r.ref1, values: { ...r.values } });
+      else {
+        if (!cur.ref1 && r.ref1) cur.ref1 = r.ref1;
+        for (const [mk, v] of Object.entries(r.values)) cur.values[mk] = (cur.values[mk] || 0) + v;
+      }
     }
     const allRowsMerged = Array.from(merged.values());
     const balanco: typeof allRows = [];
