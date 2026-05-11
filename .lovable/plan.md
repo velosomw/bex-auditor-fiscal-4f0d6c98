@@ -1,74 +1,49 @@
-# Pipeline Balancete Multi-Mês — Implementação V2
+## Diagnóstico (logs + DB da empresa "01 - EMPRESA XPTO - BL 6 Meses")
 
-## Objetivo
-Adequar o projeto ao MD anexado: suportar **balancete com múltiplos meses em 1 arquivo** ou **múltiplos arquivos**, consolidando tudo via Single Source of Truth (SSOT) `balancete_consolidado`, derivando BS, DRE e os 6 gráficos de auditoria pixel-perfect Excel BEX.
+Após inspecionar `audits`, `balancetes`, `bs_dados` e `audit_reports` da empresa, detectei **3 desvios estruturais** que explicam os gráficos vazios e abas zeradas:
 
-## Diagnóstico do estado atual
+| # | Sintoma observado no banco | Causa raiz |
+|---|---|---|
+| 1 | Arquivo "Balancetes 08.2025 a 01.2026 (6 meses).xlsx" gerou apenas **2 balancetes** (2025-12 e 2026-12) em vez de 6 | O parser (`tryParseBalanceteMensalBR` em `auditAIService.ts`) só mantém **uma sheet** (a com mais linhas) e descarta as outras 5. Quando recai no fallback, só lê o ANO em headers — colapsa 6 meses em "2025"/"2026", e `periodToMesKey` força ambos para dezembro |
+| 2 | `bs_dados.receita_liquida = 0` em todos os meses | DRE não foi capturada — sem `Ref Capital` (apenas inferência por código). O fallback path nem retorna `ref1`, e a lógica `applyValue` depende de classificação correta |
+| 3 | `audit_reports.periodos = NULL` e `audit_documents.metadata.periodos = NULL` | A persistência salva os campos, mas como o parser só achou 2 períodos espúrios, os arrays ficam degradados |
 
-Já existe no projeto:
-- `balancete_consolidado` (SSOT) com `ref_capital`, `saldo_atual`, `mes_referencia`
-- `balancetes`, `balancete_lines`, `bs_dados`, `indicadores`, `kanitz_scores`
-- `bsDadosBuilder.ts`, `auditChartsOptions.ts`, `bsDadosToMonthlyDatum.ts`, `auditMonthDetector.ts`
-- Edge `audit-bs-dados`, `audit-pipeline-process`, `audit-analyze`
-- `AuditCharts`, `TabBSDados`
+Resultado prático: os gráficos do `AuditCharts` recebem apenas 2 pontos (ambos em dezembro) com receita zerada → o `MonthsConsistencyAlert` deveria avisar, mas nem chega lá pois `entries` no relatório também só tem 2 meses fictícios.
 
-Faltam (vs MD):
-1. **Multi-mês em 1 arquivo** — hoje cada arquivo recebe 1 mês via `userMonthOverride`. Quando o XLSX tem N colunas mensais (cenário B do MD), cada coluna deveria virar um período distinto.
-2. **Adapter `consolidadoToParsed`** lendo direto do `balancete_consolidado` por `codigo > conta` e `saldo > valor`.
-3. **Hook `useConsolidadoBS`** que alimenta TabBSDados + AuditCharts a partir do SSOT (hoje vem de `parsedData` em memória).
-4. **DRE derivada por prefixo** (4xx/5xx) — hoje só temos balanço.
-5. **Mapa REF1 ampliado** — 47 chaves BEx no `bsDadosBuilder` (atualmente parcial).
-6. **Reconciliação A=P+PL** com tolerância 0,5% UI exibida.
-7. **Janela 3M/6M/12M client-side** preservando SSOT.
-8. **Insights automáticos** (CMV>70%, queda receita MoM>10%, liquidez<1).
+## O que vou corrigir
 
-## Escopo desta entrega (4 fases)
+### 1. Parser multi-sheet de balancete (`src/services/auditAIService.ts`)
+- Em `parseSpreadsheet`, **iterar TODAS as sheets** que casam o template `tryParseBalanceteMensalBR`, não apenas a "best".
+- Para cada sheet, derivar o `mesKey` por (a) coluna de mês detectada → (b) **nome da sheet** (ex: "08-2025", "AGO/25") via `detectMonthFromYearLabel` → (c) string detectada no `documentInfo` da sheet (ex: "Período: 08/2025") → (d) fallback para nome do arquivo.
+- Cada sheet vira um período em `years[]`; cada `BalanceteRowParsed.values[mesKey]` recebe o saldo daquela sheet.
+- Quando o arquivo tem **uma única sheet com 6 meses em colunas** (cenário B), o caminho atual já funciona — manter intacto.
 
-### Fase 1 — Parser multi-mês (1 arquivo, N colunas)
-- Atualizar `audit-pipeline-process` para detectar **colunas mensais** em XLSX BEX (`JAN/24`, `01/2024`, `Saldo Atual MM/AAAA`) e emitir 1 entrada `balancete_data` por (conta × coluna-mês).
-- `auditMonthDetector` ganha `extractColumnMonths(headers)` para retornar lista ordenada de chaves YYYY-MM presentes no XLSX.
-- Quando o usuário NÃO informar `userMonthOverride` e existir >1 coluna mensal detectada, manter todas (cenário B do MD).
+### 2. Detecção de meses pelo nome do arquivo "intervalo"
+Adicionar em `auditMonthDetector.ts` o reconhecimento de `"08.2025 a 01.2026"` / `"08-2025 até 01-2026"` → expande para a lista completa de meses no intervalo (6 meses). Usado como fallback quando nada na planilha sinaliza o mês.
 
-### Fase 2 — SSOT consolidado lendo `balancete_consolidado`
-- Novo `src/services/bsDados/consolidadoAdapter.ts`: `consolidadoToParsed(rows)` agrupando por **`codigo > conta`**, sinal `saldo > valor`, retorna `ParsedFinancialData` + `BalanceteEntry[]` derivado de `mes_referencia`.
-- Novo `src/hooks/useConsolidadoBS.ts`: SELECT de `balancete_consolidado` por `audit_id` ou `company_id`, retorna `{ parsed, entries, loading }`.
-- Atualizar `AuditCharts` e `TabBSDados` para opcionalmente consumir do hook (fallback para props atual).
+### 3. Diálogo de confirmação de meses (já existe `MonthsConfirmDialog`)
+Quando o parser detectar **mais de 1 período** mas a confiança for `< 0.8` em qualquer um, abrir o diálogo após o upload para o usuário confirmar/ajustar a atribuição mês↔sheet **antes** de processar. Garante que sempre cheguem 6 entradas em `balanceteEntries`.
 
-### Fase 3 — DRE derivada + REF1 completo
-- Ampliar `REF1_MAP` em `bsDadosBuilder` para as 47 chaves do MD (A..O, P..J1, AA..II1, PP..FF1, GG1, HH1, Resultado).
-- Adicionar classificação **DRE por prefixo de código** (`41 receita_bruta`, `42 deducoes`, `51 cmv`, `52/53 despesas`, `54 depreciacao`, `55 amortizacao`, `56 financeiro`, `57 impostos`) com fallback regex.
-- Persistir `dre_consolidada` (campos do MD) em `bs_dados` (já temos `cmv`, `despesas`, `receita_liquida`, `resultado` — adequado).
+### 4. Reprocessar a empresa de teste
+- Apagar a auditoria atual `2c987bd2-…` (balancetes/bs_dados/reports vinculados) via migration controlada.
+- Reexecutar o fluxo na UI usando o mesmo arquivo para validar:
+  - 6 linhas em `balancetes` com `mes_referencia` distintos (2025-08…2026-01)
+  - 6 linhas em `bs_dados` com `receita_liquida > 0` e `ativo_circulante = passivo_circulante + PL`
+  - `audit_reports.periodos` populado com 6 chaves
+  - Aba **Gráficos de Auditoria**: 6 pontos no eixo X, sem alerta de inconsistência
+  - Aba **BS & Dados**: 6 colunas
+  - Aba **Pivot Balancete**: 6 colunas
+  - Aba **Kanitz**: 6 scores mensais
 
-### Fase 4 — UX: equilíbrio, janela e insights
-- Badge **A = P + PL** em `TabBSDados` (verde se ≤0,5%, vermelho caso contrário).
-- Selector **3M / 6M / 12M** client-side em `AuditCharts` e `TabBSDados`.
-- `InsightsCard` reutilizando `generateInsights()` (hoje já no AuditCharts; extrair card).
+### 5. Validação visual (QA)
+- Capturar screenshot da fase de Resultados após processar.
+- Confirmar via `psql` que `bs_dados` tem 6 linhas e `divida_total > 0`.
+- Verificar console para alertas de mapeamento.
 
-## Arquivos a criar/editar
+## Arquivos a editar
+- `src/services/auditAIService.ts` — multi-sheet loop + atribuição de mês por sheet
+- `src/services/auditMonthDetector.ts` — parser de intervalo "MM.YYYY a MM.YYYY"
+- `src/pages/Audit.tsx` — abrir `MonthsConfirmDialog` quando confiança < 0.8
+- `supabase/migrations/…` — limpar auditoria de teste antes do reprocessamento
 
-```text
-NOVOS
-  src/services/bsDados/consolidadoAdapter.ts
-  src/hooks/useConsolidadoBS.ts
-  src/components/audit/WindowSelector.tsx
-  src/components/audit/EquilibrioBadge.tsx
-
-EDITADOS
-  supabase/functions/audit-pipeline-process/index.ts   (multi-coluna mensal)
-  src/services/auditMonthDetector.ts                   (extractColumnMonths)
-  src/services/bsDadosBuilder.ts                       (REF1 47 chaves + DRE prefix)
-  src/components/audit/AuditCharts.tsx                 (window selector + hook opcional)
-  src/components/audit/TabBSDados.tsx                  (badge equilíbrio + janela)
-```
-
-## Fora de escopo (não criar agora)
-- Tabelas novas `chart_of_accounts`, `lancamentos`, `balancete_runs`, `balancete_validacoes`, `balancete_bs`, `balancete_dre` — o projeto já usa um schema diferente (`balancete_consolidado` + `bs_dados` + `indicadores`) que cobre o mesmo papel. Migrar para o schema do MD seria refatoração maior; **proponho manter o schema atual** e adicionar apenas o que falta (DRE pode ir em `bs_dados` já que ele tem campos DRE).
-- Seed completo de COA (XPT_BR_PADRAO_V1) — manter mapeamento via `account_mapping` e dicionário existente.
-
-## Validação
-Após implementar, testar com:
-1. 1 XLSX com 6 meses → deve gerar 6 linhas em BS & Dados e 6 pontos nos gráficos.
-2. 3 PDFs de meses distintos → deve consolidar 3 linhas.
-3. Verificar `Ativo = Passivo + PL` (tolerância 0,5%) com badge.
-
-Confirma que sigo com este escopo (Fases 1–4 sem migrar o schema para `lancamentos`/`chart_of_accounts`)?
+Não vou alterar o motor de gráficos (`AuditCharts`, `bsDadosToMonthlyDatum`) — eles já estão corretos; o problema é a **fonte de dados** que chega até eles.
