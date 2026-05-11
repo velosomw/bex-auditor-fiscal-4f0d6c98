@@ -419,44 +419,94 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   const allRows: Array<{ conta: string; descricao: string; values: Record<string, number> }> = [];
   const years = new Set<string>();
 
-  // 1) Tenta primeiro o template "Balancete Mensal BR" (Extenso/Descrição/Saldo Atual)
-  //    Se múltiplas sheets baterem o template, mantém a sheet com mais contas
-  //    (mais granular) para evitar dupla contagem entre abas duplicadas.
-  let bestTplRows: BalanceteRowParsed[] = [];
-  let bestTplMulti = false;
+  // ── 1) Template "Balancete Mensal BR" — itera TODAS as sheets ──
+  // Cada sheet pode ser um mês distinto (multi-arquivo em 1 workbook).
+  // Atribuição de mês por sheet:
+  //   (a) cenário B (multi-mês interno por colunas) — mantém o que vier
+  //   (b) sheetName via detectMonthFromYearLabel (ex: "Ago/2025", "08-2025")
+  //   (c) intervalo no nome do arquivo "08.2025 a 01.2026" — sequencial
+  //   (d) detectMonthFromFilename — para a única sheet
+  type SheetParse = { sheetName: string; rows: BalanceteRowParsed[]; multiMonth: boolean; assignedMes: string | null };
+  const sheetParses: SheetParse[] = [];
+
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
     const tpl = tryParseBalanceteMensalBR(jsonData);
-    if (tpl && tpl.rows.length > bestTplRows.length) {
-      bestTplRows = tpl.rows;
-      bestTplMulti = !!tpl.multiMonth;
-    }
+    if (!tpl || tpl.rows.length === 0) continue;
+    const fromName = detectMonthFromYearLabel(sheetName);
+    sheetParses.push({
+      sheetName,
+      rows: tpl.rows,
+      multiMonth: !!tpl.multiMonth,
+      assignedMes: fromName && fromName.confidence >= 0.8 ? fromName.key : null,
+    });
   }
-  if (bestTplRows.length > 0) {
-    bestTplRows.forEach(r => allRows.push(r));
-    if (bestTplMulti) {
-      // Multi-mês: cada linha já traz values com chaves YYYY-MM
-      bestTplRows.forEach(r => Object.keys(r.values).forEach(k => years.add(k)));
-    } else {
-      years.add("atual");
+
+  // Deduplica sheets idênticas sem mês (evita dupla contagem de cópias)
+  const dedupedSheets: SheetParse[] = [];
+  const seenSig = new Set<string>();
+  for (const sp of sheetParses) {
+    const sig = `${sp.rows.length}::${sp.rows[0]?.conta || ""}::${sp.rows[sp.rows.length - 1]?.conta || ""}`;
+    if (seenSig.has(sig) && !sp.assignedMes) continue;
+    seenSig.add(sig);
+    dedupedSheets.push(sp);
+  }
+
+  if (dedupedSheets.length > 0) {
+    const noneAssigned = dedupedSheets.every(s => !s.assignedMes && !s.multiMonth);
+    if (noneAssigned) {
+      const range = detectMonthRangeFromFilename(file.name);
+      if (range.length > 0) {
+        const assignCount = Math.min(dedupedSheets.length, range.length);
+        for (let i = 0; i < assignCount; i++) dedupedSheets[i].assignedMes = range[i].key;
+      } else {
+        const fname = detectMonthFromFilename(file.name);
+        if (fname && dedupedSheets.length === 1) dedupedSheets[0].assignedMes = fname.key;
+      }
+    }
+
+    for (const sp of dedupedSheets) {
+      if (sp.multiMonth) {
+        for (const r of sp.rows) {
+          Object.keys(r.values).forEach(k => years.add(k));
+          allRows.push(r);
+        }
+      } else if (sp.assignedMes) {
+        years.add(sp.assignedMes);
+        for (const r of sp.rows) {
+          const saldo = r.values["atual"] ?? Object.values(r.values)[0] ?? 0;
+          allRows.push({ ...r, values: { [sp.assignedMes]: saldo } });
+        }
+      } else {
+        years.add("atual");
+        for (const r of sp.rows) allRows.push(r);
+      }
     }
   }
   if (allRows.length > 0) {
-    // separa balanço x DRE pelo prefixo do código (1/2 = patrimoniais, 3/4/5 = resultado)
+    // Mescla linhas do mesmo código (sheets diferentes) somando values por mês
+    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number> }>();
+    for (const r of allRows) {
+      const k = `${r.conta}::${r.descricao}`;
+      const cur = merged.get(k);
+      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, values: { ...r.values } });
+      else for (const [mk, v] of Object.entries(r.values)) cur.values[mk] = (cur.values[mk] || 0) + v;
+    }
+    const allRowsMerged = Array.from(merged.values());
     const balanco: typeof allRows = [];
     const dre: typeof allRows = [];
-    for (const r of allRows) {
+    for (const r of allRowsMerged) {
       const p = (r.conta || "").charAt(0);
       if (p === "3" || p === "4" || p === "5") dre.push(r);
       else balanco.push(r);
     }
     return {
-      balanco: balanco.length > 0 ? balanco : allRows,
+      balanco: balanco.length > 0 ? balanco : allRowsMerged,
       dre,
-      years: Array.from(years),
+      years: Array.from(years).sort(),
       documentType: "balancete",
-      ocrScore: 0.99, // extração estruturada nativa = altíssima confiança
+      ocrScore: 0.99,
     };
   }
 
