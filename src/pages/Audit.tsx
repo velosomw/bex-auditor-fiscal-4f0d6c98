@@ -26,7 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import PlatformLayout from "@/components/PlatformLayout";
 import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
-import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, type ParsedFinancialData } from "@/services/auditAIService";
+import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import TabBSDados from "@/components/audit/TabBSDados";
@@ -905,7 +905,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
               linhas: allRows.map(r => ({
                 conta: r.conta,
                 descricao: r.descricao,
-                saldo: Number(r.values?.[mes] ?? r.values?.[periods.find(p => p === mes) || ""] ?? 0) || 0,
+                ref1: (r as any).ref1 ?? (r as any).refCapital ?? inferRefByCode(r.conta),
+                saldo: Number(r.values?.[mes] ?? r.values?.[periods.find(p => p === mes) || ""] ?? r.values?.[Object.keys(r.values || {}).find(k => k === mes || k.startsWith(`${mes}-`)) || ""] ?? 0) || 0,
               })).filter(l => Number.isFinite(l.saldo)),
             }));
             if (balancetes.length > 0 && balancetes.some(b => b.linhas.length > 0)) {

@@ -2,8 +2,8 @@ import * as XLSX from "xlsx";
 import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename } from "@/services/auditMonthDetector";
 
 export interface ParsedFinancialData {
-  balanco: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
-  dre: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
+  balanco: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string; refCapital?: string }>;
+  dre: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string; refCapital?: string }>;
   years: string[];
   pdfType?: string;
   documentInfo?: { empresa?: string; periodo?: string; tipo?: string };
@@ -293,9 +293,12 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^24/,    "GG1"], // PL alternativo
   // ── DRE ──────────────────────────────────────
   [/^31/,    "RECEITA"],   // Receita Bruta
-  [/^32/,    "RECEITA"],   // Deduções → tratado pelo sinal
+  [/^32/,    "DEDUCOES_RECEITA"], // Devoluções/abatimentos
+  [/^33/,    "DEDUCOES_RECEITA"], // Impostos sobre vendas
   [/^4/,     "CMV"],       // Custos
   [/^5/,     "DESPESAS"],  // Despesas Operacionais
+  [/^6/,     "DESPESAS"],  // Outras despesas/receitas operacionais
+  [/^7/,     "DESPESAS"],  // Resultado financeiro (proxy no resultado)
 ];
 
 /** Resolve Ref 1 a partir do código contábil (determinístico, sem IA). */
@@ -340,6 +343,25 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
   // Verifica o header atual e a linha imediatamente acima (templates BEX costumam
   // ter "Saldo Atual" na linha N e "JAN/2024 | FEV/2024 | ..." em N-1 ou N+1).
   const monthCols: Array<{ idx: number; mesKey: string; label: string }> = [];
+  const addMonthCol = (col: { idx: number; mesKey: string; label: string }) => {
+    if (!monthCols.find(m => m.idx === col.idx || m.mesKey === col.mesKey)) monthCols.push(col);
+  };
+  const searchMonthNear = (colIdx: number): { mesKey: string; label: string } | null => {
+    const rowsToSearch = [jsonData[headerIdx] || [], headerIdx > 0 ? (jsonData[headerIdx - 1] || []) : [], headerIdx > 1 ? (jsonData[headerIdx - 2] || []) : []];
+    for (const r of rowsToSearch) {
+      for (let j = colIdx; j >= Math.max(0, colIdx - 8); j--) {
+        const ref = detectMonthFromYearLabel(String(r[j] || ""));
+        if (ref && ref.confidence >= 0.8) return { mesKey: ref.key, label: ref.label };
+      }
+    }
+    return null;
+  };
+  const headerNorm = (jsonData[headerIdx] || []).map(c => String(c || "").toLowerCase().trim());
+  headerNorm.forEach((c, idx) => {
+    if (!(c.includes("saldo atual") || c === "saldo final")) return;
+    const ref = searchMonthNear(idx);
+    if (ref) addMonthCol({ idx, mesKey: ref.mesKey, label: ref.label });
+  });
   const candidateRows: unknown[][] = [
     jsonData[headerIdx] || [],
     headerIdx > 0 ? (jsonData[headerIdx - 1] || []) : [],
@@ -348,9 +370,7 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
   for (const r of candidateRows) {
     const found = extractColumnMonths(r);
     for (const f of found) {
-      if (!monthCols.find(m => m.idx === f.idx || m.mesKey === f.mesKey)) {
-        monthCols.push(f);
-      }
+      addMonthCol(f);
     }
   }
   // Só ativa multi-mês se houver ≥2 meses distintos detectados
@@ -416,7 +436,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
 
-  const allRows: Array<{ conta: string; descricao: string; values: Record<string, number> }> = [];
+  const allRows: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string }> = [];
   const years = new Set<string>();
 
   // ── 1) Template "Balancete Mensal BR" — itera TODAS as sheets ──
@@ -486,12 +506,15 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   }
   if (allRows.length > 0) {
     // Mescla linhas do mesmo código (sheets diferentes) somando values por mês
-    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number> }>();
+    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number>; ref1?: string }>();
     for (const r of allRows) {
       const k = `${r.conta}::${r.descricao}`;
       const cur = merged.get(k);
-      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, values: { ...r.values } });
-      else for (const [mk, v] of Object.entries(r.values)) cur.values[mk] = (cur.values[mk] || 0) + v;
+      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, ref1: r.ref1, values: { ...r.values } });
+      else {
+        if (!cur.ref1 && r.ref1) cur.ref1 = r.ref1;
+        for (const [mk, v] of Object.entries(r.values)) cur.values[mk] = (cur.values[mk] || 0) + v;
+      }
     }
     const allRowsMerged = Array.from(merged.values());
     const balanco: typeof allRows = [];
@@ -599,6 +622,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
       allRows.push({
         conta: contaRaw,
         descricao: descRaw || contaRaw,
+        ref1: inferRefByCode(contaRaw),
         values,
       });
     }

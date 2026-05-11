@@ -79,12 +79,19 @@ interface BSIndicators {
 const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const REF1_MAP: Record<string, keyof BSDadosRow> = {
-  "A": "disponivel", "B": "disponivel", "D": "estoques",
+  "A": "disponivel", "B": "disponivel", "C": "ativo_circulante", "D": "estoques",
+  "E": "ativo_circulante", "F": "ativo_circulante", "G": "ativo_circulante", "H": "ativo_circulante",
+  "I": "ativo_circulante", "J": "ativo_circulante", "K": "ativo_circulante", "L": "ativo_circulante",
+  "M": "ativo_circulante", "N": "ativo_circulante", "O": "ativo_circulante",
   "AA": "divida_financeira", "BB": "fornecedores", "CC": "divida_trabalhista",
   "DD": "divida_tributaria", "II": "credores_rj", "LL": "credores_rj",
-  "II1": "divida_tributaria",
-  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "CC1": "credores_rj",
+  "EE": "passivo_circulante", "FF": "passivo_circulante", "GG": "passivo_circulante", "HH": "passivo_circulante",
+  "JJ": "passivo_circulante", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
+  "OO": "passivo_circulante", "II1": "divida_tributaria",
+  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "SS": "divida_tributaria", "TT": "divida_financeira", "CC1": "credores_rj",
+  "GG1": "resultado", "HH1": "resultado",
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
+  "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
   "ATIVO CIRCULANTE": "ativo_circulante", "PASSIVO CIRCULANTE": "passivo_circulante",
   "ESTOQUES": "estoques", "ESTOQUE": "estoques", "DISPONIVEL": "disponivel", "DISPONÍVEL": "disponivel",
@@ -96,6 +103,20 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
 
 const AC_REFS = new Set(["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]);
 const PC_REFS = new Set(["AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","II1"]);
+
+const REF_BY_PREFIX: Array<[RegExp, string]> = [
+  [/^11101/, "A"], [/^11102/, "B"], [/^1111/, "C"], [/^113/, "D"], [/^1141/, "E"], [/^1142/, "F"], [/^119/, "G"],
+  [/^121/, "P"], [/^122/, "Q"], [/^123/, "R"], [/^124/, "S"],
+  [/^211/, "AA"], [/^212/, "BB"], [/^213/, "CC"], [/^2148/, "II1"], [/^214/, "DD"], [/^2151/, "II"], [/^2152/, "LL"],
+  [/^221/, "QQ"], [/^222/, "PP"], [/^223/, "RR"], [/^224/, "CC1"],
+  [/^231/, "GG1"], [/^232/, "HH1"], [/^24/, "GG1"],
+  [/^31/, "RECEITA"], [/^32/, "DEDUCOES_RECEITA"], [/^33/, "DEDUCOES_RECEITA"], [/^4/, "CMV"], [/^5/, "DESPESAS"], [/^6/, "DESPESAS"], [/^7/, "DESPESAS"],
+];
+
+function inferRefByCode(code?: string): string | null {
+  const c = String(code || "").replace(/\s+/g, "");
+  return REF_BY_PREFIX.find(([pattern]) => pattern.test(c))?.[1] ?? null;
+}
 
 const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
   receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
@@ -172,8 +193,9 @@ function emptyRow(mesKey: string): BSDadosRow {
 }
 
 function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
-  if (linha.ref1) {
-    const k = REF1_MAP[upper(linha.ref1)];
+  const ref1 = linha.ref1 ?? inferRefByCode(linha.conta);
+  if (ref1) {
+    const k = REF1_MAP[upper(ref1)];
     if (k) return k;
   }
   const text = `${linha.descricao || ""} ${linha.conta || ""}`;
@@ -188,7 +210,7 @@ interface Buckets { ac: number; pc: number; sawACTotal: boolean; sawPCTotal: boo
 function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: string | null | undefined, b: Buckets) {
   if (!Number.isFinite(v)) return;
   switch (key) {
-    case "receita_liquida": row.receita_liquida += Math.abs(v); break;
+    case "receita_liquida": row.receita_liquida += upper(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v); break;
     case "cmv":             row.cmv -= Math.abs(v); break;
     case "despesas":        row.despesas -= Math.abs(v); break;
     case "resultado":       row.resultado += v; break;
@@ -246,7 +268,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     for (const linha of (b.linhas || [])) {
       const key = resolveKey(linha);
       if (!key) continue;
-      applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? null, buckets);
+      applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? inferRefByCode(linha.conta), buckets);
     }
   }
 

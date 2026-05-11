@@ -16,7 +16,7 @@
  *   - Componentes de dívida → POSITIVOS (módulo)
  *   - Percentuais derivados → sempre POSITIVOS
  */
-import type { ParsedFinancialData } from "@/services/auditAIService";
+import { inferRefByCode, type ParsedFinancialData } from "@/services/auditAIService";
 import {
   mesKeyToLabel as _mesKeyToLabel,
   periodToMesKey as _periodToMesKey,
@@ -74,6 +74,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "RESULTADO": "resultado",
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
+  "DEDUCOES_RECEITA": "receita_liquida",
   "RECEITA LIQUIDA": "receita_liquida",
   "RECEITA LÍQUIDA": "receita_liquida",
   "CMV": "cmv",
@@ -191,8 +192,9 @@ type ComponentBuckets = { ac: number; pc: number; sawACTotal: boolean; sawPCTota
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
-  if (row.ref1) {
-    const k = REF1_MAP[toUpperNoAccent(row.ref1)];
+  const ref1 = row.ref1 ?? inferRefByCode(row.conta || "");
+  if (ref1) {
+    const k = REF1_MAP[toUpperNoAccent(ref1)];
     if (k) return k;
   }
   const text = `${row.descricao || ""} ${row.conta || ""}`;
@@ -214,7 +216,7 @@ function applyValue(
   if (!Number.isFinite(v)) return;
   switch (key) {
     case "receita_liquida":
-      (target as any)[key] = (target[key] as number) + Math.abs(v); break;
+      (target as any)[key] = (target[key] as number) + (toUpperNoAccent(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v)); break;
     case "cmv":
     case "despesas":
       (target as any)[key] = (target[key] as number) - Math.abs(v); break;
@@ -335,7 +337,7 @@ export function buildBSDados(
   ];
 
   for (const row of allRows) {
-    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? null;
+    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta) ?? null;
     const valuesObj = row.values || {};
     const periodKeys = Object.keys(valuesObj);
 
