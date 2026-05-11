@@ -91,6 +91,28 @@ export function detectMonthFromFilename(fileName: string): MonthRef | null {
   return null;
 }
 
+/**
+ * Detecta colunas mensais em headers de planilha BEX (cenário B do MD).
+ * Aceita variações: "Saldo Atual JAN/2024", "JAN/24", "01/2024", "Jan 2024",
+ * "Saldo 03-2024", "Saldo Final Mar/2024".
+ * Retorna lista ordenada cronologicamente; ignora colunas que não casam um mês.
+ */
+export function extractColumnMonths(headers: unknown[]): Array<{ idx: number; mesKey: string; label: string }> {
+  const out: Array<{ idx: number; mesKey: string; label: string }> = [];
+  const seen = new Set<string>();
+  headers.forEach((cell, idx) => {
+    const raw = String(cell ?? "").trim();
+    if (!raw) return;
+    const ref = detectMonthFromYearLabel(raw);
+    if (!ref || ref.confidence < 0.85) return; // só meses confiáveis (não "atual")
+    const k = `${idx}::${ref.key}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push({ idx, mesKey: ref.key, label: ref.label });
+  });
+  return out.sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+}
+
 /** Converte rótulos "atual"/"saldo atual"/"YYYY"/"jan/24" em chaves YYYY-MM. */
 export function detectMonthFromYearLabel(label: string, fallbackMonth?: MonthRef): MonthRef | null {
   if (!label) return null;
