@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { extractColumnMonths } from "@/services/auditMonthDetector";
+import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename } from "@/services/auditMonthDetector";
 
 export interface ParsedFinancialData {
   balanco: Array<{ conta: string; descricao: string; values: Record<string, number> }>;
