@@ -29,20 +29,19 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
   }, [data]);
 
   const totalMonths = data?.months.length || 0;
-  const tooMany = totalMonths > 3;
+  const tooMany = totalMonths > 36; // Aumentado para 3 anos de histórico
   const tooFew = totalMonths < 1;
   const lowConf = (data?.months || []).filter(m => m.confidence < 0.7);
 
   const toggle = (key: string) => {
     setSelected(prev => {
       if (prev.includes(key)) return prev.filter(k => k !== key);
-      if (prev.length >= 3) return [...prev.slice(1), key]; // FIFO: mantém só 3
       return [...prev, key];
     });
   };
 
   const ordered = useMemo(() => [...(data?.months || [])].sort((a,b) => b.key.localeCompare(a.key)), [data]);
-  const canConfirm = selected.length >= 1 && selected.length <= 3;
+  const canConfirm = selected.length >= 1;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
@@ -53,9 +52,8 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
             Confirme os meses detectados
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-2">
-            A IA detectou {totalMonths} {totalMonths === 1 ? "período" : "períodos"} nos arquivos.
-            Selecione até <strong className="text-foreground">3 meses</strong> para o diagnóstico
-            (sugestão: os 3 mais recentes já marcados).
+             A IA detectou {totalMonths} {totalMonths === 1 ? "período" : "períodos"} nos arquivos.
+             Selecione os meses para o diagnóstico (sugestão: os mais recentes já marcados).
           </p>
         </DialogHeader>
 
@@ -124,7 +122,7 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
 
         <DialogFooter className="flex items-center justify-between sm:justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            {selected.length} de 3 meses selecionados
+            {selected.length} {selected.length === 1 ? "mês selecionado" : "meses selecionados"}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onCancel}>Cancelar</Button>
