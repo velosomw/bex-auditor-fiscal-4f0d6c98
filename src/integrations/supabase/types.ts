@@ -375,6 +375,7 @@ export type Database = {
       audit_reports: {
         Row: {
           ai_analysis: Json | null
+          balancete_entries: Json | null
           batch_id: string | null
           company_id: string
           conformidade: number
@@ -385,6 +386,7 @@ export type Database = {
           format: string
           id: string
           parsed_data: Json | null
+          periodos: string[] | null
           riscos: number
           risk_level: string
           source: string
@@ -396,6 +398,7 @@ export type Database = {
         }
         Insert: {
           ai_analysis?: Json | null
+          balancete_entries?: Json | null
           batch_id?: string | null
           company_id: string
           conformidade?: number
@@ -406,6 +409,7 @@ export type Database = {
           format?: string
           id?: string
           parsed_data?: Json | null
+          periodos?: string[] | null
           riscos?: number
           risk_level?: string
           source?: string
@@ -417,6 +421,7 @@ export type Database = {
         }
         Update: {
           ai_analysis?: Json | null
+          balancete_entries?: Json | null
           batch_id?: string | null
           company_id?: string
           conformidade?: number
@@ -427,6 +432,7 @@ export type Database = {
           format?: string
           id?: string
           parsed_data?: Json | null
+          periodos?: string[] | null
           riscos?: number
           risk_level?: string
           source?: string

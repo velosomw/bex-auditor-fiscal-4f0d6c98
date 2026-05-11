@@ -46,6 +46,8 @@ export interface GeneratedReportEntry {
   source?: ReportSource;
   /** Atribuição de mês por arquivo (necessário para reidratar gráficos BS & Dados) */
   balanceteEntries?: { fileName: string; mesReferencia: string | null }[];
+  /** Períodos (YYYY-MM) selecionados na geração — usados para travar os meses dos gráficos */
+  periodos?: string[];
 }
 
 const STORAGE_KEY = "bex_audit_history";
@@ -176,6 +178,8 @@ async function persistGeneratedReport(entry: GeneratedReportEntry): Promise<void
       ai_analysis: entry.aiAnalysis ?? null,
       parsed_data: entry.parsedData ?? null,
       source_documents: entry.sourceDocuments ?? null,
+      balancete_entries: entry.balanceteEntries ?? null,
+      periodos: entry.periodos ?? null,
     });
   } catch (e) {
     console.warn("[auditHistoryService] persistGeneratedReport falhou:", e);
@@ -245,6 +249,8 @@ export async function hydrateFromRemote(opts?: { companyId?: string }): Promise<
         sourceDocuments: r.source_documents ?? undefined,
         companyId: r.company_id,
         source: r.source,
+        balanceteEntries: r.balancete_entries ?? undefined,
+        periodos: r.periodos ?? undefined,
       }));
       mergeLocal(REPORTS_KEY, remoteReports, 50);
     }
