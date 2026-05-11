@@ -450,10 +450,11 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
   }, []);
   const [fileYears, setFileYears] = useState<Record<string, number>>({});
   const monthOptions = useMemo(() => {
-    return MES_FULL.map((label, idx) => ({
+    const opts = MES_FULL.map((label, idx) => ({
       value: String(idx + 1).padStart(2, "0"),
       label,
     }));
+    return [{ value: "auto", label: "✨ Auto-detectar Períodos (Multi-mês)" }, ...opts];
   }, []);
 
   // Auto-detecta mês a partir do nome do arquivo (ex: "balancete_marco_2024.pdf")
@@ -499,8 +500,14 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
     setFileMeses(prev => {
       const next = { ...prev };
       newDocs.forEach((doc, i) => {
-        const detected = detectMesFromName(filesArr[i].name);
-        if (detected) next[doc.id] = detected;
+        const file = filesArr[i];
+        const detected = detectMesFromName(file.name);
+        if (detected) {
+          next[doc.id] = detected;
+        } else if (/\.(xlsx|xls|csv|xlsm|xlsb|xltx|xltm)$/i.test(file.name)) {
+          // Default para auto-detect em planilhas, já que é o cenário comum multi-mês
+          next[doc.id] = "auto";
+        }
       });
       return next;
     });
@@ -601,30 +608,42 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                     {(() => {
                       const currentYear = new Date().getFullYear();
                       const defaultYear = Math.min(Math.max(currentYear, yearOptions[0]), 2029);
-                      const [yearStr, monthStr] = mes ? mes.split("-") : ["", ""];
+                      
+                      // mes pode ser "auto" ou "YYYY-MM"
+                      const isAuto = mes === "auto";
+                      const [yearStr, monthStr] = !isAuto && mes ? mes.split("-") : ["", ""];
+                      
                       const selectedYear = fileYears[f.id] ?? (yearStr ? Number(yearStr) : defaultYear);
-                      const selectedMonth = monthStr || "";
+                      const selectedMonth = isAuto ? "auto" : monthStr || "";
+                      
                       const setYear = (y: number) => {
                         setFileYears(prev => ({ ...prev, [f.id]: y }));
-                        if (selectedMonth) {
+                        if (selectedMonth && selectedMonth !== "auto") {
                           setFileMeses(prev => ({ ...prev, [f.id]: `${y}-${selectedMonth}` }));
                         }
                       };
+                      
                       const setMonth = (m: string) => {
-                        setFileMeses(prev => ({ ...prev, [f.id]: `${selectedYear}-${m}` }));
+                        if (m === "auto") {
+                          setFileMeses(prev => ({ ...prev, [f.id]: "auto" }));
+                        } else {
+                          setFileMeses(prev => ({ ...prev, [f.id]: `${selectedYear}-${m}` }));
+                        }
                       };
+                      
                       return (
                         <div className={`mt-3 p-3 rounded-lg border ${needsMonth ? "border-red-400/60 bg-red-50/60" : "border-emerald-400/40 bg-emerald-50/40"}`}>
                           <div className="flex items-center gap-2 mb-1.5">
                             <span className={`text-[11px] font-semibold uppercase tracking-wide ${needsMonth ? "text-red-600" : "text-emerald-700"}`}>
-                              Mês de referência {needsMonth && "*"}
+                              Período de Referência {needsMonth && "*"}
                             </span>
-                            {needsMonth && <span className="text-[10px] text-red-600">(selecione mês — ano padrão {defaultYear})</span>}
+                            {isAuto && <Badge variant="outline" className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">✨ Multi-mês</Badge>}
+                            {needsMonth && <span className="text-[10px] text-red-600">(selecione um mês ou auto-detect)</span>}
                           </div>
-                          <div className="grid grid-cols-[1fr_110px] gap-2">
+                          <div className={`grid ${isAuto ? "grid-cols-1" : "grid-cols-[1fr_110px]"} gap-2`}>
                             <Select value={selectedMonth} onValueChange={setMonth}>
                               <SelectTrigger className={`h-9 text-xs ${needsMonth ? "border-red-400 bg-white" : "bg-white"}`}>
-                                <SelectValue placeholder="Selecione o mês..." />
+                                <SelectValue placeholder="Selecione o período..." />
                               </SelectTrigger>
                               <SelectContent className="max-h-72">
                                 {monthOptions.map(opt => (
@@ -632,16 +651,18 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={String(selectedYear)} onValueChange={(v) => setYear(Number(v))}>
-                              <SelectTrigger className="h-9 text-xs bg-white">
-                                <SelectValue placeholder="Ano" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {yearOptions.map(y => (
-                                  <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {!isAuto && (
+                              <Select value={String(selectedYear)} onValueChange={(v) => setYear(Number(v))}>
+                                <SelectTrigger className="h-9 text-xs bg-white">
+                                  <SelectValue placeholder="Ano" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {yearOptions.map(y => (
+                                    <SelectItem key={y} value={String(y)} className="text-xs">{y}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           </div>
                         </div>
                       );

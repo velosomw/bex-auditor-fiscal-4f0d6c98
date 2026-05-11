@@ -100,11 +100,34 @@ export function detectMonthFromFilename(fileName: string): MonthRef | null {
 export function extractColumnMonths(headers: unknown[]): Array<{ idx: number; mesKey: string; label: string }> {
   const out: Array<{ idx: number; mesKey: string; label: string }> = [];
   const seen = new Set<string>();
+  
+  // Tenta detectar um ano no cabeçalho inteiro para fallback de meses sem ano
+  let inferredYear = new Date().getFullYear();
+  for (const cell of headers) {
+    const m = String(cell || "").match(/\b(20\d{2})\b/);
+    if (m) { inferredYear = Number(m[1]); break; }
+  }
+
   headers.forEach((cell, idx) => {
     const raw = String(cell ?? "").trim();
     if (!raw) return;
-    const ref = detectMonthFromYearLabel(raw);
-    if (!ref || ref.confidence < 0.85) return; // só meses confiáveis (não "atual")
+    
+    // Primeiro tenta detecção completa (mês + ano)
+    let ref = detectMonthFromYearLabel(raw);
+    
+    // Se falhar, tenta apenas mês usando o ano inferido
+    if (!ref || ref.confidence < 0.8) {
+      const lower = norm(raw);
+      const monthRe = Object.keys(MONTH_NAMES_PT).join("|");
+      const m = lower.match(new RegExp(`^(${monthRe})$`));
+      if (m) {
+        const mm = MONTH_NAMES_PT[m[1]];
+        const key = `${inferredYear}-${padMonth(mm)}`;
+        ref = { key, label: monthLabel(key), source: "header", confidence: 0.8 };
+      }
+    }
+
+    if (!ref || ref.confidence < 0.8) return; 
     const k = `${idx}::${ref.key}`;
     if (seen.has(k)) return;
     seen.add(k);
@@ -186,9 +209,22 @@ export function relabelYearsAsMonths(
   const map = new Map<string, MonthRef>(); // oldLabel -> month
 
   if (overrideRef) {
-    // Usuário definiu — aplica a todos os years existentes (e cria "atual" se vazio).
+    // Se o usuário definiu um mês MANUALMENTE, aplicamos APENAS se o documento 
+    // NÃO tiver múltiplos períodos internos detectados (cenário A do MD).
+    // Se for um documento multi-mês (cenário B), o override do usuário é ignorado
+    // em favor das colunas detectadas, a menos que só exista uma coluna "atual".
     const yrs = parsed.years && parsed.years.length ? parsed.years : ["atual"];
-    for (const y of yrs) map.set(y, overrideRef);
+    const isSinglePeriod = yrs.length <= 1 || (yrs.length === 1 && yrs[0] === "atual");
+    
+    if (isSinglePeriod) {
+      for (const y of yrs) map.set(y, overrideRef);
+    } else {
+      // É multi-mês interno. Tenta mapear os labels existentes.
+      for (const y of yrs) {
+        const m = detectMonthFromYearLabel(y, fnameMonth || undefined);
+        if (m) map.set(y, m);
+      }
+    }
   } else {
     for (const y of parsed.years || []) {
       const m = detectMonthFromYearLabel(y, fnameMonth || undefined);
