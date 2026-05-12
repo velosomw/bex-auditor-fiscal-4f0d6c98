@@ -1131,12 +1131,12 @@ Idx: LC=${indicadoresFinanceiros.liquidez_corrente ?? "ND"} EG=${indicadoresFina
         const tc = aj.choices?.[0]?.message?.tool_calls?.[0];
         aiInsights = JSON.parse(tc?.function?.arguments || "null");
         trackUsage({
-          type: "insight", provider: "google", service: insightServiceTag,
+          type: "insight", provider: decision.provider, service: insightServiceTag,
           document_id: documentId,
           tokens_input: aj.usage?.prompt_tokens ?? Math.ceil(ctx.length / 4),
           tokens_output: aj.usage?.completion_tokens ?? Math.ceil(JSON.stringify(aiInsights || {}).length / 4),
           requests: 1,
-          metadata: { model: insightModel.replace("google/", ""), phase: "audit_insights", critical: isCritical },
+          metadata: { model: insightModel.replace(/^(google|openai)\//, ""), phase: "audit_insights", critical: isCritical, criticality, reason: decision.reason },
         }).catch(() => {});
       } else {
         console.warn("ai insights HTTP", aiResp.status);
