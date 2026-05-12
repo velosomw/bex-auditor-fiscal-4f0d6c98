@@ -36,6 +36,8 @@ const Empresas = lazy(() => import("./pages/Empresas"));
 const UserEmpresas = lazy(() => import("./pages/UserEmpresas"));
 const SolicitarCadastro = lazy(() => import("./pages/SolicitarCadastro"));
 const PerfReport = lazy(() => import("./pages/PerfReport"));
+const Signup = lazy(() => import("./pages/Signup"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 const queryClient = new QueryClient();
 
@@ -69,18 +71,20 @@ const App = () => (
 
               {/* Plataforma de Auditoria */}
               <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/select-role" element={<RoleSelection />} />
-              <Route path="/dashboard" element={<RoleGuard allow={["auditor_chefe"]}><Dashboard /></RoleGuard>} />
-              <Route path="/user" element={<RoleGuard allow={["usuario","empresa"]}><UserDashboard /></RoleGuard>} />
-              <Route path="/user/empresas" element={<RoleGuard allow={["usuario","empresa"]}><UserEmpresas /></RoleGuard>} />
-              <Route path="/user/report/:id" element={<RoleGuard allow={["usuario","empresa","auditor_chefe"]}><ReportView /></RoleGuard>} />
-              <Route path="/audit" element={<RoleGuard allow={["usuario","empresa","auditor_chefe"]}><Audit /></RoleGuard>} />
+              <Route path="/dashboard" element={<RoleGuard allow={["auditor_chefe","coordenadora"]}><Dashboard /></RoleGuard>} />
+              <Route path="/user" element={<RoleGuard allow={["usuario","empresa","contabilidade"]}><UserDashboard /></RoleGuard>} />
+              <Route path="/user/empresas" element={<RoleGuard allow={["usuario","empresa","contabilidade"]}><UserEmpresas /></RoleGuard>} />
+              <Route path="/user/report/:id" element={<RoleGuard allow={["usuario","empresa","contabilidade","auditor_chefe"]}><ReportView /></RoleGuard>} />
+              <Route path="/audit" element={<RoleGuard allow={["usuario","empresa","contabilidade","auditor_chefe"]}><Audit /></RoleGuard>} />
               <Route path="/gestor-ia" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><GestorIA /></RoleGuard>} />
               <Route path="/gestor-ia/agentes" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><GestaoAgentes /></RoleGuard>} />
               <Route path="/modelo-matematico" element={<RoleGuard allow={["auditor_chefe","gestor_ia","coordenadora"]}><ModeloMatematico /></RoleGuard>} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/usuarios" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><UserManagement /></RoleGuard>} />
-              <Route path="/empresa/:id" element={<RoleGuard allow={["auditor_chefe","gestor_ia","coordenadora","usuario","empresa"]}><CompanyPage /></RoleGuard>} />
+              <Route path="/empresa/:id" element={<RoleGuard allow={["auditor_chefe","gestor_ia","coordenadora","usuario","empresa","contabilidade"]}><CompanyPage /></RoleGuard>} />
               <Route path="/empresas" element={<RoleGuard allow={["auditor_chefe","gestor_ia","coordenadora"]}><Empresas /></RoleGuard>} />
               <Route path="/perf-report" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><PerfReport /></RoleGuard>} />
 

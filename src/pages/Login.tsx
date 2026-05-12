@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Shield } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ const Login = () => {
   const getRedirectPath = (role: string) => {
     if (role === "gestor_ia") return "/gestor-ia";
     if (role === "auditor_chefe" || role === "coordenadora") return "/dashboard";
-    return "/user";
+    return "/user"; // usuario, empresa, contabilidade
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -165,6 +165,13 @@ const Login = () => {
                 >
                   Esqueci minha senha
                 </button>
+
+                <div className="pt-3 border-t border-[hsl(220,20%,90%)] text-center text-sm text-[hsl(220,15%,50%)]">
+                  Não tem conta?{" "}
+                  <Link to="/signup" className="font-semibold text-[hsl(217,91%,50%)] hover:underline">
+                    Criar conta de Contabilidade
+                  </Link>
+                </div>
               </form>
             ) : (
               <form onSubmit={handleForgotPassword} className="space-y-5">
