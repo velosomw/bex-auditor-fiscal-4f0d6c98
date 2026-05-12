@@ -997,6 +997,57 @@ export type Database = {
           },
         ]
       }
+      email_brand_settings: {
+        Row: {
+          brand_name: string
+          footer_label: string
+          footer_url: string
+          header_bg_from: string
+          header_bg_to: string
+          id: boolean
+          logo_url: string
+          muted_color: string
+          primary_color: string
+          primary_color_dark: string
+          tagline: string
+          text_color: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          brand_name?: string
+          footer_label?: string
+          footer_url?: string
+          header_bg_from?: string
+          header_bg_to?: string
+          id?: boolean
+          logo_url?: string
+          muted_color?: string
+          primary_color?: string
+          primary_color_dark?: string
+          tagline?: string
+          text_color?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          brand_name?: string
+          footer_label?: string
+          footer_url?: string
+          header_bg_from?: string
+          header_bg_to?: string
+          id?: boolean
+          logo_url?: string
+          muted_color?: string
+          primary_color?: string
+          primary_color_dark?: string
+          tagline?: string
+          text_color?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1057,6 +1108,51 @@ export type Database = {
           send_delay_ms?: number
           transactional_email_ttl_minutes?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_template_overrides: {
+        Row: {
+          body_html: string
+          button_label: string
+          enabled: boolean
+          footer_html: string
+          header_subtitle: string
+          heading: string
+          intro_html: string
+          preview_text: string
+          subject: string
+          template_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body_html?: string
+          button_label: string
+          enabled?: boolean
+          footer_html: string
+          header_subtitle: string
+          heading: string
+          intro_html: string
+          preview_text: string
+          subject: string
+          template_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body_html?: string
+          button_label?: string
+          enabled?: boolean
+          footer_html?: string
+          header_subtitle?: string
+          heading?: string
+          intro_html?: string
+          preview_text?: string
+          subject?: string
+          template_type?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
