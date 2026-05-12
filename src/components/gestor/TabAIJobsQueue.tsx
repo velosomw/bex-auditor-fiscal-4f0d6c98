@@ -9,8 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Activity, AlertTriangle, CheckCircle2, Clock, Inbox, RefreshCw,
-  Loader2, PlayCircle, Trash2, Eye, ListChecks
+  Loader2, PlayCircle, Trash2, Eye, ListChecks, TrendingUp,
 } from "lucide-react";
+import {
+  ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, ReferenceDot,
+} from "recharts";
 import { toast } from "@/hooks/use-toast";
 
 type JobStatus = "queued" | "processing" | "completed" | "failed" | "all";
