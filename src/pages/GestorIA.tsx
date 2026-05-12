@@ -17,7 +17,7 @@ import {
   Plus, Download, Settings, CheckCircle2, XCircle, Pause,
   FileText, Upload, Search, Trash2, Edit, Brain, BarChart3,
   Activity, Zap, Database, Globe, Webhook, CreditCard, Scale,
-  MessageSquare, Thermometer, Cpu, Eye, Send, SlidersHorizontal, Gauge
+  MessageSquare, Thermometer, Cpu, Eye, Send, SlidersHorizontal, Gauge, Mail
 } from "lucide-react";
 import TabReportLimits from "@/components/gestor/TabReportLimits";
 import AIProvidersConfig from "@/components/gestor/AIProvidersConfig";
