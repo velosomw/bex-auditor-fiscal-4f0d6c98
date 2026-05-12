@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Shield } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,16 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot">("login");
   const navigate = useNavigate();
-  const { setRole } = useUser();
+  const { setRole, authenticated, realRole, loading: userLoading } = useUser();
+
+  // Já autenticado → redireciona para a home da role (evita ficar travado em /login)
+  if (!userLoading && authenticated && realRole) {
+    const target =
+      realRole === "gestor_ia" ? "/gestor-ia"
+      : realRole === "auditor_chefe" || realRole === "coordenadora" ? "/dashboard"
+      : "/user";
+    return <Navigate to={target} replace />;
+  }
 
   const getRedirectPath = (role: string) => {
     if (role === "gestor_ia") return "/gestor-ia";
@@ -37,11 +46,14 @@ const Login = () => {
     }
 
     if (data.user) {
+      // Reaproveita a sessão recém-criada — não refaz fetch (UserContext já dispara via onAuthStateChange).
+      // Busca role uma única vez para definir o redirect.
       const { data: roles, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", data.user.id)
-        .limit(1);
+        .limit(1)
+        .maybeSingle();
 
       if (roleError) {
         toast.error("Login realizado, mas houve erro ao carregar o perfil de acesso.");
@@ -49,11 +61,11 @@ const Login = () => {
         return;
       }
 
-      if (roles && roles.length > 0) {
-        const role = roles[0].role as string;
+      if (roles?.role) {
+        const role = roles.role as string;
         setRole(role as any);
         toast.success("Login realizado com sucesso!");
-        navigate(getRedirectPath(role));
+        navigate(getRedirectPath(role), { replace: true });
       } else {
         toast.error("Login autenticado, mas este usuário está sem perfil vinculado no sistema.");
       }

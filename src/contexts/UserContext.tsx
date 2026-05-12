@@ -53,8 +53,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
+    // Dedup: evita refetch da role para o mesmo usuário (onAuthStateChange dispara várias vezes:
+    // INITIAL_SESSION, TOKEN_REFRESHED, USER_UPDATED, etc.)
+    let lastAppliedUserId: string | null = null;
+    let cancelled = false;
+
     const applySession = async (sessionUser: SupaUser | null) => {
+      if (cancelled) return;
+
       if (!sessionUser) {
+        lastAppliedUserId = null;
         setSupabaseUser(null);
         setAuthenticated(false);
         setRoleState(null);
@@ -66,28 +74,38 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Mesmo usuário já processado → não refaz fetch
+      if (lastAppliedUserId === sessionUser.id) {
+        setLoading(false);
+        return;
+      }
+      lastAppliedUserId = sessionUser.id;
+
       setSupabaseUser(sessionUser);
       setAuthenticated(true);
       localStorage.setItem("authenticated", "true");
 
-      const userRole = await fetchUserRole(sessionUser.id);
-      setRoleState(userRole);
+      // Fast-path: usa role em cache (localStorage) enquanto faz fetch em background
+      const cached = localStorage.getItem("userRole") as UserRole | null;
+      if (cached) setRoleState(cached);
+      setLoading(false);
 
+      const userRole = await fetchUserRole(sessionUser.id);
+      if (cancelled) return;
+      setRoleState(userRole);
       if (userRole) localStorage.setItem("userRole", userRole);
       else localStorage.removeItem("userRole");
-
-      setLoading(false);
     };
 
+    // onAuthStateChange dispara INITIAL_SESSION automaticamente — não precisa de getSession() separado.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       void applySession(session?.user ?? null);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      void applySession(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const setRole = useCallback((r: UserRole) => {
