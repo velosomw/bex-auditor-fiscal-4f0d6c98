@@ -17,6 +17,14 @@ export interface BrandConfig {
   muted_color: string
   footer_url: string
   footer_label: string
+  logo_width?: number
+  logo_height?: number
+  logo_radius?: number
+  logo_align?: 'left' | 'center' | 'right'
+  logo_object_fit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
+  logo_show?: boolean
+  logo_padding?: number
+  logo_bg_color?: string
 }
 
 export interface TemplateContent {
