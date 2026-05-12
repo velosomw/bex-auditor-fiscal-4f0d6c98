@@ -230,17 +230,56 @@ async function handleWebhook(req: Request): Promise<Response> {
     newEmail: payload.data.new_email,
   }
 
-  // Render React Email to HTML and plain text
-  const html = await renderAsync(React.createElement(EmailTemplate, templateProps))
-  const text = await renderAsync(React.createElement(EmailTemplate, templateProps), {
-    plainText: true,
-  })
-
-  // Enqueue email for async processing by the dispatcher (process-email-queue).
+  // Service-role supabase client (used for DB overrides + enqueue)
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
+
+  // Try to load admin overrides (brand + content). If anything fails, fall back to coded templates.
+  let html: string
+  let text: string
+  let dynamicSubject: string | null = null
+  try {
+    const [{ data: brand }, { data: content }] = await Promise.all([
+      supabase.from('email_brand_settings').select('*').eq('id', true).maybeSingle(),
+      supabase.from('email_template_overrides').select('*').eq('template_type', emailType).maybeSingle(),
+    ])
+
+    if (brand && content && content.enabled !== false) {
+      const interp = (s: string) => (s || '')
+        .replaceAll('{{recipient}}', payload.data.email ?? '')
+        .replaceAll('{{oldEmail}}', payload.data.old_email ?? '')
+        .replaceAll('{{newEmail}}', payload.data.new_email ?? '')
+      const interpolated = {
+        subject: interp(content.subject),
+        preview_text: interp(content.preview_text),
+        header_subtitle: interp(content.header_subtitle),
+        heading: interp(content.heading),
+        intro_html: interp(content.intro_html),
+        body_html: interp(content.body_html),
+        button_label: content.button_label,
+        footer_html: interp(content.footer_html),
+      }
+      const { DynamicEmail } = await import('../_shared/email-templates/dynamic.tsx')
+      const props = {
+        brand,
+        content: interpolated,
+        confirmationUrl: emailType === 'reauthentication' ? undefined : payload.data.url,
+        token: emailType === 'reauthentication' ? payload.data.token : undefined,
+      }
+      html = await renderAsync(React.createElement(DynamicEmail, props))
+      text = await renderAsync(React.createElement(DynamicEmail, props), { plainText: true })
+      dynamicSubject = interpolated.subject
+    } else {
+      html = await renderAsync(React.createElement(EmailTemplate, templateProps))
+      text = await renderAsync(React.createElement(EmailTemplate, templateProps), { plainText: true })
+    }
+  } catch (e) {
+    console.error('Override render failed, falling back to default template', e)
+    html = await renderAsync(React.createElement(EmailTemplate, templateProps))
+    text = await renderAsync(React.createElement(EmailTemplate, templateProps), { plainText: true })
+  }
 
   const messageId = crypto.randomUUID()
 
