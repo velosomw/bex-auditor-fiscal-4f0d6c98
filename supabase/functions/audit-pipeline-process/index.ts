@@ -13,6 +13,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { selectModel, computeCriticality } from "../_shared/model-router.ts";
+import { aiGatewayFetch } from "../_shared/ai-fetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -211,15 +212,10 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
 
   const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem e tamanho do input (${rows.length} itens):\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts com ${rows.length} elementos no array.`;
 
-  // v4: timeout agressivo (45s) — evita travar 148s em 503 do upstream
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45_000);
-
   let r: Response;
   try {
-    r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    r = await aiGatewayFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      signal: ctrl.signal,
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
