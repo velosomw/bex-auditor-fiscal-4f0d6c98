@@ -41,6 +41,13 @@ export const styles = {
     padding: '28px 32px',
     textAlign: 'center' as const,
   },
+  logo: {
+    width: '64px',
+    height: '64px',
+    borderRadius: '12px',
+    margin: '0 auto 14px',
+    display: 'block',
+  },
   brandMark: {
     color: brand.white,
     fontFamily: brand.fontHeading,
