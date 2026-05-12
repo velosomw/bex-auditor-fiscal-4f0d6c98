@@ -236,6 +236,7 @@ export default function EmailTemplatesEditor() {
                       <TextField label="Parágrafo introdutório (HTML permitido)" value={current.intro_html} onChange={(v) => updateTpl({ intro_html: v })} rows={3} />
                       <TextField label="Parágrafo do corpo (HTML permitido)" value={current.body_html} onChange={(v) => updateTpl({ body_html: v })} rows={3} />
                       <Field label="Texto do botão" value={current.button_label} onChange={(v) => updateTpl({ button_label: v })} />
+                      <MagicLinkPreview templateType={active} />
                       <TextField label="Rodapé / aviso (HTML permitido)" value={current.footer_html} onChange={(v) => updateTpl({ footer_html: v })} rows={3} />
                       <p className="text-xs text-muted-foreground">
                         Variáveis disponíveis: <code>{"{{recipient}}"}</code>, <code>{"{{oldEmail}}"}</code>, <code>{"{{newEmail}}"}</code>
