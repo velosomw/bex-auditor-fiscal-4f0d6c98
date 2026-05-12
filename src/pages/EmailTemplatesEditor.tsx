@@ -314,3 +314,187 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
     </div>
   );
 }
+
+function MagicLinkPreview({ templateType }: { templateType: TplType }) {
+  const link = SAMPLE_MAGIC_LINK + `&type=${templateType}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success("Link copiado");
+    } catch {
+      toast.error("Falha ao copiar");
+    }
+  };
+  return (
+    <div className="rounded-md border border-dashed p-3 bg-muted/30 space-y-2">
+      <Label className="text-xs flex items-center gap-1">
+        <Link2 className="w-3.5 h-3.5" /> Link mágico (exemplo · este URL é gerado dinamicamente no envio real)
+      </Label>
+      <div className="flex items-center gap-2">
+        <Input value={link} readOnly className="font-mono text-xs" />
+        <Button type="button" size="sm" variant="outline" onClick={copy}>
+          <Copy className="w-3.5 h-3.5 mr-1" /> Copiar
+        </Button>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Use este link para testar o envio manual. No envio automático, a variável é substituída pelo URL real do destinatário.
+      </p>
+    </div>
+  );
+}
+
+function LogoEditor({ brand, onChange }: { brand: BrandRow; onChange: (p: Partial<BrandRow>) => void }) {
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Imagem deve ter até 2MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `brand/logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("email-assets").upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("email-assets").getPublicUrl(path);
+      onChange({ logo_url: data.publicUrl, logo_show: true });
+      toast.success("Logo enviado");
+    } catch (e: any) {
+      toast.error("Erro no upload: " + (e?.message ?? e));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="rounded-md border p-3 space-y-3 bg-muted/20">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs flex items-center gap-1">
+          <ImageIcon className="w-3.5 h-3.5" /> Logo do cabeçalho
+        </Label>
+        <div className="flex items-center gap-2">
+          <Label className="text-xs">Exibir</Label>
+          <Switch checked={brand.logo_show} onCheckedChange={(v) => onChange({ logo_show: v })} />
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <div
+          className="shrink-0 flex items-center justify-center rounded border bg-white overflow-hidden"
+          style={{ width: 96, height: 96 }}
+        >
+          {brand.logo_url ? (
+            <img
+              src={brand.logo_url}
+              alt="logo"
+              style={{
+                width: brand.logo_width,
+                height: brand.logo_height,
+                borderRadius: brand.logo_radius,
+                objectFit: brand.logo_object_fit as any,
+                padding: brand.logo_padding,
+                backgroundColor: brand.logo_bg_color === "transparent" ? undefined : brand.logo_bg_color,
+                maxWidth: "100%",
+                maxHeight: "100%",
+              }}
+            />
+          ) : (
+            <ImageIcon className="w-6 h-6 text-muted-foreground" />
+          )}
+        </div>
+        <div className="flex-1 space-y-2">
+          <Field label="URL do logo" value={brand.logo_url} onChange={(v) => onChange({ logo_url: v })} />
+          <div className="flex items-center gap-2">
+            <input
+              id="logo-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUpload(f);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={uploading}
+              onClick={() => document.getElementById("logo-upload")?.click()}
+            >
+              {uploading ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1" />}
+              Enviar imagem
+            </Button>
+            {brand.logo_url && (
+              <Button type="button" size="sm" variant="ghost" onClick={() => onChange({ logo_url: "" })}>
+                Remover
+              </Button>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground">PNG/JPG/SVG até 2MB. Para fundos escuros, prefira PNG transparente.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <SliderField label={`Largura (${brand.logo_width}px)`} value={brand.logo_width} min={24} max={240} onChange={(v) => onChange({ logo_width: v })} />
+        <SliderField label={`Altura (${brand.logo_height}px)`} value={brand.logo_height} min={24} max={240} onChange={(v) => onChange({ logo_height: v })} />
+        <SliderField label={`Raio (${brand.logo_radius}px)`} value={brand.logo_radius} min={0} max={64} onChange={(v) => onChange({ logo_radius: v })} />
+        <SliderField label={`Padding (${brand.logo_padding}px)`} value={brand.logo_padding} min={0} max={32} onChange={(v) => onChange({ logo_padding: v })} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <Label className="text-xs">Alinhamento</Label>
+          <Select value={brand.logo_align} onValueChange={(v) => onChange({ logo_align: v as BrandRow["logo_align"] })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="left">Esquerda</SelectItem>
+              <SelectItem value="center">Centro</SelectItem>
+              <SelectItem value="right">Direita</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Encaixe (object-fit)</Label>
+          <Select value={brand.logo_object_fit} onValueChange={(v) => onChange({ logo_object_fit: v as BrandRow["logo_object_fit"] })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cover">Cover</SelectItem>
+              <SelectItem value="contain">Contain</SelectItem>
+              <SelectItem value="fill">Fill</SelectItem>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="scale-down">Scale down</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <ColorField label="Fundo do logo" value={brand.logo_bg_color === "transparent" ? "#ffffff" : brand.logo_bg_color} onChange={(v) => onChange({ logo_bg_color: v })} />
+      </div>
+      <div className="flex items-center gap-2">
+        <Switch
+          checked={brand.logo_bg_color === "transparent"}
+          onCheckedChange={(v) => onChange({ logo_bg_color: v ? "transparent" : "#ffffff" })}
+        />
+        <Label className="text-xs">Fundo transparente</Label>
+      </div>
+    </div>
+  );
+}
+
+function SliderField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <Slider value={[value]} min={min} max={max} step={1} onValueChange={(v) => onChange(v[0])} />
+    </div>
+  );
+}
