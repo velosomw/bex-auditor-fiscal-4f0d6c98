@@ -10,7 +10,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, RefreshCw, Mail, Palette, Loader2 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { ArrowLeft, Save, RefreshCw, Mail, Palette, Loader2, Upload, Image as ImageIcon, Copy, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,12 +26,18 @@ const TPL_LABELS: Record<TplType, string> = {
   reauthentication: "Código de verificação",
 };
 
+const SAMPLE_MAGIC_LINK = "https://bexbrasil.online/confirmar?token=demo";
+
 interface BrandRow {
   brand_name: string; tagline: string; logo_url: string;
   primary_color: string; primary_color_dark: string;
   header_bg_from: string; header_bg_to: string;
   text_color: string; muted_color: string;
   footer_url: string; footer_label: string;
+  logo_width: number; logo_height: number; logo_radius: number;
+  logo_align: "left" | "center" | "right";
+  logo_object_fit: "cover" | "contain" | "fill" | "none" | "scale-down";
+  logo_show: boolean; logo_padding: number; logo_bg_color: string;
 }
 
 interface TplRow {
