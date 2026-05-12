@@ -165,6 +165,13 @@ const Login = () => {
                 >
                   Esqueci minha senha
                 </button>
+
+                <div className="pt-3 border-t border-[hsl(220,20%,90%)] text-center text-sm text-[hsl(220,15%,50%)]">
+                  Não tem conta?{" "}
+                  <Link to="/signup" className="font-semibold text-[hsl(217,91%,50%)] hover:underline">
+                    Criar conta de Contabilidade
+                  </Link>
+                </div>
               </form>
             ) : (
               <form onSubmit={handleForgotPassword} className="space-y-5">
