@@ -37,11 +37,14 @@ const Login = () => {
     }
 
     if (data.user) {
+      // Reaproveita a sessão recém-criada — não refaz fetch (UserContext já dispara via onAuthStateChange).
+      // Busca role uma única vez para definir o redirect.
       const { data: roles, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", data.user.id)
-        .limit(1);
+        .limit(1)
+        .maybeSingle();
 
       if (roleError) {
         toast.error("Login realizado, mas houve erro ao carregar o perfil de acesso.");
@@ -49,11 +52,11 @@ const Login = () => {
         return;
       }
 
-      if (roles && roles.length > 0) {
-        const role = roles[0].role as string;
+      if (roles?.role) {
+        const role = roles.role as string;
         setRole(role as any);
         toast.success("Login realizado com sucesso!");
-        navigate(getRedirectPath(role));
+        navigate(getRedirectPath(role), { replace: true });
       } else {
         toast.error("Login autenticado, mas este usuário está sem perfil vinculado no sistema.");
       }
