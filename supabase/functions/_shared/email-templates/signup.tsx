@@ -2,9 +2,9 @@
 
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Button, Container, Head, Heading, Html, Link, Preview, Section, Text,
+  Body, Button, Container, Head, Heading, Html, Img, Link, Preview, Section, Text,
 } from 'npm:@react-email/components@0.0.22'
-import { styles } from './_brand.ts'
+import { styles, LOGO_URL } from './_brand.ts'
 
 interface SignupEmailProps {
   siteName: string
@@ -20,6 +20,7 @@ export const SignupEmail = ({ siteUrl, recipient, confirmationUrl }: SignupEmail
     <Body style={styles.main}>
       <Container style={styles.container}>
         <Section style={styles.header}>
+          <Img src={LOGO_URL} alt="BEx Auditoria" width="64" height="64" style={styles.logo} />
           <Text style={styles.brandMark}>BEx Auditoria</Text>
           <Text style={styles.brandTagline}>Inteligência Financeira · Auditor Contábil Sênior IA</Text>
         </Section>

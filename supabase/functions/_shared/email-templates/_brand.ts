@@ -1,6 +1,9 @@
 // Shared brand tokens for BEx Auditoria auth emails.
 // Keep aligned with src/index.css design tokens.
 
+export const LOGO_URL =
+  'https://mrvizydgxysaxazhmfqk.supabase.co/storage/v1/object/public/email-assets/logo-bex.jpeg'
+
 export const brand = {
   navy: '#121f3a',          // hsl(222, 47%, 14%) — Deep Navy
   navyDark: '#0a1226',
@@ -37,6 +40,13 @@ export const styles = {
     background: `linear-gradient(135deg, ${brand.navy} 0%, #1c2c52 100%)`,
     padding: '28px 32px',
     textAlign: 'center' as const,
+  },
+  logo: {
+    width: '64px',
+    height: '64px',
+    borderRadius: '12px',
+    margin: '0 auto 14px',
+    display: 'block',
   },
   brandMark: {
     color: brand.white,
