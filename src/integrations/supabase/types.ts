@@ -1535,6 +1535,15 @@ export type Database = {
       ai_jobs_dlq_purge: { Args: { p_msg_id: number }; Returns: Json }
       ai_jobs_queue_stats: { Args: never; Returns: Json }
       ai_jobs_retry: { Args: { p_job_id: string }; Returns: Json }
+      ai_jobs_timeseries: {
+        Args: { p_window?: string }
+        Returns: {
+          bucket: string
+          completed: number
+          enqueued: number
+          failed: number
+        }[]
+      }
       calculate_ai_cost: {
         Args: {
           p_pages: number
