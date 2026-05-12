@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Shield } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,16 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot">("login");
   const navigate = useNavigate();
-  const { setRole } = useUser();
+  const { setRole, authenticated, realRole, loading: userLoading } = useUser();
+
+  // Já autenticado → redireciona para a home da role (evita ficar travado em /login)
+  if (!userLoading && authenticated && realRole) {
+    const target =
+      realRole === "gestor_ia" ? "/gestor-ia"
+      : realRole === "auditor_chefe" || realRole === "coordenadora" ? "/dashboard"
+      : "/user";
+    return <Navigate to={target} replace />;
+  }
 
   const getRedirectPath = (role: string) => {
     if (role === "gestor_ia") return "/gestor-ia";
