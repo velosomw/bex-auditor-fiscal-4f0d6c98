@@ -1,18 +1,10 @@
 /// <reference types="npm:@types/react@18.3.1" />
 
 import * as React from 'npm:react@18.3.1'
-
 import {
-  Body,
-  Button,
-  Container,
-  Head,
-  Heading,
-  Html,
-  Link,
-  Preview,
-  Text,
+  Body, Button, Container, Head, Heading, Html, Link, Preview, Section, Text,
 } from 'npm:@react-email/components@0.0.22'
+import { styles } from './_brand.ts'
 
 interface SignupEmailProps {
   siteName: string
@@ -21,66 +13,41 @@ interface SignupEmailProps {
   confirmationUrl: string
 }
 
-export const SignupEmail = ({
-  siteName,
-  siteUrl,
-  recipient,
-  confirmationUrl,
-}: SignupEmailProps) => (
-  <Html lang="en" dir="ltr">
+export const SignupEmail = ({ siteUrl, recipient, confirmationUrl }: SignupEmailProps) => (
+  <Html lang="pt-BR" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
-        <Text style={text}>
-          Thanks for signing up for{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          !
-        </Text>
-        <Text style={text}>
-          Please confirm your email address (
-          <Link href={`mailto:${recipient}`} style={link}>
-            {recipient}
-          </Link>
-          ) by clicking the button below:
-        </Text>
-        <Button style={button} href={confirmationUrl}>
-          Verify Email
-        </Button>
-        <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
-        </Text>
+    <Preview>Confirme seu e-mail para acessar a BEx Auditoria</Preview>
+    <Body style={styles.main}>
+      <Container style={styles.container}>
+        <Section style={styles.header}>
+          <Text style={styles.brandMark}>BEx Auditoria</Text>
+          <Text style={styles.brandTagline}>Inteligência Financeira · Auditor Contábil Sênior IA</Text>
+        </Section>
+        <Section style={styles.body}>
+          <Heading style={styles.h1}>Confirme seu e-mail</Heading>
+          <Text style={styles.text}>
+            Recebemos sua solicitação de cadastro na plataforma BEx Auditoria com o e-mail{' '}
+            <Link href={`mailto:${recipient}`} style={styles.link}>{recipient}</Link>.
+          </Text>
+          <Text style={styles.text}>
+            Para ativar seu acesso ao painel de Contabilidade — onde você poderá cadastrar empresas
+            vinculadas e executar auditorias com nossa IA — confirme seu e-mail clicando no botão abaixo:
+          </Text>
+          <Button style={styles.button} href={confirmationUrl}>
+            Confirmar e-mail e acessar
+          </Button>
+          <div style={styles.divider} />
+          <Text style={styles.footer}>
+            Este link é válido por 24 horas. Se você não solicitou este cadastro, ignore esta mensagem
+            com segurança — nenhuma conta será criada.
+          </Text>
+        </Section>
+        <Section style={styles.footerStrip}>
+          © {new Date().getFullYear()} BEx Auditoria · <Link href={siteUrl} style={{ color: '#5b6478' }}>bexbrasil.online</Link>
+        </Section>
       </Container>
     </Body>
   </Html>
 )
 
 export default SignupEmail
-
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const link = { color: 'inherit', textDecoration: 'underline' }
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
