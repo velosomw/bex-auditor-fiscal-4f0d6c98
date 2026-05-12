@@ -1005,7 +1005,15 @@ export type Database = {
           header_bg_from: string
           header_bg_to: string
           id: boolean
+          logo_align: string
+          logo_bg_color: string
+          logo_height: number
+          logo_object_fit: string
+          logo_padding: number
+          logo_radius: number
+          logo_show: boolean
           logo_url: string
+          logo_width: number
           muted_color: string
           primary_color: string
           primary_color_dark: string
@@ -1021,7 +1029,15 @@ export type Database = {
           header_bg_from?: string
           header_bg_to?: string
           id?: boolean
+          logo_align?: string
+          logo_bg_color?: string
+          logo_height?: number
+          logo_object_fit?: string
+          logo_padding?: number
+          logo_radius?: number
+          logo_show?: boolean
           logo_url?: string
+          logo_width?: number
           muted_color?: string
           primary_color?: string
           primary_color_dark?: string
@@ -1037,7 +1053,15 @@ export type Database = {
           header_bg_from?: string
           header_bg_to?: string
           id?: boolean
+          logo_align?: string
+          logo_bg_color?: string
+          logo_height?: number
+          logo_object_fit?: string
+          logo_padding?: number
+          logo_radius?: number
+          logo_show?: boolean
           logo_url?: string
+          logo_width?: number
           muted_color?: string
           primary_color?: string
           primary_color_dark?: string
