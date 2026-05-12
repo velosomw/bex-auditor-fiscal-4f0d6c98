@@ -178,7 +178,7 @@ export default function EmailTemplatesEditor() {
                     <Field label="Nome da marca" value={brand.brand_name} onChange={(v) => updateBrand({ brand_name: v })} />
                     <Field label="Tagline" value={brand.tagline} onChange={(v) => updateBrand({ tagline: v })} />
                   </div>
-                  <Field label="URL do logo" value={brand.logo_url} onChange={(v) => updateBrand({ logo_url: v })} />
+                  <LogoEditor brand={brand} onChange={updateBrand} />
                   <div className="grid grid-cols-4 gap-3">
                     <ColorField label="Primária" value={brand.primary_color} onChange={(v) => updateBrand({ primary_color: v })} />
                     <ColorField label="Primária escura" value={brand.primary_color_dark} onChange={(v) => updateBrand({ primary_color_dark: v })} />
