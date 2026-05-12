@@ -185,6 +185,10 @@ serve(async (req) => {
 
     console.log(`Processing file: ${fileName}, type: ${mimeType}, size: ${fileBase64.length} chars base64, documentId: ${documentId ?? "—"}`);
 
+    // Roteamento: parse de PDF usa Gemini (multimodal nativo, custo baixo)
+    const decision = selectModel("ocr_parse", "medium");
+    console.log(`[router] ocr_parse → ${decision.model} (${decision.reason})`);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -192,7 +196,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: decision.model,
         messages: [
           { role: "system", content: EXTRACTION_PROMPT },
           {
