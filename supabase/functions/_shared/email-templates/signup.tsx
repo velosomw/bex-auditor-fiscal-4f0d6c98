@@ -20,6 +20,7 @@ export const SignupEmail = ({ siteUrl, recipient, confirmationUrl }: SignupEmail
     <Body style={styles.main}>
       <Container style={styles.container}>
         <Section style={styles.header}>
+          <Img src={LOGO_URL} alt="BEx Auditoria" width="64" height="64" style={styles.logo} />
           <Text style={styles.brandMark}>BEx Auditoria</Text>
           <Text style={styles.brandTagline}>Inteligência Financeira · Auditor Contábil Sênior IA</Text>
         </Section>
