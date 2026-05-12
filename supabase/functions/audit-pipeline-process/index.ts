@@ -1228,6 +1228,41 @@ serve(async (req) => {
     // Item 4: SHA-256 do conteúdo para detectar reprocessamentos idênticos
     const contentHash = await sha256Hex(buildContentHashSource(body));
 
+    // ── Lock por empresa: bloqueia 2 pipelines simultâneos da MESMA company_id ──
+    // Janela: 10 min. Mantém isolamento por usuário (RLS) e evita corrida de inserts duplicados.
+    if (body.company_id) {
+      const lockSince = new Date(Date.now() - 10 * 60_000).toISOString();
+      const { data: activePipeline } = await supabase
+        .from("pipeline_documents")
+        .select("id, status, updated_at")
+        .eq("company_id", body.company_id)
+        .in("status", ["pending", "normalizing", "processing"])
+        .gte("updated_at", lockSince)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activePipeline?.id && activePipeline.id !== body.document_id) {
+        stageLog(reqId, "pipeline.lock_busy", {
+          company_id: body.company_id,
+          active_document_id: activePipeline.id,
+          active_status: (activePipeline as { status: string }).status,
+        });
+        return new Response(
+          JSON.stringify({
+            error: "pipeline_busy",
+            message: "Já existe um processamento em andamento para esta empresa. Aguarde a conclusão (até 10 min) e tente novamente.",
+            active_document_id: activePipeline.id,
+          }),
+          {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
+          },
+        );
+      }
+    }
+
+
     if (body.document_id) {
       const { data: existingDoc } = await supabase
         .from("pipeline_documents")
