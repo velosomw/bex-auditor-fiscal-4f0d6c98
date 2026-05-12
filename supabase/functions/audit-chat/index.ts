@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { selectModel } from "../_shared/model-router.ts";
+import { aiGatewayFetch } from "../_shared/ai-fetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,7 +43,7 @@ serve(async (req) => {
     const decision = selectModel("chat_assistant", criticality || "medium");
     console.log(`[router] chat_assistant → ${decision.model} (${decision.reason})`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await aiGatewayFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -56,7 +57,7 @@ serve(async (req) => {
         ],
         stream: true,
       }),
-    });
+    }, { label: "audit_chat", maxAttempts: 3, perAttemptTimeoutMs: 60_000 });
 
     if (!response.ok) {
       if (response.status === 429) {

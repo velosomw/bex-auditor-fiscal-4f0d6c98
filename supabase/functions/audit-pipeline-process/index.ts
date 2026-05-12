@@ -13,6 +13,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { selectModel, computeCriticality } from "../_shared/model-router.ts";
+import { aiGatewayFetch } from "../_shared/ai-fetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -211,15 +212,10 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
 
   const userPrompt = `Normalize estas ${rows.length} contas mantendo EXATAMENTE a mesma ordem e tamanho do input (${rows.length} itens):\n\n${inputList}\n\nRetorne via tool call return_normalized_accounts com ${rows.length} elementos no array.`;
 
-  // v4: timeout agressivo (45s) — evita travar 148s em 503 do upstream
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45_000);
-
   let r: Response;
   try {
-    r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    r = await aiGatewayFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      signal: ctrl.signal,
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
@@ -279,13 +275,11 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
         ],
         tool_choice: { type: "function", function: { name: "return_normalized_accounts" } },
       }),
-    });
+    }, { label: "llm_normalize", maxAttempts: 3, perAttemptTimeoutMs: 45_000 });
   } catch (e) {
-    clearTimeout(timer);
     console.warn("LLM normalize aborted/network", e instanceof Error ? e.message : e);
     return null;
   }
-  clearTimeout(timer);
 
   if (!r.ok) {
     console.warn("LLM normalize HTTP", r.status, (await r.text()).slice(0, 300));
@@ -1078,7 +1072,7 @@ DRE: Rec=${fmt(receita)} Desp=${fmt(despesa)} Res=${fmt(resultado)}
 Idx: LC=${indicadoresFinanceiros.liquidez_corrente ?? "ND"} EG=${indicadoresFinanceiros.endividamento_geral ?? "ND"}% CE=${indicadoresFinanceiros.composicao_endividamento ?? "ND"}% ML=${indicadoresFinanceiros.margem_liquida ?? "ND"}% ROE=${indicadoresFinanceiros.roe ?? "ND"}%${fewShotBlock}`;
 
 
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await aiGatewayFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1125,7 +1119,7 @@ Idx: LC=${indicadoresFinanceiros.liquidez_corrente ?? "ND"} EG=${indicadoresFina
           ],
           tool_choice: { type: "function", function: { name: "return_audit_insights" } },
         }),
-      });
+      }, { label: `ai_insights:${insightServiceTag}`, maxAttempts: 3, perAttemptTimeoutMs: 90_000 });
       if (aiResp.ok) {
         const aj = await aiResp.json();
         const tc = aj.choices?.[0]?.message?.tool_calls?.[0];
@@ -1233,6 +1227,41 @@ serve(async (req) => {
 
     // Item 4: SHA-256 do conteúdo para detectar reprocessamentos idênticos
     const contentHash = await sha256Hex(buildContentHashSource(body));
+
+    // ── Lock por empresa: bloqueia 2 pipelines simultâneos da MESMA company_id ──
+    // Janela: 10 min. Mantém isolamento por usuário (RLS) e evita corrida de inserts duplicados.
+    if (body.company_id) {
+      const lockSince = new Date(Date.now() - 10 * 60_000).toISOString();
+      const { data: activePipeline } = await supabase
+        .from("pipeline_documents")
+        .select("id, status, updated_at")
+        .eq("company_id", body.company_id)
+        .in("status", ["pending", "normalizing", "processing"])
+        .gte("updated_at", lockSince)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activePipeline?.id && activePipeline.id !== body.document_id) {
+        stageLog(reqId, "pipeline.lock_busy", {
+          company_id: body.company_id,
+          active_document_id: activePipeline.id,
+          active_status: (activePipeline as { status: string }).status,
+        });
+        return new Response(
+          JSON.stringify({
+            error: "pipeline_busy",
+            message: "Já existe um processamento em andamento para esta empresa. Aguarde a conclusão (até 10 min) e tente novamente.",
+            active_document_id: activePipeline.id,
+          }),
+          {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
+          },
+        );
+      }
+    }
+
 
     if (body.document_id) {
       const { data: existingDoc } = await supabase
