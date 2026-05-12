@@ -284,6 +284,134 @@ const TabAIJobsQueue = () => {
         </Card>
       )}
 
+      {/* ─── Gráfico de Tendência ───────────────────────────── */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-blue-500" /> Tendência de processamento
+            </CardTitle>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Picos destacados em laranja. Taxa de DLQ no canto superior direito.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {stats && (
+              <div className="text-right">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Taxa DLQ</p>
+                <p className={`text-sm font-bold ${
+                  stats.total > 0 && (stats.dlq_pending / stats.total) > 0.05
+                    ? "text-rose-600"
+                    : stats.dlq_pending > 0 ? "text-amber-600" : "text-emerald-600"
+                }`}>
+                  {stats.total > 0 ? ((stats.dlq_pending / stats.total) * 100).toFixed(2) : "0.00"}%
+                </p>
+              </div>
+            )}
+            <Select value={trendWindow} onValueChange={(v) => setTrendWindow(v as TrendWindow)}>
+              <SelectTrigger className="w-[110px] h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="24h">Últimas 24h</SelectItem>
+                <SelectItem value="7d">Últimos 7 dias</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const fmtBucket = (b: string) => {
+              const d = new Date(b);
+              return trendWindow === "24h"
+                ? d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+            };
+            const max = Math.max(1, ...trend.map(t => t.enqueued));
+            const peakThreshold = max * 0.7;
+            const peaks = trend.filter(t => t.enqueued >= peakThreshold && t.enqueued > 0);
+            const totals = trend.reduce(
+              (acc, t) => ({ e: acc.e + t.enqueued, c: acc.c + t.completed, f: acc.f + t.failed }),
+              { e: 0, c: 0, f: 0 }
+            );
+            const failureRate = totals.c + totals.f > 0
+              ? ((totals.f / (totals.c + totals.f)) * 100).toFixed(1)
+              : "0.0";
+
+            return (
+              <>
+                <div className="grid grid-cols-3 gap-3 mb-3 text-xs">
+                  <div className="bg-muted/50 rounded-lg px-3 py-2">
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Enfileirados</p>
+                    <p className="font-bold text-amber-600 text-base">{totals.e}</p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg px-3 py-2">
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Sucesso</p>
+                    <p className="font-bold text-emerald-600 text-base">{totals.c}</p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg px-3 py-2">
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Falhas ({failureRate}%)</p>
+                    <p className="font-bold text-rose-600 text-base">{totals.f}</p>
+                  </div>
+                </div>
+
+                <div className="w-full h-[260px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={trend} margin={{ top: 10, right: 12, bottom: 0, left: -12 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                      <XAxis
+                        dataKey="bucket"
+                        tickFormatter={fmtBucket}
+                        tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: 8,
+                          fontSize: 11,
+                        }}
+                        labelFormatter={(v) => fmtBucket(String(v))}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="enqueued" name="Enfileirados" fill="hsl(38, 92%, 50%)" opacity={0.55} radius={[3, 3, 0, 0]} />
+                      <Line
+                        type="monotone" dataKey="completed" name="Sucesso"
+                        stroke="hsl(152, 70%, 45%)" strokeWidth={2}
+                        dot={{ r: 2 }} activeDot={{ r: 4 }}
+                      />
+                      <Line
+                        type="monotone" dataKey="failed" name="Falhas"
+                        stroke="hsl(0, 84%, 60%)" strokeWidth={2}
+                        dot={{ r: 2 }} activeDot={{ r: 4 }}
+                      />
+                      {peaks.map((p) => (
+                        <ReferenceDot
+                          key={p.bucket}
+                          x={p.bucket}
+                          y={p.enqueued}
+                          r={5}
+                          fill="hsl(24, 95%, 53%)"
+                          stroke="hsl(var(--background))"
+                          strokeWidth={2}
+                          ifOverflow="extendDomain"
+                        />
+                      ))}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+                {peaks.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-orange-500 mr-1.5" />
+                    {peaks.length} pico(s) detectado(s) acima de {Math.round(peakThreshold)} enfileiramentos por {trendWindow === "24h" ? "hora" : "dia"}.
+                  </p>
+                )}
+              </>
+            );
+          })()}
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="jobs">
         <TabsList className="bg-card border border-border">
           <TabsTrigger value="jobs" className="text-xs gap-1.5">
