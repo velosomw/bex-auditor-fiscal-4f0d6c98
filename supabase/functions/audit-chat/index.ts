@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { selectModel } from "../_shared/model-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +29,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, context } = await req.json();
+    const { messages, context, criticality } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -37,6 +38,10 @@ serve(async (req) => {
       systemContent += `\n\nCONTEXTO DA ANÁLISE ATUAL:\n${JSON.stringify(context, null, 2)}`;
     }
 
+    // Roteamento: chat usa Gemini Flash; sobe para Gemini Pro em casos críticos
+    const decision = selectModel("chat_assistant", criticality || "medium");
+    console.log(`[router] chat_assistant → ${decision.model} (${decision.reason})`);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -44,7 +49,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: decision.model,
         messages: [
           { role: "system", content: systemContent },
           ...messages,

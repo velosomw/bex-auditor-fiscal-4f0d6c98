@@ -10,6 +10,7 @@ import {
   XCircle, Eye, EyeOff, KeyRound, Settings2, Zap,
 } from "lucide-react";
 import DocumentAITester from "./DocumentAITester";
+import ModelRoutingMatrix from "./ModelRoutingMatrix";
 
 // ─── Types ───────────────────────────────────────────────────
 type ProviderId = "lovable_cloud" | "google_document_ai" | "gemini" | "vertex_ai" | "openai_gpt";
@@ -191,6 +192,9 @@ const AIProvidersConfig = () => {
 
   return (
     <div className="space-y-6">
+      {/* ── Matriz de Roteamento Automático ────────────────── */}
+      <ModelRoutingMatrix />
+
       {/* ── Active Provider Status ─────────────────────────── */}
       <div className="bg-card rounded-xl border border-border p-4 flex items-start gap-3">
         <div className="w-9 h-9 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
@@ -199,17 +203,17 @@ const AIProvidersConfig = () => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="text-sm font-bold text-foreground">
-              Provedor de IA ativo: {activeProvider?.name || "Lovable AI Gateway"}
+              Provedores em produção: Gemini (padrão) + OpenAI GPT-5 (risco avançado)
             </h4>
             <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[hsl(152,70%,45%)]/10 text-[hsl(152,70%,45%)]">
-              Em produção
+              Roteamento ativo
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            A plataforma está operando com <strong>Lovable AI</strong> (Gemini gerenciado). As demais APIs
-            ({standbyProviders.map((p) => p.name).join(", ") || "Gemini, Vertex AI, OpenAI"}) ficam em
-            standby — basta ativar o switch e cadastrar a secret correspondente para alternar o pipeline
-            sem reescrever código.
+            O <strong>Lovable AI Gateway</strong> entrega Gemini para 90% dos processos (parse, chat, insights
+            padrão, embeddings). <strong>OpenAI GPT-5</strong> é acionado automaticamente para{" "}
+            <em>análise de risco avançado</em> (RJ, BEX-RJ, Kanitz crítico) e quando 2+ sinais financeiros de
+            risco forem detectados — sem necessidade de cadastro de chave (uso via gateway gerenciado).
           </p>
         </div>
       </div>
