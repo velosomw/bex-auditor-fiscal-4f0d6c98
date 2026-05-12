@@ -12,6 +12,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { selectModel, computeCriticality } from "../_shared/model-router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1052,14 +1053,19 @@ async function runPipeline(
       }
     } catch (_) { /* não-crítico */ }
 
-    // Critério de criticidade: usa Pro só quando há sinais de risco relevante
-    const isCritical =
-      !validation.valid ||
-      validation.pl <= 0 ||
-      (indicadoresFinanceiros.liquidez_corrente !== null && indicadoresFinanceiros.liquidez_corrente < 1) ||
-      (indicadoresFinanceiros.endividamento_geral !== null && indicadoresFinanceiros.endividamento_geral > 80);
-    const insightModel = isCritical ? "google/gemini-2.5-pro" : "google/gemini-3-flash-preview";
-    const insightServiceTag = isCritical ? "gemini_pro" : "gemini_flash";
+    // ── Roteamento automático de modelos ─────────────────────────────
+    // Sinais de risco alimentam o router; ele escolhe Gemini ou GPT-5.
+    const criticality = computeCriticality({
+      balanceValid: validation.valid,
+      patrimonioLiquido: validation.pl,
+      liquidezCorrente: indicadoresFinanceiros.liquidez_corrente,
+      endividamentoGeral: indicadoresFinanceiros.endividamento_geral,
+    });
+    const isCritical = criticality === "high";
+    const decision = selectModel("audit_insights", criticality);
+    const insightModel = decision.model;
+    const insightServiceTag = decision.serviceTag;
+    console.log(`[router] audit_insights → ${insightModel} (${decision.reason})`);
 
     try {
       // #3 otimização: contexto compacto (formato chave=valor, sem labels redundantes — ~40% menos tokens)
