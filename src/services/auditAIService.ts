@@ -723,6 +723,18 @@ export async function runAuditPipeline(
       }),
     });
     if (!response.ok) {
+      // 409 = pipeline em uso para a mesma empresa (lock por company_id)
+      if (response.status === 409) {
+        try {
+          const body = await response.json();
+          onProgress?.({
+            status: "error",
+            progress: body?.message || "Já existe um processamento em andamento para esta empresa.",
+            documentId: body?.active_document_id,
+          });
+        } catch { /* ignore */ }
+        return null;
+      }
       console.warn("Pipeline enqueue falhou:", response.status);
       return null;
     }
