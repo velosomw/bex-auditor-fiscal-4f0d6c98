@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Shield } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
