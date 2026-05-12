@@ -1,28 +1,23 @@
 project_id = "mrvizydgxysaxazhmfqk"
 
-[functions.audit-analyze]
-verify_jwt = false
-
-[functions.audit-chat]
-verify_jwt = false
-
-[functions.audit-parse-pdf]
-verify_jwt = false
-
-[functions.admin-create-user]
-verify_jwt = false
-
-[functions.bootstrap-companies]
-verify_jwt = false
-
-[functions.document-ai-process]
-verify_jwt = false
-
-[functions.audit-pipeline-process]
-verify_jwt = false
-
-[functions.pipeline-diagnostic-seed]
-verify_jwt = false
-
-[functions.process-email-queue]
-verify_jwt = true
+[functions]
+  [functions.admin-create-user]
+    verify_jwt = false
+  [functions.audit-analyze]
+    verify_jwt = false
+  [functions.audit-chat]
+    verify_jwt = false
+  [functions.audit-parse-pdf]
+    verify_jwt = false
+  [functions.audit-pipeline-process]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.bootstrap-companies]
+    verify_jwt = false
+  [functions.document-ai-process]
+    verify_jwt = false
+  [functions.pipeline-diagnostic-seed]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
