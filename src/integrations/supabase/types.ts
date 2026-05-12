@@ -1523,6 +1523,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      ai_jobs_dlq_peek: {
+        Args: { p_limit?: number }
+        Returns: {
+          enqueued_at: string
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
+      }
+      ai_jobs_dlq_purge: { Args: { p_msg_id: number }; Returns: Json }
+      ai_jobs_queue_stats: { Args: never; Returns: Json }
+      ai_jobs_retry: { Args: { p_job_id: string }; Returns: Json }
       calculate_ai_cost: {
         Args: {
           p_pages: number
