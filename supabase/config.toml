@@ -25,3 +25,5 @@ project_id = "mrvizydgxysaxazhmfqk"
     verify_jwt = false
   [functions.process-ai-jobs-queue]
     verify_jwt = true
+  [functions.email-template-preview]
+    verify_jwt = false
