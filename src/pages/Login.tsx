@@ -21,7 +21,7 @@ const Login = () => {
   const getRedirectPath = (role: string) => {
     if (role === "gestor_ia") return "/gestor-ia";
     if (role === "auditor_chefe" || role === "coordenadora") return "/dashboard";
-    return "/user";
+    return "/user"; // usuario, empresa, contabilidade
   };
 
   const handleLogin = async (e: React.FormEvent) => {

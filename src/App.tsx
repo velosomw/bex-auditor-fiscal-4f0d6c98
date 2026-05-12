@@ -36,6 +36,8 @@ const Empresas = lazy(() => import("./pages/Empresas"));
 const UserEmpresas = lazy(() => import("./pages/UserEmpresas"));
 const SolicitarCadastro = lazy(() => import("./pages/SolicitarCadastro"));
 const PerfReport = lazy(() => import("./pages/PerfReport"));
+const Signup = lazy(() => import("./pages/Signup"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 const queryClient = new QueryClient();
 
