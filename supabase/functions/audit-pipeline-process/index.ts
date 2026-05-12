@@ -275,13 +275,11 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
         ],
         tool_choice: { type: "function", function: { name: "return_normalized_accounts" } },
       }),
-    });
+    }, { label: "llm_normalize", maxAttempts: 3, perAttemptTimeoutMs: 45_000 });
   } catch (e) {
-    clearTimeout(timer);
     console.warn("LLM normalize aborted/network", e instanceof Error ? e.message : e);
     return null;
   }
-  clearTimeout(timer);
 
   if (!r.ok) {
     console.warn("LLM normalize HTTP", r.status, (await r.text()).slice(0, 300));
