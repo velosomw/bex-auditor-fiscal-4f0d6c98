@@ -798,6 +798,9 @@ const GestaoAgentes = () => {
             <TabsTrigger value="financeiro" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <Wallet className="w-3.5 h-3.5" /> Controle Financeiro de Tokens & APIs
             </TabsTrigger>
+            <TabsTrigger value="fila" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <ListChecks className="w-3.5 h-3.5" /> Fila de Jobs & DLQ
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="mt-5"><TabUpload /></TabsContent>
@@ -807,6 +810,7 @@ const GestaoAgentes = () => {
           <TabsContent value="performance" className="mt-5"><TabPerformance /></TabsContent>
           <TabsContent value="registro" className="mt-5"><TabAgentRegistry /></TabsContent>
           <TabsContent value="financeiro" className="mt-5"><TabFinanceiroTokens /></TabsContent>
+          <TabsContent value="fila" className="mt-5"><TabAIJobsQueue /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
