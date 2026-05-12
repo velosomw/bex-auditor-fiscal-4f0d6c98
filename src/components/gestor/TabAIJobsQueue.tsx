@@ -97,6 +97,9 @@ const StatCard = ({
   );
 };
 
+type TrendWindow = "24h" | "7d";
+interface TrendPoint { bucket: string; enqueued: number; completed: number; failed: number; }
+
 const TabAIJobsQueue = () => {
   const [stats, setStats] = useState<QueueStats | null>(null);
   const [jobs, setJobs] = useState<AIJob[]>([]);
@@ -107,18 +110,32 @@ const TabAIJobsQueue = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [detail, setDetail] = useState<AIJob | DLQEntry | null>(null);
+  const [trendWindow, setTrendWindow] = useState<TrendWindow>("24h");
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
 
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [{ data: statsData, error: statsErr }, { data: dlqData, error: dlqErr }] = await Promise.all([
+      const [
+        { data: statsData, error: statsErr },
+        { data: dlqData, error: dlqErr },
+        { data: trendData, error: trendErr },
+      ] = await Promise.all([
         supabase.rpc("ai_jobs_queue_stats" as any),
         supabase.rpc("ai_jobs_dlq_peek" as any, { p_limit: 50 }),
+        supabase.rpc("ai_jobs_timeseries" as any, { p_window: trendWindow }),
       ]);
       if (statsErr) throw statsErr;
       if (dlqErr) throw dlqErr;
+      if (trendErr) throw trendErr;
       setStats(statsData as unknown as QueueStats);
       setDlq((dlqData as unknown as DLQEntry[]) || []);
+      setTrend(((trendData as any[]) || []).map(r => ({
+        bucket: r.bucket,
+        enqueued: Number(r.enqueued),
+        completed: Number(r.completed),
+        failed: Number(r.failed),
+      })));
 
       let q = supabase
         .from("ai_jobs")
@@ -136,7 +153,7 @@ const TabAIJobsQueue = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filter, kindFilter]);
+  }, [filter, kindFilter, trendWindow]);
 
   useEffect(() => { load(); }, [load]);
 
