@@ -54,11 +54,23 @@ const RawHtml = ({ html, style }: { html: string; style?: React.CSSProperties })
 )
 
 export const DynamicEmail = ({ brand, content, confirmationUrl, token }: DynamicEmailProps) => {
+  const logoW = brand.logo_width ?? 64
+  const logoH = brand.logo_height ?? 64
+  const logoR = brand.logo_radius ?? 12
+  const logoAlign = brand.logo_align ?? 'center'
+  const logoFit = brand.logo_object_fit ?? 'cover'
+  const logoPad = brand.logo_padding ?? 0
+  const logoBg = brand.logo_bg_color ?? 'transparent'
+  const headerTextAlign: 'left' | 'center' | 'right' = logoAlign
+  const logoMargin =
+    logoAlign === 'center' ? '0 auto 14px' :
+    logoAlign === 'right' ? '0 0 14px auto' : '0 0 14px 0'
+
   const styles = {
     main: { backgroundColor: '#ffffff', fontFamily: fontBody, margin: 0, padding: '32px 0' } as React.CSSProperties,
     container: { width: '100%', maxWidth: '560px', margin: '0 auto', backgroundColor: '#ffffff', border: '1px solid #e3e7ef', borderRadius: '14px', overflow: 'hidden' } as React.CSSProperties,
-    header: { background: `linear-gradient(135deg, ${brand.header_bg_from} 0%, ${brand.header_bg_to} 100%)`, padding: '28px 32px', textAlign: 'center' as const },
-    logo: { width: '64px', height: '64px', borderRadius: '12px', margin: '0 auto 14px', display: 'block' } as React.CSSProperties,
+    header: { background: `linear-gradient(135deg, ${brand.header_bg_from} 0%, ${brand.header_bg_to} 100%)`, padding: '28px 32px', textAlign: headerTextAlign },
+    logo: { width: `${logoW}px`, height: `${logoH}px`, borderRadius: `${logoR}px`, margin: logoMargin, display: 'block', objectFit: logoFit, padding: `${logoPad}px`, backgroundColor: logoBg } as React.CSSProperties,
     brandMark: { color: '#ffffff', fontFamily: fontHeading, fontSize: '20px', fontWeight: 800 as const, letterSpacing: '0.5px', margin: 0 } as React.CSSProperties,
     brandTagline: { color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '6px 0 0', letterSpacing: '1.2px', textTransform: 'uppercase' as const } as React.CSSProperties,
     body: { padding: '36px 32px 28px' } as React.CSSProperties,
@@ -69,7 +81,10 @@ export const DynamicEmail = ({ brand, content, confirmationUrl, token }: Dynamic
     footer: { fontSize: '12px', color: '#8a93a6', lineHeight: '1.5', margin: 0 } as React.CSSProperties,
     footerStrip: { backgroundColor: '#f4f6fa', padding: '18px 32px', textAlign: 'center' as const, fontSize: '11px', color: '#8a93a6' } as React.CSSProperties,
     code: { fontFamily: "'Courier New', monospace", fontSize: '28px', fontWeight: 700 as const, color: brand.header_bg_from, letterSpacing: '6px', backgroundColor: '#f4f6fa', border: '1px solid #e3e7ef', borderRadius: '10px', padding: '16px 20px', textAlign: 'center' as const, margin: '0 0 24px', display: 'block' } as React.CSSProperties,
+    linkBox: { fontSize: '12px', color: brand.muted_color, lineHeight: '1.5', wordBreak: 'break-all' as const, backgroundColor: '#f4f6fa', border: '1px solid #e3e7ef', borderRadius: '8px', padding: '10px 12px', margin: '16px 0 0' } as React.CSSProperties,
   }
+
+  const showLogo = (brand.logo_show ?? true) && !!brand.logo_url
 
   return (
     <Html lang="pt-BR" dir="ltr">
