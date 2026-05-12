@@ -1072,7 +1072,7 @@ DRE: Rec=${fmt(receita)} Desp=${fmt(despesa)} Res=${fmt(resultado)}
 Idx: LC=${indicadoresFinanceiros.liquidez_corrente ?? "ND"} EG=${indicadoresFinanceiros.endividamento_geral ?? "ND"}% CE=${indicadoresFinanceiros.composicao_endividamento ?? "ND"}% ML=${indicadoresFinanceiros.margem_liquida ?? "ND"}% ROE=${indicadoresFinanceiros.roe ?? "ND"}%${fewShotBlock}`;
 
 
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResp = await aiGatewayFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1119,7 +1119,7 @@ Idx: LC=${indicadoresFinanceiros.liquidez_corrente ?? "ND"} EG=${indicadoresFina
           ],
           tool_choice: { type: "function", function: { name: "return_audit_insights" } },
         }),
-      });
+      }, { label: `ai_insights:${insightServiceTag}`, maxAttempts: 3, perAttemptTimeoutMs: 90_000 });
       if (aiResp.ok) {
         const aj = await aiResp.json();
         const tc = aj.choices?.[0]?.message?.tool_calls?.[0];
