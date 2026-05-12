@@ -161,6 +161,69 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_jobs: {
+        Row: {
+          attempts: number
+          company_id: string | null
+          created_at: string
+          document_id: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          kind: string
+          max_attempts: number
+          payload: Json
+          pgmq_msg_id: number | null
+          priority: number
+          queued_at: string
+          requested_by: string
+          result: Json | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          company_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          kind: string
+          max_attempts?: number
+          payload?: Json
+          pgmq_msg_id?: number | null
+          priority?: number
+          queued_at?: string
+          requested_by: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          company_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          max_attempts?: number
+          payload?: Json
+          pgmq_msg_id?: number | null
+          priority?: number
+          queued_at?: string
+          requested_by?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_usage_logs: {
         Row: {
           cost_calculated: number
@@ -1431,6 +1494,35 @@ export type Database = {
     }
     Functions: {
       ai_cost_diagnostics: { Args: never; Returns: Json }
+      ai_jobs_claim_batch: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          company_id: string | null
+          created_at: string
+          document_id: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          kind: string
+          max_attempts: number
+          payload: Json
+          pgmq_msg_id: number | null
+          priority: number
+          queued_at: string
+          requested_by: string
+          result: Json | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ai_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       calculate_ai_cost: {
         Args: {
           p_pages: number
