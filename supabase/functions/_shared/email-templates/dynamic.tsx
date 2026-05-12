@@ -93,8 +93,8 @@ export const DynamicEmail = ({ brand, content, confirmationUrl, token }: Dynamic
       <Body style={styles.main}>
         <Container style={styles.container}>
           <Section style={styles.header}>
-            {brand.logo_url ? (
-              <Img src={brand.logo_url} alt={brand.brand_name} width="64" height="64" style={styles.logo} />
+            {showLogo ? (
+              <Img src={brand.logo_url} alt={brand.brand_name} width={String(logoW)} height={String(logoH)} style={styles.logo} />
             ) : null}
             <Text style={styles.brandMark}>{brand.brand_name}</Text>
             <Text style={styles.brandTagline}>{content.header_subtitle || brand.tagline}</Text>
@@ -106,6 +106,12 @@ export const DynamicEmail = ({ brand, content, confirmationUrl, token }: Dynamic
             {token ? <Text style={styles.code}>{token}</Text> : null}
             {confirmationUrl && content.button_label ? (
               <Button style={styles.button} href={confirmationUrl}>{content.button_label}</Button>
+            ) : null}
+            {confirmationUrl ? (
+              <Text style={styles.linkBox}>
+                Se o botão não funcionar, copie e cole este link no navegador:<br />
+                <Link href={confirmationUrl} style={{ color: brand.primary_color }}>{confirmationUrl}</Link>
+              </Text>
             ) : null}
             <div style={styles.divider} />
             <RawHtml html={content.footer_html} style={styles.footer} />
