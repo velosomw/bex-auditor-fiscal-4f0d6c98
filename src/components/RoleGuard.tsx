@@ -30,7 +30,7 @@ const RoleGuard = ({ allow, children }: RoleGuardProps) => {
   if (!realRole || !allow.includes(realRole)) {
     const fallback =
       realRole === "gestor_ia" ? "/gestor-ia"
-      : realRole === "auditor_chefe" ? "/dashboard"
+      : realRole === "auditor_chefe" || realRole === "coordenadora" ? "/dashboard"
       : "/user";
     return <Navigate to={fallback} replace />;
   }
