@@ -36,6 +36,7 @@ const Empresas = lazy(() => import("./pages/Empresas"));
 const UserEmpresas = lazy(() => import("./pages/UserEmpresas"));
 const SolicitarCadastro = lazy(() => import("./pages/SolicitarCadastro"));
 const PerfReport = lazy(() => import("./pages/PerfReport"));
+const EmailTemplatesEditor = lazy(() => import("./pages/EmailTemplatesEditor"));
 const Signup = lazy(() => import("./pages/Signup"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/empresa/:id" element={<RoleGuard allow={["auditor_chefe","gestor_ia","coordenadora","usuario","empresa","contabilidade"]}><CompanyPage /></RoleGuard>} />
               <Route path="/empresas" element={<RoleGuard allow={["auditor_chefe","gestor_ia","coordenadora"]}><Empresas /></RoleGuard>} />
               <Route path="/perf-report" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><PerfReport /></RoleGuard>} />
+              <Route path="/gestor-ia/emails" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><EmailTemplatesEditor /></RoleGuard>} />
 
               <Route path="*" element={<Layout><NotFound /></Layout>} />
             </Routes>
