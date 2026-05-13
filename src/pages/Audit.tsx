@@ -32,7 +32,7 @@ import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import TabBSDados from "@/components/audit/TabBSDados";
 import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { BalanceteEntry } from "@/services/bsDadosBuilder";
+import { buildBSDados, type BalanceteEntry } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
@@ -1108,11 +1108,11 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
   );
 };
 
-/* ── Helper: compute indicators from parsed data ── */
+/* ── Helper: compute indicators from parsed data (legacy OCR) ── */
 const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => {
   if (!parsedData) return {};
-  const findValue = (rows: typeof parsedData.balanco, keyword: string, year: string) => {
-    const row = rows.find(r => r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword));
+  const findValue = (rows: any[], keyword: string, year: string) => {
+    const row = rows.find(r => (r.conta || "").toLowerCase().includes(keyword) || (r.descricao || "").toLowerCase().includes(keyword));
     return row?.values[year] || 0;
   };
 
@@ -1154,7 +1154,6 @@ const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => 
       margemOperacional: receita ? resOp / receita : 0,
       roa: at ? lucro / at : 0,
       roe: Math.abs(pl) ? lucro / Math.abs(pl) : 0,
-      // extra values for endividamento tab
       _ac: ac, _anc: anc, _pc: pc, _pnc: pnc, _pl: pl, _caixa: caixa,
       _receita: receita, _lucro: lucro, _resOp: resOp, _despFin: despFin,
       _imob: imob, _estoque: estoque, _fornecedores: fornecedores, _cmv: cmv,
@@ -1164,13 +1163,59 @@ const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => 
   return result;
 };
 
-/* ── Tab 2: Indicadores Econômico-Financeiros ── */
-const TabIndicadores = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any }) => {
-  const { state } = useAudit();
-  const computedInd = computeIndicatorsFromParsed(parsedData || null);
-  const hasComputed = Object.keys(computedInd).length > 0;
+/* ── Helper: compute indicators from processed BS rows (SSOT) ── */
+const computeIndicatorsFromBSRows = (rows: any[]) => {
+  if (!rows || rows.length === 0) return {};
+  const result: Record<string, any> = {};
   
-  // Fallback: use AI analysis indicators when parsed data is empty
+  rows.forEach(r => {
+    const ac = r.ativo_circulante || 0;
+    const pc = r.passivo_circulante || 0;
+    const pl = r.patrimonio_liquido || (r.ativo_circulante - r.divida_total) || 0;
+    const estoque = r.estoques || 0;
+    const caixa = r.disponivel || 0;
+    const receita = r.receita_liquida || 0;
+    const lucro = r.resultado || 0;
+    const cmv = Math.abs(r.cmv || 0);
+    const at = ac || 1; 
+    const pt = r.divida_total || 0;
+
+    result[r.mesKey] = {
+      liquidezCorrente: pc ? ac / pc : 0,
+      liquidezSeca: pc ? (ac - estoque) / pc : 0,
+      liquidezImediata: pc ? caixa / pc : 0,
+      liquidezGeral: pc ? ac / pc : 0, // Proxy
+      endividamentoGeral: at ? pt / at : 0,
+      composicaoEndividamento: pt ? pc / pt : 0,
+      imobilizacaoPL: 0,
+      coberturaJuros: 0,
+      giroAtivo: at ? receita / at : 0,
+      pmr: 0,
+      pmp: cmv ? (r.fornecedores * 360) / cmv : 0,
+      idadeMediaEstoque: cmv ? (estoque * 360) / cmv : 0,
+      margemLiquida: receita ? lucro / receita : 0,
+      margemOperacional: receita ? lucro / receita : 0,
+      roa: at ? lucro / at : 0,
+      roe: Math.abs(pl) ? lucro / Math.abs(pl) : 0,
+      _ac: ac, _anc: 0, _pc: pc, _pnc: 0, _pl: pl, _caixa: caixa,
+      _receita: receita, _lucro: lucro, _resOp: lucro, _despFin: 0,
+      _imob: 0, _estoque: estoque, _fornecedores: r.fornecedores, _cmv: cmv,
+      _contasReceber: 0,
+      _divida_financeira: r.divida_financeira || 0,
+      _divida_tributaria: r.divida_tributaria || 0,
+      _divida_trabalhista: r.divida_trabalhista || 0,
+      _credores_rj: r.credores_rj || 0,
+
+    };
+  });
+  return result;
+};
+/* ── Tab 2: Indicadores Econômico-Financeiros ── */
+const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any; bsRows?: any[] }) => {
+  const { state } = useAudit();
+  const computedInd = bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null);
+  const hasComputed = Object.keys(computedInd).length > 0;
+
   const aiInd = aiAnalysis?.indicadoresCalculados;
   const aiStructure = aiAnalysis?.diagnostico?.estruturaFinanceira;
   const hasAiInd = aiInd && Object.values(aiInd).some((v: any) => v !== 0);
@@ -1225,10 +1270,10 @@ const TabIndicadores = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinanci
   const sections = [
     {
       title: "Liquidez", icon: Activity, items: [
-        { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: fmtPct, formula: "AC / PC", benchmark: "> 1,5" },
-        { label: "Liquidez Seca", key: "liquidezSeca", fmt: fmtPct, formula: "(AC - EST) / PC", benchmark: "> 1,0" },
-        { label: "Liquidez Imediata", key: "liquidezImediata", fmt: fmtPct, formula: "Caixa / PC", benchmark: "> 0,3" },
-        { label: "Liquidez Geral", key: "liquidezGeral", fmt: fmtPct, formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 1,0" },
+        { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: (n: number) => n.toFixed(2), formula: "AC / PC", benchmark: "> 1,5" },
+        { label: "Liquidez Seca", key: "liquidezSeca", fmt: (n: number) => n.toFixed(2), formula: "(AC - EST) / PC", benchmark: "> 1,0" },
+        { label: "Liquidez Imediata", key: "liquidezImediata", fmt: (n: number) => n.toFixed(2), formula: "Caixa / PC", benchmark: "> 0,3" },
+        { label: "Liquidez Geral", key: "liquidezGeral", fmt: (n: number) => n.toFixed(2), formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 1,0" },
       ]
     },
     {
@@ -1323,8 +1368,8 @@ const TabIndicadores = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinanci
 };
 
 /* ── Tab 3: Análise de Endividamento ── */
-const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null }) => {
-  const computedInd = computeIndicatorsFromParsed(parsedData || null);
+const TabEndividamento = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null; bsRows?: any[] }) => {
+  const computedInd = bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null);
   const years = Object.keys(computedInd).sort();
   const latestYear = years[years.length - 1];
   const d = latestYear ? computedInd[latestYear] : null;
@@ -1338,18 +1383,14 @@ const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsed
   const ac = d?._ac || aiStruct?.ativo_circulante || 0;
   const anc = d?._anc || aiStruct?.ativo_nao_circulante || 0;
 
-  // Try to extract loan data from parsed balanco
-  const findAbsValue = (keyword: string) => {
-    if (!parsedData) return 0;
-    const row = parsedData.balanco.find(r => 
-      r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword)
-    );
-    return Math.abs(row?.values[latestYear || ""] || 0);
-  };
-
-  const emprestimos = findAbsValue("empréstimos") || findAbsValue("financiamentos");
+  // Use debt components from processed BS rows
+  const emprestimos = d?._divida_financeira || 0;
   const fornecedores = d?._fornecedores || aiStruct?.fornecedores || 0;
-  const dividaLiquida = emprestimos - caixa;
+  const tributario = d?._divida_tributaria || 0;
+  const trabalhista = d?._divida_trabalhista || 0;
+  const credoresRJ = d?._credores_rj || 0;
+  const dividaTotal = emprestimos + fornecedores + tributario + trabalhista + credoresRJ;
+  const dividaLiquida = (emprestimos + fornecedores + tributario + trabalhista + credoresRJ) - caixa;
 
   const riscos = aiAnalysis?.riscosEndividamento || [
     { tipo: "Risco Bancário", nivel: "medio", detail: `Empréstimos: R$ ${fmt(emprestimos)}` },
@@ -1368,9 +1409,10 @@ const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsed
             {[
               { label: "Empréstimos e Financiamentos", value: emprestimos },
               { label: "Fornecedores", value: fornecedores },
-              { label: "Passivo Circulante", value: pc },
-              { label: "Passivo Não Circulante", value: pnc },
-              { label: "Caixa e Equivalentes", value: caixa },
+              { label: "Tributário Parcelado", value: tributario },
+              { label: "Obrigações Trabalhistas", value: trabalhista },
+              { label: "Credores RJ", value: credoresRJ },
+              { label: "Caixa e Equivalentes", value: -caixa },
               { label: "Dívida Líquida", value: dividaLiquida, highlight: true },
             ].map(item => (
               <div key={item.label} className={`flex justify-between p-3 rounded-lg ${item.highlight ? "bg-accent/5 border border-accent/20" : "bg-muted/30"}`}>
@@ -1423,12 +1465,12 @@ const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsed
 };
 
 /* ── Tab 4: Análise Patrimonial ── */
-const TabPatrimonial = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null }) => {
+const TabPatrimonial = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null; bsRows?: any[] }) => {
   const { state } = useAudit();
-  
+
   // Use parsed data if available, otherwise fall back to mock
   const hasParsed = parsedData && parsedData.balanco.length > 0;
-  const rows = hasParsed ? parsedData.balanco : state.balancoRows;
+  const rows = hasParsed ? [...(parsedData.balanco || []), ...(parsedData.dre || [])] : state.balancoRows;
   const years = hasParsed ? parsedData.years : ["2021", "2022", "2023"];
   const lastYear = years[years.length - 1];
   const prevYear = years.length >= 2 ? years[years.length - 2] : null;
@@ -1441,7 +1483,7 @@ const TabPatrimonial = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsedDa
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Layers className="w-4 h-4 text-accent" /> Balanço Patrimonial — Visão Analítica</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Layers className="w-4 h-4 text-accent" /> Balancete de Verificação Consolidado — Visão Analítica</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
@@ -4100,6 +4142,11 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   const activePendencias = aiAnalysis?.pendencias || pendencias;
   const activeScoreRJ = aiAnalysis?.scoreRJ || scoreRJData;
 
+  const bsRows = useMemo(() => {
+    return buildBSDados(parsedData, balanceteEntries);
+  }, [parsedData, balanceteEntries]);
+
+
   const persistReport = (variant: "resumido" | "completo") => {
     const riskLevel = aiAnalysis?.diagnostico?.riskLevel || "moderado";
     const pendencias = aiAnalysis?.pendencias?.length || 0;
@@ -4247,9 +4294,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
         <TabsContent value="diagnostico"><TabDiagnostico data={activeDiagnostico} /></TabsContent>
         <TabsContent value="analise-tecnica"><TabAnaliseTecnica pendenciasData={activePendencias} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
-        <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} bsRows={bsRows} /></TabsContent>
+        <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} bsRows={bsRows} /></TabsContent>
+        <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} bsRows={bsRows} /></TabsContent>
         <TabsContent value="bs-dados"><TabBSDados parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria"><TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} /></TabsContent>

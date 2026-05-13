@@ -112,19 +112,15 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
         <CardContent className="overflow-x-auto">
           <Table className="text-xs">
             <TableHeader>
-              <TableRow className="bg-muted/30">
+              <TableRow className="bg-muted/30 text-[10px] uppercase tracking-wider">
                 <TableHead className="font-bold">Mês</TableHead>
-                <TableHead className="text-right"><HeaderCell k="receita_liquida" label="Receita Líq." /></TableHead>
-                <TableHead className="text-right"><HeaderCell k="cmv" label="CMV" /></TableHead>
-                <TableHead className="text-right"><HeaderCell k="despesas" label="Despesas" /></TableHead>
-                <TableHead className="text-right"><HeaderCell k="resultado" label="Resultado" /></TableHead>
-                <TableHead className="text-right"><HeaderCell k="ativo_circulante" label="AC" /></TableHead>
-                <TableHead className="text-right"><HeaderCell k="passivo_circulante" label="PC" /></TableHead>
-                <TableHead className="text-right"><HeaderCell k="estoques" label="Estoque" /></TableHead>
+                <TableHead className="text-right"><HeaderCell k="ativo_circulante" label="Ativo Circ. (AC)" /></TableHead>
+                <TableHead className="text-right"><HeaderCell k="passivo_circulante" label="Passivo Circ. (PC)" /></TableHead>
+                <TableHead className="text-right"><HeaderCell k="estoques" label="Estoques" /></TableHead>
                 <TableHead className="text-right"><HeaderCell k="disponivel" label="Disponível" /></TableHead>
-                <TableHead className="text-right"><HeaderCell k="divida_total" label="Dívida Total" /></TableHead>
-                <TableHead className="text-right">% CMV/RL</TableHead>
-                <TableHead className="text-right">LC</TableHead>
+                <TableHead className="text-right font-bold"><HeaderCell k="divida_total" label="Dívida Total" /></TableHead>
+                <TableHead className="text-right text-accent font-bold">LC</TableHead>
+                <TableHead className="text-right text-accent font-bold">LS</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -146,21 +142,58 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
                         </TooltipProvider>
                       )}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{fmt(r.receita_liquida)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-red-600">{fmt(r.cmv)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-red-600">{fmt(r.despesas)}</TableCell>
-                    <TableCell className={`text-right tabular-nums font-semibold ${r.resultado < 0 ? "text-red-600" : "text-emerald-600"}`}>
-                      {fmt(r.resultado)}
-                    </TableCell>
                     <TableCell className="text-right tabular-nums">{fmt(r.ativo_circulante)}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmt(r.passivo_circulante)}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmt(r.estoques)}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmt(r.disponivel)}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(r.divida_total)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtPct(ind.cmv_percent)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell className="text-right tabular-nums font-bold text-accent">
                       {ind.liquidez_corrente == null ? "—" : ind.liquidez_corrente.toFixed(2)}
                     </TableCell>
+                    <TableCell className="text-right tabular-nums font-bold text-accent">
+                      {ind.liquidez_seca == null ? "—" : ind.liquidez_seca.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Demonstração de Resultado e Performance (R$)</CardTitle>
+          <CardDescription className="text-xs">
+            Acompanhamento mensal da Receita e Geração de Resultado. 
+            <strong> Nota:</strong> Os valores correspondem à variação mensal real.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow className="bg-muted/30">
+                <TableHead>Mês</TableHead>
+                <TableHead className="text-right"><HeaderCell k="receita_liquida" label="Receita Líq." /></TableHead>
+                <TableHead className="text-right"><HeaderCell k="cmv" label="CMV" /></TableHead>
+                <TableHead className="text-right"><HeaderCell k="despesas" label="Despesas" /></TableHead>
+                <TableHead className="text-right"><HeaderCell k="resultado" label="Resultado Líq." /></TableHead>
+                <TableHead className="text-right">% Margem</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map(r => {
+                const ind = computeBSIndicators(r);
+                return (
+                  <TableRow key={`dre-${r.mesKey}`}>
+                    <TableCell className="font-semibold">{r.mes}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{fmt(r.receita_liquida)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-red-600">{fmt(r.cmv)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-red-600">{fmt(r.despesas)}</TableCell>
+                    <TableCell className={`text-right tabular-nums font-bold ${r.resultado < 0 ? "text-red-600" : "text-emerald-600"}`}>
+                      {fmt(r.resultado)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtPct(ind.resultado_percent)}</TableCell>
                   </TableRow>
                 );
               })}

@@ -28,7 +28,7 @@ export interface KanitzMonthlyResult {
   rating: KanitzRating;
   ratingLabel: string; // "A - Saudável" etc.
   color: string;      // tailwind/hex hint
-  x1: number; x2: number; x3: number; x4: number; x5: number;
+  rl: number; lg: number; ls: number; lc: number; ge: number;
   ativoTotal: number;
   patrimonioLiquido: number;
   liquidezGeral: number;
@@ -52,17 +52,19 @@ export function classifyKanitz(score: number): KanitzRating {
 }
 
 export function calcKanitzScore(input: {
-  resultado: number; ativoTotal: number; patrimonioLiquido: number;
-  liquidezGeral: number; liquidezCorrente: number; dividaTotal: number;
-}): { K: number; X1: number; X2: number; X3: number; X4: number; X5: number } {
-  const at = input.ativoTotal || 1;
-  const X1 = input.resultado / at;
-  const X2 = input.patrimonioLiquido / at;
-  const X3 = input.liquidezGeral || 0;
-  const X4 = input.liquidezCorrente || 0;
-  const X5 = input.dividaTotal / at;
-  const K = 0.05 * X1 + 1.65 * X2 + 3.55 * X3 - 1.06 * X4 - 0.33 * X5;
-  return { K: Number(K.toFixed(4)), X1, X2, X3, X4, X5 };
+  resultado: number; pl: number; ac: number; pc: number; estoques: number; dividaTotal: number;
+}): { K: number; RL: number; LG: number; LS: number; LC: number; GE: number } {
+  const pl = input.pl || 1;
+  const pc = input.pc || 1;
+  
+  const RL = input.resultado / pl;
+  const LG = input.ac / (input.dividaTotal || 1); // Proxy para LG quando não temos ANC/PNC
+  const LS = (input.ac - input.estoques) / pc;
+  const LC = input.ac / pc;
+  const GE = (input.dividaTotal || 0) / pl;
+  
+  const K = (0.05 * RL) + (1.65 * LG) + (3.55 * LS) - (1.06 * LC) - (0.33 * GE);
+  return { K: Number(K.toFixed(4)), RL, LG, LS, LC, GE };
 }
 
 function genInsight(score: number, prevScore?: number): string {
@@ -100,12 +102,12 @@ export function buildKanitzMonthlySeries(rows: BSDadosRow[] | null | undefined):
     // Liquidez Geral ≈ AC / (PC + LP financeiro) — aproximamos com PC (sem ANC/PNC, é igual à LC)
     const liquidezGeral = liquidezCorrente;
 
-    const { K, X1, X2, X3, X4, X5 } = calcKanitzScore({
+    const { K, RL, LG, LS, LC, GE } = calcKanitzScore({
       resultado: r.resultado || 0,
-      ativoTotal,
-      patrimonioLiquido,
-      liquidezGeral,
-      liquidezCorrente,
+      pl: patrimonioLiquido,
+      ac: r.ativo_circulante || 0,
+      pc: r.passivo_circulante || 0,
+      estoques: r.estoques || 0,
       dividaTotal: r.divida_total || 0,
     });
 
@@ -119,7 +121,7 @@ export function buildKanitzMonthlySeries(rows: BSDadosRow[] | null | undefined):
       rating,
       ratingLabel: meta.label,
       color: meta.color,
-      x1: X1, x2: X2, x3: X3, x4: X4, x5: X5,
+      rl: RL, lg: LG, ls: LS, lc: LC, ge: GE,
       ativoTotal,
       patrimonioLiquido,
       liquidezGeral,

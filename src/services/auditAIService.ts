@@ -299,6 +299,7 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^5/,     "DESPESAS"],  // Despesas Operacionais
   [/^6/,     "DESPESAS"],  // Outras despesas/receitas operacionais
   [/^7/,     "DESPESAS"],  // Resultado financeiro (proxy no resultado)
+  [/^8/,     "DESPESAS"],  // Grupos de encerramento / outros
 ];
 
 /** Resolve Ref 1 a partir do código contábil (determinístico, sem IA). */
@@ -521,7 +522,8 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
     const dre: typeof allRows = [];
     for (const r of allRowsMerged) {
       const p = (r.conta || "").charAt(0);
-      if (p === "3" || p === "4" || p === "5") dre.push(r);
+      // Grupos 3 a 8 são contas de resultado (DRE/Custo/Despesa/Resultado)
+      if (["3", "4", "5", "6", "7", "8"].includes(p)) dre.push(r);
       else balanco.push(r);
     }
     return {
