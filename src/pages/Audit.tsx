@@ -13,8 +13,9 @@ import {
   Calculator, TrendingUp, TrendingDown, BarChart3, PieChart, Activity,
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
-  Settings, ClipboardCheck, FileSearch, BookOpen, Database
+  Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1068,6 +1069,38 @@ const scoreRJData = {
 };
 
 /* ── Tab 1: Diagnóstico Financeiro ── */
+/* ── Component: FormulaInfo ── */
+const FormulaInfo = ({ 
+  title, 
+  formula, 
+  accounts 
+}: { 
+  title: string; 
+  formula: string; 
+  accounts: string[] 
+}) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <button className="p-1 hover:bg-muted rounded-full transition-colors">
+        <Info className="w-3.5 h-3.5 text-muted-foreground" />
+      </button>
+    </PopoverTrigger>
+    <PopoverContent className="w-80 p-4 space-y-3">
+      <h4 className="text-sm font-bold border-b pb-1">{title}</h4>
+      <div className="space-y-1">
+        <p className="text-[10px] uppercase font-semibold text-muted-foreground">Fórmula:</p>
+        <p className="text-xs font-mono bg-muted/50 p-2 rounded border">{formula}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[10px] uppercase font-semibold text-muted-foreground">Contas/Grupos que alimentam o cálculo:</p>
+        <ul className="text-[10.5px] space-y-1 list-disc pl-4 text-foreground/80">
+          {accounts.map((acc, i) => <li key={i}>{acc}</li>)}
+        </ul>
+      </div>
+    </PopoverContent>
+  </Popover>
+);
+
 const TabDiagnostico = ({ data }: { data?: any }) => {
   const d = data || diagnosticoData;
   const r = riskBadge[d.riskLevel] || riskBadge["moderado"];
