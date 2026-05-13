@@ -174,7 +174,7 @@ const AlbumFIFA2026 = () => {
                     <div className="text-4xl font-bold">{stats.percentual}%</div>
                   </CardHeader>
                   <CardContent>
-                    <Progress value={stats.percentual} className="h-2 bg-white/20" indicatorClassName="bg-white" />
+                    <Progress value={stats.percentual} className="h-2 bg-white/20" />
                     <p className="text-xs mt-3 opacity-80">{stats.tenho} de {stats.total} figurinhas coladas</p>
                   </CardContent>
                 </Card>
