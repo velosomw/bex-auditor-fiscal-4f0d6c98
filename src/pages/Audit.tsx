@@ -1108,67 +1108,59 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
   );
 };
 
-/* ── Helper: compute indicators from parsed data ── */
-const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => {
-  if (!parsedData) return {};
-  const findValue = (rows: typeof parsedData.balanco, keyword: string, year: string) => {
-    const row = rows.find(r => r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword));
-    return row?.values[year] || 0;
-  };
-
+/* ── Helper: compute indicators from processed BS rows ── */
+const computeIndicatorsFromBSRows = (rows: any[]) => {
+  if (!rows || rows.length === 0) return {};
   const result: Record<string, any> = {};
-  for (const year of parsedData.years) {
-    const allRows = [...parsedData.balanco, ...parsedData.dre];
-    const ac = Math.abs(findValue(allRows, "total do ativo circulante", year) || findValue(allRows, "ativo circulante", year));
-    const anc = Math.abs(findValue(allRows, "total do ativo não circulante", year) || findValue(allRows, "ativo nao circulante", year));
-    const pc = Math.abs(findValue(allRows, "total do passivo circulante", year) || findValue(allRows, "passivo circulante", year));
-    const pnc = Math.abs(findValue(allRows, "total do passivo não circulante", year) || findValue(allRows, "passivo nao circulante", year));
-    const pl = findValue(allRows, "total do patrimônio", year) || findValue(allRows, "patrimonio líquido", year) || findValue(allRows, "patrimônio líquido", year);
-    const estoque = Math.abs(findValue(allRows, "estoque", year));
-    const caixa = Math.abs(findValue(allRows, "caixa", year));
-    const receita = Math.abs(findValue(allRows, "receitas líquidas", year) || findValue(allRows, "receita líquida", year));
-    const lucro = findValue(allRows, "resultado do exercício", year) || findValue(allRows, "lucro líquido", year);
-    const resOp = findValue(allRows, "resultado operacional", year) || findValue(allRows, "lucro operacional bruto", year);
-    const despFin = Math.abs(findValue(allRows, "despesas financeiras", year));
-    const imob = Math.abs(findValue(allRows, "imobilizado", year));
-    const contasReceber = Math.abs(findValue(allRows, "contas a receber", year));
-    const fornecedores = Math.abs(findValue(allRows, "fornecedores", year));
-    const cmv = Math.abs(findValue(allRows, "cmv", year) || findValue(allRows, "total dos custos", year));
-    const at = ac + anc || 1;
-    const pt = pc + pnc || 1;
+  
+  rows.forEach(r => {
+    const ac = r.ativo_circulante || 0;
+    const pc = r.passivo_circulante || 0;
+    const pl = r.patrimonio_liquido || (r.ativo_circulante - r.divida_total) || 0;
+    const estoque = r.estoques || 0;
+    const caixa = r.disponivel || 0;
+    const receita = r.receita_liquida || 0;
+    const lucro = r.resultado || 0;
+    const cmv = Math.abs(r.cmv || 0);
+    const at = ac || 1; // Ativo Total (proxy as AC in simplified view)
+    const pt = r.divida_total || 0;
+    
+    // Using simple proxies for ANC/PNC if not available
+    const anc = 0;
+    const pnc = 0;
 
-    result[year] = {
+    result[r.mesKey] = {
       liquidezCorrente: pc ? ac / pc : 0,
       liquidezSeca: pc ? (ac - estoque) / pc : 0,
       liquidezImediata: pc ? caixa / pc : 0,
-      liquidezGeral: pt ? (ac + anc) / pt : 0,
+      liquidezGeral: (pc + pnc) ? (ac + anc) / (pc + pnc) : 0,
       endividamentoGeral: at ? pt / at : 0,
       composicaoEndividamento: pt ? pc / pt : 0,
-      imobilizacaoPL: Math.abs(pl) ? imob / Math.abs(pl) : 0,
-      coberturaJuros: despFin ? (resOp + despFin) / despFin : 0,
+      imobilizacaoPL: Math.abs(pl) ? 0 : 0, // Placeholder
+      coberturaJuros: 0, // Needs specific account
       giroAtivo: at ? receita / at : 0,
-      pmr: receita ? (contasReceber * 360) / receita : 0,
-      pmp: cmv ? (fornecedores * 360) / cmv : 0,
+      pmr: receita ? (0 * 360) / receita : 0, // Needs contas a receber
+      pmp: cmv ? (r.fornecedores * 360) / cmv : 0,
       idadeMediaEstoque: cmv ? (estoque * 360) / cmv : 0,
       margemLiquida: receita ? lucro / receita : 0,
-      margemOperacional: receita ? resOp / receita : 0,
+      margemOperacional: receita ? lucro / receita : 0, // Proxy
       roa: at ? lucro / at : 0,
       roe: Math.abs(pl) ? lucro / Math.abs(pl) : 0,
-      // extra values for endividamento tab
-      _ac: ac, _anc: anc, _pc: pc, _pnc: pnc, _pl: pl, _caixa: caixa,
-      _receita: receita, _lucro: lucro, _resOp: resOp, _despFin: despFin,
-      _imob: imob, _estoque: estoque, _fornecedores: fornecedores, _cmv: cmv,
-      _contasReceber: contasReceber,
+      _ac: ac, _anc: 0, _pc: pc, _pnc: 0, _pl: pl, _caixa: caixa,
+      _receita: receita, _lucro: lucro, _resOp: lucro, _despFin: 0,
+      _imob: 0, _estoque: estoque, _fornecedores: r.fornecedores, _cmv: cmv,
+      _contasReceber: 0,
     };
-  }
+  });
   return result;
 };
 
 /* ── Tab 2: Indicadores Econômico-Financeiros ── */
-const TabIndicadores = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any }) => {
+const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any; bsRows?: any[] }) => {
   const { state } = useAudit();
-  const computedInd = computeIndicatorsFromParsed(parsedData || null);
+  const computedInd = bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null);
   const hasComputed = Object.keys(computedInd).length > 0;
+
   
   // Fallback: use AI analysis indicators when parsed data is empty
   const aiInd = aiAnalysis?.indicadoresCalculados;
