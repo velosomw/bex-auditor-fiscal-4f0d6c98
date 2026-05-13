@@ -1468,7 +1468,7 @@ const TabPatrimonial = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; 
 
   // Use parsed data if available, otherwise fall back to mock
   const hasParsed = parsedData && parsedData.balanco.length > 0;
-  const rows = hasParsed ? parsedData.balanco : state.balancoRows;
+  const rows = hasParsed ? [...(parsedData.balanco || []), ...(parsedData.dre || [])] : state.balancoRows;
   const years = hasParsed ? parsedData.years : ["2021", "2022", "2023"];
   const lastYear = years[years.length - 1];
   const prevYear = years.length >= 2 ? years[years.length - 2] : null;
@@ -1481,7 +1481,7 @@ const TabPatrimonial = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; 
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Layers className="w-4 h-4 text-accent" /> Balanço Patrimonial — Visão Analítica</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Layers className="w-4 h-4 text-accent" /> Balancete de Verificação Consolidado — Visão Analítica</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
