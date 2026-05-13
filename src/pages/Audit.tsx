@@ -13,8 +13,9 @@ import {
   Calculator, TrendingUp, TrendingDown, BarChart3, PieChart, Activity,
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
-  Settings, ClipboardCheck, FileSearch, BookOpen, Database
+  Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1068,6 +1069,38 @@ const scoreRJData = {
 };
 
 /* ── Tab 1: Diagnóstico Financeiro ── */
+/* ── Component: FormulaInfo ── */
+const FormulaInfo = ({ 
+  title, 
+  formula, 
+  accounts 
+}: { 
+  title: string; 
+  formula: string; 
+  accounts: string[] 
+}) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <button className="p-1 hover:bg-muted rounded-full transition-colors">
+        <Info className="w-3.5 h-3.5 text-muted-foreground" />
+      </button>
+    </PopoverTrigger>
+    <PopoverContent className="w-80 p-4 space-y-3">
+      <h4 className="text-sm font-bold border-b pb-1">{title}</h4>
+      <div className="space-y-1">
+        <p className="text-[10px] uppercase font-semibold text-muted-foreground">Fórmula:</p>
+        <p className="text-xs font-mono bg-muted/50 p-2 rounded border">{formula}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[10px] uppercase font-semibold text-muted-foreground">Contas/Grupos que alimentam o cálculo:</p>
+        <ul className="text-[10.5px] space-y-1 list-disc pl-4 text-foreground/80">
+          {accounts.map((acc, i) => <li key={i}>{acc}</li>)}
+        </ul>
+      </div>
+    </PopoverContent>
+  </Popover>
+);
+
 const TabDiagnostico = ({ data }: { data?: any }) => {
   const d = data || diagnosticoData;
   const r = riskBadge[d.riskLevel] || riskBadge["moderado"];
@@ -1270,34 +1303,34 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
   const sections = [
     {
       title: "Liquidez", icon: Activity, items: [
-        { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: (n: number) => n.toFixed(2), formula: "AC / PC", benchmark: "> 1,5" },
-        { label: "Liquidez Seca", key: "liquidezSeca", fmt: (n: number) => n.toFixed(2), formula: "(AC - EST) / PC", benchmark: "> 1,0" },
-        { label: "Liquidez Imediata", key: "liquidezImediata", fmt: (n: number) => n.toFixed(2), formula: "Caixa / PC", benchmark: "> 0,3" },
-        { label: "Liquidez Geral", key: "liquidezGeral", fmt: (n: number) => n.toFixed(2), formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 1,0" },
+        { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: (n: number) => n.toFixed(2), formula: "AC / PC", benchmark: "> 1,5", accounts: ["Ativo Circulante (Grupo 1.1)", "Passivo Circulante (Grupo 2.1)"] },
+        { label: "Liquidez Seca", key: "liquidezSeca", fmt: (n: number) => n.toFixed(2), formula: "(AC - EST) / PC", benchmark: "> 1,0", accounts: ["Ativo Circulante (Grupo 1.1)", "Estoques (Ref 1: D)", "Passivo Circulante (Grupo 2.1)"] },
+        { label: "Liquidez Imediata", key: "liquidezImediata", fmt: (n: number) => n.toFixed(2), formula: "Caixa / PC", benchmark: "> 0,3", accounts: ["Disponibilidades (Refs 1: A, B)", "Passivo Circulante (Grupo 2.1)"] },
+        { label: "Liquidez Geral", key: "liquidezGeral", fmt: (n: number) => n.toFixed(2), formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 1,0", accounts: ["Ativo Circulante (Grupo 1.1)", "Realizável a Longo Prazo (Grupo 1.2.1)", "Passivo Circulante (Grupo 2.1)", "Passivo Não Circulante (Grupo 2.2)"] },
       ]
     },
     {
       title: "Endividamento", icon: PieChart, items: [
-        { label: "Endividamento Total", key: "endividamentoGeral", fmt: fmtPct, formula: "PT / AT", benchmark: "< 60%" },
-        { label: "Composição Endividamento", key: "composicaoEndividamento", fmt: fmtPct, formula: "PC / PT", benchmark: "< 50%" },
-        { label: "Imobilização do PL", key: "imobilizacaoPL", fmt: fmtPct, formula: "Imob / PL", benchmark: "< 80%" },
-        { label: "Cobertura de Juros", key: "coberturaJuros", fmt: (n: number) => `${n.toFixed(1)}x`, formula: "LAJIR / Juros", benchmark: "> 3,0x" },
+        { label: "Endividamento Total", key: "endividamentoGeral", fmt: fmtPct, formula: "PT / AT", benchmark: "< 60%", accounts: ["Passivo Total (Exigível PC + PNC)", "Ativo Total"] },
+        { label: "Composição Endividamento", key: "composicaoEndividamento", fmt: fmtPct, formula: "PC / PT", benchmark: "< 50%", accounts: ["Passivo Circulante (Curto Prazo)", "Passivo Total (Exigível)"] },
+        { label: "Imobilização do PL", key: "imobilizacaoPL", fmt: fmtPct, formula: "Imob / PL", benchmark: "< 80%", accounts: ["Ativo Imobilizado (Ref 1: R)", "Patrimônio Líquido (Grupo 2.3)"] },
+        { label: "Cobertura de Juros", key: "coberturaJuros", fmt: (n: number) => `${n.toFixed(1)}x`, formula: "LAJIR / Juros", benchmark: "> 3,0x", accounts: ["Resultado Operacional", "Despesas Financeiras (Grupo 7)"] },
       ]
     },
     {
       title: "Atividade", icon: BarChart3, items: [
-        { label: "Giro do Ativo", key: "giroAtivo", fmt: (n: number) => n.toFixed(2), formula: "V / AT", benchmark: "> 0,5" },
-        { label: "PMR", key: "pmr", fmt: fmtDays, formula: "DR×360 / V", benchmark: "< 60d" },
-        { label: "PMP", key: "pmp", fmt: fmtDays, formula: "DP×360 / Compras", benchmark: "< 45d" },
-        { label: "Idade Média Estoque", key: "idadeMediaEstoque", fmt: fmtDays, formula: "EST×360 / CMV", benchmark: "< 90d" },
+        { label: "Giro do Ativo", key: "giroAtivo", fmt: (n: number) => n.toFixed(2), formula: "V / AT", benchmark: "> 0,5", accounts: ["Receita Líquida (Grupo 3)", "Ativo Total"] },
+        { label: "PMR", key: "pmr", fmt: fmtDays, formula: "DR×360 / V", benchmark: "< 60d", accounts: ["Contas a Receber (Ref 1: C)", "Receita Líquida (Grupo 3)"] },
+        { label: "PMP", key: "pmp", fmt: fmtDays, formula: "DP×360 / Compras", benchmark: "< 45d", accounts: ["Fornecedores (Ref 1: BB, PP)", "Custo das Mercadorias Vendidas (Grupo 4)"] },
+        { label: "Idade Média Estoque", key: "idadeMediaEstoque", fmt: fmtDays, formula: "EST×360 / CMV", benchmark: "< 90d", accounts: ["Estoques (Ref 1: D)", "Custo das Mercadorias Vendidas (Grupo 4)"] },
       ]
     },
     {
       title: "Rentabilidade", icon: TrendingUp, items: [
-        { label: "Margem Líquida", key: "margemLiquida", fmt: fmtPct, formula: "LL / V", benchmark: "> 10%" },
-        { label: "Margem Operacional", key: "margemOperacional", fmt: fmtPct, formula: "LAJIR / V", benchmark: "> 15%" },
-        { label: "ROE", key: "roe", fmt: fmtPct, formula: "LL / PL", benchmark: "> 15%" },
-        { label: "ROA", key: "roa", fmt: fmtPct, formula: "LL / AT", benchmark: "> 5%" },
+        { label: "Margem Líquida", key: "margemLiquida", fmt: fmtPct, formula: "LL / V", benchmark: "> 10%", accounts: ["Lucro Líquido (Grupo Resultado)", "Receita Líquida (Grupo 3)"] },
+        { label: "Margem Operacional", key: "margemOperacional", fmt: fmtPct, formula: "LAJIR / V", benchmark: "> 15%", accounts: ["Lucro Operacional (LAJIR)", "Receita Líquida (Grupo 3)"] },
+        { label: "ROE", key: "roe", fmt: fmtPct, formula: "LL / PL", benchmark: "> 15%", accounts: ["Lucro Líquido (Grupo Resultado)", "Patrimônio Líquido (Grupo 2.3)"] },
+        { label: "ROA", key: "roa", fmt: fmtPct, formula: "LL / AT", benchmark: "> 5%", accounts: ["Lucro Líquido (Grupo Resultado)", "Ativo Total"] },
       ]
     },
   ];
@@ -1323,7 +1356,16 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
                 <TableBody>
                   {sec.items.map(item => (
                     <TableRow key={item.key}>
-                      <TableCell className="text-xs font-medium">{item.label}</TableCell>
+                      <TableCell className="text-xs font-medium">
+                        <div className="flex items-center gap-1.5">
+                          {item.label}
+                          <FormulaInfo 
+                            title={item.label} 
+                            formula={item.formula} 
+                            accounts={item.accounts} 
+                          />
+                        </div>
+                      </TableCell>
                       <TableCell className="text-[10px] text-muted-foreground font-mono">{item.formula}</TableCell>
                       {years.map(y => (
                         <TableCell key={y} className="text-right text-xs font-mono">
@@ -1342,9 +1384,17 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
 
       {hasComputed && years.length > 0 && (
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2"><Calculator className="w-4 h-4 text-accent" /> EBITDA Estimado</CardTitle>
-          </CardHeader>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Calculator className="w-4 h-4 text-accent" /> 
+            EBITDA Estimado
+            <FormulaInfo 
+              title="EBITDA Estimado" 
+              formula="LAJIR + Depreciação + Amortização" 
+              accounts={["Resultado Operacional (LAJIR)", "Despesas Financeiras (Grupo 7)", "Depreciação/Amortização (quando disponível)"]} 
+            />
+          </CardTitle>
+        </CardHeader>
           <CardContent>
             <div className={`grid grid-cols-${Math.min(years.length, 4)} gap-4`}>
               {years.map(y => {
