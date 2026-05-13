@@ -28,7 +28,7 @@ export interface KanitzMonthlyResult {
   rating: KanitzRating;
   ratingLabel: string; // "A - Saudável" etc.
   color: string;      // tailwind/hex hint
-  x1: number; x2: number; x3: number; x4: number; x5: number;
+  rl: number; lg: number; ls: number; lc: number; ge: number;
   ativoTotal: number;
   patrimonioLiquido: number;
   liquidezGeral: number;
@@ -121,7 +121,7 @@ export function buildKanitzMonthlySeries(rows: BSDadosRow[] | null | undefined):
       rating,
       ratingLabel: meta.label,
       color: meta.color,
-      x1: RL, x2: LG, x3: LS, x4: LC, x5: GE,
+      rl: RL, lg: LG, ls: LS, lc: LC, ge: GE,
       ativoTotal,
       patrimonioLiquido,
       liquidezGeral,
