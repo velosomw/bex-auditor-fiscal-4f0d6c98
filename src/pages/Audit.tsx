@@ -32,7 +32,7 @@ import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import TabBSDados from "@/components/audit/TabBSDados";
 import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { BalanceteEntry } from "@/services/bsDadosBuilder";
+import { buildBSDados, type BalanceteEntry } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
@@ -4101,16 +4101,8 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   const activeScoreRJ = aiAnalysis?.scoreRJ || scoreRJData;
 
   const bsRows = useMemo(() => {
-    return import("@/services/bsDadosBuilder").then(m => m.buildBSDados(parsedData, balanceteEntries));
+    return buildBSDados(parsedData, balanceteEntries);
   }, [parsedData, balanceteEntries]);
-  
-  // Wait, I can't use async in useMemo like that easily.
-  // I already have buildBSDados imported.
-  
-  const bsRowsSync = useMemo(() => {
-    const { buildBSDados } = require("@/services/bsDadosBuilder"); // Not possible in ESM easily
-    // Actually buildBSDados is already available in the scope since it's imported at the top of the file
-    // Wait, let me check the imports again.
 
 
   const persistReport = (variant: "resumido" | "completo") => {
