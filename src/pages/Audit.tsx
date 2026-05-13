@@ -1409,9 +1409,10 @@ const TabEndividamento = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any
             {[
               { label: "Empréstimos e Financiamentos", value: emprestimos },
               { label: "Fornecedores", value: fornecedores },
-              { label: "Passivo Circulante", value: pc },
-              { label: "Passivo Não Circulante", value: pnc },
-              { label: "Caixa e Equivalentes", value: caixa },
+              { label: "Tributário Parcelado", value: tributario },
+              { label: "Obrigações Trabalhistas", value: trabalhista },
+              { label: "Credores RJ", value: credoresRJ },
+              { label: "Caixa e Equivalentes", value: -caixa },
               { label: "Dívida Líquida", value: dividaLiquida, highlight: true },
             ].map(item => (
               <div key={item.label} className={`flex justify-between p-3 rounded-lg ${item.highlight ? "bg-accent/5 border border-accent/20" : "bg-muted/30"}`}>
