@@ -1378,18 +1378,14 @@ const TabEndividamento = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any
   const ac = d?._ac || aiStruct?.ativo_circulante || 0;
   const anc = d?._anc || aiStruct?.ativo_nao_circulante || 0;
 
-  // Try to extract loan data from parsed balanco
-  const findAbsValue = (keyword: string) => {
-    if (!parsedData) return 0;
-    const row = parsedData.balanco.find(r => 
-      r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword)
-    );
-    return Math.abs(row?.values[latestYear || ""] || 0);
-  };
-
-  const emprestimos = findAbsValue("empréstimos") || findAbsValue("financiamentos");
+  // Use debt components from processed BS rows
+  const emprestimos = d?._divida_financeira || 0;
   const fornecedores = d?._fornecedores || aiStruct?.fornecedores || 0;
-  const dividaLiquida = emprestimos - caixa;
+  const tributario = d?._divida_tributaria || 0;
+  const trabalhista = d?._divida_trabalhista || 0;
+  const credoresRJ = d?._credores_rj || 0;
+  const dividaTotal = emprestimos + fornecedores + tributario + trabalhista + credoresRJ;
+  const dividaLiquida = (emprestimos + fornecedores + tributario + trabalhista + credoresRJ) - caixa;
 
   const riscos = aiAnalysis?.riscosEndividamento || [
     { tipo: "Risco Bancário", nivel: "medio", detail: `Empréstimos: R$ ${fmt(emprestimos)}` },
