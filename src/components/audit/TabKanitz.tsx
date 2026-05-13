@@ -1119,11 +1119,11 @@ function KanitzMensalView({
               {series.map(s => (
                 <TableRow key={s.mesKey}>
                   <TableCell className="text-xs font-medium whitespace-nowrap">{s.mes}</TableCell>
-                  <TableCell className="text-xs text-right font-mono">{s.x1.toFixed(4)}</TableCell>
-                  <TableCell className="text-xs text-right font-mono">{s.x2.toFixed(4)}</TableCell>
-                  <TableCell className="text-xs text-right font-mono">{s.x3.toFixed(4)}</TableCell>
-                  <TableCell className="text-xs text-right font-mono">{s.x4.toFixed(4)}</TableCell>
-                  <TableCell className="text-xs text-right font-mono">{s.x5.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.rl.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.lg.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.ls.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.lc.toFixed(4)}</TableCell>
+                  <TableCell className="text-xs text-right font-mono">{s.ge.toFixed(4)}</TableCell>
                   <TableCell className="text-xs text-right font-mono font-bold" style={{ color: s.color }}>
                     {s.score.toFixed(4)}
                   </TableCell>
