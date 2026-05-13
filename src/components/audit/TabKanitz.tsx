@@ -1098,7 +1098,7 @@ function KanitzMensalView({
             <Calculator className="w-4 h-4 text-accent" /> Memória de Cálculo Mensal
           </CardTitle>
           <CardDescription className="text-xs">
-            K = 0,05·X1 + 1,65·X2 + 3,55·X3 − 1,06·X4 − 0,33·X5 — fórmula do MD aplicada por mês.
+            K = 0,05·RL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE — fórmula de Kanitz aplicada por mês.
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -1106,11 +1106,11 @@ function KanitzMensalView({
             <TableHeader>
               <TableRow>
                 <TableHead className="text-[10px]">Mês</TableHead>
-                <TableHead className="text-[10px] text-right">X1<br/><span className="text-muted-foreground font-normal">Lucro/AT</span></TableHead>
-                <TableHead className="text-[10px] text-right">X2<br/><span className="text-muted-foreground font-normal">PL/AT</span></TableHead>
-                <TableHead className="text-[10px] text-right">X3<br/><span className="text-muted-foreground font-normal">Liq. Geral</span></TableHead>
-                <TableHead className="text-[10px] text-right">X4<br/><span className="text-muted-foreground font-normal">Liq. Corr.</span></TableHead>
-                <TableHead className="text-[10px] text-right">X5<br/><span className="text-muted-foreground font-normal">Dív./AT</span></TableHead>
+                <TableHead className="text-[10px] text-right">RL<br/><span className="text-muted-foreground font-normal">Rentab. PL</span></TableHead>
+                <TableHead className="text-[10px] text-right">LG<br/><span className="text-muted-foreground font-normal">Liq. Geral</span></TableHead>
+                <TableHead className="text-[10px] text-right">LS<br/><span className="text-muted-foreground font-normal">Liq. Seca</span></TableHead>
+                <TableHead className="text-[10px] text-right">LC<br/><span className="text-muted-foreground font-normal">Liq. Corr.</span></TableHead>
+                <TableHead className="text-[10px] text-right">GE<br/><span className="text-muted-foreground font-normal">Grau Endiv.</span></TableHead>
                 <TableHead className="text-[10px] text-right">Score (K)</TableHead>
                 <TableHead className="text-[10px]">Rating</TableHead>
               </TableRow>
