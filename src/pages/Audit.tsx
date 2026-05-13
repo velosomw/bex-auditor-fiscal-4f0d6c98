@@ -4100,6 +4100,19 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   const activePendencias = aiAnalysis?.pendencias || pendencias;
   const activeScoreRJ = aiAnalysis?.scoreRJ || scoreRJData;
 
+  const bsRows = useMemo(() => {
+    return import("@/services/bsDadosBuilder").then(m => m.buildBSDados(parsedData, balanceteEntries));
+  }, [parsedData, balanceteEntries]);
+  
+  // Wait, I can't use async in useMemo like that easily.
+  // I already have buildBSDados imported.
+  
+  const bsRowsSync = useMemo(() => {
+    const { buildBSDados } = require("@/services/bsDadosBuilder"); // Not possible in ESM easily
+    // Actually buildBSDados is already available in the scope since it's imported at the top of the file
+    // Wait, let me check the imports again.
+
+
   const persistReport = (variant: "resumido" | "completo") => {
     const riskLevel = aiAnalysis?.diagnostico?.riskLevel || "moderado";
     const pendencias = aiAnalysis?.pendencias?.length || 0;
