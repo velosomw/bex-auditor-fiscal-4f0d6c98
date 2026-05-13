@@ -1205,9 +1205,12 @@ const computeIndicatorsFromBSRows = (rows: any[]) => {
   });
   return result;
 };
+/* ── Tab 2: Indicadores Econômico-Financeiros ── */
+const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any; bsRows?: any[] }) => {
+  const { state } = useAudit();
+  const computedInd = bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null);
+  const hasComputed = Object.keys(computedInd).length > 0;
 
-  
-  // Fallback: use AI analysis indicators when parsed data is empty
   const aiInd = aiAnalysis?.indicadoresCalculados;
   const aiStructure = aiAnalysis?.diagnostico?.estruturaFinanceira;
   const hasAiInd = aiInd && Object.values(aiInd).some((v: any) => v !== 0);
