@@ -376,9 +376,30 @@ export function buildBSDados(
     if (!b.sawPCTotal && b.pc > 0) target.passivo_circulante = b.pc;
   }
 
-  return Array.from(rowsByMes.values())
+  const sortedRows = Array.from(rowsByMes.values())
     .map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+
+  // ── AJUSTE DE ACUMULADO (Mês vs Acumulado Ano) ──
+  // Conforme solicitado: Contas de resultado (Grupos 3 a 8) zeram no final do ano.
+  // Se o mês N e N-1 são do mesmo ano, o valor do mês N = Saldo(N) - Saldo(N-1).
+  for (let i = sortedRows.length - 1; i > 0; i--) {
+    const current = sortedRows[i];
+    const previous = sortedRows[i - 1];
+    
+    const currentYear = current.mesKey.split("-")[0];
+    const previousYear = previous.mesKey.split("-")[0];
+    
+    // Só deduz se for o mesmo ano (em Janeiro o saldo é o valor real do mês)
+    if (currentYear === previousYear) {
+      current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
+      current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
+      current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
+      current.resultado = current.resultado - previous.resultado;
+    }
+  }
+
+  return sortedRows;
 }
 
 // ─── INDICADORES DERIVADOS ───────────────────────────────

@@ -299,6 +299,7 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^5/,     "DESPESAS"],  // Despesas Operacionais
   [/^6/,     "DESPESAS"],  // Outras despesas/receitas operacionais
   [/^7/,     "DESPESAS"],  // Resultado financeiro (proxy no resultado)
+  [/^8/,     "DESPESAS"],  // Grupos de encerramento / outros
 ];
 
 /** Resolve Ref 1 a partir do código contábil (determinístico, sem IA). */
