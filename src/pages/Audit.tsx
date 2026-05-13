@@ -1201,6 +1201,11 @@ const computeIndicatorsFromBSRows = (rows: any[]) => {
       _receita: receita, _lucro: lucro, _resOp: lucro, _despFin: 0,
       _imob: 0, _estoque: estoque, _fornecedores: r.fornecedores, _cmv: cmv,
       _contasReceber: 0,
+      _divida_financeira: r.divida_financeira || 0,
+      _divida_tributaria: r.divida_tributaria || 0,
+      _divida_trabalhista: r.divida_trabalhista || 0,
+      _credores_rj: r.credores_rj || 0,
+
     };
   });
   return result;
