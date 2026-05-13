@@ -1363,8 +1363,8 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
 };
 
 /* ── Tab 3: Análise de Endividamento ── */
-const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null }) => {
-  const computedInd = computeIndicatorsFromParsed(parsedData || null);
+const TabEndividamento = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null; bsRows?: any[] }) => {
+  const computedInd = bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null);
   const years = Object.keys(computedInd).sort();
   const latestYear = years[years.length - 1];
   const d = latestYear ? computedInd[latestYear] : null;
@@ -1463,9 +1463,9 @@ const TabEndividamento = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsed
 };
 
 /* ── Tab 4: Análise Patrimonial ── */
-const TabPatrimonial = ({ aiAnalysis, parsedData }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null }) => {
+const TabPatrimonial = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null; bsRows?: any[] }) => {
   const { state } = useAudit();
-  
+
   // Use parsed data if available, otherwise fall back to mock
   const hasParsed = parsedData && parsedData.balanco.length > 0;
   const rows = hasParsed ? parsedData.balanco : state.balancoRows;
@@ -4292,9 +4292,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
         <TabsContent value="diagnostico"><TabDiagnostico data={activeDiagnostico} /></TabsContent>
         <TabsContent value="analise-tecnica"><TabAnaliseTecnica pendenciasData={activePendencias} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} /></TabsContent>
-        <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
-        <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} bsRows={bsRows} /></TabsContent>
+        <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} bsRows={bsRows} /></TabsContent>
+        <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} bsRows={bsRows} /></TabsContent>
         <TabsContent value="bs-dados"><TabBSDados parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria"><TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
