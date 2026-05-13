@@ -1225,10 +1225,10 @@ const TabIndicadores = ({ parsedData, aiAnalysis }: { parsedData?: ParsedFinanci
   const sections = [
     {
       title: "Liquidez", icon: Activity, items: [
-        { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: fmtPct, formula: "AC / PC", benchmark: "> 1,5" },
-        { label: "Liquidez Seca", key: "liquidezSeca", fmt: fmtPct, formula: "(AC - EST) / PC", benchmark: "> 1,0" },
-        { label: "Liquidez Imediata", key: "liquidezImediata", fmt: fmtPct, formula: "Caixa / PC", benchmark: "> 0,3" },
-        { label: "Liquidez Geral", key: "liquidezGeral", fmt: fmtPct, formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 1,0" },
+        { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: (n: number) => n.toFixed(2), formula: "AC / PC", benchmark: "> 1,5" },
+        { label: "Liquidez Seca", key: "liquidezSeca", fmt: (n: number) => n.toFixed(2), formula: "(AC - EST) / PC", benchmark: "> 1,0" },
+        { label: "Liquidez Imediata", key: "liquidezImediata", fmt: (n: number) => n.toFixed(2), formula: "Caixa / PC", benchmark: "> 0,3" },
+        { label: "Liquidez Geral", key: "liquidezGeral", fmt: (n: number) => n.toFixed(2), formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 1,0" },
       ]
     },
     {
