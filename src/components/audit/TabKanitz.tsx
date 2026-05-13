@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import {
   Activity, BarChart3, Target, TrendingUp, TrendingDown,
   AlertTriangle, CheckCircle2, Calculator, Shield, Layers,
-  AlertOctagon, Scale, ShieldCheck, ShieldAlert, FileSearch, CalendarDays, Minus
+  AlertOctagon, Scale, ShieldCheck, ShieldAlert, FileSearch, CalendarDays, Minus, Info
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,6 +25,38 @@ import {
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${(n * 100).toFixed(2)}%`;
 const fmtDec = (n: number) => n.toFixed(4);
+
+/* ── Component: FormulaInfo ── */
+const FormulaInfo = ({ 
+  title, 
+  formula, 
+  accounts 
+}: { 
+  title: string; 
+  formula: string; 
+  accounts: string[] 
+}) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <button className="p-1 hover:bg-muted rounded-full transition-colors">
+        <Info className="w-3.5 h-3.5 text-muted-foreground" />
+      </button>
+    </PopoverTrigger>
+    <PopoverContent className="w-80 p-4 space-y-3">
+      <h4 className="text-sm font-bold border-b pb-1">{title}</h4>
+      <div className="space-y-1">
+        <p className="text-[10px] uppercase font-semibold text-muted-foreground">Fórmula:</p>
+        <p className="text-xs font-mono bg-muted/50 p-2 rounded border">{formula}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="text-[10px] uppercase font-semibold text-muted-foreground">Contas/Grupos que alimentam o cálculo:</p>
+        <ul className="text-[10.5px] space-y-1 list-disc pl-4 text-foreground/80">
+          {accounts.map((acc, i) => <li key={i}>{acc}</li>)}
+        </ul>
+      </div>
+    </PopoverContent>
+  </Popover>
+);
 
 /* ── Kanitz — adapter para o serviço canônico (kanitzCalculator) ── */
 interface KanitzResult {
@@ -1095,7 +1128,19 @@ function KanitzMensalView({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Calculator className="w-4 h-4 text-accent" /> Memória de Cálculo Mensal
+            <Calculator className="w-4 h-4 text-accent" /> 
+            Memória de Cálculo Mensal
+            <FormulaInfo 
+              title="Fator de Insolvência (FI)" 
+              formula="FI = 0,05·RL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE" 
+              accounts={[
+                "RL (Rentabilidade do PL): Lucro Líquido / Patrimônio Líquido",
+                "LG (Liquidez Geral): (Ativo Circulante + RLP) / (Passivo Circulante + PNC)",
+                "LS (Liquidez Seca): (Ativo Circulante - Estoques) / Passivo Circulante",
+                "LC (Liquidez Corrente): Ativo Circulante / Passivo Circulante",
+                "GE (Grau de Endividamento): (Passivo Circulante + PNC) / Patrimônio Líquido"
+              ]} 
+            />
           </CardTitle>
           <CardDescription className="text-xs">
             K = 0,05·RL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE — fórmula de Kanitz aplicada por mês.
