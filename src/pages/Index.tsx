@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Shield, TrendingUp, BarChart3, Users, Trophy } from "lucide-react";
-
+import { ArrowRight, Shield, TrendingUp, BarChart3, Users } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import aboutBg from "@/assets/about-bg.jpg";
 import imgDiagnostico from "@/assets/solution-diagnostico.jpg";
@@ -52,26 +51,6 @@ const Index = () => {
             
             Transformamos desafios financeiros em oportunidades de crescimento sustentável. Inteligência financeira, capacidade analítica e soluções estruturadas.
           </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-wrap gap-4"
-          >
-            <Link
-              to="/meu-album-2026"
-              className="bg-accent text-accent-foreground px-8 py-4 rounded-full font-bold flex items-center gap-2 hover:bg-accent/90 transition-all shadow-lg shadow-accent/20"
-            >
-              Colecione Agora <Trophy className="w-5 h-5" />
-            </Link>
-            <Link
-              to="/solucoes"
-              className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all"
-            >
-              Nossas Soluções
-            </Link>
-          </motion.div>
-
           <div />
 
         </div>

@@ -39,8 +39,6 @@ const PerfReport = lazy(() => import("./pages/PerfReport"));
 const EmailTemplatesEditor = lazy(() => import("./pages/EmailTemplatesEditor"));
 const Signup = lazy(() => import("./pages/Signup"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const AlbumFIFA2026 = lazy(() => import("./pages/AlbumFIFA2026"));
-
 
 const queryClient = new QueryClient();
 
@@ -91,8 +89,6 @@ const App = () => (
               <Route path="/empresas" element={<RoleGuard allow={["auditor_chefe","gestor_ia","coordenadora"]}><Empresas /></RoleGuard>} />
               <Route path="/perf-report" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><PerfReport /></RoleGuard>} />
               <Route path="/gestor-ia/emails" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><EmailTemplatesEditor /></RoleGuard>} />
-              <Route path="/meu-album-2026" element={<AlbumFIFA2026 />} />
-
 
               <Route path="*" element={<Layout><NotFound /></Layout>} />
             </Routes>
