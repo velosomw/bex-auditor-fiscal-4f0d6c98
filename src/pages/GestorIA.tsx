@@ -1007,6 +1007,8 @@ const TabRiskEngineDash = () => {
 // ─── Main Page ───────────────────────────────────────────────
 const GestorIA = () => {
   const navigate = useNavigate();
+  const [selectedPeriod, setSelectedPeriod] = useState("12m");
+
   return (
     <PlatformLayout>
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
