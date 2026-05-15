@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Users, UserCheck, UserX, Plus, Edit, Trash2, Ban, Search } from "lucide-react";
+import { Users, UserCheck, UserX, Plus, Edit, Trash2, Ban, Search, Clock, Mail } from "lucide-react";
 import type { UserRole } from "@/types/user";
 
 interface ManagedUser {
@@ -31,6 +31,8 @@ interface ManagedUser {
   status: string;
   created_at: string;
   last_sign_in?: string;
+  email?: string;
+  isPending?: boolean;
 }
 
 const roleLabels: Record<string, string> = {
@@ -50,6 +52,8 @@ const UserManagement = () => {
   const { role } = useUser();
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingUsers, setPendingUsers] = useState<ManagedUser[]>([]);
   const [search, setSearch] = useState("");
 
   // Form state
@@ -106,6 +110,48 @@ const UserManagement = () => {
       setUsers([]);
     }
     setLoading(false);
+
+    if (role === "gestor_ia") {
+      loadPendingUsers();
+    }
+  };
+
+  const loadPendingUsers = async () => {
+    setPendingLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-manage-users", {
+        body: { action: "list_pending" }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.users) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("user_id", data.users.map((u: any) => u.id));
+          
+        const mapped: ManagedUser[] = data.users.map((u: any) => {
+          const profile = profiles?.find(p => p.user_id === u.id);
+          return {
+            id: profile?.id || u.id,
+            user_id: u.id,
+            email: u.email,
+            full_name: profile?.full_name || "Sem nome",
+            phone: profile?.phone || "",
+            role: "Pendente",
+            status: "pending",
+            created_at: u.created_at,
+            isPending: true
+          };
+        });
+        setPendingUsers(mapped);
+      }
+    } catch (err) {
+      console.error("Error loading pending users:", err);
+    } finally {
+      setPendingLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -205,13 +251,38 @@ const UserManagement = () => {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    // Delete role and profile
-    await supabase.from("user_roles").delete().eq("user_id", deleteTarget.user_id);
-    await supabase.from("profiles").delete().eq("user_id", deleteTarget.user_id);
-    toast.success("Usuário excluído com sucesso.");
-    setDeleteTarget(null);
-    setDeleting(false);
-    loadUsers();
+    
+    try {
+      if (deleteTarget.isPending) {
+        const { error } = await supabase.functions.invoke("admin-manage-users", {
+          body: { action: "delete_user", userId: deleteTarget.user_id }
+        });
+        if (error) throw error;
+      } else {
+        // Delete role and profile
+        await supabase.from("user_roles").delete().eq("user_id", deleteTarget.user_id);
+        await supabase.from("profiles").delete().eq("user_id", deleteTarget.user_id);
+      }
+      toast.success("Usuário excluído com sucesso.");
+      setDeleteTarget(null);
+      loadUsers();
+    } catch (err) {
+      toast.error("Erro ao excluir usuário.");
+      console.error(err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const getTimeWaiting = (createdAt: string) => {
+    const diff = new Date().getTime() - new Date(createdAt).getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
   };
 
   const formatDate = (d?: string) => {
@@ -274,7 +345,64 @@ const UserManagement = () => {
           />
         </div>
 
+        {/* Pending Requests (Gestor IA only) */}
+        {role === "gestor_ia" && pendingUsers.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-[hsl(38,90%,55%)]" />
+              <h2 className="text-lg font-semibold text-foreground">Solicitações Pendentes (Aguardando Confirmação)</h2>
+            </div>
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome / E-mail</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Data de Criação</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Aguardando Há</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingUsers.map((user) => (
+                      <tr key={user.user_id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-foreground">{user.full_name}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Mail className="w-3 h-3" /> {user.email}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(user.created_at)}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[hsl(38,90%,55%)]/10 text-[hsl(38,90%,55%)]">
+                            {getTimeWaiting(user.created_at)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-[hsl(0,70%,55%)]"
+                            onClick={() => setDeleteTarget(user)}
+                            title="Remover Solicitação"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Users Table */}
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+          <h2 className="text-lg font-semibold text-foreground">Usuários Ativos</h2>
+        </div>
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">Carregando...</div>
         ) : filteredUsers.length === 0 ? (
@@ -283,70 +411,7 @@ const UserManagement = () => {
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nome</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Telefone</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Perfil</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Status</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Último Acesso</th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-foreground">{user.full_name || "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{user.phone || "—"}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[hsl(258,90%,66%)]/10 text-[hsl(258,90%,66%)]">
-                          {roleLabels[user.role] || user.role}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          user.status === "active"
-                            ? "bg-[hsl(152,70%,45%)]/10 text-[hsl(152,70%,45%)]"
-                            : "bg-[hsl(0,70%,55%)]/10 text-[hsl(0,70%,55%)]"
-                        }`}>
-                          {user.status === "active" ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">{formatDate(user.last_sign_in)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => openEdit(user)}
-                            title="Editar"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleToggleStatus(user)}
-                            title={user.status === "active" ? "Suspender acesso" : "Reativar acesso"}
-                          >
-                            <Ban className={`w-4 h-4 ${user.status === "active" ? "text-[hsl(38,90%,55%)]" : "text-[hsl(152,70%,45%)]"}`} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-[hsl(0,70%,55%)]"
-                            onClick={() => setDeleteTarget(user)}
-                            title="Excluir"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+...
               </table>
             </div>
           </div>
