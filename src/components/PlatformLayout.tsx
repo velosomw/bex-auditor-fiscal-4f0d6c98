@@ -94,7 +94,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
                   >
                     <Shield className="w-3.5 h-3.5 text-[hsl(217,91%,50%)]" />
                     <div className="flex-1">
-                      <p className="font-medium">Auditor Chefe</p>
+                      <p className="font-medium">Coordenador</p>
                       <p className="text-[10px] text-muted-foreground">Acesso completo (padrão)</p>
                     </div>
                     {!viewAsRole && <Badge variant="outline" className="text-[9px]">Atual</Badge>}
@@ -135,7 +135,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
                   <User className="w-3.5 h-3.5 text-[hsl(200,98%,55%)]" />
                 )}
                 <span className="text-xs font-medium text-white hidden sm:inline">
-                  {role === "gestor_ia" ? "Gestor IA" : role === "auditor_chefe" ? "Auditor Chefe" : role === "empresa" ? "Contabilidade" : "Usuário"}
+                  {role === "gestor_ia" ? "Gestor IA" : role === "auditor_chefe" ? "Coordenador" : role === "empresa" ? "Contabilidade" : "Usuário"}
                 </span>
               </div>
             )}

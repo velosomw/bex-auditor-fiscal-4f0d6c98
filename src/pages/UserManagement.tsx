@@ -34,7 +34,7 @@ interface ManagedUser {
 }
 
 const roleLabels: Record<string, string> = {
-  auditor_chefe: "Auditor Chefe",
+  auditor_chefe: "Coordenador",
   usuario: "Usuário",
   empresa: "Empresa",
   gestor_ia: "Gestor IA",
@@ -42,6 +42,7 @@ const roleLabels: Record<string, string> = {
   consultor: "Consultor",
   magistrado: "Magistrado",
   recuperanda: "Recuperanda",
+  contabilidade: "Contabilidade",
 };
 
 const UserManagement = () => {
@@ -66,9 +67,9 @@ const UserManagement = () => {
   const [deleting, setDeleting] = useState(false);
 
   const allowedRoles: UserRole[] = role === "gestor_ia"
-    ? ["coordenadora"]
-    : role === "coordenadora"
-      ? ["empresa", "usuario"]
+    ? ["auditor_chefe", "coordenadora", "consultor", "magistrado", "recuperanda", "empresa", "usuario", "contabilidade"]
+    : role === "coordenadora" || role === "auditor_chefe"
+      ? ["empresa", "usuario", "contabilidade"]
       : [];
 
   const loadUsers = async () => {
