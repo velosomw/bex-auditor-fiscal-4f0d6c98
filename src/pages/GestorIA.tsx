@@ -1049,6 +1049,34 @@ const GestorIA = () => {
             </SelectContent>
           </Select>
           
+          <div className="flex-1" />
+          
+          <Button 
+            size="sm" 
+            variant="default" 
+            className="gap-1.5 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white h-8 text-xs"
+            onClick={() => {
+              const prevTitle = document.title;
+              document.title = `Dashboard Gestor IA - ${selectedPeriod}`;
+              document.body.classList.add('printing-report');
+              
+              // Define o container principal como alvo de impressão
+              const mainContent = document.querySelector('.max-w\\[1600px\\]');
+              if (mainContent) {
+                mainContent.setAttribute('id', 'gestor-ia-main-container');
+                document.body.setAttribute('data-print-target', 'gestor-ia-main-container');
+              }
+              
+              window.print();
+              
+              document.body.classList.remove('printing-report');
+              document.body.removeAttribute('data-print-target');
+              document.title = prevTitle;
+            }}
+          >
+            <Download className="w-3.5 h-3.5" /> Exportar Dashboard (PDF)
+          </Button>
+          
           {["Todas as entidades", "Todos os tipos", "Todos os níveis", "Todas as áreas"].map((f, i) => (
             <button key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:border-[hsl(258,90%,66%)] hover:text-foreground transition-colors">
               {f} <span className="text-[10px]">▾</span>

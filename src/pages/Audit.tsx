@@ -33,7 +33,7 @@ import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import TabBSDados from "@/components/audit/TabBSDados";
 import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { buildBSDados, type BalanceteEntry } from "@/services/bsDadosBuilder";
+import { buildBSDados, exportBSDadosToCSV, type BalanceteEntry } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
@@ -4302,6 +4302,71 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
           <h1 className="text-2xl font-bold text-foreground font-serif">Avaliação Empresarial</h1>
           <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
         </div>
+        
+        {/* Export Dropdown */}
+        <div className="flex items-center gap-2 print:hidden">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="default" className="gap-2 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,75%)]">
+                <Download className="w-4 h-4" /> Exportar Resultados
+                <ChevronDown className="w-3 h-3 ml-1 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-2">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-1.5">Relatórios PDF</p>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start gap-2 text-xs h-9" 
+                  onClick={() => {
+                    const id = isResumido ? 'report-bex-container' : 'report-kanitz-container';
+                    const title = isResumido ? 'Relatório BEX' : 'Relatório Kanitz';
+                    printReport(id, title);
+                  }}
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-500" /> 
+                  {isResumido ? 'Relatório BEX (PDF)' : 'Relatório Kanitz (PDF)'}
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start gap-2 text-xs h-9" 
+                  onClick={() => printReport('tab-graficos-container', 'Gráficos de Auditoria')}
+                >
+                  <BarChart3 className="w-3.5 h-3.5 text-purple-500" /> Painel de Gráficos (PDF)
+                </Button>
+                
+                <div className="h-px bg-border my-1" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-1.5">Dados Estruturados</p>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start gap-2 text-xs h-9" 
+                  onClick={() => {
+                    const rows = buildBSDados(parsedData, balanceteEntries);
+                    const csv = exportBSDadosToCSV(rows);
+                    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `bs_dados_consolidado_${new Date().toISOString().split('T')[0]}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" /> Balancete Consolidado (CSV)
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+          
+          <Button variant="outline" size="icon" onClick={() => window.print()} title="Imprimir Tela Atual">
+            <Printer className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -4349,7 +4414,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} bsRows={bsRows} /></TabsContent>
         <TabsContent value="bs-dados"><TabBSDados parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
-        <TabsContent value="graficos-auditoria"><TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
+        <TabsContent value="graficos-auditoria" id="tab-graficos-container" className="bg-background">
+          <TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} />
+        </TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} balanceteEntries={balanceteEntries} /></TabsContent>
         <TabsContent value="relatorio-final">

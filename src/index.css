@@ -213,19 +213,47 @@
 }
 
 @media print {
-  /* Hide EVERYTHING by default */
+  /* Hide EVERYTHING by default during targeted printing */
   body.printing-report * {
     visibility: hidden !important;
   }
 
-  /* Show only report pages container and its children */
-  body.printing-report .report-pages-container,
-  body.printing-report .report-pages-container *,
-  body.printing-report .report-a4-cover,
-  body.printing-report .report-a4-cover *,
-  body.printing-report .report-a4-page,
-  body.printing-report .report-a4-page * {
+  /* Show only the target container and its children */
+  body.printing-report [id] {
+    visibility: hidden !important;
+  }
+
+  body.printing-report [id]:has(*), 
+  body.printing-report [id] * {
+    visibility: hidden !important;
+  }
+
+  /* Specific rule for the target set via data-print-target */
+  body[data-print-target="report-bex-container"] #report-bex-container,
+  body[data-print-target="report-bex-container"] #report-bex-container *,
+  body[data-print-target="report-kanitz-container"] #report-kanitz-container,
+  body[data-print-target="report-kanitz-container"] #report-kanitz-container *,
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container,
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container *,
+  body[data-print-target="gestor-ia-main-container"] #gestor-ia-main-container,
+  body[data-print-target="gestor-ia-main-container"] #gestor-ia-main-container * {
     visibility: visible !important;
+  }
+
+  /* Position targeted containers as the only visible block */
+  body.printing-report [id="report-bex-container"],
+  body.printing-report [id="report-kanitz-container"],
+  body.printing-report [id="tab-graficos-container"],
+  body.printing-report [id="gestor-ia-main-container"] {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    background: white !important;
+    padding: 20px !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    z-index: 9999 !important;
   }
 
   /* Position report container as the only visible block */
