@@ -103,6 +103,7 @@ const Dashboard = () => {
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="today">Hoje</SelectItem>
                 <SelectItem value="1m">Último mês</SelectItem>
                 <SelectItem value="3m">3 meses</SelectItem>
                 <SelectItem value="6m">6 meses</SelectItem>
