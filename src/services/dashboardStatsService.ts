@@ -46,7 +46,7 @@ export const emptyStats: DashboardStats = {
 const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
 
-export const loadDashboardStats = async (): Promise<DashboardStats> => {
+export const loadDashboardStats = async (dateRange?: { from: string; to: string }): Promise<DashboardStats> => {
   const stats: DashboardStats = { ...emptyStats };
 
   const [companies, pipelineDocs, auditDocs, auditReports, analysis] = await Promise.all([
