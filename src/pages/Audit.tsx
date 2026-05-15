@@ -2033,7 +2033,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido" }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo" }) => {
+export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[] }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const reportContainerRef = useRef<HTMLDivElement>(null);
@@ -3033,10 +3033,21 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p><p className="font-semibold text-foreground">{parsedData?.years?.join(" / ") || latestYear}</p></div>
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Emissão</p><p className="font-semibold text-foreground">{today}</p></div>
             </div>
-            <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-1">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
-              <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
-              <p className="text-xs text-muted-foreground">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
+            <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-2">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
+                <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
+                <p className="text-xs text-muted-foreground">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
+              </div>
+
+              <div className="pt-2 mt-2 border-t border-dashed border-border/50">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Metadados do Upload (Rastreabilidade)</p>
+                <div className="grid grid-cols-1 gap-1 text-[10px]">
+                  <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "N/A"}</p>
+                  <p className="text-muted-foreground"><span className="font-medium text-foreground">Processamento:</span> {today}</p>
+                  <p className="text-muted-foreground"><span className="font-medium text-foreground">Intervalo Analisado:</span> {parsedData?.years?.join(" / ") || latestYear}</p>
+                </div>
+              </div>
             </div>
           </div>
           <div className="report-footer-bar">
@@ -3272,7 +3283,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
    TAB: RELATÓRIO KANITZ EXPANDIDO v2.0
    Risk Intelligence Financial Report — 11 Módulos
    ══════════════════════════════════════════════════════ */
-const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any }) => {
+const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, uploadedFiles, sourceDocs }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[] }) => {
   const today = new Date().toLocaleDateString("pt-BR");
   const kanitzContainerRef = useRef<HTMLDivElement>(null);
   const [totalPagesKanitz, setTotalPagesKanitz] = useState(0);
@@ -3503,10 +3514,21 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis }: {
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-1">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
-            <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
-            <p className="text-xs text-muted-foreground">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
+          <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
+              <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
+              <p className="text-xs text-muted-foreground">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
+            </div>
+            
+            <div className="pt-2 mt-2 border-t border-dashed border-border/50">
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Metadados do Upload (Rastreabilidade)</p>
+              <div className="grid grid-cols-1 gap-1 text-[10px]">
+                <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "N/A"}</p>
+                <p className="text-muted-foreground"><span className="font-medium text-foreground">Processamento:</span> {today}</p>
+                <p className="text-muted-foreground"><span className="font-medium text-foreground">Intervalo Analisado:</span> {parsedData.years.join(" / ")}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -4287,7 +4309,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
           </div>
         </div>
-        <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" />
+        <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
       </div>
     );
   }
@@ -4450,9 +4472,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             </div>
           )}
           {reportType === "bex" ? (
-            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" />
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
           ) : reportType === "kanitz" ? (
-            <TabRelatorioKanitz onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} />
+            <TabRelatorioKanitz onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
           ) : (
             <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} selectedDepth={selectedDepth} />
           )}
