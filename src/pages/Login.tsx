@@ -16,10 +16,18 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
   const navigate = useNavigate();
-  const { setRole, authenticated, realRole, loading: userLoading } = useUser();
+  const { setRole, authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
 
-  // Já autenticado → redireciona para a home da role (evita ficar travado em /login)
-  if (!userLoading && authenticated && realRole) {
+  // Se estiver logado mas o e-mail não estiver confirmado, desloga e pede confirmação
+  // (Pode acontecer se o redirecionamento pós-login for automático ou se houver uma sessão pendente)
+  if (!userLoading && supabaseUser && !supabaseUser.email_confirmed_at) {
+    logout();
+    toast.error("E-mail não confirmado. Por favor, verifique sua caixa de entrada.");
+    setMode("resend");
+  }
+
+  // Já autenticado e confirmado → redireciona para a home da role (evita ficar travado em /login)
+  if (!userLoading && authenticated && realRole && supabaseUser?.email_confirmed_at) {
     const target =
       realRole === "gestor_ia" ? "/gestor-ia"
       : realRole === "auditor_chefe" || realRole === "coordenadora" ? "/dashboard"
