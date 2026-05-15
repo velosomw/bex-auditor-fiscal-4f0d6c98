@@ -300,10 +300,10 @@ export function buildBSDados(
   //  - Se usuário atribuiu N meses E o pipeline detectou ≤ 1 período, usa entries
   //    (cenário: 1 balancete sem multi-mês embutido, ou 2-3 balancetes 1-mês cada).
   //  - Caso contrário, usa periodsRaw (pipeline detectou multi-mês no arquivo).
-  const useUser = userMesKeys.length > 0 && periodsRaw.length <= 1;
+  const useUser = userMesKeys.length > 0 && (periodsRaw.length <= 1 || periodsRaw.every(p => p.length < 7));
   const usableMesKeys: string[] = useUser
     ? userMesKeys
-    : (periodsRaw.length ? periodsRaw.map(periodToMesKey).filter(k => !!k) : userMesKeys);
+    : (periodsRaw.length ? periodsRaw.map(periodToMesKey).filter(k => k && k.includes("-")) : userMesKeys);
 
   // Detecta duplicatas determinísticas (helper compartilhado).
   // Regra de mescla padrão p/ duplicidade de balancetes do MESMO mês: SOMA

@@ -46,43 +46,37 @@ const pct = (curr: number, prev: number): number => {
   return Number((((curr - prev) / prev) * 100).toFixed(1));
 };
 
-export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<GestorIaIndicators> {
-  const since = new Date();
-  since.setMonth(since.getMonth() - monthsWindow);
+export async function fetchGestorIaIndicators(monthsWindow = 12, dateRange?: { from: string; to: string }): Promise<GestorIaIndicators> {
+  const since = dateRange ? new Date(dateRange.from) : new Date();
+  if (!dateRange) since.setMonth(since.getMonth() - monthsWindow);
   const sinceIso = since.toISOString();
 
+  const toIso = dateRange ? dateRange.to : new Date().toISOString();
+
   const prevSince = new Date(since);
-  prevSince.setMonth(prevSince.getMonth() - monthsWindow);
+  if (dateRange) {
+    // Para range fixo, o "anterior" é o mesmo intervalo de tempo atrás
+    const diff = new Date(toIso).getTime() - since.getTime();
+    prevSince.setTime(since.getTime() - diff);
+  } else {
+    prevSince.setMonth(prevSince.getMonth() - monthsWindow);
+  }
   const prevSinceIso = prevSince.toISOString();
 
+  let pipelineDocsQuery = supabase.from("pipeline_documents").select("id, status, created_at").gte("created_at", sinceIso).lte("created_at", toIso);
+  let auditsQuery = supabase.from("audit_reports").select("id, variant, conformidade, riscos, risk_level, status, created_at, ai_analysis").gte("created_at", sinceIso).lte("created_at", toIso);
+  let prevAuditsQuery = supabase.from("audit_reports").select("id, conformidade, riscos, risk_level, status").gte("created_at", prevSinceIso).lt("created_at", sinceIso);
+  let prevPipelineQuery = supabase.from("pipeline_documents").select("id, status").gte("created_at", prevSinceIso).lt("created_at", sinceIso);
+  let analysisQuery = supabase.from("pipeline_analysis_results").select("ocr_score, quality_score, validation_score, mapping_score, created_at, document_id, indicadores, pipeline_documents!inner(file_name)").gte("created_at", sinceIso).lte("created_at", toIso);
+  let prevAnalysisQuery = supabase.from("pipeline_analysis_results").select("ocr_score, quality_score, validation_score, mapping_score, indicadores, pipeline_documents!inner(file_name)").gte("created_at", prevSinceIso).lt("created_at", sinceIso);
+
   const [pipelineDocs, audits, prevAudits, prevPipeline, analysis, prevAnalysis] = await Promise.all([
-    supabase
-      .from("pipeline_documents")
-      .select("id, status, created_at")
-      .gte("created_at", sinceIso),
-    supabase
-      .from("audit_reports")
-      .select("id, variant, conformidade, riscos, risk_level, status, created_at, ai_analysis")
-      .gte("created_at", sinceIso),
-    supabase
-      .from("audit_reports")
-      .select("id, conformidade, riscos, risk_level, status")
-      .gte("created_at", prevSinceIso)
-      .lt("created_at", sinceIso),
-    supabase
-      .from("pipeline_documents")
-      .select("id, status")
-      .gte("created_at", prevSinceIso)
-      .lt("created_at", sinceIso),
-    supabase
-      .from("pipeline_analysis_results")
-      .select("ocr_score, quality_score, validation_score, mapping_score, created_at, document_id, indicadores, pipeline_documents!inner(file_name)")
-      .gte("created_at", sinceIso),
-    supabase
-      .from("pipeline_analysis_results")
-      .select("ocr_score, quality_score, validation_score, mapping_score, indicadores, pipeline_documents!inner(file_name)")
-      .gte("created_at", prevSinceIso)
-      .lt("created_at", sinceIso),
+    pipelineDocsQuery,
+    auditsQuery,
+    prevAuditsQuery,
+    prevPipelineQuery,
+    analysisQuery,
+    prevAnalysisQuery,
   ]);
 
   // Loga erros de RLS/network — antes ficavam silenciosamente como [] e os KPIs zeravam

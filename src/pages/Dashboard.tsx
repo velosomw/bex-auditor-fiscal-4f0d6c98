@@ -69,11 +69,40 @@ const Dashboard = () => {
 
   useEffect(() => {
     refreshCompanies();
-    loadDashboardStats()
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    let from = "";
+    const to = new Date().toISOString();
+    
+    if (period === "today") {
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      from = d.toISOString();
+    } else if (period === "1m") {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 1);
+      from = d.toISOString();
+    } else if (period === "3m") {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 3);
+      from = d.toISOString();
+    } else if (period === "6m") {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 6);
+      from = d.toISOString();
+    } else if (period === "12m") {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 12);
+      from = d.toISOString();
+    }
+
+    loadDashboardStats(from ? { from, to } : undefined)
       .then(setStats)
       .catch(() => setStats(emptyStats))
       .finally(() => setLoading(false));
-  }, []);
+  }, [period]);
 
   const handleStartNewAudit = (company: Company) => navigate(`/audit?company=${company.id}`);
 
@@ -103,6 +132,7 @@ const Dashboard = () => {
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-[140px] h-9 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="today">Hoje</SelectItem>
                 <SelectItem value="1m">Último mês</SelectItem>
                 <SelectItem value="3m">3 meses</SelectItem>
                 <SelectItem value="6m">6 meses</SelectItem>

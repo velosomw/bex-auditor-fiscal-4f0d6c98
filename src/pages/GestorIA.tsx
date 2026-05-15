@@ -70,18 +70,32 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 // ─── Tab: Visão Geral (dados reais) ──────────────────────────
-const TabVisaoGeral = () => {
+const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
   const { authenticated, loading: authLoading } = useUser();
   const [data, setData] = useState<GestorIaIndicators | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const reloadKpis = () => {
-    if (!authenticated) {
-      console.warn("[GestorIA] reload ignorado: usuário não autenticado");
-      return;
+  const getRange = (p: string) => {
+    let from = "";
+    const to = new Date().toISOString();
+    if (p === "today") {
+      const d = new Date(); d.setHours(0,0,0,0); from = d.toISOString();
+    } else if (p === "1m") {
+      const d = new Date(); d.setMonth(d.getMonth() - 1); from = d.toISOString();
+    } else if (p === "3m") {
+      const d = new Date(); d.setMonth(d.getMonth() - 3); from = d.toISOString();
+    } else if (p === "6m") {
+      const d = new Date(); d.setMonth(d.getMonth() - 6); from = d.toISOString();
+    } else if (p === "12m") {
+      const d = new Date(); d.setMonth(d.getMonth() - 12); from = d.toISOString();
     }
-    fetchGestorIaIndicators(12)
+    return from ? { from, to } : undefined;
+  };
+
+  const reloadKpis = () => {
+    if (!authenticated) return;
+    fetchGestorIaIndicators(12, getRange(period))
       .then((d) => { setData(d); setErrorMsg(null); })
       .catch((err) => {
         console.error("[GestorIA] reload indicadores:", err);
@@ -90,15 +104,15 @@ const TabVisaoGeral = () => {
   };
 
   useEffect(() => {
-    if (authLoading) return;          // aguarda Supabase resolver sessão
-    if (!authenticated) {              // sem JWT → RLS bloqueia tudo
+    if (authLoading) return;
+    if (!authenticated) {
       setLoading(false);
       setErrorMsg("Sessão não encontrada — faça login para visualizar os indicadores.");
       return;
     }
     let alive = true;
     setLoading(true);
-    fetchGestorIaIndicators(12)
+    fetchGestorIaIndicators(12, getRange(period))
       .then(d => { if (alive) { setData(d); setErrorMsg(null); } })
       .catch(err => {
         console.error("[GestorIA] indicadores:", err);
@@ -106,7 +120,7 @@ const TabVisaoGeral = () => {
       })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [authenticated, authLoading]);
+  }, [authenticated, authLoading, period]);
 
   if (loading || authLoading || !data) {
     return (
@@ -993,6 +1007,8 @@ const TabRiskEngineDash = () => {
 // ─── Main Page ───────────────────────────────────────────────
 const GestorIA = () => {
   const navigate = useNavigate();
+  const [selectedPeriod, setSelectedPeriod] = useState("12m");
+
   return (
     <PlatformLayout>
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
@@ -1019,8 +1035,21 @@ const GestorIA = () => {
         </div>
 
         {/* Filters Bar */}
-        <div className="bg-card rounded-xl border border-border p-3 mb-5 flex flex-wrap gap-2">
-          {["Todos os períodos", "Todas as entidades", "Todos os tipos", "Todos os níveis", "Todas as áreas"].map((f, i) => (
+        <div className="bg-card rounded-xl border border-border p-3 mb-5 flex flex-wrap items-center gap-3">
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <SelectTrigger className="w-[160px] h-8 text-xs bg-transparent border-border">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="1m">Último mês</SelectItem>
+              <SelectItem value="3m">3 meses</SelectItem>
+              <SelectItem value="6m">6 meses</SelectItem>
+              <SelectItem value="12m">12 meses</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {["Todas as entidades", "Todos os tipos", "Todos os níveis", "Todas as áreas"].map((f, i) => (
             <button key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:border-[hsl(258,90%,66%)] hover:text-foreground transition-colors">
               {f} <span className="text-[10px]">▾</span>
             </button>
@@ -1060,7 +1089,7 @@ const GestorIA = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
+          <TabsContent value="visao-geral"><TabVisaoGeral period={selectedPeriod} /></TabsContent>
           <TabsContent value="base-conhecimento"><TabBaseConhecimento /></TabsContent>
           <TabsContent value="governanca"><TabGovernanca /></TabsContent>
           <TabsContent value="logs"><TabLogs /></TabsContent>

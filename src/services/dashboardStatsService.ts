@@ -46,20 +46,28 @@ export const emptyStats: DashboardStats = {
 const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
 
-export const loadDashboardStats = async (): Promise<DashboardStats> => {
+export const loadDashboardStats = async (dateRange?: { from: string; to: string }): Promise<DashboardStats> => {
   const stats: DashboardStats = { ...emptyStats };
 
+  let companiesQuery = supabase.from("companies").select("id", { count: "exact", head: true });
+  let pipelineDocsQuery = supabase.from("pipeline_documents").select("id, status, created_at", { count: "exact" });
+  let auditDocsQuery = supabase.from("audit_documents").select("id, status, conformidade, risk_level, created_at");
+  let auditReportsQuery = supabase.from("audit_reports").select("id, variant, status, conformidade, risk_level, created_at, company_id, ai_analysis, parsed_data").order("created_at", { ascending: false });
+  let analysisQuery = supabase.from("pipeline_analysis_results").select("quality_score, validation_score, mapping_score, alertas, indicadores, created_at");
+
+  if (dateRange) {
+    pipelineDocsQuery = pipelineDocsQuery.gte("created_at", dateRange.from).lte("created_at", dateRange.to);
+    auditDocsQuery = auditDocsQuery.gte("created_at", dateRange.from).lte("created_at", dateRange.to);
+    auditReportsQuery = auditReportsQuery.gte("created_at", dateRange.from).lte("created_at", dateRange.to);
+    analysisQuery = analysisQuery.gte("created_at", dateRange.from).lte("created_at", dateRange.to);
+  }
+
   const [companies, pipelineDocs, auditDocs, auditReports, analysis] = await Promise.all([
-    supabase.from("companies").select("id", { count: "exact", head: true }),
-    supabase.from("pipeline_documents").select("id, status, created_at", { count: "exact" }),
-    supabase
-      .from("audit_documents")
-      .select("id, status, conformidade, risk_level, created_at"),
-    supabase
-      .from("audit_reports")
-      .select("id, variant, status, conformidade, risk_level, created_at, company_id, ai_analysis, parsed_data")
-      .order("created_at", { ascending: false }),
-    supabase.from("pipeline_analysis_results").select("quality_score, validation_score, mapping_score, alertas, indicadores, created_at"),
+    companiesQuery,
+    pipelineDocsQuery,
+    auditDocsQuery,
+    auditReportsQuery,
+    analysisQuery,
   ]);
 
   stats.totalCompanies = companies.count ?? 0;

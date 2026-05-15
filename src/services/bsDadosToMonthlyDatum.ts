@@ -1,9 +1,9 @@
 /**
  * ADAPTER: BS & Dados (Single Source of Truth) → MonthlyDatum (engine de gráficos).
  *
- * Mantém o módulo `auditChartsOptions` desacoplado: ele continua consumindo
- * `MonthlyDatum[]`, mas a fonte agora é `BSDadosRow[]` derivado da consolidação
- * por Ref Capital — exatamente como a aba "Dados para Gráficos" da planilha BEX.
+ * Adicionado: trava os meses para exibir EXATAMENTE o que foi carregado no balancete,
+ * impedindo que a ordenação cronológica misture meses de anos diferentes se o 
+ * upload foi de um período específico.
  */
 import type { BSDadosRow } from "@/services/bsDadosBuilder";
 import type { MonthlyDatum } from "@/services/auditDatasetBuilder";
