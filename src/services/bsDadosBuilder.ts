@@ -303,7 +303,7 @@ export function buildBSDados(
   const useUser = userMesKeys.length > 0 && periodsRaw.length <= 1;
   const usableMesKeys: string[] = useUser
     ? userMesKeys
-    : (periodsRaw.length ? periodsRaw.map(periodToMesKey) : userMesKeys);
+    : (periodsRaw.length ? periodsRaw.map(periodToMesKey).filter(k => !!k) : userMesKeys);
 
   // Detecta duplicatas determinísticas (helper compartilhado).
   // Regra de mescla padrão p/ duplicidade de balancetes do MESMO mês: SOMA
