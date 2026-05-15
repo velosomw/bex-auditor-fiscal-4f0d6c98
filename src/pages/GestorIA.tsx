@@ -1055,6 +1055,9 @@ const GestorIA = () => {
             <TabsTrigger value="exec-time" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <Clock className="w-3.5 h-3.5" /> Tempo de execução
             </TabsTrigger>
+            <TabsTrigger value="login-monitoring" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <Mail className="w-3.5 h-3.5" /> Monitoramento de Login
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
@@ -1065,6 +1068,7 @@ const GestorIA = () => {
           <TabsContent value="limites"><TabReportLimits /></TabsContent>
           <TabsContent value="orfaos"><TabOrphanDocuments /></TabsContent>
           <TabsContent value="exec-time"><TabExecutionTime /></TabsContent>
+          <TabsContent value="login-monitoring"><TabLoginAttempts /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
