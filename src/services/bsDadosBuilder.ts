@@ -385,15 +385,17 @@ export function buildBSDados(
   // Se o mês N e N-1 são do mesmo ano, o valor do mês N = Saldo(N) - Saldo(N-1).
   // IMPORTANTE: Este ajuste só deve ser aplicado se os dados extraídos forem ACUMULADOS do ano.
   // Se forem dados mensais puros (Delta), a subtração geraria valores incorretos.
-  // Heurística: se a receita do mês N é significativamente maior (>30%) que a do mês N-1 em todos os meses,
-  // assumimos que os dados estão acumulados.
+  // Heurística de Acumulado: se a receita do mês N é significativamente maior (>30%) que a do mês N-1 em todos os meses,
+  // ou se todos os meses subsequentes apresentam crescimento na receita líquida, assumimos que os dados estão acumulados.
   let isAccumulated = false;
   if (sortedRows.length > 1) {
     let consistentIncrease = 0;
     for (let i = 1; i < sortedRows.length; i++) {
-      if (sortedRows[i].receita_liquida > sortedRows[i-1].receita_liquida * 1.1) consistentIncrease++;
+      // Verifica se houve aumento consistente na Receita Líquida (característica de acumulado ano)
+      if (sortedRows[i].receita_liquida >= sortedRows[i-1].receita_liquida) consistentIncrease++;
     }
-    if (consistentIncrease >= sortedRows.length / 2) isAccumulated = true;
+    // Se mais de 75% dos meses apresentam crescimento ou estabilidade na receita, tratamos como acumulado
+    if (consistentIncrease >= (sortedRows.length - 1) * 0.75) isAccumulated = true;
   }
 
   if (isAccumulated) {
