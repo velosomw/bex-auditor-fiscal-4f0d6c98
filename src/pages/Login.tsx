@@ -213,7 +213,7 @@ const Login = () => {
                   </Link>
                 </div>
               </form>
-            ) : (
+            ) : mode === "forgot" ? (
               <form onSubmit={handleForgotPassword} className="space-y-5">
                 <div className="text-center mb-2">
                   <h3 className="text-lg font-semibold text-[hsl(222,25%,18%)]">Recuperar Senha</h3>
@@ -238,6 +238,41 @@ const Login = () => {
                   className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
                 >
                   {loading ? "Enviando..." : "Enviar Link de Recuperação"}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className="w-full text-center text-sm text-[hsl(220,15%,50%)] hover:text-[hsl(217,91%,50%)] transition-colors"
+                >
+                  Voltar para o login
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResendConfirmation} className="space-y-5">
+                <div className="text-center mb-2">
+                  <h3 className="text-lg font-semibold text-[hsl(222,25%,18%)]">Confirmar E-mail</h3>
+                  <p className="text-sm text-[hsl(220,15%,50%)]">O link expirou ou você não recebeu? Solicite um novo abaixo.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com.br"
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
+                    required
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
+                >
+                  {loading ? "Enviando..." : "Enviar Novo Link de Confirmação"}
                 </Button>
 
                 <button
