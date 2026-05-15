@@ -19,6 +19,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +59,28 @@ const Signup = () => {
       return;
     }
     setSubmitted(true);
+  };
+
+  const handleResendEmail = async () => {
+    if (!email) {
+      toast.error("Informe seu e-mail.");
+      return;
+    }
+    setResending(true);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      }
+    });
+    setResending(false);
+
+    if (error) {
+      toast.error("Erro ao reenviar: " + error.message);
+    } else {
+      toast.success("Novo link de confirmação enviado!");
+    }
   };
 
   return (
@@ -104,9 +127,19 @@ const Signup = () => {
                 <p className="text-xs text-[hsl(220,15%,55%)]">
                   Não recebeu? Verifique a pasta de spam/lixo eletrônico. O link expira em 24h.
                 </p>
-                <Button onClick={() => navigate("/login")} className="w-full text-white border-0 h-11 [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]">
-                  Ir para o login
-                </Button>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={handleResendEmail} 
+                    disabled={resending}
+                    variant="outline"
+                    className="w-full border-[hsl(217,91%,50%)] text-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,98%)] h-11"
+                  >
+                    {resending ? "Reenviando..." : "Reenviar e-mail de confirmação"}
+                  </Button>
+                  <Button onClick={() => navigate("/login")} className="w-full text-white border-0 h-11 [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]">
+                    Ir para o login
+                  </Button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSignup} className="space-y-4">

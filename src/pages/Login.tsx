@@ -14,7 +14,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
   const navigate = useNavigate();
   const { setRole, authenticated, realRole, loading: userLoading } = useUser();
 
@@ -40,7 +40,12 @@ const Login = () => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      toast.error("Credenciais inválidas. Verifique e-mail e senha.");
+      if (error.message.includes("Email not confirmed")) {
+        toast.error("E-mail ainda não confirmado. Verifique sua caixa de entrada.");
+        setMode("resend");
+      } else {
+        toast.error("Credenciais inválidas. Verifique e-mail e senha.");
+      }
       setLoading(false);
       return;
     }
@@ -87,6 +92,29 @@ const Login = () => {
       toast.error("Erro ao enviar e-mail de recuperação.");
     } else {
       toast.success("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+    }
+    setLoading(false);
+  };
+
+  const handleResendConfirmation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Informe seu e-mail.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      }
+    });
+    if (error) {
+      toast.error("Erro ao reenviar e-mail de confirmação: " + error.message);
+    } else {
+      toast.success("Novo link de confirmação enviado! Verifique sua caixa de entrada.");
+      setMode("login");
     }
     setLoading(false);
   };
@@ -185,7 +213,7 @@ const Login = () => {
                   </Link>
                 </div>
               </form>
-            ) : (
+            ) : mode === "forgot" ? (
               <form onSubmit={handleForgotPassword} className="space-y-5">
                 <div className="text-center mb-2">
                   <h3 className="text-lg font-semibold text-[hsl(222,25%,18%)]">Recuperar Senha</h3>
@@ -210,6 +238,41 @@ const Login = () => {
                   className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
                 >
                   {loading ? "Enviando..." : "Enviar Link de Recuperação"}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className="w-full text-center text-sm text-[hsl(220,15%,50%)] hover:text-[hsl(217,91%,50%)] transition-colors"
+                >
+                  Voltar para o login
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResendConfirmation} className="space-y-5">
+                <div className="text-center mb-2">
+                  <h3 className="text-lg font-semibold text-[hsl(222,25%,18%)]">Confirmar E-mail</h3>
+                  <p className="text-sm text-[hsl(220,15%,50%)]">O link expirou ou você não recebeu? Solicite um novo abaixo.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com.br"
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
+                    required
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
+                >
+                  {loading ? "Enviando..." : "Enviar Novo Link de Confirmação"}
                 </Button>
 
                 <button
