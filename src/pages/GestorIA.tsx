@@ -1019,8 +1019,21 @@ const GestorIA = () => {
         </div>
 
         {/* Filters Bar */}
-        <div className="bg-card rounded-xl border border-border p-3 mb-5 flex flex-wrap gap-2">
-          {["Todos os períodos", "Todas as entidades", "Todos os tipos", "Todos os níveis", "Todas as áreas"].map((f, i) => (
+        <div className="bg-card rounded-xl border border-border p-3 mb-5 flex flex-wrap items-center gap-3">
+          <Select defaultValue="12m">
+            <SelectTrigger className="w-[160px] h-8 text-xs bg-transparent border-border">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="1m">Último mês</SelectItem>
+              <SelectItem value="3m">3 meses</SelectItem>
+              <SelectItem value="6m">6 meses</SelectItem>
+              <SelectItem value="12m">12 meses</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {["Todas as entidades", "Todos os tipos", "Todos os níveis", "Todas as áreas"].map((f, i) => (
             <button key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:border-[hsl(258,90%,66%)] hover:text-foreground transition-colors">
               {f} <span className="text-[10px]">▾</span>
             </button>
