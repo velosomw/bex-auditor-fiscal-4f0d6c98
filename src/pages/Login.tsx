@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Shield } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Shield, CheckCircle2 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
   const navigate = useNavigate();
   const { setRole, authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
@@ -154,6 +155,7 @@ const Login = () => {
     } else {
       toast.success("Novo link de confirmação enviado! Verifique sua caixa de entrada.");
       setResendCountdown(60); // Inicia contador de 60 segundos
+      setResendSuccess(true);
     }
     setLoading(false);
   };
@@ -291,7 +293,19 @@ const Login = () => {
               <form onSubmit={handleResendConfirmation} className="space-y-5">
                 <div className="text-center mb-2">
                   <h3 className="text-lg font-semibold text-[hsl(222,25%,18%)]">Confirmar E-mail</h3>
-                  <p className="text-sm text-[hsl(220,15%,50%)]">O link expirou ou você não recebeu? Solicite um novo abaixo.</p>
+                  {resendSuccess ? (
+                    <div className="mt-2 p-4 bg-emerald-50 border border-emerald-100 rounded-lg text-left">
+                      <p className="text-sm text-emerald-800 font-medium flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" /> E-mail enviado com sucesso!
+                      </p>
+                      <p className="text-xs text-emerald-700 mt-2 leading-relaxed">
+                        Enviamos um novo link de ativação para <strong>{email}</strong>. 
+                        Por favor, verifique sua <strong>caixa de entrada</strong> e também a pasta de <strong>spam ou lixo eletrônico</strong>.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[hsl(220,15%,50%)]">O link expirou ou você não recebeu? Solicite um novo abaixo.</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
