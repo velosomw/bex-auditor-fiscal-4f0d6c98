@@ -46,7 +46,7 @@ const pct = (curr: number, prev: number): number => {
   return Number((((curr - prev) / prev) * 100).toFixed(1));
 };
 
-export async function fetchGestorIaIndicators(monthsWindow = 12): Promise<GestorIaIndicators> {
+export async function fetchGestorIaIndicators(monthsWindow = 12, dateRange?: { from: string; to: string }): Promise<GestorIaIndicators> {
   const since = new Date();
   since.setMonth(since.getMonth() - monthsWindow);
   const sinceIso = since.toISOString();
