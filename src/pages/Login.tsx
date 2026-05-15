@@ -14,7 +14,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
   const navigate = useNavigate();
   const { setRole, authenticated, realRole, loading: userLoading } = useUser();
 
@@ -40,7 +40,12 @@ const Login = () => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      toast.error("Credenciais inválidas. Verifique e-mail e senha.");
+      if (error.message.includes("Email not confirmed")) {
+        toast.error("E-mail ainda não confirmado. Verifique sua caixa de entrada.");
+        setMode("resend");
+      } else {
+        toast.error("Credenciais inválidas. Verifique e-mail e senha.");
+      }
       setLoading(false);
       return;
     }
@@ -87,6 +92,29 @@ const Login = () => {
       toast.error("Erro ao enviar e-mail de recuperação.");
     } else {
       toast.success("E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+    }
+    setLoading(false);
+  };
+
+  const handleResendConfirmation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Informe seu e-mail.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      }
+    });
+    if (error) {
+      toast.error("Erro ao reenviar e-mail de confirmação: " + error.message);
+    } else {
+      toast.success("Novo link de confirmação enviado! Verifique sua caixa de entrada.");
+      setMode("login");
     }
     setLoading(false);
   };
