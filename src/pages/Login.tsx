@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Shield } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
@@ -14,9 +14,20 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
   const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
   const navigate = useNavigate();
   const { setRole, authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
+
+  useEffect(() => {
+    let timer: number;
+    if (resendCountdown > 0) {
+      timer = window.setInterval(() => {
+        setResendCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCountdown]);
 
   // Se estiver logado mas o e-mail não estiver confirmado, desloga e pede confirmação
   // (Pode acontecer se o redirecionamento pós-login for automático ou se houver uma sessão pendente)
@@ -110,6 +121,12 @@ const Login = () => {
       toast.error("Informe seu e-mail.");
       return;
     }
+
+    if (resendCountdown > 0) {
+      toast.error(`Aguarde ${resendCountdown} segundos para reenviar.`);
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.resend({
       type: 'signup',
@@ -118,11 +135,12 @@ const Login = () => {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       }
     });
+    
     if (error) {
       toast.error("Erro ao reenviar e-mail de confirmação: " + error.message);
     } else {
       toast.success("Novo link de confirmação enviado! Verifique sua caixa de entrada.");
-      setMode("login");
+      setResendCountdown(60); // Inicia contador de 60 segundos
     }
     setLoading(false);
   };
@@ -277,10 +295,10 @@ const Login = () => {
 
                 <Button
                   type="submit"
-                  disabled={loading}
-                  className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]"
+                  disabled={loading || resendCountdown > 0}
+                  className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Enviando..." : "Enviar Novo Link de Confirmação"}
+                  {loading ? "Enviando..." : resendCountdown > 0 ? `Reenviar em ${resendCountdown}s` : "Enviar Novo Link de Confirmação"}
                 </Button>
 
                 <button
