@@ -1089,7 +1089,7 @@ const GestorIA = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
+          <TabsContent value="visao-geral"><TabVisaoGeral period={selectedPeriod} /></TabsContent>
           <TabsContent value="base-conhecimento"><TabBaseConhecimento /></TabsContent>
           <TabsContent value="governanca"><TabGovernanca /></TabsContent>
           <TabsContent value="logs"><TabLogs /></TabsContent>
