@@ -24,6 +24,7 @@ import AIProvidersConfig from "@/components/gestor/AIProvidersConfig";
 import TabOrphanDocuments from "@/components/gestor/TabOrphanDocuments";
 import TabExecutionTime from "@/components/gestor/TabExecutionTime";
 import PipelineDiagnosticPanel from "@/components/gestor/PipelineDiagnosticPanel";
+import TabLoginAttempts from "@/components/gestor/TabLoginAttempts";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 
 // ─── Mock Data (somente para abas ainda não conectadas) ─────
@@ -1054,6 +1055,9 @@ const GestorIA = () => {
             <TabsTrigger value="exec-time" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <Clock className="w-3.5 h-3.5" /> Tempo de execução
             </TabsTrigger>
+            <TabsTrigger value="login-monitoring" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <Mail className="w-3.5 h-3.5" /> Monitoramento de Login
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="visao-geral"><TabVisaoGeral /></TabsContent>
@@ -1064,6 +1068,7 @@ const GestorIA = () => {
           <TabsContent value="limites"><TabReportLimits /></TabsContent>
           <TabsContent value="orfaos"><TabOrphanDocuments /></TabsContent>
           <TabsContent value="exec-time"><TabExecutionTime /></TabsContent>
+          <TabsContent value="login-monitoring"><TabLoginAttempts /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>

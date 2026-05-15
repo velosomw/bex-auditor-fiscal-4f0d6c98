@@ -60,9 +60,22 @@ const Login = () => {
 
     if (error) {
       if (error.message.includes("Email not confirmed")) {
+        // Registrar tentativa de login com e-mail não confirmado
+        await supabase.from("login_attempts").insert({
+          email,
+          status: 'pending_confirmation',
+          user_agent: window.navigator.userAgent
+        });
+        
         toast.error("E-mail ainda não confirmado. Verifique sua caixa de entrada.");
         setMode("resend");
       } else {
+        // Opcional: registrar outras falhas
+        await supabase.from("login_attempts").insert({
+          email,
+          status: 'failed',
+          user_agent: window.navigator.userAgent
+        });
         toast.error("Credenciais inválidas. Verifique e-mail e senha.");
       }
       setLoading(false);
