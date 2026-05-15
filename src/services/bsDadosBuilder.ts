@@ -383,19 +383,33 @@ export function buildBSDados(
   // ── AJUSTE DE ACUMULADO (Mês vs Acumulado Ano) ──
   // Conforme solicitado: Contas de resultado (Grupos 3 a 8) zeram no final do ano.
   // Se o mês N e N-1 são do mesmo ano, o valor do mês N = Saldo(N) - Saldo(N-1).
-  for (let i = sortedRows.length - 1; i > 0; i--) {
-    const current = sortedRows[i];
-    const previous = sortedRows[i - 1];
-    
-    const currentYear = current.mesKey.split("-")[0];
-    const previousYear = previous.mesKey.split("-")[0];
-    
-    // Só deduz se for o mesmo ano (em Janeiro o saldo é o valor real do mês)
-    if (currentYear === previousYear) {
-      current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
-      current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
-      current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
-      current.resultado = current.resultado - previous.resultado;
+  // IMPORTANTE: Este ajuste só deve ser aplicado se os dados extraídos forem ACUMULADOS do ano.
+  // Se forem dados mensais puros (Delta), a subtração geraria valores incorretos.
+  // Heurística: se a receita do mês N é significativamente maior (>30%) que a do mês N-1 em todos os meses,
+  // assumimos que os dados estão acumulados.
+  let isAccumulated = false;
+  if (sortedRows.length > 1) {
+    let consistentIncrease = 0;
+    for (let i = 1; i < sortedRows.length; i++) {
+      if (sortedRows[i].receita_liquida > sortedRows[i-1].receita_liquida * 1.1) consistentIncrease++;
+    }
+    if (consistentIncrease >= sortedRows.length / 2) isAccumulated = true;
+  }
+
+  if (isAccumulated) {
+    for (let i = sortedRows.length - 1; i > 0; i--) {
+      const current = sortedRows[i];
+      const previous = sortedRows[i - 1];
+      
+      const currentYear = current.mesKey.split("-")[0];
+      const previousYear = previous.mesKey.split("-")[0];
+      
+      if (currentYear === previousYear) {
+        current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
+        current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
+        current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
+        current.resultado = current.resultado - previous.resultado;
+      }
     }
   }
 
