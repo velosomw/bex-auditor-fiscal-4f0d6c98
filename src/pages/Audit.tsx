@@ -4309,7 +4309,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
           </div>
         </div>
-        <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" />
+        <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
       </div>
     );
   }
