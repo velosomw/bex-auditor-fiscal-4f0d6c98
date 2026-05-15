@@ -70,18 +70,32 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 // ─── Tab: Visão Geral (dados reais) ──────────────────────────
-const TabVisaoGeral = () => {
+const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
   const { authenticated, loading: authLoading } = useUser();
   const [data, setData] = useState<GestorIaIndicators | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const reloadKpis = () => {
-    if (!authenticated) {
-      console.warn("[GestorIA] reload ignorado: usuário não autenticado");
-      return;
+  const getRange = (p: string) => {
+    let from = "";
+    const to = new Date().toISOString();
+    if (p === "today") {
+      const d = new Date(); d.setHours(0,0,0,0); from = d.toISOString();
+    } else if (p === "1m") {
+      const d = new Date(); d.setMonth(d.getMonth() - 1); from = d.toISOString();
+    } else if (p === "3m") {
+      const d = new Date(); d.setMonth(d.getMonth() - 3); from = d.toISOString();
+    } else if (p === "6m") {
+      const d = new Date(); d.setMonth(d.getMonth() - 6); from = d.toISOString();
+    } else if (p === "12m") {
+      const d = new Date(); d.setMonth(d.getMonth() - 12); from = d.toISOString();
     }
-    fetchGestorIaIndicators(12)
+    return from ? { from, to } : undefined;
+  };
+
+  const reloadKpis = () => {
+    if (!authenticated) return;
+    fetchGestorIaIndicators(12, getRange(period))
       .then((d) => { setData(d); setErrorMsg(null); })
       .catch((err) => {
         console.error("[GestorIA] reload indicadores:", err);
@@ -90,15 +104,15 @@ const TabVisaoGeral = () => {
   };
 
   useEffect(() => {
-    if (authLoading) return;          // aguarda Supabase resolver sessão
-    if (!authenticated) {              // sem JWT → RLS bloqueia tudo
+    if (authLoading) return;
+    if (!authenticated) {
       setLoading(false);
       setErrorMsg("Sessão não encontrada — faça login para visualizar os indicadores.");
       return;
     }
     let alive = true;
     setLoading(true);
-    fetchGestorIaIndicators(12)
+    fetchGestorIaIndicators(12, getRange(period))
       .then(d => { if (alive) { setData(d); setErrorMsg(null); } })
       .catch(err => {
         console.error("[GestorIA] indicadores:", err);
@@ -106,7 +120,7 @@ const TabVisaoGeral = () => {
       })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [authenticated, authLoading]);
+  }, [authenticated, authLoading, period]);
 
   if (loading || authLoading || !data) {
     return (
