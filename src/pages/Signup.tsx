@@ -8,11 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logoBEx from "@/assets/marca_logo_BEx.jpeg";
 
-const FREE_DOMAINS = new Set([
-  "gmail.com", "hotmail.com", "outlook.com", "yahoo.com", "yahoo.com.br",
-  "live.com", "icloud.com", "uol.com.br", "bol.com.br", "terra.com.br",
-  "msn.com", "protonmail.com", "proton.me",
-]);
+const FREE_DOMAINS = new Set<string>([]); // E-mails pessoais agora são permitidos
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -127,9 +123,9 @@ const Signup = () => {
                     className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail comercial</Label>
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
                   <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                    placeholder="voce@suaempresa.com.br"
+                    placeholder="voce@email.com"
                     className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
                 </div>
                 <div className="space-y-2">
