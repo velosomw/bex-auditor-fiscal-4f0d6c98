@@ -308,29 +308,34 @@ const Login = () => {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com.br"
-                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
-                    required
-                  />
-                </div>
+                {!resendSuccess && (
+                  <div className="space-y-2">
+                    <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="seu@email.com.br"
+                      className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
+                      required
+                    />
+                  </div>
+                )}
 
                 <Button
                   type="submit"
                   disabled={loading || resendCountdown > 0}
                   className="w-full text-white border-0 h-11 text-base font-semibold [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Enviando..." : resendCountdown > 0 ? `Reenviar em ${resendCountdown}s` : "Enviar Novo Link de Confirmação"}
+                  {loading ? "Enviando..." : resendCountdown > 0 ? `Reenviar novamente em ${resendCountdown}s` : resendSuccess ? "Reenviar link agora" : "Enviar Novo Link de Confirmação"}
                 </Button>
 
                 <button
                   type="button"
-                  onClick={() => setMode("login")}
+                  onClick={() => {
+                    setMode("login");
+                    setResendSuccess(false);
+                  }}
                   className="w-full text-center text-sm text-[hsl(220,15%,50%)] hover:text-[hsl(217,91%,50%)] transition-colors"
                 >
                   Voltar para o login
