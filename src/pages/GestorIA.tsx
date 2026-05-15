@@ -1036,7 +1036,7 @@ const GestorIA = () => {
 
         {/* Filters Bar */}
         <div className="bg-card rounded-xl border border-border p-3 mb-5 flex flex-wrap items-center gap-3">
-          <Select defaultValue="12m">
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-[160px] h-8 text-xs bg-transparent border-border">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
