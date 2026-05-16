@@ -134,7 +134,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   };
   const [textFilter, setTextFilter] = useState(searchParams.get("pq") ?? "");
   const [selMeses, setSelMeses] = useState<Set<string>>(parseSet("pm"));
-  const [selRefs, setSelRefs] = useState<Set<string>>(parseSet("pr"));
   const [selCodigos, setSelCodigos] = useState<Set<string>>(parseSet("pc"));
 
   // Serializa estado atual para comparação idempotente.
