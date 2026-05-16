@@ -124,7 +124,7 @@ function MultiSelect({
 
 /**
  * Aba Pivot — visualização granular linha-a-linha do balancete consolidado.
- * Filtros combinados (AND): Mês × Ref Capital × Código contábil + busca livre.
+ * Filtros combinados (AND): Mês × Código contábil + busca livre.
  */
 export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
