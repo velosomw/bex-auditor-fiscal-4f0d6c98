@@ -13,7 +13,8 @@ import {
   Calculator, TrendingUp, TrendingDown, BarChart3, PieChart, Activity,
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
-  Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info
+  Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
