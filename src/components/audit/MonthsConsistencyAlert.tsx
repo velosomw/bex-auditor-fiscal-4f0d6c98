@@ -66,16 +66,6 @@ const MonthsConsistencyAlert: React.FC<Props> = ({ entries, datasetMesKeys }) =>
             </div>
           </div>
         )}
-        {extra.length > 0 && (
-          <div>
-            <span className="font-semibold">Meses não selecionados</span> (presentes no dado mas fora da seleção):
-            <div className="flex flex-wrap gap-1 mt-1">
-              {extra.sort().map(k => (
-                <Badge key={k} variant="outline" className="text-[10px] border-amber-500/50">{mesKeyToLabel(k)}</Badge>
-              ))}
-            </div>
-          </div>
-        )}
         {dupCount > 0 && (
           <div className="font-semibold">{dupCount} mês(es) duplicado(s) entre arquivos.</div>
         )}
