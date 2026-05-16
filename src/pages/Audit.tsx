@@ -4197,6 +4197,12 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(
     initialReportType ?? (isResumido ? "bex" : "none")
   );
+  // No fluxo técnico (Kanitz), ambos relatórios ficam disponíveis para seleção.
+  // No fluxo executivo (BEX gratuito), apenas BEX.
+  const effectiveAvailableReports: Array<"bex" | "kanitz"> =
+    availableReports && availableReports.length > 0
+      ? availableReports
+      : isResumido ? ["bex"] : ["bex", "kanitz"];
   const [tabParams, setTabParams] = useSearchParams();
   const defaultTab = initialReportType || isResumido ? "relatorio-final" : "diagnostico";
   const activeTab = tabParams.get("tab") || defaultTab;
