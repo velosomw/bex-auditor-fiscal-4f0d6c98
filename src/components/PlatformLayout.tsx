@@ -44,21 +44,24 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
         <div className="max-w-[1600px] mx-auto flex items-center justify-between px-4 md:px-6 h-14">
           <div className="flex items-center gap-3">
             {showBack && (
-              <button
-                onClick={() => {
-                  // Em /audit (e demais páginas internas) sempre volta ao painel inicial
-                  // do papel atual, evitando navigate(-1) quebrado quando não há histórico.
-                  const home =
-                    role === "gestor_ia" ? "/gestor-ia" :
-                    role === "auditor_chefe" ? "/dashboard" :
-                    "/user";
-                  navigate(home);
-                }}
-                aria-label="Voltar ao painel inicial"
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white transition-colors mr-1"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
+              <div className="relative group/back mr-1">
+                <button
+                  onClick={() => {
+                    const home =
+                      role === "gestor_ia" ? "/gestor-ia" :
+                      role === "auditor_chefe" ? "/dashboard" :
+                      "/user";
+                    navigate(home);
+                  }}
+                  aria-label="Voltar para Minha Área"
+                  className="flex items-center justify-center w-8 h-8 rounded-lg bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1.5 px-2 py-0.5 rounded bg-[hsl(217,91%,50%)] text-white text-[10px] font-semibold whitespace-nowrap shadow-md opacity-0 group-hover/back:opacity-100 transition-opacity z-50">
+                  Voltar para Minha Área
+                </span>
+              </div>
             )}
             <Link to={role === "gestor_ia" ? "/gestor-ia" : role === "auditor_chefe" ? "/dashboard" : "/user"} className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-[hsl(217,91%,50%)]" />
