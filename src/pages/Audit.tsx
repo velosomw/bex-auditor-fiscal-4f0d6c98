@@ -4197,6 +4197,12 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(
     initialReportType ?? (isResumido ? "bex" : "none")
   );
+  // No fluxo técnico (Kanitz), ambos relatórios ficam disponíveis para seleção.
+  // No fluxo executivo (BEX gratuito), apenas BEX.
+  const effectiveAvailableReports: Array<"bex" | "kanitz"> =
+    availableReports && availableReports.length > 0
+      ? availableReports
+      : isResumido ? ["bex"] : ["bex", "kanitz"];
   const [tabParams, setTabParams] = useSearchParams();
   const defaultTab = initialReportType || isResumido ? "relatorio-final" : "diagnostico";
   const activeTab = tabParams.get("tab") || defaultTab;
@@ -4463,10 +4469,10 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} balanceteEntries={balanceteEntries} /></TabsContent>
         <TabsContent value="relatorio-final">
-          {availableReports && availableReports.length > 0 && (
+          {effectiveAvailableReports.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-lg border bg-muted/30">
               <span className="text-xs font-semibold text-muted-foreground mr-1">Relatórios disponíveis:</span>
-              {availableReports.includes("bex") && (
+              {effectiveAvailableReports.includes("bex") && (
                 <Button
                   size="sm"
                   variant={reportType === "bex" ? "default" : "outline"}
@@ -4478,7 +4484,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                   <Badge className="ml-1 bg-emerald-500/20 text-emerald-700 border-emerald-500/30 text-[9px] px-1.5 py-0">Disponível</Badge>
                 </Button>
               )}
-              {availableReports.includes("kanitz") && (
+              {effectiveAvailableReports.includes("kanitz") && (
                 <Button
                   size="sm"
                   variant={reportType === "kanitz" ? "default" : "outline"}
