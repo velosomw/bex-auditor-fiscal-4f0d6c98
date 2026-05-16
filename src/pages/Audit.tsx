@@ -4366,15 +4366,23 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                   variant="ghost" 
                   size="sm" 
                   className="w-full justify-start gap-2 text-xs h-9" 
-                  onClick={() => {
-                    const id = isResumido ? 'report-bex-container' : 'report-kanitz-container';
-                    const title = isResumido ? 'Relatório BEX' : 'Relatório Kanitz';
-                    printReport(id, title);
-                  }}
+                  onClick={() => printReport('report-bex-container', 'Relatório BEX')}
                 >
                   <FileText className="w-3.5 h-3.5 text-blue-500" /> 
-                  {isResumido ? 'Relatório BEX (PDF)' : 'Relatório Kanitz (PDF)'}
+                  Relatório BEX (PDF)
                 </Button>
+
+                {!isResumido && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start gap-2 text-xs h-9" 
+                    onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-amber-500" /> 
+                    Relatório Kanitz (PDF)
+                  </Button>
+                )}
                 
                 <Button 
                   variant="ghost" 
