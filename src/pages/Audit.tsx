@@ -3473,9 +3473,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
-            <FileText className="w-4 h-4" /> Exportar .doc
-          </Button>
+          <span className="relative group/docbtn inline-flex">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
+              <FileText className="w-4 h-4" /> Exportar .doc
+            </Button>
+            <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold whitespace-nowrap shadow-md opacity-0 group-hover/docbtn:opacity-100 transition-opacity">
+              Será removido
+            </span>
+          </span>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
             <Printer className="w-4 h-4" /> Imprimir
           </Button>
