@@ -278,14 +278,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             getLabel={mesKeyToLabel}
           />
           <MultiSelect
-            label="Ref Capital"
-            icon={Filter}
-            options={refs}
-            selected={selRefs}
-            onChange={setSelRefs}
-            width="w-56"
-          />
-          <MultiSelect
             label="Código"
             icon={Filter}
             options={codigos}
