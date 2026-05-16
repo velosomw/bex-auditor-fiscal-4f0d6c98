@@ -4418,7 +4418,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1.5">
+        <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1.5 justify-start">
           {[
             { value: "diagnostico", icon: Activity, label: "Diagnóstico" },
             { value: "analise-tecnica", icon: Search, label: "Análise Técnica" },
