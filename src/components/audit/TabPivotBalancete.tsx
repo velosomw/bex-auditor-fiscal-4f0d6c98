@@ -148,7 +148,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
     const setOrDel = (k: string, v: string) => v ? next.set(k, v) : next.delete(k);
     setOrDel("pq", textFilter.trim());
     setOrDel("pm", serialize(selMeses));
-    setOrDel("pr", serialize(selRefs));
+    
     setOrDel("pc", serialize(selCodigos));
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
