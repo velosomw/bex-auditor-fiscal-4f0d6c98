@@ -159,7 +159,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
     if (currentSig === urlSig) return;
     setTextFilter(searchParams.get("pq") ?? "");
     setSelMeses(parseSet("pm"));
-    setSelRefs(parseSet("pr"));
+    
     setSelCodigos(parseSet("pc"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
