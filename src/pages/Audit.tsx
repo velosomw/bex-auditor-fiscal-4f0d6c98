@@ -4536,9 +4536,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
               type="button"
               onClick={goPrevTab}
               aria-label="Aba anterior"
-              className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-14 w-14 rounded-full bg-[hsl(258,90%,66%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(258,90%,56%)] hover:scale-105 transition-all flex items-center justify-center"
+              className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[hsl(258,90%,66%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(258,90%,56%)] hover:scale-105 transition-all flex items-center justify-center"
             >
-              <ChevronLeft className="w-7 h-7" />
+              <ChevronLeft className="w-6 h-6" />
             </button>
           )}
           <button
@@ -4546,9 +4546,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             onClick={goNextTab}
             disabled={currentIdx >= tabOrder.length - 1}
             aria-label="Próxima aba"
-            className="print:hidden fixed right-4 top-1/2 -translate-y-1/2 z-40 h-14 w-14 rounded-full bg-[hsl(12,90%,55%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(12,90%,45%)] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="print:hidden fixed right-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[hsl(12,90%,55%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(12,90%,45%)] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            <ChevronRight className="w-7 h-7" />
+            <ChevronRight className="w-6 h-6" />
           </button>
         </>
       )}
