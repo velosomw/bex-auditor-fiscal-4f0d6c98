@@ -234,7 +234,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   const totalActiveFilters = selMeses.size + selCodigos.size + (textFilter.trim() ? 1 : 0);
 
   const clearAll = () => {
-    setTextFilter(""); setSelMeses(new Set()); setSelRefs(new Set()); setSelCodigos(new Set());
+    setTextFilter(""); setSelMeses(new Set()); setSelCodigos(new Set());
   };
 
   if (!linhas.length) {
