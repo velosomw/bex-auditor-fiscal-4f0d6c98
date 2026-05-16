@@ -4261,7 +4261,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     const ni = Math.max(currentIdx - 1, 0);
     setActiveTab(tabOrder[ni]);
   };
-  const showWizardButtons = !showAllTabs;
+  const showWizardButtons = true;
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
