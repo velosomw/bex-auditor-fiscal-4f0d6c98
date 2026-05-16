@@ -138,8 +138,8 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
 
   // Serializa estado atual para comparação idempotente.
   const serialize = (s: Set<string>) => Array.from(s).sort().join(",");
-  const currentSig = `${textFilter.trim()}|${serialize(selMeses)}|${serialize(selRefs)}|${serialize(selCodigos)}`;
-  const urlSig = `${searchParams.get("pq") ?? ""}|${searchParams.get("pm") ?? ""}|${searchParams.get("pr") ?? ""}|${searchParams.get("pc") ?? ""}`;
+  const currentSig = `${textFilter.trim()}|${serialize(selMeses)}|${serialize(selCodigos)}`;
+  const urlSig = `${searchParams.get("pq") ?? ""}|${searchParams.get("pm") ?? ""}|${searchParams.get("pc") ?? ""}`;
 
   // Estado → URL (preserva outros params). Só escreve se houver divergência.
   useEffect(() => {
