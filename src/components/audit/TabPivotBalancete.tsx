@@ -23,7 +23,7 @@ const fmt = (n: number) =>
 
 /**
  * MultiSelect — popover com checkboxes para múltipla seleção + busca interna.
- * Usado para filtrar Mês, Ref Capital e Código contábil de forma combinada.
+ * Usado para filtrar Mês e Código contábil de forma combinada.
  */
 function MultiSelect({
   label, icon: Icon, options, selected, onChange, getLabel, width = "w-72",
