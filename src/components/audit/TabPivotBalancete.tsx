@@ -23,7 +23,7 @@ const fmt = (n: number) =>
 
 /**
  * MultiSelect — popover com checkboxes para múltipla seleção + busca interna.
- * Usado para filtrar Mês, Ref Capital e Código contábil de forma combinada.
+ * Usado para filtrar Mês e Código contábil de forma combinada.
  */
 function MultiSelect({
   label, icon: Icon, options, selected, onChange, getLabel, width = "w-72",
@@ -124,7 +124,7 @@ function MultiSelect({
 
 /**
  * Aba Pivot — visualização granular linha-a-linha do balancete consolidado.
- * Filtros combinados (AND): Mês × Ref Capital × Código contábil + busca livre.
+ * Filtros combinados (AND): Mês × Código contábil + busca livre.
  */
 export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -134,13 +134,12 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   };
   const [textFilter, setTextFilter] = useState(searchParams.get("pq") ?? "");
   const [selMeses, setSelMeses] = useState<Set<string>>(parseSet("pm"));
-  const [selRefs, setSelRefs] = useState<Set<string>>(parseSet("pr"));
   const [selCodigos, setSelCodigos] = useState<Set<string>>(parseSet("pc"));
 
   // Serializa estado atual para comparação idempotente.
   const serialize = (s: Set<string>) => Array.from(s).sort().join(",");
-  const currentSig = `${textFilter.trim()}|${serialize(selMeses)}|${serialize(selRefs)}|${serialize(selCodigos)}`;
-  const urlSig = `${searchParams.get("pq") ?? ""}|${searchParams.get("pm") ?? ""}|${searchParams.get("pr") ?? ""}|${searchParams.get("pc") ?? ""}`;
+  const currentSig = `${textFilter.trim()}|${serialize(selMeses)}|${serialize(selCodigos)}`;
+  const urlSig = `${searchParams.get("pq") ?? ""}|${searchParams.get("pm") ?? ""}|${searchParams.get("pc") ?? ""}`;
 
   // Estado → URL (preserva outros params). Só escreve se houver divergência.
   useEffect(() => {
@@ -149,18 +148,18 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
     const setOrDel = (k: string, v: string) => v ? next.set(k, v) : next.delete(k);
     setOrDel("pq", textFilter.trim());
     setOrDel("pm", serialize(selMeses));
-    setOrDel("pr", serialize(selRefs));
+    
     setOrDel("pc", serialize(selCodigos));
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textFilter, selMeses, selRefs, selCodigos]);
+  }, [textFilter, selMeses, selCodigos]);
 
   // URL → estado (popstate: voltar/avançar do navegador). Só atualiza se houver divergência.
   useEffect(() => {
     if (currentSig === urlSig) return;
     setTextFilter(searchParams.get("pq") ?? "");
     setSelMeses(parseSet("pm"));
-    setSelRefs(parseSet("pr"));
+    
     setSelCodigos(parseSet("pc"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -215,7 +214,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   const filtered = useMemo(() => {
     const f = textFilter.trim().toLowerCase();
     return linhas.filter(l => {
-      if (selRefs.size > 0 && !selRefs.has(l.ref1)) return false;
+      
       if (selCodigos.size > 0 && !selCodigos.has(l.conta)) return false;
       if (f && !(
         String(l.conta).toLowerCase().includes(f) ||
@@ -229,13 +228,13 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
       }
       return true;
     });
-  }, [linhas, textFilter, selMeses, selRefs, selCodigos]);
+  }, [linhas, textFilter, selMeses, selCodigos]);
 
   const visibleMeses = selMeses.size > 0 ? meses.filter(m => selMeses.has(m)) : meses;
-  const totalActiveFilters = selMeses.size + selRefs.size + selCodigos.size + (textFilter.trim() ? 1 : 0);
+  const totalActiveFilters = selMeses.size + selCodigos.size + (textFilter.trim() ? 1 : 0);
 
   const clearAll = () => {
-    setTextFilter(""); setSelMeses(new Set()); setSelRefs(new Set()); setSelCodigos(new Set());
+    setTextFilter(""); setSelMeses(new Set()); setSelCodigos(new Set());
   };
 
   if (!linhas.length) {
@@ -278,14 +277,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             getLabel={mesKeyToLabel}
           />
           <MultiSelect
-            label="Ref Capital"
-            icon={Filter}
-            options={refs}
-            selected={selRefs}
-            onChange={setSelRefs}
-            width="w-56"
-          />
-          <MultiSelect
             label="Código"
             icon={Filter}
             options={codigos}
@@ -316,12 +307,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
               <Badge key={`m-${m}`} variant="secondary" className="text-[10px] gap-1 cursor-pointer"
                 onClick={() => { const n = new Set(selMeses); n.delete(m); setSelMeses(n); }}>
                 {mesKeyToLabel(m)} <X className="w-2.5 h-2.5" />
-              </Badge>
-            ))}
-            {Array.from(selRefs).sort().map(r => (
-              <Badge key={`r-${r}`} variant="secondary" className="text-[10px] gap-1 cursor-pointer font-mono"
-                onClick={() => { const n = new Set(selRefs); n.delete(r); setSelRefs(n); }}>
-                Ref {r} <X className="w-2.5 h-2.5" />
               </Badge>
             ))}
             {Array.from(selCodigos).sort().slice(0, 6).map(c => (
