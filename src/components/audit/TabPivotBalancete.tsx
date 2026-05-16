@@ -309,12 +309,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
                 {mesKeyToLabel(m)} <X className="w-2.5 h-2.5" />
               </Badge>
             ))}
-            {Array.from(selRefs).sort().map(r => (
-              <Badge key={`r-${r}`} variant="secondary" className="text-[10px] gap-1 cursor-pointer font-mono"
-                onClick={() => { const n = new Set(selRefs); n.delete(r); setSelRefs(n); }}>
-                Ref {r} <X className="w-2.5 h-2.5" />
-              </Badge>
-            ))}
             {Array.from(selCodigos).sort().slice(0, 6).map(c => (
               <Badge key={`c-${c}`} variant="secondary" className="text-[10px] gap-1 cursor-pointer font-mono"
                 onClick={() => { const n = new Set(selCodigos); n.delete(c); setSelCodigos(n); }}>
