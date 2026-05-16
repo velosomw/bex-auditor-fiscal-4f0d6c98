@@ -13,7 +13,8 @@ import {
   Calculator, TrendingUp, TrendingDown, BarChart3, PieChart, Activity,
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
-  Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info
+  Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -4209,6 +4210,33 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   // Sincroniza posição de rolagem com URL (?sy=) para back/forward restaurar o ponto exato.
   useUrlScrollSync("sy", true);
 
+  // Wizard de abas: começa exibindo apenas a 1ª, libera as próximas conforme o usuário avança.
+  // Quando o relatório final é gerado (ou ao abrir um relatório salvo), todas as abas ficam visíveis.
+  const tabOrder = useMemo(() => [
+    "diagnostico", "analise-tecnica", "indicadores", "endividamento", "patrimonial",
+    "bs-dados", "pivot", "graficos-auditoria", "risco-rj", "kanitz", "relatorio-final"
+  ], []);
+  const currentIdx = Math.max(0, tabOrder.indexOf(activeTab));
+  const [maxUnlocked, setMaxUnlocked] = useState<number>(
+    initialReportType ? tabOrder.length - 1 : currentIdx
+  );
+  useEffect(() => {
+    if (currentIdx > maxUnlocked) setMaxUnlocked(currentIdx);
+  }, [currentIdx, maxUnlocked]);
+  const reportFinalGerado = !!initialReportType || reportType !== "none";
+  const showAllTabs = reportFinalGerado;
+  const effectiveMax = showAllTabs ? tabOrder.length - 1 : maxUnlocked;
+  const goNextTab = () => {
+    const ni = Math.min(currentIdx + 1, tabOrder.length - 1);
+    setMaxUnlocked(m => Math.max(m, ni));
+    setActiveTab(tabOrder[ni]);
+  };
+  const goPrevTab = () => {
+    const ni = Math.max(currentIdx - 1, 0);
+    setActiveTab(tabOrder[ni]);
+  };
+  const showWizardButtons = !showAllTabs;
+
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
   const activePendencias = aiAnalysis?.pendencias || pendencias;
@@ -4391,39 +4419,27 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1.5">
-          <TabsTrigger value="diagnostico" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <Activity className="w-3.5 h-3.5" /> Diagnóstico
-          </TabsTrigger>
-          <TabsTrigger value="analise-tecnica" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <Search className="w-3.5 h-3.5" /> Análise Técnica
-          </TabsTrigger>
-          <TabsTrigger value="indicadores" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <BarChart3 className="w-3.5 h-3.5" /> Indicadores
-          </TabsTrigger>
-          <TabsTrigger value="endividamento" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <Landmark className="w-3.5 h-3.5" /> Endividamento
-          </TabsTrigger>
-          <TabsTrigger value="patrimonial" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <Layers className="w-3.5 h-3.5" /> Patrimonial
-          </TabsTrigger>
-          <TabsTrigger value="bs-dados" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <Database className="w-3.5 h-3.5" /> BS &amp; Dados
-          </TabsTrigger>
-          <TabsTrigger value="pivot" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <Layers className="w-3.5 h-3.5" /> Pivot
-          </TabsTrigger>
-          <TabsTrigger value="graficos-auditoria" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <BarChart3 className="w-3.5 h-3.5" /> Gráficos de Auditoria
-          </TabsTrigger>
-          <TabsTrigger value="risco-rj" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <AlertOctagon className="w-3.5 h-3.5" /> Risco RJ
-          </TabsTrigger>
-          <TabsTrigger value="kanitz" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <Scale className="w-3.5 h-3.5" /> Kanitz
-          </TabsTrigger>
-          <TabsTrigger value="relatorio-final" className="text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)]">
-            <BookOpen className="w-3.5 h-3.5" /> Relatório Final
-          </TabsTrigger>
+          {[
+            { value: "diagnostico", icon: Activity, label: "Diagnóstico" },
+            { value: "analise-tecnica", icon: Search, label: "Análise Técnica" },
+            { value: "indicadores", icon: BarChart3, label: "Indicadores" },
+            { value: "endividamento", icon: Landmark, label: "Endividamento" },
+            { value: "patrimonial", icon: Layers, label: "Patrimonial" },
+            { value: "bs-dados", icon: Database, label: "BS & Dados" },
+            { value: "pivot", icon: Layers, label: "Pivot" },
+            { value: "graficos-auditoria", icon: BarChart3, label: "Gráficos de Auditoria" },
+            { value: "risco-rj", icon: AlertOctagon, label: "Risco RJ" },
+            { value: "kanitz", icon: Scale, label: "Kanitz" },
+            { value: "relatorio-final", icon: BookOpen, label: "Relatório Final" },
+          ].map(({ value, icon: Icon, label }, idx) => (
+            <TabsTrigger
+              key={value}
+              value={value}
+              className={`text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)] ${idx > effectiveMax ? "hidden" : ""}`}
+            >
+              <Icon className="w-3.5 h-3.5" /> {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="diagnostico"><TabDiagnostico data={activeDiagnostico} /></TabsContent>
@@ -4477,6 +4493,30 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Botões laterais de navegação entre abas (wizard) — somem quando o relatório final é gerado */}
+      {showWizardButtons && (
+        <>
+          <button
+            type="button"
+            onClick={goPrevTab}
+            disabled={currentIdx === 0}
+            aria-label="Aba anterior"
+            className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-14 w-14 rounded-full bg-[hsl(258,90%,66%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(258,90%,56%)] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            <ChevronLeft className="w-7 h-7" />
+          </button>
+          <button
+            type="button"
+            onClick={goNextTab}
+            disabled={currentIdx >= tabOrder.length - 1}
+            aria-label="Próxima aba"
+            className="print:hidden fixed right-4 top-1/2 -translate-y-1/2 z-40 h-14 w-14 rounded-full bg-[hsl(12,90%,55%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(12,90%,45%)] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            <ChevronRight className="w-7 h-7" />
+          </button>
+        </>
+      )}
     </div>
   );
 };
