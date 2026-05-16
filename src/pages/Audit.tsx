@@ -4497,15 +4497,16 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       {/* Botões laterais de navegação entre abas (wizard) — somem quando o relatório final é gerado */}
       {showWizardButtons && (
         <>
-          <button
-            type="button"
-            onClick={goPrevTab}
-            disabled={currentIdx === 0}
-            aria-label="Aba anterior"
-            className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-14 w-14 rounded-full bg-[hsl(258,90%,66%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(258,90%,56%)] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            <ChevronLeft className="w-7 h-7" />
-          </button>
+          {currentIdx > 0 && (
+            <button
+              type="button"
+              onClick={goPrevTab}
+              aria-label="Aba anterior"
+              className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-14 w-14 rounded-full bg-[hsl(258,90%,66%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(258,90%,56%)] hover:scale-105 transition-all flex items-center justify-center"
+            >
+              <ChevronLeft className="w-7 h-7" />
+            </button>
+          )}
           <button
             type="button"
             onClick={goNextTab}
