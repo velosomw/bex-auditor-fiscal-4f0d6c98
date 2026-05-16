@@ -231,7 +231,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   }, [linhas, textFilter, selMeses, selCodigos]);
 
   const visibleMeses = selMeses.size > 0 ? meses.filter(m => selMeses.has(m)) : meses;
-  const totalActiveFilters = selMeses.size + selRefs.size + selCodigos.size + (textFilter.trim() ? 1 : 0);
+  const totalActiveFilters = selMeses.size + selCodigos.size + (textFilter.trim() ? 1 : 0);
 
   const clearAll = () => {
     setTextFilter(""); setSelMeses(new Set()); setSelRefs(new Set()); setSelCodigos(new Set());
