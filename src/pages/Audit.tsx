@@ -4210,6 +4210,33 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   // Sincroniza posição de rolagem com URL (?sy=) para back/forward restaurar o ponto exato.
   useUrlScrollSync("sy", true);
 
+  // Wizard de abas: começa exibindo apenas a 1ª, libera as próximas conforme o usuário avança.
+  // Quando o relatório final é gerado (ou ao abrir um relatório salvo), todas as abas ficam visíveis.
+  const tabOrder = useMemo(() => [
+    "diagnostico", "analise-tecnica", "indicadores", "endividamento", "patrimonial",
+    "bs-dados", "pivot", "graficos-auditoria", "risco-rj", "kanitz", "relatorio-final"
+  ], []);
+  const currentIdx = Math.max(0, tabOrder.indexOf(activeTab));
+  const [maxUnlocked, setMaxUnlocked] = useState<number>(
+    initialReportType ? tabOrder.length - 1 : currentIdx
+  );
+  useEffect(() => {
+    if (currentIdx > maxUnlocked) setMaxUnlocked(currentIdx);
+  }, [currentIdx, maxUnlocked]);
+  const reportFinalGerado = !!initialReportType || reportType !== "none";
+  const showAllTabs = reportFinalGerado;
+  const effectiveMax = showAllTabs ? tabOrder.length - 1 : maxUnlocked;
+  const goNextTab = () => {
+    const ni = Math.min(currentIdx + 1, tabOrder.length - 1);
+    setMaxUnlocked(m => Math.max(m, ni));
+    setActiveTab(tabOrder[ni]);
+  };
+  const goPrevTab = () => {
+    const ni = Math.max(currentIdx - 1, 0);
+    setActiveTab(tabOrder[ni]);
+  };
+  const showWizardButtons = !showAllTabs;
+
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
   const activePendencias = aiAnalysis?.pendencias || pendencias;
