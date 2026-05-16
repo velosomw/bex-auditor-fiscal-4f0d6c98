@@ -3271,9 +3271,14 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
-        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
-          <FileText className="w-4 h-4" /> Exportar .doc
-        </Button>
+        <span className="relative group/docbtn inline-flex">
+          <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
+            <FileText className="w-4 h-4" /> Exportar .doc
+          </Button>
+          <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold whitespace-nowrap shadow-md opacity-0 group-hover/docbtn:opacity-100 transition-opacity">
+            Será removido
+          </span>
+        </span>
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
