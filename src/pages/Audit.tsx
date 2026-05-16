@@ -4302,7 +4302,6 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   if (isResumido) {
     return (
       <div className="space-y-6">
-        <StepTimeline currentStep={5} />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground font-serif">Relatório BEx_Resumido_Kanitz</h1>
@@ -4316,8 +4315,6 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
   return (
     <div className="space-y-6">
-      <StepTimeline currentStep={reportType !== "none" ? 5 : 4} />
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
