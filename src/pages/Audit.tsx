@@ -4418,7 +4418,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1.5">
+        <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1.5 justify-start">
           {[
             { value: "diagnostico", icon: Activity, label: "Diagnóstico" },
             { value: "analise-tecnica", icon: Search, label: "Análise Técnica" },
@@ -4435,7 +4435,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             <TabsTrigger
               key={value}
               value={value}
-              className={`text-xs gap-1.5 relative data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:-top-1 data-[state=active]:after:left-2 data-[state=active]:after:right-2 data-[state=active]:after:h-[3px] data-[state=active]:after:rounded-full data-[state=active]:after:bg-[hsl(12,90%,55%)] ${idx > effectiveMax ? "hidden" : ""}`}
+              className={`text-xs gap-1.5 relative rounded-t-md border-t-2 border-x-2 border-transparent transition-colors data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:border-[hsl(258,90%,66%)] ${idx < currentIdx ? "border-t-[hsl(258,90%,66%)]" : ""} ${idx > effectiveMax ? "hidden" : ""}`}
             >
               <Icon className="w-3.5 h-3.5" /> {label}
             </TabsTrigger>
