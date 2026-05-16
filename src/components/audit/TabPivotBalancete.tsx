@@ -214,7 +214,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   const filtered = useMemo(() => {
     const f = textFilter.trim().toLowerCase();
     return linhas.filter(l => {
-      if (selRefs.size > 0 && !selRefs.has(l.ref1)) return false;
+      
       if (selCodigos.size > 0 && !selCodigos.has(l.conta)) return false;
       if (f && !(
         String(l.conta).toLowerCase().includes(f) ||
