@@ -27,11 +27,13 @@ const MonthsConsistencyAlert: React.FC<Props> = ({ entries, datasetMesKeys }) =>
   const expSet = new Set(expectedKeys);
   const dsSet = new Set(datasetMesKeys);
 
-  const missing = [...expSet].filter(k => !dsSet.has(k)); // selecionados mas sem dado
-  const extra = [...dsSet].filter(k => expSet.size > 0 && !expSet.has(k)); // dado sem seleção
+  // Só consideramos inconsistência quando um mês do balancete não tem dados.
+  // Meses presentes apenas no dataset (fora do balancete) são ignorados — a análise
+  // considera somente os meses efetivamente carregados pelo usuário.
+  const missing = expSet.size > 0 ? [...expSet].filter(k => !dsSet.has(k)) : [];
   const dupCount = expectedKeys.length - expSet.size;
 
-  const ok = !missing.length && !extra.length && !dupCount;
+  const ok = !missing.length && !dupCount;
 
   if (ok && expSet.size > 0) {
     return (
@@ -60,16 +62,6 @@ const MonthsConsistencyAlert: React.FC<Props> = ({ entries, datasetMesKeys }) =>
             <div className="flex flex-wrap gap-1 mt-1">
               {missing.sort().map(k => (
                 <Badge key={k} variant="destructive" className="text-[10px]">{mesKeyToLabel(k)}</Badge>
-              ))}
-            </div>
-          </div>
-        )}
-        {extra.length > 0 && (
-          <div>
-            <span className="font-semibold">Meses não selecionados</span> (presentes no dado mas fora da seleção):
-            <div className="flex flex-wrap gap-1 mt-1">
-              {extra.sort().map(k => (
-                <Badge key={k} variant="outline" className="text-[10px] border-amber-500/50">{mesKeyToLabel(k)}</Badge>
               ))}
             </div>
           </div>
