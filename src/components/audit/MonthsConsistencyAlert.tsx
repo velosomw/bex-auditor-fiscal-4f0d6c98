@@ -27,11 +27,13 @@ const MonthsConsistencyAlert: React.FC<Props> = ({ entries, datasetMesKeys }) =>
   const expSet = new Set(expectedKeys);
   const dsSet = new Set(datasetMesKeys);
 
-  const missing = [...expSet].filter(k => !dsSet.has(k)); // selecionados mas sem dado
-  const extra = [...dsSet].filter(k => expSet.size > 0 && !expSet.has(k)); // dado sem seleção
+  // Só consideramos inconsistência quando um mês do balancete não tem dados.
+  // Meses presentes apenas no dataset (fora do balancete) são ignorados — a análise
+  // considera somente os meses efetivamente carregados pelo usuário.
+  const missing = expSet.size > 0 ? [...expSet].filter(k => !dsSet.has(k)) : [];
   const dupCount = expectedKeys.length - expSet.size;
 
-  const ok = !missing.length && !extra.length && !dupCount;
+  const ok = !missing.length && !dupCount;
 
   if (ok && expSet.size > 0) {
     return (
