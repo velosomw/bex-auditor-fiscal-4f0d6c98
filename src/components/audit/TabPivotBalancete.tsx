@@ -152,7 +152,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
     setOrDel("pc", serialize(selCodigos));
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textFilter, selMeses, selRefs, selCodigos]);
+  }, [textFilter, selMeses, selCodigos]);
 
   // URL → estado (popstate: voltar/avançar do navegador). Só atualiza se houver divergência.
   useEffect(() => {
