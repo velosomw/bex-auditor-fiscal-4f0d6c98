@@ -11,7 +11,7 @@
  *   - Datas normalizadas para "Mmm/AA" pt-BR.
  *   - Valores nulos / #N/A → null (mantemos os pontos para Recharts).
  */
-import * as XLSX from "xlsx";
+import { readWorkbook, type ReadWorkbookResult } from "@/lib/excelReader";
 
 const MES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const MES_FULL: Record<string, number> = {
@@ -224,8 +224,8 @@ const SHEET_ALIASES = {
   prevReal: ["Fluxo de Caixa - Prev x Realiz", "Fluxo de Caixa Prev x Realiz", "Prev x Realiz"],
 };
 
-const findSheet = (wb: XLSX.WorkBook, aliases: string[]): string | undefined => {
-  const names = wb.SheetNames;
+const findSheet = (wb: ReadWorkbookResult, aliases: string[]): string | undefined => {
+  const names = wb.sheetNames;
   for (const a of aliases) {
     const exact = names.find(n => n === a);
     if (exact) return exact;
@@ -238,17 +238,11 @@ const findSheet = (wb: XLSX.WorkBook, aliases: string[]): string | undefined => 
   return undefined;
 };
 
-const sheetToMatrix = (wb: XLSX.WorkBook, name: string): unknown[][] => {
-  const ws = wb.Sheets[name];
-  if (!ws) return [];
-  return XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, blankrows: true, defval: null }) as unknown[][];
-};
-
 export async function parseBalanceteCharts(file: File): Promise<BalanceteChartsResult> {
   const buf = await file.arrayBuffer();
-  let wb: XLSX.WorkBook;
+  let wb: ReadWorkbookResult;
   try {
-    wb = XLSX.read(buf, { type: "array", cellDates: true });
+    wb = await readWorkbook(buf);
   } catch {
     return { hasData: false, fileName: file.name };
   }
@@ -256,16 +250,16 @@ export async function parseBalanceteCharts(file: File): Promise<BalanceteChartsR
   const result: BalanceteChartsResult = { hasData: false, fileName: file.name };
 
   const balancoName = findSheet(wb, SHEET_ALIASES.balanco);
-  if (balancoName) result.balanco = parseBalanco(sheetToMatrix(wb, balancoName));
+  if (balancoName) result.balanco = parseBalanco(wb.sheetToMatrix(balancoName));
 
   const folhaName = findSheet(wb, SHEET_ALIASES.folha);
-  if (folhaName) result.folha = parseFolha(sheetToMatrix(wb, folhaName));
+  if (folhaName) result.folha = parseFolha(wb.sheetToMatrix(folhaName));
 
   const fcpName = findSheet(wb, SHEET_ALIASES.fcp);
-  if (fcpName) result.fcp = parseFCP(sheetToMatrix(wb, fcpName));
+  if (fcpName) result.fcp = parseFCP(wb.sheetToMatrix(fcpName));
 
   const prName = findSheet(wb, SHEET_ALIASES.prevReal);
-  if (prName) result.prevReal = parsePrevReal(sheetToMatrix(wb, prName));
+  if (prName) result.prevReal = parsePrevReal(wb.sheetToMatrix(prName));
 
   result.hasData = !!(result.balanco || result.folha || result.fcp || result.prevReal);
   return result;
