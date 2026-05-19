@@ -1,29 +1,44 @@
 /**
- * Dashboard Executivo — 6 gráficos pixel-perfect Excel via Apache ECharts.
- * Layout: grid 2 colunas, altura 320px, gap 16px (padrão MD 1).
+ * Dashboard Executivo — 6 gráficos via Recharts.
+ * Refatorado de Apache ECharts (vulnerabilidade Critical em echarts-for-react)
+ * mantendo a paleta Excel e a leitura visual original.
  */
 import { useMemo, useState } from "react";
-import ReactECharts from "echarts-for-react";
+import {
+  ResponsiveContainer, ComposedChart, BarChart, LineChart,
+  Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine,
+} from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Info, TrendingDown } from "lucide-react";
-import { buildMonthlyDataset } from "@/services/auditDatasetBuilder";
+import { buildMonthlyDataset, computeIndicators, type MonthlyDatum } from "@/services/auditDatasetBuilder";
 import { buildBSDados, type BalanceteEntry } from "@/services/bsDadosBuilder";
 import { bsDadosToMonthlyDataset } from "@/services/bsDadosToMonthlyDatum";
-import {
-  buildCMVOption, buildCMVDespesaOption, buildResultadoOption,
-  buildEBITDAOption, buildLiquidezOption, buildEndividamentoOption,
-  generateInsights,
-} from "@/services/auditChartsOptions";
+import { EXCEL_COLORS, fmtMilhar, fmtPct, fmtDec, generateInsights } from "@/services/auditChartsOptions";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import WindowSelector, { applyWindow, type Window } from "./WindowSelector";
 import MonthsConsistencyAlert from "./MonthsConsistencyAlert";
 
 interface Props {
   parsedData?: ParsedFinancialData | null;
-  /** Entradas (arquivo + mês atribuído pelo usuário) — alimentam BS & Dados como fonte única. */
   entries?: BalanceteEntry[];
 }
+
+const TITLE_STYLE = "text-center text-[13px] font-bold text-[#1F1F1F] mb-1";
+const SUB_STYLE = "text-center text-[11px] text-[#1F1F1F] mb-2";
+const AXIS_PROPS = {
+  tick: { fontSize: 11, fill: "#333", fontFamily: "Segoe UI, Arial, sans-serif" },
+  stroke: "#BFBFBF",
+};
+const GRID = <CartesianGrid stroke="#E7E7E7" strokeDasharray="3 3" vertical={false} />;
+const TOOLTIP_STYLE = {
+  contentStyle: {
+    backgroundColor: "rgba(255,255,255,0.96)",
+    border: "1px solid #BFBFBF",
+    fontSize: 11,
+    fontFamily: "Segoe UI, Arial, sans-serif",
+  },
+};
 
 const Empty = ({ msg }: { msg: string }) => (
   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -32,23 +47,56 @@ const Empty = ({ msg }: { msg: string }) => (
   </div>
 );
 
-const ChartTile = ({ option }: { option: any }) => (
+const ChartTile = ({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) => (
   <Card className="overflow-hidden">
     <CardContent className="p-4">
-      <ReactECharts
-        option={option}
-        style={{ height: 320, width: "100%" }}
-        opts={{ renderer: "canvas" }}
-        notMerge
-        lazyUpdate
-      />
+      <div className={TITLE_STYLE}>{title}</div>
+      {subtitle && <div className={SUB_STYLE}>{subtitle}</div>}
+      <div style={{ width: "100%", height: 280 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          {children as any}
+        </ResponsiveContainer>
+      </div>
     </CardContent>
   </Card>
 );
 
+// ─── Construção dos datasets de cada gráfico ───────────────────────────────
+function buildSeries(data: MonthlyDatum[]) {
+  return data.map(d => {
+    const ind = computeIndicators(d);
+    return {
+      mes: d.mes,
+      receita: d.hasReceita ? Math.round(d.receita_liquida / 1000) : null,
+      cmv: d.hasReceita ? Math.round(d.cmv / 1000) : null,
+      cmvDesp: d.hasReceita ? Math.round((Math.abs(d.cmv) + Math.abs(d.despesas)) / 1000) : null,
+      resultado: d.hasReceita ? Math.round(d.resultado / 1000) : null,
+      ebitda: d.hasReceita ? Math.round(d.ebitda) : null,
+      cmvPct: d.hasReceita && ind.cmvPct !== null ? +(ind.cmvPct * 100).toFixed(2) : null,
+      cmvDespPct: d.hasReceita && ind.cmvDespPct !== null ? +(ind.cmvDespPct * 100).toFixed(2) : null,
+      margemPct: d.hasReceita && ind.margemResultado !== null ? +(ind.margemResultado * 100).toFixed(2) : null,
+      liquidez_imediata: ind.liquidez_imediata !== null ? +ind.liquidez_imediata.toFixed(2) : null,
+      liquidez_corrente: ind.liquidez_corrente !== null ? +ind.liquidez_corrente.toFixed(2) : null,
+      liquidez_seca: ind.liquidez_seca !== null ? +ind.liquidez_seca.toFixed(2) : null,
+      liquidez_geral: ind.liquidez_geral !== null ? +ind.liquidez_geral.toFixed(2) : null,
+      divida_tributaria: Math.round(Number(d.divida_tributaria || 0)),
+      divida_trabalhista: Math.round(Number(d.divida_trabalhista || 0)),
+      divida_financeira: Math.round(Number(d.divida_financeira || 0)),
+      fornecedores: Math.round(Number(d.fornecedores || 0)),
+      credores_rj: Math.round(Number(d.credores_rj || 0)),
+      outras_obrigacoes: Math.round(Number(d.outras_obrigacoes || 0)),
+      divida_total: Math.round(d.divida_total),
+    };
+  });
+}
+
+const tooltipMilhar = (v: any) => fmtMilhar(typeof v === "number" ? v : Number(v));
+const tooltipPct = (v: any) => fmtPct(typeof v === "number" ? v : Number(v));
+const tooltipDec = (v: any) => fmtDec(typeof v === "number" ? v : Number(v));
+
 const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
   const [windowSize, setWindowSize] = useState<Window>("ALL");
-  // FONTE ÚNICA: BS & Dados (Ref Capital). Fallback para builder antigo se vazio.
+
   const fullDataset = useMemo(() => {
     const bs = buildBSDados(parsedData ?? null, entries);
     if (bs.length) return bsDadosToMonthlyDataset(bs);
@@ -56,22 +104,10 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
   }, [parsedData, entries]);
 
   const dataset = useMemo(() => applyWindow(fullDataset, windowSize), [fullDataset, windowSize]);
-
-  const options = useMemo(() => {
-    if (!dataset.length) return null;
-    return {
-      cmv: buildCMVOption(dataset),
-      cmvDesp: buildCMVDespesaOption(dataset),
-      resultado: buildResultadoOption(dataset),
-      ebitda: buildEBITDAOption(dataset),
-      liquidez: buildLiquidezOption(dataset),
-      endividamento: buildEndividamentoOption(dataset),
-    };
-  }, [dataset]);
-
+  const series = useMemo(() => buildSeries(dataset), [dataset]);
   const insights = useMemo(() => generateInsights(dataset), [dataset]);
 
-  if (!dataset.length || !options) {
+  if (!dataset.length) {
     return (
       <div className="space-y-4">
         <MonthsConsistencyAlert entries={entries} datasetMesKeys={[]} />
@@ -96,7 +132,7 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
         </span>
         <WindowSelector value={windowSize} onChange={setWindowSize} available={fullDataset.length} />
       </div>
-      {/* INSIGHTS automáticos */}
+
       {insights.length > 0 && (
         <Card className="bg-muted/30">
           <CardContent className="p-4 space-y-2">
@@ -126,17 +162,99 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
         </Card>
       )}
 
-      {/* GRID 2x3 — pixel perfect Excel */}
-      <div
-        className="grid gap-4"
-        style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
-      >
-        <ChartTile option={options.cmv} />
-        <ChartTile option={options.cmvDesp} />
-        <ChartTile option={options.resultado} />
-        <ChartTile option={options.ebitda} />
-        <ChartTile option={options.liquidez} />
-        <ChartTile option={options.endividamento} />
+      <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+        {/* 1. CMV / RECEITA */}
+        <ChartTile title="CMV / RECEITA LÍQUIDA" subtitle="(R$ x 1000)">
+          <ComposedChart data={series} margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+            {GRID}
+            <XAxis dataKey="mes" {...AXIS_PROPS} />
+            <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
+            <YAxis yAxisId="right" orientation="right" {...AXIS_PROPS} domain={[-100, 100]} tickFormatter={(v) => `${v}%`} />
+            <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [n.includes("%") ? tooltipPct(v) : tooltipMilhar(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar yAxisId="left" dataKey="receita" name="Receita Líquida" fill={EXCEL_COLORS.azul} />
+            <Bar yAxisId="left" dataKey="cmv" name="CMV" fill={EXCEL_COLORS.laranja} />
+            <Line yAxisId="right" type="monotone" dataKey="cmvPct" name="CMV / Receita (%)" stroke={EXCEL_COLORS.vermelho} strokeWidth={2} dot={{ r: 4 }} />
+          </ComposedChart>
+        </ChartTile>
+
+        {/* 2. CMV + DESPESA × RECEITA */}
+        <ChartTile title="CMV + DESPESA × RECEITA LÍQUIDA" subtitle="(R$ x 1000)">
+          <ComposedChart data={series} margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+            {GRID}
+            <XAxis dataKey="mes" {...AXIS_PROPS} />
+            <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
+            <YAxis yAxisId="right" orientation="right" {...AXIS_PROPS} tickFormatter={(v) => `${v}%`} />
+            <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [n.includes("%") ? tooltipPct(v) : tooltipMilhar(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar yAxisId="left" dataKey="receita" name="Receita Líquida" fill={EXCEL_COLORS.azul} />
+            <Bar yAxisId="left" dataKey="cmvDesp" name="CMV + Despesa" fill={EXCEL_COLORS.vermelho} />
+            <Line yAxisId="right" type="monotone" dataKey="cmvDespPct" name="CMV+Desp / Receita (%)" stroke={EXCEL_COLORS.vermelho} strokeWidth={2} dot={{ r: 4 }} />
+            <ReferenceLine yAxisId="right" y={100} stroke={EXCEL_COLORS.vermelho} strokeDasharray="4 4" label={{ value: "100% (limite)", fontSize: 10, fill: EXCEL_COLORS.vermelho }} />
+          </ComposedChart>
+        </ChartTile>
+
+        {/* 3. RESULTADO / RECEITA */}
+        <ChartTile title="RESULTADO / RECEITA LÍQUIDA" subtitle="(R$ x 1000)">
+          <ComposedChart data={series} margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+            {GRID}
+            <XAxis dataKey="mes" {...AXIS_PROPS} />
+            <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
+            <YAxis yAxisId="right" orientation="right" {...AXIS_PROPS} tickFormatter={(v) => `${v}%`} />
+            <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [n.includes("%") ? tooltipPct(v) : tooltipMilhar(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar yAxisId="left" dataKey="receita" name="Receita Líquida" fill={EXCEL_COLORS.azul} />
+            <Bar yAxisId="left" dataKey="resultado" name="Lucro/Prejuízo Líquido" fill={EXCEL_COLORS.laranja} />
+            <Line yAxisId="right" type="monotone" dataKey="margemPct" name="Resultado / Receita (%)" stroke={EXCEL_COLORS.verde} strokeWidth={2} dot={{ r: 4 }} />
+          </ComposedChart>
+        </ChartTile>
+
+        {/* 4. EBITDA */}
+        <ChartTile title="EBITDA">
+          <LineChart data={series} margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+            {GRID}
+            <XAxis dataKey="mes" {...AXIS_PROPS} />
+            <YAxis {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
+            <Tooltip {...TOOLTIP_STYLE} formatter={(v: any) => [tooltipMilhar(v), "EBITDA"]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <ReferenceLine y={0} stroke={EXCEL_COLORS.cinza} />
+            <Line type="monotone" dataKey="ebitda" name="EBITDA" stroke={EXCEL_COLORS.ciano} strokeWidth={3} dot={{ r: 5, fill: EXCEL_COLORS.ciano }} />
+          </LineChart>
+        </ChartTile>
+
+        {/* 5. LIQUIDEZ */}
+        <ChartTile title="ÍNDICES DE LIQUIDEZ">
+          <LineChart data={series} margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+            {GRID}
+            <XAxis dataKey="mes" {...AXIS_PROPS} />
+            <YAxis {...AXIS_PROPS} tickFormatter={tooltipDec} />
+            <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [tooltipDec(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" dataKey="liquidez_imediata" name="LIQUIDEZ IMEDIATA" stroke={EXCEL_COLORS.azul} strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="liquidez_corrente" name="LIQUIDEZ CORRENTE" stroke={EXCEL_COLORS.vermelho} strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="liquidez_seca" name="LIQUIDEZ SECA" stroke={EXCEL_COLORS.verde} strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="liquidez_geral" name="LIQUIDEZ GERAL" stroke={EXCEL_COLORS.roxo} strokeWidth={2} dot={{ r: 3 }} />
+          </LineChart>
+        </ChartTile>
+
+        {/* 6. ENDIVIDAMENTO */}
+        <ChartTile title="EVOLUÇÃO DO ENDIVIDAMENTO" subtitle="(Em milhares de reais)">
+          <ComposedChart data={series} margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+            {GRID}
+            <XAxis dataKey="mes" {...AXIS_PROPS} />
+            <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
+            <YAxis yAxisId="right" orientation="right" {...AXIS_PROPS} tickFormatter={tooltipMilhar} stroke={EXCEL_COLORS.vermelho} />
+            <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [tooltipMilhar(v), n]} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar yAxisId="left" dataKey="divida_tributaria" name="OBRIG. TRIBUTÁRIAS" stackId="div" fill={EXCEL_COLORS.azul} />
+            <Bar yAxisId="left" dataKey="divida_trabalhista" name="OBRIG. TRABALHISTAS" stackId="div" fill={EXCEL_COLORS.laranja} />
+            <Bar yAxisId="left" dataKey="divida_financeira" name="EMPR. E FINANCIAMENTOS" stackId="div" fill={EXCEL_COLORS.cinzaEscuro} />
+            <Bar yAxisId="left" dataKey="fornecedores" name="FORNECEDORES" stackId="div" fill={EXCEL_COLORS.verde} />
+            <Bar yAxisId="left" dataKey="credores_rj" name="CREDORES RJ" stackId="div" fill={EXCEL_COLORS.amarelo} />
+            <Bar yAxisId="left" dataKey="outras_obrigacoes" name="OUTRAS OBRIGAÇÕES" stackId="div" fill={EXCEL_COLORS.vermelho} />
+            <Line yAxisId="right" type="monotone" dataKey="divida_total" name="TOTAL" stroke={EXCEL_COLORS.vermelho} strokeWidth={3} dot={{ r: 5, fill: EXCEL_COLORS.vermelho }} />
+          </ComposedChart>
+        </ChartTile>
       </div>
     </div>
   );

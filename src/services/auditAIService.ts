@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import { readWorkbook } from "@/lib/excelReader";
 import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename } from "@/services/auditMonthDetector";
 
 export interface ParsedFinancialData {
@@ -435,7 +435,7 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
 /* ── Parse spreadsheet ── */
 export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData> {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: "array" });
+  const workbook = await readWorkbook(buffer);
 
   const allRows: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string }> = [];
   const years = new Set<string>();
@@ -450,9 +450,8 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   type SheetParse = { sheetName: string; rows: BalanceteRowParsed[]; multiMonth: boolean; assignedMes: string | null };
   const sheetParses: SheetParse[] = [];
 
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
+  for (const sheetName of workbook.sheetNames) {
+    const jsonData = workbook.sheetToMatrix(sheetName);
     const tpl = tryParseBalanceteMensalBR(jsonData);
     if (!tpl || tpl.rows.length === 0) continue;
     const fromName = detectMonthFromYearLabel(sheetName);
@@ -536,9 +535,8 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   }
 
   // 2) Fallback: parser anterior — agora reconhece colunas mês/ano (MM/YYYY, Ago/2025…)
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
+  for (const sheetName of workbook.sheetNames) {
+    const jsonData = workbook.sheetToMatrix(sheetName);
 
     if (jsonData.length < 2) continue;
 
