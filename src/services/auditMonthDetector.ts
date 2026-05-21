@@ -131,25 +131,38 @@ export function detectMonthRangeFromFilename(fileName: string): MonthRef[] {
  * "Saldo 03-2024", "Saldo Final Mar/2024".
  * Retorna lista ordenada cronologicamente; ignora colunas que não casam um mês.
  */
-export function extractColumnMonths(headers: unknown[]): Array<{ idx: number; mesKey: string; label: string }> {
+export function extractColumnMonths(
+  headers: unknown[],
+  opts?: { fileName?: string },
+): Array<{ idx: number; mesKey: string; label: string }> {
   const out: Array<{ idx: number; mesKey: string; label: string }> = [];
   const seen = new Set<string>();
-  
+
   // Tenta detectar um ano no cabeçalho inteiro para fallback de meses sem ano
-  let inferredYear = new Date().getFullYear();
+  let inferredYear: number | null = null;
   for (const cell of headers) {
     const m = String(cell || "").match(/\b(20\d{2})\b/);
     if (m) { inferredYear = Number(m[1]); break; }
   }
+  // Se não há ano no header, tenta extrair do nome do arquivo (range tem prioridade)
+  if (inferredYear === null && opts?.fileName) {
+    const range = detectMonthRangeFromFilename(opts.fileName);
+    if (range.length > 0) {
+      inferredYear = Number(range[0].key.split("-")[0]);
+    } else {
+      const single = detectMonthFromFilename(opts.fileName);
+      if (single) inferredYear = Number(single.key.split("-")[0]);
+    }
+  }
+  // Último recurso (mantém comportamento antigo)
+  if (inferredYear === null) inferredYear = new Date().getFullYear();
 
   headers.forEach((cell, idx) => {
     const raw = String(cell ?? "").trim();
     if (!raw) return;
-    
-    // Primeiro tenta detecção completa (mês + ano)
+
     let ref = detectMonthFromYearLabel(raw);
-    
-    // Se falhar, tenta apenas mês usando o ano inferido
+
     if (!ref || ref.confidence < 0.8) {
       const lower = norm(raw);
       const monthRe = Object.keys(MONTH_NAMES_PT).join("|");
@@ -161,7 +174,7 @@ export function extractColumnMonths(headers: unknown[]): Array<{ idx: number; me
       }
     }
 
-    if (!ref || ref.confidence < 0.8) return; 
+    if (!ref || ref.confidence < 0.8) return;
     const k = `${idx}::${ref.key}`;
     if (seen.has(k)) return;
     seen.add(k);
@@ -169,6 +182,29 @@ export function extractColumnMonths(headers: unknown[]): Array<{ idx: number; me
   });
   return out.sort((a, b) => a.mesKey.localeCompare(b.mesKey));
 }
+
+/**
+ * Pós-processa colunas mensais detectadas reconciliando com o range presente
+ * no nome do arquivo. Útil quando os headers só dão "AGO/SET/.../JAN" sem ano
+ * e a detecção volta com anos espúrios. Se o número de colunas distintas bate
+ * com o range, reatribui sequencialmente.
+ */
+export function reconcileMonthsWithFilename(
+  monthCols: Array<{ idx: number; mesKey: string; label: string }>,
+  fileName: string,
+): Array<{ idx: number; mesKey: string; label: string }> {
+  if (!monthCols.length) return monthCols;
+  const range = detectMonthRangeFromFilename(fileName);
+  if (range.length === 0) return monthCols;
+  // Se todos os meses já caem dentro do range → mantém
+  const inRange = new Set(range.map(r => r.key));
+  if (monthCols.every(c => inRange.has(c.mesKey))) return monthCols;
+  // Caso contrário: reordena por idx e remapeia sequencialmente para os primeiros N do range
+  const sorted = [...monthCols].sort((a, b) => a.idx - b.idx);
+  const n = Math.min(sorted.length, range.length);
+  return sorted.slice(0, n).map((c, i) => ({ idx: c.idx, mesKey: range[i].key, label: range[i].label }));
+}
+
 
 /** Converte rótulos "atual"/"saldo atual"/"YYYY"/"jan/24" em chaves YYYY-MM. */
 export function detectMonthFromYearLabel(label: string, fallbackMonth?: MonthRef): MonthRef | null {
