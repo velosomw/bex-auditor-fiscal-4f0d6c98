@@ -146,6 +146,8 @@ export interface BalanceteEntry {
   fileName: string;
   /** Mês de referência atribuído pelo usuário (formato YYYY-MM). Pode ser null se múltiplos meses já estão no arquivo. */
   mesReferencia: string | null;
+  /** Quando o usuário escolheu "auto-detect", lista de meses YYYY-MM resolvidos pelo parser. */
+  mesesDetectados?: string[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────
