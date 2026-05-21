@@ -4346,13 +4346,23 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       companyId: company?.id,
       companyName: company?.name,
       source,
-      balanceteEntries,
-      periodos: Array.from(new Set(
-        (balanceteEntries || [])
+      // Expande "auto" → meses reais detectados (parsedData.years) antes de persistir,
+      // garantindo que balanceteEntries e periodos não contenham literais não-mês.
+      balanceteEntries: (balanceteEntries || []).map(e => {
+        if (e.mesReferencia && e.mesReferencia !== "auto") return e;
+        // Para "auto" ou null, herda os meses detectados no parser (todos)
+        const detected = (parsedData?.years || []).filter(y => /^\d{4}-(0[1-9]|1[0-2])$/.test(y));
+        return { ...e, mesReferencia: detected[0] ?? null, mesesDetectados: detected };
+      }),
+      periodos: (() => {
+        const fromUser = (balanceteEntries || [])
           .map(e => e.mesReferencia)
-          .filter((m): m is string => !!m)
-          .map(m => m.slice(0, 7))
-      )).sort(),
+          .filter((m): m is string => !!m && m !== "auto" && /^\d{4}-(0[1-9]|1[0-2])$/.test(m))
+          .map(m => m.slice(0, 7));
+        const fromParsed = (parsedData?.years || []).filter(y => /^\d{4}-(0[1-9]|1[0-2])$/.test(y));
+        const merged = fromUser.length > 0 ? fromUser : fromParsed;
+        return Array.from(new Set(merged)).sort();
+      })(),
     };
     saveGeneratedReport(entry);
   };
