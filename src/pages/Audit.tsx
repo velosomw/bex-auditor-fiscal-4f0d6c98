@@ -40,7 +40,7 @@ import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
 import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { getFileFormat as getFormat } from "@/services/auditAIService";
-import { mergeMultiMonth, pickMonths, defaultLast3, type MultiMonthParsed } from "@/services/auditMonthDetector";
+import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename, type MultiMonthParsed } from "@/services/auditMonthDetector";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 
 /* ── Helpers ── */
@@ -667,6 +667,31 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                               </Select>
                             )}
                           </div>
+                          {/* Prévia inline dos meses detectados pelo nome do arquivo */}
+                          {isAuto && (() => {
+                            const detected = detectMonthRangeFromFilename(f.fileName);
+                            if (detected.length === 0) {
+                              return (
+                                <div className="mt-2 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                                  ⚠️ Não foi possível detectar período pelo nome. Os meses serão lidos das colunas da planilha durante o processamento.
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide">
+                                  {detected.length} {detected.length === 1 ? "mês detectado" : "meses detectados"} no arquivo:
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {detected.map(m => (
+                                    <Badge key={m.key} variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+                                      {m.label}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })()}
