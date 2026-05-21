@@ -1,15 +1,14 @@
 /**
  * Substituto seguro do `xlsx` (vulnerabilidade High SheetJS) usando ExcelJS.
- * Mantém a API mínima usada no projeto: ler workbook a partir de ArrayBuffer
- * e converter uma worksheet em matriz 0-indexada (`unknown[][]`) equivalente a
- * `XLSX.utils.sheet_to_json(sheet, { header: 1 })`.
+ * Import dinâmico para que ~600KB de exceljs só entrem no bundle quando
+ * o usuário realmente abrir/parsear uma planilha.
  */
-import ExcelJS from "exceljs";
+import type ExcelJSNS from "exceljs";
 
 export type Matrix = unknown[][];
 
 export interface ReadWorkbookResult {
-  workbook: ExcelJS.Workbook;
+  workbook: ExcelJSNS.Workbook;
   sheetNames: string[];
   /** Converte a worksheet de nome `name` para matriz 0-indexada. */
   sheetToMatrix: (name: string) => Matrix;
@@ -35,7 +34,7 @@ function unwrapCell(value: unknown): unknown {
   return value;
 }
 
-function worksheetToMatrix(ws: ExcelJS.Worksheet): Matrix {
+function worksheetToMatrix(ws: ExcelJSNS.Worksheet): Matrix {
   const out: Matrix = [];
   const rowCount = ws.actualRowCount || ws.rowCount || 0;
   const colCount = ws.actualColumnCount || ws.columnCount || 0;
@@ -51,10 +50,11 @@ function worksheetToMatrix(ws: ExcelJS.Worksheet): Matrix {
 }
 
 export async function readWorkbook(buffer: ArrayBuffer): Promise<ReadWorkbookResult> {
+  const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
   const sheetNames: string[] = [];
-  workbook.eachSheet(ws => sheetNames.push(ws.name));
+  workbook.eachSheet((ws) => sheetNames.push(ws.name));
   return {
     workbook,
     sheetNames,
