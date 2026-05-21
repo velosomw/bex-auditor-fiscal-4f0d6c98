@@ -10,15 +10,19 @@ import { supabase } from "@/integrations/supabase/client";
 import logoBEx from "@/assets/marca_logo_BEx.jpeg";
 
 const generateChallenge = () => {
-  const a = Math.floor(Math.random() * 9) + 1;
-  const b = Math.floor(Math.random() * 9) + 1;
-  const ops: Array<{ sym: string; fn: (x: number, y: number) => number }> = [
-    { sym: "+", fn: (x, y) => x + y },
-    { sym: "−", fn: (x, y) => x - y },
-  ];
-  const op = ops[Math.floor(Math.random() * ops.length)];
-  return { a, b, sym: op.sym, answer: op.fn(a, b) };
+  const useSum = Math.random() < 0.5;
+  if (useSum) {
+    const a = Math.floor(Math.random() * 9) + 1;
+    const b = Math.floor(Math.random() * 9) + 1;
+    return { a, b, sym: "+", answer: a + b };
+  }
+  // Subtração com resultado sempre >= 0 (a >= b) para evitar confusão com sinal negativo.
+  let a = Math.floor(Math.random() * 9) + 1;
+  let b = Math.floor(Math.random() * 9) + 1;
+  if (b > a) [a, b] = [b, a];
+  return { a, b, sym: "−", answer: a - b };
 };
+
 
 const Login = () => {
   const [email, setEmail] = useState("");
