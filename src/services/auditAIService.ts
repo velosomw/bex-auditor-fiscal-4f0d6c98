@@ -1,5 +1,5 @@
 import { readWorkbook } from "@/lib/excelReader";
-import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename } from "@/services/auditMonthDetector";
+import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename, reconcileMonthsWithFilename } from "@/services/auditMonthDetector";
 
 export interface ParsedFinancialData {
   balanco: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string; refCapital?: string }>;
