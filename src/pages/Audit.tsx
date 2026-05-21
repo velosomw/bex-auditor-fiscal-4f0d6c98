@@ -896,22 +896,36 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
           // Converte parsedData → balancetes[{mes, linhas[]}] e dispara a Edge Function.
           try {
             const { consolidateBSDadosOnServer } = await import("@/services/bsDadosServerClient");
+            const { detectMonthRangeFromFilename } = await import("@/services/auditMonthDetector");
             const allRows = [...(parsedData?.balanco || []), ...(parsedData?.dre || [])];
             const periods = parsedData?.years ?? [];
             const userMeses = (balanceteEntries || [])
               .map(e => e.mesReferencia)
               .filter((k): k is string => !!k);
-            const useUser = userMeses.length > 0 && periods.length <= 1;
-            const meses = useUser ? userMeses : (periods.length ? periods : userMeses);
-            const balancetes = meses.map(mes => ({
-              mes,
-              linhas: allRows.map(r => ({
-                conta: r.conta,
-                descricao: r.descricao,
-                ref1: (r as any).ref1 ?? (r as any).refCapital ?? inferRefByCode(r.conta),
-                saldo: Number(r.values?.[mes] ?? r.values?.[periods.find(p => p === mes) || ""] ?? r.values?.[Object.keys(r.values || {}).find(k => k === mes || k.startsWith(`${mes}-`)) || ""] ?? 0) || 0,
-              })).filter(l => Number.isFinite(l.saldo)),
-            }));
+
+            // PRIORIDADE de fonte da verdade para a lista de meses:
+            //  1) meses confirmados pelo usuário no MonthsConfirmDialog
+            //  2) range expandido do nome do arquivo (ex: "08.2025 a 01.2026" → 6 meses)
+            //  3) períodos detectados nas colunas do XLSX (último recurso, podem estar errados)
+            const fileName0 = files[0]?.name || "";
+            const rangeFromName = detectMonthRangeFromFilename(fileName0).map(m => m.key);
+            const meses = userMeses.length > 0
+              ? Array.from(new Set(userMeses)).sort()
+              : (rangeFromName.length > 0 ? rangeFromName : periods);
+
+            const balancetes = meses.map(mes => {
+              const linhas = allRows.map(r => {
+                const matchKey = Object.keys(r.values || {}).find(k => k === mes || k.startsWith(`${mes}-`));
+                const v = r.values?.[mes] ?? (matchKey ? r.values?.[matchKey] : 0) ?? 0;
+                return {
+                  conta: r.conta,
+                  descricao: r.descricao,
+                  ref1: (r as any).ref1 ?? (r as any).refCapital ?? inferRefByCode(r.conta),
+                  saldo: Number(v) || 0,
+                };
+              }).filter(l => Number.isFinite(l.saldo) && l.saldo !== 0); // descarta linhas zeradas no mês
+              return { mes, linhas };
+            }).filter(b => b.linhas.length > 0);
             if (balancetes.length > 0 && balancetes.some(b => b.linhas.length > 0)) {
               const persistResp = await consolidateBSDadosOnServer(balancetes, {
                 companyId: companyId ?? undefined,
