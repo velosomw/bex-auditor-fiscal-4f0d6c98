@@ -40,7 +40,7 @@ import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
 import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { getFileFormat as getFormat } from "@/services/auditAIService";
-import { mergeMultiMonth, pickMonths, defaultLast3, type MultiMonthParsed } from "@/services/auditMonthDetector";
+import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename, type MultiMonthParsed } from "@/services/auditMonthDetector";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 
 /* ── Helpers ── */
