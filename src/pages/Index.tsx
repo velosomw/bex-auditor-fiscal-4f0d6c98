@@ -24,7 +24,13 @@ const Index = () => {
         <img
           src={heroBg}
           alt="BEX Auditoria"
+          width={1920}
+          height={1080}
+          fetchPriority="high"
+          loading="eager"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover" />
+        
         
         <div className="hero-overlay absolute inset-0" />
         <div className="relative z-10 max-w-7xl mx-auto w-full px-4 lg:px-10 py-24">
