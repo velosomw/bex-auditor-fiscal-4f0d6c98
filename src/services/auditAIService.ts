@@ -458,7 +458,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
 
   for (const sheetName of workbook.sheetNames) {
     const jsonData = workbook.sheetToMatrix(sheetName);
-    const tpl = tryParseBalanceteMensalBR(jsonData);
+    const tpl = tryParseBalanceteMensalBR(jsonData, file.name);
     if (!tpl || tpl.rows.length === 0) continue;
     const fromName = detectMonthFromYearLabel(sheetName);
     sheetParses.push({
