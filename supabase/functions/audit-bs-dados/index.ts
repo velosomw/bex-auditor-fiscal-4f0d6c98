@@ -89,7 +89,7 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "JJ": "passivo_circulante", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
   "OO": "passivo_circulante", "II1": "divida_tributaria",
   "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "SS": "divida_tributaria", "TT": "divida_financeira", "CC1": "credores_rj",
-  "GG1": "resultado", "HH1": "resultado",
+  // GG1/HH1 (PL: Capital/Lucros Acumulados) NÃO mapeados para "resultado" — resultado vem da DRE.
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
