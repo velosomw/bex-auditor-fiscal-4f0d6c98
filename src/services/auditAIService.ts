@@ -312,7 +312,7 @@ export function inferRefByCode(code: string): string | undefined {
   return undefined;
 }
 
-function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowParsed[]; periodLabel: string; multiMonth?: boolean } | null {
+function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { rows: BalanceteRowParsed[]; periodLabel: string; multiMonth?: boolean } | null {
   // Procura linha de cabeçalho com "saldo atual" + ("extenso" OU "descri")
   let headerIdx = -1;
   let cols: Record<string, number> = {};
