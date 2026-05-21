@@ -69,9 +69,20 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const expected = challenge.answer;
+    const provided = Number(challengeAnswer.trim());
+    if (!challengeAnswer.trim() || Number.isNaN(provided) || provided !== expected) {
+      toast.error("Desafio de verificação incorreto. Tente novamente.");
+      setChallenge(generateChallenge());
+      setChallengeAnswer("");
+      return;
+    }
+
     setLoading(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
 
     if (error) {
       if (error.message.includes("Email not confirmed")) {
