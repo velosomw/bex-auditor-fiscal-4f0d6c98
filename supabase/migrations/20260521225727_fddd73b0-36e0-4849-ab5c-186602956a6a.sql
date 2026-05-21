@@ -1,0 +1,10 @@
+DELETE FROM indicadores WHERE audit_id='d94b553a-7d1f-4809-91cf-52b23693a5d2';
+DELETE FROM bs_dados WHERE audit_id='d94b553a-7d1f-4809-91cf-52b23693a5d2';
+DELETE FROM balancete_lines WHERE balancete_id IN (SELECT id FROM balancetes WHERE audit_id='d94b553a-7d1f-4809-91cf-52b23693a5d2');
+DELETE FROM balancetes WHERE audit_id='d94b553a-7d1f-4809-91cf-52b23693a5d2';
+DELETE FROM audit_logs WHERE audit_id='d94b553a-7d1f-4809-91cf-52b23693a5d2';
+DELETE FROM insights WHERE audit_id='d94b553a-7d1f-4809-91cf-52b23693a5d2';
+DELETE FROM kanitz_scores WHERE audit_id='d94b553a-7d1f-4809-91cf-52b23693a5d2';
+DELETE FROM audits WHERE id='d94b553a-7d1f-4809-91cf-52b23693a5d2';
+DELETE FROM audit_reports WHERE company_id='3c8de432-28ef-4615-a4d7-6bcb036e44e6';
+DELETE FROM audit_documents WHERE company_id='3c8de432-28ef-4615-a4d7-6bcb036e44e6';
