@@ -960,11 +960,16 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                 variant: "completo",
               });
               console.log(
-                `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false}`
+                `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false} | audit_id=${persistResp.audit_id ?? "—"}`
               );
+              if (!persistResp.persisted) {
+                console.error("⚠️ BS & Dados: persistência server-side falhou silenciosamente. companyId=", companyId, "meses=", meses);
+              }
+            } else {
+              console.error("⚠️ BS & Dados: nenhum balancete a persistir. meses=", meses, "userMeses=", userMeses, "rangeFromName=", rangeFromName, "periods=", periods);
             }
           } catch (e) {
-            console.warn("Persistência BS & Dados (server) ignorada:", e);
+            console.error("❌ Persistência BS & Dados (server) falhou:", e);
           }
         }
 
