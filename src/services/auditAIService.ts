@@ -1,5 +1,5 @@
 import { readWorkbook } from "@/lib/excelReader";
-import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename } from "@/services/auditMonthDetector";
+import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename, reconcileMonthsWithFilename } from "@/services/auditMonthDetector";
 
 export interface ParsedFinancialData {
   balanco: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string; refCapital?: string }>;
@@ -312,7 +312,7 @@ export function inferRefByCode(code: string): string | undefined {
   return undefined;
 }
 
-function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowParsed[]; periodLabel: string; multiMonth?: boolean } | null {
+function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { rows: BalanceteRowParsed[]; periodLabel: string; multiMonth?: boolean } | null {
   // Procura linha de cabeçalho com "saldo atual" + ("extenso" OU "descri")
   let headerIdx = -1;
   let cols: Record<string, number> = {};
@@ -369,10 +369,16 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][]): { rows: BalanceteRowP
     jsonData[headerIdx + 1] || [],
   ];
   for (const r of candidateRows) {
-    const found = extractColumnMonths(r);
+    const found = extractColumnMonths(r, { fileName });
     for (const f of found) {
       addMonthCol(f);
     }
+  }
+  // Reconcilia com o range do nome do arquivo (corrige anos espúrios inferidos)
+  if (fileName && monthCols.length > 0) {
+    const reconciled = reconcileMonthsWithFilename(monthCols, fileName);
+    monthCols.length = 0;
+    reconciled.forEach(m => monthCols.push(m));
   }
   // Só ativa multi-mês se houver ≥2 meses distintos detectados
   const useMultiMonth = monthCols.length >= 2;
@@ -452,7 +458,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
 
   for (const sheetName of workbook.sheetNames) {
     const jsonData = workbook.sheetToMatrix(sheetName);
-    const tpl = tryParseBalanceteMensalBR(jsonData);
+    const tpl = tryParseBalanceteMensalBR(jsonData, file.name);
     if (!tpl || tpl.rows.length === 0) continue;
     const fromName = detectMonthFromYearLabel(sheetName);
     sheetParses.push({
@@ -553,7 +559,8 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
         const below = (jsonData[i + 1]?.[j] ?? "") as unknown;
         return `${String(above)} ${String(c)} ${String(below)}`.trim();
       });
-      const monthCols = extractColumnMonths(combined);
+      const monthCols0 = extractColumnMonths(combined, { fileName: file.name });
+      const monthCols = file.name ? reconcileMonthsWithFilename(monthCols0, file.name) : monthCols0;
       if (monthCols.length >= 1) {
         headerRowIdx = i;
         yearColumns = monthCols.map(mc => ({ idx: mc.idx, year: mc.mesKey })); // year aqui já é YYYY-MM
