@@ -182,8 +182,11 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
       const valuesObj = r.values || {};
       const periodKeys = Object.keys(valuesObj);
 
+      // Anti-alucinação: se o parser só trouxe 1 período e o usuário declarou N meses,
+      // NÃO replicamos o mesmo valor em todos os meses. Atribuímos apenas ao 1º mês do
+      // usuário; os demais ficam vazios (refletindo a realidade do que foi extraído).
       const targetMeses: string[] = useUser && periodKeys.length <= 1 && userMesKeys.length > 0
-        ? userMesKeys
+        ? [userMesKeys[0]]
         : periodKeys.map(periodToMesKey);
 
       const key = conta;
@@ -202,6 +205,9 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
         }
       });
     }
+
+    // Garante que meses declarados pelo usuário apareçam como coluna mesmo quando vazios
+    if (useUser) for (const mk of userMesKeys) mesSet.add(mk);
 
     const meses = Array.from(mesSet).sort();
     const linhas = Array.from(map.values()).sort((a, b) => String(a.conta).localeCompare(String(b.conta)));
