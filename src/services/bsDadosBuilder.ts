@@ -351,10 +351,13 @@ export function buildBSDados(
       });
       if (!key) continue;
 
-      // Resolve mesKey: se useUser e parsed só trouxe 1 período, distribuir entre meses do usuário
+      // Resolve mesKey: NUNCA replicar o saldo de 1 período em N meses do usuário —
+      // isso causa alucinação (mesmo valor repetido). Quando o parser só trouxe 1
+      // período e há múltiplos meses do usuário, aplicamos APENAS ao primeiro mês
+      // e marcamos os demais com erro explicativo (visível na aba BS & Dados).
       let targetKeys: string[];
       if (useUser && periodKeys.length <= 1 && userMesKeys.length > 0) {
-        targetKeys = userMesKeys;
+        targetKeys = [userMesKeys[0]];
       } else {
         targetKeys = [periodToMesKey(period)];
       }
@@ -364,6 +367,21 @@ export function buildBSDados(
         const buckets = bucketsByMes.get(mesKey);
         if (!target || !buckets) continue;
         applyValue(target, key, Number(value) || 0, ref1, buckets);
+      }
+    }
+  }
+
+  // Marca meses sem dados reais quando o parser só extraiu 1 período
+  if (allRows.length > 0) {
+    const allPeriodKeys = new Set<string>();
+    for (const r of allRows) for (const k of Object.keys(r.values || {})) allPeriodKeys.add(k);
+    if (allPeriodKeys.size <= 1 && userMesKeys.length > 1) {
+      const applied = userMesKeys[0];
+      for (const mk of userMesKeys.slice(1)) {
+        const t = rowsByMes.get(mk);
+        if (!t) continue;
+        const msg = `Sem dados extraídos para este mês — o balancete só forneceu valores para ${applied}. Recarregue o balancete correspondente para evitar inferência.`;
+        if (!t.errors.includes(msg)) t.errors.push(msg);
       }
     }
   }
