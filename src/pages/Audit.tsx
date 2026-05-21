@@ -926,7 +926,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
             const periods = parsedData?.years ?? [];
             const userMeses = (balanceteEntries || [])
               .map(e => e.mesReferencia)
-              .filter((k): k is string => !!k);
+              // CRÍTICO: "auto" não é um mês — sinaliza que o usuário pediu auto-detecção.
+              // Filtra para que o fallback (range do filename → colunas do XLSX) seja usado.
+              .filter((k): k is string => !!k && k !== "auto" && /^\d{4}-(0[1-9]|1[0-2])$/.test(k));
 
             // PRIORIDADE de fonte da verdade para a lista de meses:
             //  1) meses confirmados pelo usuário no MonthsConfirmDialog
@@ -958,11 +960,16 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                 variant: "completo",
               });
               console.log(
-                `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false}`
+                `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false} | audit_id=${persistResp.audit_id ?? "—"}`
               );
+              if (!persistResp.persisted) {
+                console.error("⚠️ BS & Dados: persistência server-side falhou silenciosamente. companyId=", companyId, "meses=", meses);
+              }
+            } else {
+              console.error("⚠️ BS & Dados: nenhum balancete a persistir. meses=", meses, "userMeses=", userMeses, "rangeFromName=", rangeFromName, "periods=", periods);
             }
           } catch (e) {
-            console.warn("Persistência BS & Dados (server) ignorada:", e);
+            console.error("❌ Persistência BS & Dados (server) falhou:", e);
           }
         }
 
@@ -4339,13 +4346,23 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       companyId: company?.id,
       companyName: company?.name,
       source,
-      balanceteEntries,
-      periodos: Array.from(new Set(
-        (balanceteEntries || [])
+      // Expande "auto" → meses reais detectados (parsedData.years) antes de persistir,
+      // garantindo que balanceteEntries e periodos não contenham literais não-mês.
+      balanceteEntries: (balanceteEntries || []).map(e => {
+        if (e.mesReferencia && e.mesReferencia !== "auto") return e;
+        // Para "auto" ou null, herda os meses detectados no parser (todos)
+        const detected = (parsedData?.years || []).filter(y => /^\d{4}-(0[1-9]|1[0-2])$/.test(y));
+        return { ...e, mesReferencia: detected[0] ?? null, mesesDetectados: detected };
+      }),
+      periodos: (() => {
+        const fromUser = (balanceteEntries || [])
           .map(e => e.mesReferencia)
-          .filter((m): m is string => !!m)
-          .map(m => m.slice(0, 7))
-      )).sort(),
+          .filter((m): m is string => !!m && m !== "auto" && /^\d{4}-(0[1-9]|1[0-2])$/.test(m))
+          .map(m => m.slice(0, 7));
+        const fromParsed = (parsedData?.years || []).filter(y => /^\d{4}-(0[1-9]|1[0-2])$/.test(y));
+        const merged = fromUser.length > 0 ? fromUser : fromParsed;
+        return Array.from(new Set(merged)).sort();
+      })(),
     };
     saveGeneratedReport(entry);
   };
