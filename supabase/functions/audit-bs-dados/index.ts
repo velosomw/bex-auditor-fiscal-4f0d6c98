@@ -368,7 +368,7 @@ Deno.serve(async (req) => {
           if (aErr) throw aErr;
           auditId = auditRow.id as string;
 
-          // 2. balancetes (1 linha por mês)
+          // 2. balancetes (1 linha por mês) — captura IDs para gravar lines
           const balancetesIns = balancetes.map((b) => ({
             audit_id: auditId,
             created_by: createdBy,
@@ -378,8 +378,43 @@ Deno.serve(async (req) => {
             content_hash: body.content_hash || null,
             pipeline_document_id: body.document_id || null,
           }));
+          let balIdByMes = new Map<string, string>();
           if (balancetesIns.length > 0) {
-            await supabase.from("balancetes").insert(balancetesIns);
+            const { data: insertedBals, error: bErr } = await supabase
+              .from("balancetes")
+              .insert(balancetesIns)
+              .select("id, mes_referencia");
+            if (bErr) throw bErr;
+            for (const row of insertedBals || []) {
+              balIdByMes.set(String(row.mes_referencia).slice(0, 7), row.id as string);
+            }
+
+            // 2b. PERSISTÊNCIA GRANULAR: balancete_lines (conta × período × saldo)
+            // — fundação da rastreabilidade temporal (Onda 1).
+            const linesIns: any[] = [];
+            for (const b of balancetes) {
+              const mesKey = periodToMesKey(b.mes);
+              const balId = balIdByMes.get(mesKey);
+              if (!balId) continue;
+              for (const l of (b.linhas || [])) {
+                if (!l || (!l.conta && !l.descricao)) continue;
+                const saldo = Number(l.saldo) || 0;
+                if (!Number.isFinite(saldo)) continue;
+                linesIns.push({
+                  balancete_id: balId,
+                  conta: String(l.conta || "").trim() || "—",
+                  descricao: l.descricao ? String(l.descricao).slice(0, 500) : null,
+                  ref1: l.ref1 ?? inferRefByCode(l.conta) ?? null,
+                  saldo,
+                });
+              }
+            }
+            // Insere em lotes de 500 para evitar payload grande
+            for (let i = 0; i < linesIns.length; i += 500) {
+              const chunk = linesIns.slice(i, i + 500);
+              const { error: lErr } = await supabase.from("balancete_lines").insert(chunk);
+              if (lErr) console.warn("balancete_lines insert warn:", lErr.message);
+            }
           }
 
           // 3. bs_dados (snapshot consolidado)
