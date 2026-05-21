@@ -300,11 +300,24 @@ export function relabelYearsAsMonths(
       const m = detectMonthFromYearLabel(y, fnameMonth || undefined);
       if (m) map.set(y, m);
     }
-    // Se nenhum year mapeou e existe fname → aplica fname a todos
-    if (map.size === 0 && fnameMonth) {
-      for (const y of parsed.years || []) map.set(y, fnameMonth);
+    // Se nenhum year mapeou: tenta range completo do filename primeiro.
+    if (map.size === 0) {
+      const range = detectMonthRangeFromFilename(fileName);
+      if (range.length > 0) {
+        // Distribui cada mês do range em uma chave sintética (e também replica em
+        // labels existentes, se houver, para os primeiros N).
+        const yrs = parsed.years && parsed.years.length ? parsed.years : range.map((_, i) => `__rng_${i}__`);
+        for (let i = 0; i < Math.max(range.length, yrs.length); i++) {
+          map.set(yrs[i] ?? `__rng_${i}__`, range[Math.min(i, range.length - 1)]);
+        }
+      } else if (fnameMonth) {
+        // Único mês detectado no filename — aplica a todos os labels existentes
+        // (ou cria uma chave sintética se parsed.years estiver vazio).
+        const yrs = parsed.years && parsed.years.length ? parsed.years : ["__fname__"];
+        for (const y of yrs) map.set(y, fnameMonth);
+      }
     }
-    // Se ainda assim vazio, usa fallback
+    // Se ainda assim vazio, usa fallback (current month).
     if (map.size === 0) {
       const now = new Date();
       const key = `${now.getFullYear()}-${padMonth(now.getMonth() + 1)}`;
@@ -312,6 +325,7 @@ export function relabelYearsAsMonths(
       for (const y of parsed.years || ["atual"]) map.set(y, fb);
     }
   }
+
 
   // RECONCILIAÇÃO COM RANGE DO NOME DO ARQUIVO
   // Ex: arquivo "Balancetes 08.2025 a 01.2026 (6 meses).xlsx" mas headers só dizem AGO/SET/OUT/NOV/DEZ/JAN.

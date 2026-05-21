@@ -4717,10 +4717,24 @@ const AuditContent = () => {
                   userMonth: userMonthByName.get(f.name) ?? null,
                 })));
                 const merged = mergeMultiMonth(items);
+                console.info("[Audit][PreParse] arquivos:", items.map(i => ({
+                  file: i.fileName,
+                  userMonth: i.userMonth,
+                  parsedYears: i.parsed?.years ?? [],
+                })));
+                console.info("[Audit][PreParse] meses detectados (merged):", merged.months.map(m => `${m.label} (${m.source}, conf=${m.confidence})`));
+                if (merged.months.length === 0) {
+                  toast({
+                    title: "Nenhum mês detectado",
+                    description: "Selecione manualmente o período no combo de cada arquivo (ou renomeie incluindo MM.YYYY).",
+                    variant: "destructive",
+                  });
+                }
                 setMultiMonth(merged);
                 // Auto-validação: pré-seleciona TODOS os meses detectados pelo parser.
                 setFilteredMonths(merged.months.map(m => m.key));
                 setPhase("confirm-months");
+
               } catch (e) {
                 console.error("Pré-parse falhou:", e);
                 toast({ title: "Erro ao ler arquivos", description: "Tentando análise direta...", variant: "destructive" });
