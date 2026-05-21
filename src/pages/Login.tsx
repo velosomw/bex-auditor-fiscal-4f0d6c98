@@ -104,6 +104,8 @@ const Login = () => {
         });
         toast.error("Credenciais inválidas. Verifique e-mail e senha.");
       }
+      setChallenge(generateChallenge());
+      setChallengeAnswer("");
       setLoading(false);
       return;
     }
