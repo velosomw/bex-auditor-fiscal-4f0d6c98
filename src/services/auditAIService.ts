@@ -369,10 +369,16 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     jsonData[headerIdx + 1] || [],
   ];
   for (const r of candidateRows) {
-    const found = extractColumnMonths(r);
+    const found = extractColumnMonths(r, { fileName });
     for (const f of found) {
       addMonthCol(f);
     }
+  }
+  // Reconcilia com o range do nome do arquivo (corrige anos espúrios inferidos)
+  if (fileName && monthCols.length > 0) {
+    const reconciled = reconcileMonthsWithFilename(monthCols, fileName);
+    monthCols.length = 0;
+    reconciled.forEach(m => monthCols.push(m));
   }
   // Só ativa multi-mês se houver ≥2 meses distintos detectados
   const useMultiMonth = monthCols.length >= 2;
