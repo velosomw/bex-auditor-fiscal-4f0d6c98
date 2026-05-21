@@ -9,6 +9,17 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logoBEx from "@/assets/marca_logo_BEx.jpeg";
 
+const generateChallenge = () => {
+  const a = Math.floor(Math.random() * 9) + 1;
+  const b = Math.floor(Math.random() * 9) + 1;
+  const ops: Array<{ sym: string; fn: (x: number, y: number) => number }> = [
+    { sym: "+", fn: (x, y) => x + y },
+    { sym: "−", fn: (x, y) => x - y },
+  ];
+  const op = ops[Math.floor(Math.random() * ops.length)];
+  return { a, b, sym: op.sym, answer: op.fn(a, b) };
+};
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,8 +28,11 @@ const Login = () => {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
+  const [challenge, setChallenge] = useState(generateChallenge);
+  const [challengeAnswer, setChallengeAnswer] = useState("");
   const navigate = useNavigate();
   const { setRole, authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
+
 
   useEffect(() => {
     let timer: number;
@@ -55,9 +69,20 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const expected = challenge.answer;
+    const provided = Number(challengeAnswer.trim());
+    if (!challengeAnswer.trim() || Number.isNaN(provided) || provided !== expected) {
+      toast.error("Desafio de verificação incorreto. Tente novamente.");
+      setChallenge(generateChallenge());
+      setChallengeAnswer("");
+      return;
+    }
+
     setLoading(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
 
     if (error) {
       if (error.message.includes("Email not confirmed")) {
@@ -79,6 +104,8 @@ const Login = () => {
         });
         toast.error("Credenciais inválidas. Verifique e-mail e senha.");
       }
+      setChallenge(generateChallenge());
+      setChallengeAnswer("");
       setLoading(false);
       return;
     }
@@ -231,6 +258,38 @@ const Login = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">
+                    Verificação de segurança
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <div className="px-3 h-10 flex items-center rounded-md bg-[hsl(220,30%,96%)] border border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] font-semibold text-sm whitespace-nowrap select-none">
+                      Quanto é {challenge.a} {challenge.sym} {challenge.b}?
+                    </div>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={challengeAnswer}
+                      onChange={(e) => setChallengeAnswer(e.target.value)}
+                      placeholder="Resposta"
+                      className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChallenge(generateChallenge());
+                        setChallengeAnswer("");
+                      }}
+                      className="text-xs text-[hsl(217,91%,50%)] hover:underline whitespace-nowrap"
+                      aria-label="Gerar novo desafio"
+                    >
+                      Trocar
+                    </button>
+                  </div>
+                </div>
+
                 <Button
                   type="submit"
                   disabled={loading}
@@ -238,6 +297,7 @@ const Login = () => {
                 >
                   {loading ? "Autenticando..." : "Entrar"}
                 </Button>
+
 
                 <button
                   type="button"
