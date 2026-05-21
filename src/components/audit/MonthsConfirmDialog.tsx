@@ -25,7 +25,8 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
-    if (data) setSelected(defaultLast3(data));
+    // Auto-seleciona TODOS os meses detectados — usuário apenas valida/desmarca pontualmente.
+    if (data) setSelected(data.months.map(m => m.key));
   }, [data]);
 
   const totalMonths = data?.months.length || 0;
