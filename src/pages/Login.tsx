@@ -9,6 +9,17 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logoBEx from "@/assets/marca_logo_BEx.jpeg";
 
+const generateChallenge = () => {
+  const a = Math.floor(Math.random() * 9) + 1;
+  const b = Math.floor(Math.random() * 9) + 1;
+  const ops: Array<{ sym: string; fn: (x: number, y: number) => number }> = [
+    { sym: "+", fn: (x, y) => x + y },
+    { sym: "−", fn: (x, y) => x - y },
+  ];
+  const op = ops[Math.floor(Math.random() * ops.length)];
+  return { a, b, sym: op.sym, answer: op.fn(a, b) };
+};
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,8 +28,11 @@ const Login = () => {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
+  const [challenge, setChallenge] = useState(generateChallenge);
+  const [challengeAnswer, setChallengeAnswer] = useState("");
   const navigate = useNavigate();
   const { setRole, authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
+
 
   useEffect(() => {
     let timer: number;
