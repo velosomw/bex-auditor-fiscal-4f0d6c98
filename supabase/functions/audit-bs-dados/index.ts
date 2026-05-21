@@ -89,7 +89,7 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "JJ": "passivo_circulante", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
   "OO": "passivo_circulante", "II1": "divida_tributaria",
   "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "SS": "divida_tributaria", "TT": "divida_financeira", "CC1": "credores_rj",
-  "GG1": "resultado", "HH1": "resultado",
+  // GG1/HH1 (PL: Capital/Lucros Acumulados) NÃO mapeados para "resultado" — resultado vem da DRE.
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
@@ -232,6 +232,8 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
 
 function finalize(r: BSDadosRow): BSDadosRow {
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
+  // Resultado derivado da DRE (cmv/despesas já negativos) — evita dupla contagem do PL.
+  r.resultado = r.receita_liquida + r.cmv + r.despesas;
   r.hasReceita = r.receita_liquida > 0;
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
