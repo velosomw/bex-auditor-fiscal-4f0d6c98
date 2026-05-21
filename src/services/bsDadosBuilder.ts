@@ -254,6 +254,9 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
   row.divida_total =
     row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
     row.fornecedores + row.credores_rj;
+  // Resultado derivado da DRE (determinístico) — cmv/despesas já vêm negativos.
+  // Evita dupla contagem com contas de PL no balanço (Capital, Lucros Acumulados).
+  row.resultado = row.receita_liquida + row.cmv + row.despesas;
   row.hasReceita = row.receita_liquida > 0;
   row.hasBalanco = row.ativo_circulante > 0 || row.passivo_circulante > 0 || row.divida_total > 0;
   // Validações
