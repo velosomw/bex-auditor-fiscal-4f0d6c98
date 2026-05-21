@@ -313,6 +313,32 @@ export function relabelYearsAsMonths(
     }
   }
 
+  // RECONCILIAÇÃO COM RANGE DO NOME DO ARQUIVO
+  // Ex: arquivo "Balancetes 08.2025 a 01.2026 (6 meses).xlsx" mas headers só dizem AGO/SET/OUT/NOV/DEZ/JAN.
+  // Se o número de meses detectados bate com o range do filename, reatribui sequencialmente
+  // para garantir que 2025 e 2026 apareçam corretamente.
+  const range = detectMonthRangeFromFilename(fileName);
+  if (range.length > 0 && map.size > 0) {
+    const inRange = new Set(range.map(r => r.key));
+    const currentKeys = Array.from(new Set(Array.from(map.values()).map(m => m.key)));
+    const allInRange = currentKeys.every(k => inRange.has(k));
+    if (!allInRange) {
+      // Reordena os year-labels originais e remapeia sequencialmente para os primeiros N do range.
+      const orderedLabels = (parsed.years || []).filter(y => map.has(y));
+      const n = Math.min(orderedLabels.length, range.length);
+      const newMap = new Map<string, MonthRef>();
+      for (let i = 0; i < n; i++) {
+        newMap.set(orderedLabels[i], range[i]);
+      }
+      // Mantém quaisquer labels extras com mapeamento antigo
+      for (const [k, v] of map.entries()) {
+        if (!newMap.has(k)) newMap.set(k, v);
+      }
+      map.clear();
+      for (const [k, v] of newMap.entries()) map.set(k, v);
+    }
+  }
+
   const remap = (rows: ParsedFinancialData["balanco"]) =>
     rows.map((r) => {
       const newValues: Record<string, number> = {};
