@@ -559,7 +559,8 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
         const below = (jsonData[i + 1]?.[j] ?? "") as unknown;
         return `${String(above)} ${String(c)} ${String(below)}`.trim();
       });
-      const monthCols = extractColumnMonths(combined);
+      const monthCols0 = extractColumnMonths(combined, { fileName: file.name });
+      const monthCols = file.name ? reconcileMonthsWithFilename(monthCols0, file.name) : monthCols0;
       if (monthCols.length >= 1) {
         headerRowIdx = i;
         yearColumns = monthCols.map(mc => ({ idx: mc.idx, year: mc.mesKey })); // year aqui já é YYYY-MM
