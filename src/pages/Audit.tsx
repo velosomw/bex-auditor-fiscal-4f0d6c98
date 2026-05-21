@@ -4676,7 +4676,8 @@ const AuditContent = () => {
                 })));
                 const merged = mergeMultiMonth(items);
                 setMultiMonth(merged);
-                setFilteredMonths(defaultLast3(merged));
+                // Auto-validação: pré-seleciona TODOS os meses detectados pelo parser.
+                setFilteredMonths(merged.months.map(m => m.key));
                 setPhase("confirm-months");
               } catch (e) {
                 console.error("Pré-parse falhou:", e);
