@@ -232,6 +232,8 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
 
 function finalize(r: BSDadosRow): BSDadosRow {
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
+  // Resultado derivado da DRE (cmv/despesas já negativos) — evita dupla contagem do PL.
+  r.resultado = r.receita_liquida + r.cmv + r.despesas;
   r.hasReceita = r.receita_liquida > 0;
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
