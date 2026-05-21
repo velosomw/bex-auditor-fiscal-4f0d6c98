@@ -242,6 +242,36 @@ function finalize(r: BSDadosRow): BSDadosRow {
 }
 
 // ─── Núcleo: build + enrich (espelha MD §4 e §5) ─────────
+
+/**
+ * Remove contas sintéticas (pais) quando existe ao menos uma folha do mesmo
+ * ramo no balancete. Evita dupla contagem hierárquica
+ * (ex.: 7 + 71 + 711 + 711010 + 7110100017 → mantém apenas 7110100017).
+ */
+function pruneParents(linhas: InputLinha[]): InputLinha[] {
+  const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
+  const codes = linhas.map(l => normCode(l.conta));
+  const codeSet = new Set(codes.filter(Boolean));
+  const parents = new Set<string>();
+  for (const c of codeSet) {
+    for (const other of codeSet) {
+      if (other.length > c.length && other.startsWith(c)) {
+        const next = other.charAt(c.length);
+        // Continuação hierárquica: próximo char é dígito ou '.', ou pai termina em '.'
+        if (/[0-9.]/.test(next) || c.endsWith(".")) {
+          parents.add(c);
+          break;
+        }
+      }
+    }
+  }
+  return linhas.filter(l => {
+    const c = normCode(l.conta);
+    if (!c) return true; // linha sem código (descrição apenas) — mantém
+    return !parents.has(c);
+  });
+}
+
 function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, Buckets>();
@@ -261,13 +291,13 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     }
     if (dup[mesKey] > 1) {
       const r = rowsByMes.get(mesKey)!;
-      // Regra determinística: SOMA valores (balancetes complementares) + alerta com count.
       const msg = `Mês duplicado entre balancetes (×${dup[mesKey]}) — valores somados`;
       if (!r.errors.includes(msg)) r.errors.push(msg);
     }
     const row = rowsByMes.get(mesKey)!;
     const buckets = bucketsByMes.get(mesKey)!;
-    for (const linha of (b.linhas || [])) {
+    const linhasLeaf = pruneParents(b.linhas || []);
+    for (const linha of linhasLeaf) {
       const key = resolveKey(linha);
       if (!key) continue;
       applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? inferRefByCode(linha.conta), buckets);

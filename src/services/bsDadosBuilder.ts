@@ -342,7 +342,25 @@ export function buildBSDados(
     ...((parsed.balanco ?? []) as any[]),
   ];
 
-  for (const row of allRows) {
+  // ── Prune de contas sintéticas (pais) para evitar dupla contagem ─────
+  // Se existe 7110100017, então 7 / 71 / 711 / 711010 são pais e devem ser ignorados.
+  const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
+  const allCodes = new Set(allRows.map(r => normCode(r.conta)).filter(Boolean));
+  const parentCodes = new Set<string>();
+  for (const c of allCodes) {
+    for (const other of allCodes) {
+      if (other.length > c.length && other.startsWith(c)) {
+        const next = other.charAt(c.length);
+        if (/[0-9.]/.test(next) || c.endsWith(".")) { parentCodes.add(c); break; }
+      }
+    }
+  }
+  const leafRows = allRows.filter(r => {
+    const c = normCode(r.conta);
+    return !c || !parentCodes.has(c);
+  });
+
+  for (const row of leafRows) {
     const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta) ?? null;
     const valuesObj = row.values || {};
     const periodKeys = Object.keys(valuesObj);
@@ -376,6 +394,10 @@ export function buildBSDados(
       }
     }
   }
+
+  // (legado: variável allRows mantida para o bloco abaixo)
+  void leafRows;
+
 
   // Marca meses sem dados reais quando o parser só extraiu 1 período
   if (allRows.length > 0) {
