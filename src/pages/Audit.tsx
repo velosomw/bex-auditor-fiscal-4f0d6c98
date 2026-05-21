@@ -926,7 +926,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
             const periods = parsedData?.years ?? [];
             const userMeses = (balanceteEntries || [])
               .map(e => e.mesReferencia)
-              .filter((k): k is string => !!k);
+              // CRÍTICO: "auto" não é um mês — sinaliza que o usuário pediu auto-detecção.
+              // Filtra para que o fallback (range do filename → colunas do XLSX) seja usado.
+              .filter((k): k is string => !!k && k !== "auto" && /^\d{4}-(0[1-9]|1[0-2])$/.test(k));
 
             // PRIORIDADE de fonte da verdade para a lista de meses:
             //  1) meses confirmados pelo usuário no MonthsConfirmDialog
