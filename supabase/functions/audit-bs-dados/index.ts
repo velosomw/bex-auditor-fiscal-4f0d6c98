@@ -882,6 +882,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Sustenta os inserts diferidos após o response retornar.
+    if (backgroundTasks.length > 0) {
+      try {
+        // @ts-ignore — EdgeRuntime é injetado pelo Supabase Edge Runtime
+        (globalThis as any).EdgeRuntime?.waitUntil?.(Promise.all(backgroundTasks));
+      } catch { /* sem suporte ao waitUntil — ignora */ }
+    }
+
     return new Response(JSON.stringify({ bsDados, indicadores, kanitz, insights: insightsObj, summary, persisted, audit_id: auditId }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
