@@ -696,20 +696,33 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                               </Select>
                             )}
                           </div>
-                          {/* Prévia inline dos meses detectados pelo nome do arquivo */}
+                          {/* Prévia inline: combina detecção pelo nome do arquivo + leitura dos cabeçalhos do XLSX */}
                           {isAuto && (() => {
-                            const detected = detectMonthRangeFromFilename(f.fileName);
+                            const fromName = detectMonthRangeFromFilename(f.fileName);
+                            const preview = filePreview[f.id];
+                            const fromHeaders = preview?.months || [];
+                            // Prioriza headers (mais confiável); cai para filename
+                            const detected = fromHeaders.length > 0 ? fromHeaders : fromName;
+                            const origem = fromHeaders.length > 0 ? "colunas da planilha" : "nome do arquivo";
+
+                            if (preview?.loading) {
+                              return (
+                                <div className="mt-2 text-[10px] text-muted-foreground bg-muted/40 border border-border rounded px-2 py-1.5">
+                                  ⏳ Lendo cabeçalhos da planilha…
+                                </div>
+                              );
+                            }
                             if (detected.length === 0) {
                               return (
                                 <div className="mt-2 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                                  ⚠️ Não foi possível detectar período pelo nome. Os meses serão lidos das colunas da planilha durante o processamento.
+                                  ℹ️ Nenhum período detectado automaticamente. Os meses serão extraídos no processamento — ou selecione manualmente acima.
                                 </div>
                               );
                             }
                             return (
                               <div className="mt-2 space-y-1">
                                 <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide">
-                                  {detected.length} {detected.length === 1 ? "mês detectado" : "meses detectados"} no arquivo:
+                                  {detected.length} {detected.length === 1 ? "mês detectado" : "meses detectados"} ({origem}):
                                 </p>
                                 <div className="flex flex-wrap gap-1">
                                   {detected.map(m => (
