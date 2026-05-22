@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Check, X, Sparkles, Crown } from "lucide-react";
-import Layout from "@/components/Layout";
+import { Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
