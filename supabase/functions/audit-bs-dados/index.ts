@@ -409,7 +409,7 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
           if (curr >= prev * 1.02) monotonicPairs++;
         }
       }
-      // Critério: >= 80% dos pares válidos crescem (forte sinal de YTD acumulado)
+      // FIX #2 — Critério: >= 80% pares crescem (forte sinal YTD acumulado).
       if (totalPairs >= 2 && monotonicPairs / totalPairs >= 0.8) {
         const original = group.map(g => g[k] as number);
         for (let i = group.length - 1; i >= 1; i--) {
@@ -421,6 +421,7 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
           }
           r.ytd_desacumulado = true;
         }
+        console.log(`[desacumularDRE] YTD aplicado: chave=${k} ano=${group[0].mesKey.slice(0,4)} meses=${group.length} pares=${monotonicPairs}/${totalPairs}`);
       }
     }
     // Recalcula resultado pós-desacumulação
