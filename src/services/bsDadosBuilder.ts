@@ -514,33 +514,23 @@ export function buildBSDados(
     }
   }
 
-  // Se balancete não trouxe linha totalizadora "ATIVO/PASSIVO CIRCULANTE",
-  // usa a soma dos componentes (Refs A..O / AA..II1) como derivado.
-  for (const [mesKey, target] of rowsByMes) {
-    const b = bucketsByMes.get(mesKey)!;
-    if (!b.sawACTotal && b.ac > 0) target.ativo_circulante = b.ac;
-    if (!b.sawPCTotal && b.pc > 0) target.passivo_circulante = b.pc;
-  }
+  // Derivação de totais AC/PC/ANC/PNC/PL agora vive em finalize() — bloco anterior removido.
 
   const sortedRows = Array.from(rowsByMes.values())
     .map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
 
   // ── AJUSTE DE ACUMULADO (Mês vs Acumulado Ano) ──
-  // Conforme solicitado: Contas de resultado (Grupos 3 a 8) zeram no final do ano.
-  // Se o mês N e N-1 são do mesmo ano, o valor do mês N = Saldo(N) - Saldo(N-1).
-  // IMPORTANTE: Este ajuste só deve ser aplicado se os dados extraídos forem ACUMULADOS do ano.
-  // Se forem dados mensais puros (Delta), a subtração geraria valores incorretos.
-  // Heurística de Acumulado: se a receita do mês N é significativamente maior (>30%) que a do mês N-1 em todos os meses,
-  // ou se todos os meses subsequentes apresentam crescimento na receita líquida, assumimos que os dados estão acumulados.
+  // Contas de resultado (DRE) zeram no fim do ano. Se mês N e N-1 são do mesmo ano,
+  // valor mensal = Saldo(N) − Saldo(N-1). Heurística: receita monotonicamente crescente
+  // dentro do mesmo ano → balancete é YTD acumulado.
   let isAccumulated = false;
   if (sortedRows.length > 1) {
     let consistentIncrease = 0;
     for (let i = 1; i < sortedRows.length; i++) {
-      // Verifica se houve aumento consistente na Receita Líquida (característica de acumulado ano)
-      if (sortedRows[i].receita_liquida >= sortedRows[i-1].receita_liquida) consistentIncrease++;
+      const sameYear = sortedRows[i].mesKey.split("-")[0] === sortedRows[i-1].mesKey.split("-")[0];
+      if (sameYear && sortedRows[i].receita_liquida >= sortedRows[i-1].receita_liquida) consistentIncrease++;
     }
-    // Se mais de 75% dos meses apresentam crescimento ou estabilidade na receita, tratamos como acumulado
     if (consistentIncrease >= (sortedRows.length - 1) * 0.75) isAccumulated = true;
   }
 
@@ -548,21 +538,23 @@ export function buildBSDados(
     for (let i = sortedRows.length - 1; i > 0; i--) {
       const current = sortedRows[i];
       const previous = sortedRows[i - 1];
-      
       const currentYear = current.mesKey.split("-")[0];
       const previousYear = previous.mesKey.split("-")[0];
-      
-      if (currentYear === previousYear) {
-        current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
-        current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
-        current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
-        current.resultado = current.resultado - previous.resultado;
-      }
+      if (currentYear !== previousYear) continue;
+      current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
+      current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
+      current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
+      current.despesas_financeiras = -(Math.abs(current.despesas_financeiras) - Math.abs(previous.despesas_financeiras));
+      current.depreciacao = -(Math.abs(current.depreciacao) - Math.abs(previous.depreciacao));
+      current.amortizacao = -(Math.abs(current.amortizacao) - Math.abs(previous.amortizacao));
+      // Resultado re-derivado pós-ajuste
+      current.resultado = current.receita_liquida + current.cmv + current.despesas + current.despesas_financeiras;
     }
   }
 
   return sortedRows;
 }
+
 
 // ─── INDICADORES DERIVADOS ───────────────────────────────
 const safeDiv = (a: number, b: number): number | null =>
