@@ -516,6 +516,32 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
       });
       return next;
     });
+    // Pré-parse leve: lê apenas o cabeçalho do XLSX para detectar colunas mensais
+    newDocs.forEach(async (doc, i) => {
+      const file = filesArr[i];
+      if (!/\.(xlsx|xls|xlsm|xlsb|xltx|xltm)$/i.test(file.name)) return;
+      setFilePreview(prev => ({ ...prev, [doc.id]: { loading: true, months: [] } }));
+      try {
+        const buf = await file.arrayBuffer();
+        const { sheetNames, sheetToMatrix } = await readWorkbook(buf);
+        let best: Array<{ idx: number; mesKey: string; label: string }> = [];
+        for (const name of sheetNames) {
+          const matrix = sheetToMatrix(name);
+          // Procura a linha de cabeçalho nas primeiras 15 linhas
+          for (let r = 0; r < Math.min(15, matrix.length); r++) {
+            const cols = extractColumnMonths(matrix[r] || [], { fileName: file.name });
+            if (cols.length > best.length) best = cols;
+            if (best.length >= 3) break;
+          }
+          if (best.length >= 3) break;
+        }
+        const reconciled = reconcileMonthsWithFilename(best, file.name);
+        const months = reconciled.map(c => ({ key: c.mesKey, label: c.label }));
+        setFilePreview(prev => ({ ...prev, [doc.id]: { loading: false, months } }));
+      } catch (err) {
+        setFilePreview(prev => ({ ...prev, [doc.id]: { loading: false, months: [], error: String((err as Error)?.message || err) } }));
+      }
+    });
   };
 
   const removeFile = (id: string) => {
