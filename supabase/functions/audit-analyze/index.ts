@@ -591,16 +591,19 @@ ${(pipeline.few_shot_examples || []).slice(0, 3).map((ex: any, i: number) => `Ex
       ? deterministicFacts
       : null;
     const factsBlock = facts ? `
-## ⚠️ FATOS DETERMINÍSTICOS — VERDADE CONTÁBIL (NÃO REINTERPRETAR)
+## ⚠️ FATOS DETERMINÍSTICOS — VERDADE CONTÁBIL ABSOLUTA (NÃO REINTERPRETAR)
 Estes valores foram consolidados pelo motor matemático BEx a partir do balancete bruto.
-São NÃO-NEGOCIÁVEIS. NUNCA invente Passivo, PL ou Resultado diferentes destes.
+São **NÃO-NEGOCIÁVEIS**. NUNCA invente Passivo Total, PL ou Resultado diferentes destes.
 Se um indicador depender de Passivo Total ou PL e estes não constarem aqui, marque como "não calculável" — NÃO chute.
+**PROIBIDO**: retornar diagnostico.estruturaFinanceira.passivo_total, patrimonio_liquido, ativo_total, resultado, receita_liquida com valores diferentes destes (tolerância 1%).
 
 ${facts.bsDados.map((r: any) => (
 `### ${r.mes} (${r.mesKey})
 - Receita Líquida: ${Number(r.receita_liquida).toFixed(2)}
 - CMV: ${Number(r.cmv).toFixed(2)} | Despesas: ${Number(r.despesas).toFixed(2)} | Resultado: ${Number(r.resultado).toFixed(2)}
-- Ativo Circulante: ${Number(r.ativo_circulante).toFixed(2)} | Passivo Circulante: ${Number(r.passivo_circulante).toFixed(2)}
+- Ativo Circulante: ${Number(r.ativo_circulante).toFixed(2)} | Ativo Não Circulante: ${Number(r.ativo_nao_circulante ?? 0).toFixed(2)} | **Ativo Total: ${Number(r.ativo_total ?? (r.ativo_circulante + (r.ativo_nao_circulante ?? 0))).toFixed(2)}**
+- Passivo Circulante: ${Number(r.passivo_circulante).toFixed(2)} | Passivo Não Circulante: ${Number(r.passivo_nao_circulante ?? 0).toFixed(2)} | **Passivo Total: ${Number(r.passivo_total ?? (r.passivo_circulante + (r.passivo_nao_circulante ?? 0))).toFixed(2)}**
+- **Patrimônio Líquido: ${Number(r.patrimonio_liquido ?? 0).toFixed(2)}**
 - Estoques: ${Number(r.estoques).toFixed(2)} | Disponível: ${Number(r.disponivel).toFixed(2)}
 - Dívida Financeira: ${Number(r.divida_financeira).toFixed(2)} | Tributária: ${Number(r.divida_tributaria).toFixed(2)} | Trabalhista: ${Number(r.divida_trabalhista).toFixed(2)}
 - Fornecedores: ${Number(r.fornecedores).toFixed(2)} | Credores RJ: ${Number(r.credores_rj).toFixed(2)} | Dívida Total: ${Number(r.divida_total).toFixed(2)}`
@@ -608,6 +611,8 @@ ${facts.bsDados.map((r: any) => (
 
 ${Array.isArray(facts.indicadores) && facts.indicadores.length > 0 ? `### Indicadores determinísticos (use estes valores diretamente)
 ${facts.indicadores.map((i: any) => `- ${i.mes}: LC=${i.liquidezCorrente ?? "—"} | LS=${i.liquidezSeca ?? "—"} | LI=${i.liquidezImediata ?? "—"} | CMV%=${i.cmvPercent ?? "—"} | Resultado%=${i.resultadoPercent ?? "—"}`).join("\n")}` : ""}
+${Array.isArray(facts.kanitz) && facts.kanitz.length > 0 ? `### Kanitz determinístico (use estes valores — não recalcule)
+${facts.kanitz.map((k: any) => `- ${k.mesKey}: K=${k.score} (${k.rating})`).join("\n")}` : ""}
 ` : "";
 
     const userPrompt = `Analise os seguintes dados financeiros usando a pipeline multi-agente (Estruturador → Auditor → Risk Engine → Gerador):
@@ -682,12 +687,37 @@ Execute os 4 agentes em sequência e gere a análise completa conforme a estrutu
       metadata: { model: "gemini-3-flash-preview", phase: "insight", empresa: (documentInfo as any)?.empresa ?? null, cache: cacheStats },
     });
 
+    // FIX #5 — Sanity check: sobrescreve campos contábeis se IA contradisse fatos
+    if (facts && analysis?.diagnostico?.estruturaFinanceira) {
+      const ultimo = facts.bsDados[facts.bsDados.length - 1];
+      if (ultimo) {
+        const ef = analysis.diagnostico.estruturaFinanceira;
+        const tol = 0.01; // 1%
+        const diverges = (a: number, b: number) =>
+          Math.abs(b) > 1 && Math.abs((Number(a) - b) / b) > tol;
+        const ativoTotal = Number(ultimo.ativo_total ?? (ultimo.ativo_circulante + (ultimo.ativo_nao_circulante ?? 0)));
+        const passivoTotal = Number(ultimo.passivo_total ?? (ultimo.passivo_circulante + (ultimo.passivo_nao_circulante ?? 0)));
+        const pl = Number(ultimo.patrimonio_liquido ?? 0);
+        const overrides: string[] = [];
+        if (diverges(ef.ativo_total, ativoTotal)) { ef.ativo_total = ativoTotal; overrides.push("ativo_total"); }
+        if (diverges(ef.passivo_total, passivoTotal)) { ef.passivo_total = passivoTotal; overrides.push("passivo_total"); }
+        if (diverges(ef.patrimonio_liquido, pl)) { ef.patrimonio_liquido = pl; overrides.push("patrimonio_liquido"); }
+        if (diverges(ef.receita_liquida, ultimo.receita_liquida)) { ef.receita_liquida = ultimo.receita_liquida; overrides.push("receita_liquida"); }
+        if (diverges(ef.lucro_liquido, ultimo.resultado)) { ef.lucro_liquido = ultimo.resultado; overrides.push("lucro_liquido"); }
+        if (overrides.length > 0) {
+          analysis._sanity_override = { campos: overrides, motivo: "IA contradisse fatos determinísticos; valores substituídos pelo motor matemático" };
+          console.warn("[audit-analyze] sanity override:", overrides);
+        }
+      }
+    }
+
     console.log("Multi-agent analysis complete:", {
       hasDiagnostico: !!analysis.diagnostico,
       pendencias: (analysis.pendencias as any[])?.length || 0,
       hasKanitz: !!analysis.kanitz,
       hasScoreRJ: !!analysis.scoreRJ,
       alertasIA: (analysis.alertasIA as any[])?.length || 0,
+      sanityOverride: !!analysis._sanity_override,
     });
 
     return new Response(JSON.stringify({ analysis, cacheStats }), {

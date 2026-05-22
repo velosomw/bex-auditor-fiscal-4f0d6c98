@@ -52,6 +52,11 @@ interface BSDadosRow {
   resultado: number;
   ativo_circulante: number;
   passivo_circulante: number;
+  ativo_nao_circulante: number;     // FIX #3
+  passivo_nao_circulante: number;   // FIX #3
+  patrimonio_liquido: number;       // FIX #3
+  ativo_total: number;              // FIX #3
+  passivo_total: number;            // FIX #3
   estoques: number;
   disponivel: number;
   divida_tributaria: number;
@@ -63,6 +68,7 @@ interface BSDadosRow {
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
+  ytd_desacumulado?: boolean;
 }
 interface BSIndicators {
   mes: string;
@@ -73,6 +79,15 @@ interface BSIndicators {
   liquidezCorrente: number | null;
   liquidezSeca: number | null;
   liquidezImediata: number | null;
+}
+interface KanitzRow {
+  mesKey: string;
+  ativo_total: number;
+  patrimonio_liquido: number;
+  x1: number; x2: number; x3: number; x4: number; x5: number;
+  score: number;
+  rating: string;
+  insight: string;
 }
 
 // ─── Constantes (espelham bsDadosBuilder.ts) ─────────────
@@ -185,6 +200,8 @@ function emptyRow(mesKey: string): BSDadosRow {
     mes: mesKeyToLabel(mesKey), mesKey,
     receita_liquida: 0, cmv: 0, despesas: 0, resultado: 0,
     ativo_circulante: 0, passivo_circulante: 0,
+    ativo_nao_circulante: 0, passivo_nao_circulante: 0,
+    patrimonio_liquido: 0, ativo_total: 0, passivo_total: 0,
     estoques: 0, disponivel: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, divida_total: 0,
@@ -205,7 +222,19 @@ function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   return null;
 }
 
-interface Buckets { ac: number; pc: number; sawACTotal: boolean; sawPCTotal: boolean }
+// FIX #3 — Buckets estendidos: trackeia ANC, PNC, PL via ref1 para Kanitz
+interface Buckets {
+  ac: number; pc: number;
+  anc: number; pnc: number; pl: number;
+  sawACTotal: boolean; sawPCTotal: boolean;
+}
+
+// ANC = P..J1 (15 refs do MD §2.2)
+const ANC_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z","A1","B1","C1","D1","E1","F1","G1","H1","I1","J1"]);
+// PNC = PP..FF1 (§2.4)
+const PNC_REFS = new Set(["PP","QQ","RR","SS","TT","UU","VV","WW","XX","YY","ZZ","A1A","B1A","C1A","D1A","E1A","F1A","AA1","BB1","CC1A","DD1","EE1","FF1"]);
+// PL = GG1, HH1 + "Resultado" (§2.5)
+const PL_REFS = new Set(["GG1","HH1","RESULTADO_EXERCICIO"]);
 
 function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: string | null | undefined, b: Buckets) {
   if (!Number.isFinite(v)) return;
@@ -228,12 +257,17 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
   const refUp = ref1 ? upper(ref1) : "";
   if (refUp && AC_REFS.has(refUp)) b.ac += Math.abs(v);
   else if (refUp && PC_REFS.has(refUp)) b.pc += Math.abs(v);
+  else if (refUp && ANC_REFS.has(refUp)) b.anc += Math.abs(v);
+  else if (refUp && PNC_REFS.has(refUp)) b.pnc += Math.abs(v);
+  else if (refUp && PL_REFS.has(refUp)) b.pl += v; // PL preserva sinal
 }
 
 function finalize(r: BSDadosRow): BSDadosRow {
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
   // Resultado derivado da DRE (cmv/despesas já negativos) — evita dupla contagem do PL.
   r.resultado = r.receita_liquida + r.cmv + r.despesas;
+  r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
+  r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
   r.hasReceita = r.receita_liquida > 0;
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
@@ -241,13 +275,30 @@ function finalize(r: BSDadosRow): BSDadosRow {
   return r;
 }
 
-// ─── Núcleo: build + enrich (espelha MD §4 e §5) ─────────
-
 /**
- * Remove contas sintéticas (pais) quando existe ao menos uma folha do mesmo
- * ramo no balancete. Evita dupla contagem hierárquica
- * (ex.: 7 + 71 + 711 + 711010 + 7110100017 → mantém apenas 7110100017).
+ * FIX #1 (DEFINITIVO) — Prune hierárquico robusto.
+ * Combina:
+ *  (a) detecção de pais por código com separador "." OU contínuo numérico
+ *  (b) filtro de descrições sintéticas/totalizadoras conhecidas
  */
+const SYNTHETIC_DESC_PATTERNS: RegExp[] = [
+  /^ativo$/i, /^ativo\s+(circulante|n[aã]o\s+circulante|total|realiz[aá]vel)/i,
+  /^passivo$/i, /^passivo\s+(circulante|n[aã]o\s+circulante|total|exig[ií]vel)/i,
+  /^patrim[oô]nio\s+l[ií]quido$/i,
+  /^total\s+do?\s+(ativo|passivo|patrim[oô]nio|circulante|n[aã]o\s+circulante)/i,
+  /^total\s+geral/i, /^subtotal/i, /^totaliza/i,
+  /^demonstra[çc][aã]o\s+de?\s+resultado/i, /^demonstrativo\s+de?\s+resultado/i, /^dre$/i,
+  /^receita\s+(bruta|l[ií]quida|total|operacional)$/i,
+  /^despesa\s+(total|operacional)$/i,
+  /^resultado\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+  /^lucro\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+];
+function isSyntheticDesc(desc?: string): boolean {
+  const d = String(desc || "").trim();
+  if (!d) return false;
+  return SYNTHETIC_DESC_PATTERNS.some(p => p.test(d));
+}
+
 function pruneParents(linhas: InputLinha[]): InputLinha[] {
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
   const codes = linhas.map(l => normCode(l.conta));
@@ -257,26 +308,76 @@ function pruneParents(linhas: InputLinha[]): InputLinha[] {
     for (const other of codeSet) {
       if (other.length > c.length && other.startsWith(c)) {
         const next = other.charAt(c.length);
-        // Continuação hierárquica: próximo char é dígito ou '.', ou pai termina em '.'
-        if (/[0-9.]/.test(next) || c.endsWith(".")) {
-          parents.add(c);
-          break;
-        }
+        if (/[0-9.]/.test(next) || c.endsWith(".")) { parents.add(c); break; }
       }
     }
   }
   return linhas.filter(l => {
     const c = normCode(l.conta);
-    if (!c) return true; // linha sem código (descrição apenas) — mantém
+    // Remove descrições sintéticas mesmo quando sem código
+    if (isSyntheticDesc(l.descricao)) return false;
+    if (!c) return true;
     return !parents.has(c);
   });
+}
+
+/**
+ * FIX #2 — Desacumular DRE quando os valores aparecem como saldo YTD.
+ * Heurística:
+ *  - Para cada chave de DRE (receita_liquida, cmv, despesas), olhar a série mensal
+ *    DENTRO do mesmo ano-civil ordenada por mesKey.
+ *  - Se |valor(mês_n)| > |valor(mês_(n-1))| em 2+ pares consecutivos do mesmo ano,
+ *    considerar acumulado. Aplica differencing: novo_n = bruto_n - bruto_(n-1).
+ *  - Mês de janeiro nunca é desacumulado (é o ponto de partida do exercício).
+ *  - Reset entre anos preservado.
+ */
+function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
+  if (rows.length < 2) return rows;
+  const sorted = [...rows].sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas"> = ["receita_liquida", "cmv", "despesas"];
+  // Agrupar por ano
+  const byYear = new Map<string, BSDadosRow[]>();
+  for (const r of sorted) {
+    const y = r.mesKey.slice(0, 4);
+    if (!byYear.has(y)) byYear.set(y, []);
+    byYear.get(y)!.push(r);
+  }
+  for (const [, group] of byYear) {
+    if (group.length < 2) continue;
+    for (const k of dreKeys) {
+      // Detecta monotonia crescente em valor absoluto (sinal típico de YTD)
+      let monotonicPairs = 0;
+      for (let i = 1; i < group.length; i++) {
+        const prev = Math.abs(group[i - 1][k] as number);
+        const curr = Math.abs(group[i][k] as number);
+        if (prev > 0 && curr > prev * 1.15) monotonicPairs++;
+      }
+      // Se a maioria dos pares cresce significativamente → YTD
+      if (monotonicPairs >= Math.max(2, Math.floor((group.length - 1) * 0.6))) {
+        const original = group.map(g => g[k] as number);
+        for (let i = group.length - 1; i >= 1; i--) {
+          (group[i] as any)[k] = original[i] - original[i - 1];
+        }
+        for (const r of group) {
+          if (!r.errors.includes(`DRE.${k} desacumulada (YTD detectado)`)) {
+            r.errors.push(`DRE.${k} desacumulada (YTD detectado)`);
+          }
+          r.ytd_desacumulado = true;
+        }
+      }
+    }
+    // Recalcula resultado pós-desacumulação
+    for (const r of group) {
+      r.resultado = r.receita_liquida + r.cmv + r.despesas;
+    }
+  }
+  return sorted;
 }
 
 function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, Buckets>();
 
-  // Detecta duplicatas
   const dup: Record<string, number> = {};
   for (const b of balancetes) {
     const k = periodToMesKey(b.mes);
@@ -287,7 +388,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     const mesKey = periodToMesKey(b.mes);
     if (!rowsByMes.has(mesKey)) {
       rowsByMes.set(mesKey, emptyRow(mesKey));
-      bucketsByMes.set(mesKey, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
+      bucketsByMes.set(mesKey, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false });
     }
     if (dup[mesKey] > 1) {
       const r = rowsByMes.get(mesKey)!;
@@ -304,15 +405,18 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     }
   }
 
-  // Fallback AC/PC pelos componentes quando o totalizador não veio
   for (const [mesKey, row] of rowsByMes) {
     const b = bucketsByMes.get(mesKey)!;
     if (!b.sawACTotal && b.ac > 0) row.ativo_circulante = b.ac;
     if (!b.sawPCTotal && b.pc > 0) row.passivo_circulante = b.pc;
+    row.ativo_nao_circulante = b.anc;
+    row.passivo_nao_circulante = b.pnc;
+    row.patrimonio_liquido = b.pl;
   }
 
-  return Array.from(rowsByMes.values()).map(finalize)
+  const finalized = Array.from(rowsByMes.values()).map(finalize)
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+  return desacumularDRE(finalized);
 }
 
 const safePct = (a: number, b: number): number | null =>
@@ -331,6 +435,67 @@ function enrich(rows: BSDadosRow[]): BSIndicators[] {
     liquidezSeca: safeDiv(r.ativo_circulante - r.estoques, r.passivo_circulante),
     liquidezImediata: safeDiv(r.disponivel, r.passivo_circulante),
   }));
+}
+
+// ─── FIX #3: Kanitz por mês ─────────────────────────────
+function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
+  return rows.map(r => {
+    const AC = r.ativo_circulante;
+    const PC = r.passivo_circulante;
+    const ELP = r.passivo_nao_circulante;
+    const PL = r.patrimonio_liquido;
+    const LL = r.resultado;
+    const RLP = 0;
+    const safe = (n: number, d: number) => (Math.abs(d) < 0.01 ? 0 : n / d);
+    const x1 = safe(LL, PL);
+    const x2 = safe(AC + RLP, PC + ELP);
+    const x3 = safe(AC - r.estoques, PC);
+    const x4 = safe(AC, PC);
+    const x5 = safe(PC + ELP, PL);
+    const score = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
+    let rating = "B - Atenção";
+    let insight = "Faixa de penumbra — monitorar.";
+    if (score > 0) { rating = "A - Solvente"; insight = "Empresa em situação financeira saudável."; }
+    else if (score < -3) { rating = "C - Insolvente"; insight = "Forte indicativo de insolvência."; }
+    return {
+      mesKey: r.mesKey,
+      ativo_total: r.ativo_total,
+      patrimonio_liquido: PL,
+      x1: Number(x1.toFixed(4)), x2: Number(x2.toFixed(4)), x3: Number(x3.toFixed(4)),
+      x4: Number(x4.toFixed(4)), x5: Number(x5.toFixed(4)),
+      score: Number(score.toFixed(4)),
+      rating, insight,
+    };
+  });
+}
+
+// ─── FIX #3: Insights determinísticos compactos ─────────
+function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
+  diagnostico: string; problemas: any[]; riscos: any[]; recomendacoes: any[]; positivos: any[]; tendencia: string;
+} {
+  const ultimo = rows[rows.length - 1];
+  const ultK = kanitz[kanitz.length - 1];
+  const problemas: any[] = [];
+  const riscos: any[] = [];
+  const positivos: any[] = [];
+  const recomendacoes: any[] = [];
+  if (ultimo) {
+    if (ultimo.resultado < 0) problemas.push({ tipo: "resultado_negativo", valor: ultimo.resultado, descricao: "Prejuízo no exercício" });
+    if (ultimo.patrimonio_liquido < 0) riscos.push({ tipo: "passivo_a_descoberto", valor: ultimo.patrimonio_liquido, descricao: "PL negativo" });
+    if (ultimo.passivo_circulante > ultimo.ativo_circulante) riscos.push({ tipo: "liquidez_critica", descricao: "PC > AC" });
+    if (ultK && ultK.score < -3) riscos.push({ tipo: "kanitz_insolvente", valor: ultK.score });
+    if (ultimo.divida_total > 0) problemas.push({ tipo: "endividamento", valor: ultimo.divida_total });
+    if (ultimo.receita_liquida > 0) positivos.push({ tipo: "receita_existente", valor: ultimo.receita_liquida });
+    recomendacoes.push({ acao: "Revisar política de capital de giro" });
+    if (ultimo.patrimonio_liquido < 0) recomendacoes.push({ acao: "Capitalização urgente" });
+  }
+  const tendencia = rows.length >= 2
+    ? (rows[rows.length - 1].resultado < rows[0].resultado ? "deterioracao" : "melhora")
+    : "estavel";
+  const diagnostico = ultK
+    ? `Kanitz=${ultK.score.toFixed(2)} (${ultK.rating}). ${ultK.insight}`
+    : "Análise determinística baseada nos dados consolidados.";
+  return { diagnostico, problemas, riscos, recomendacoes, positivos, tendencia };
 }
 
 // ─── HTTP handler ────────────────────────────────────────
@@ -373,6 +538,8 @@ Deno.serve(async (req) => {
     const balancetes: InputBalancete[] = sanitized;
     const bsDados = buildBSDados(balancetes);
     const indicadores = enrich(bsDados);
+    const kanitz = computeKanitz(bsDados);
+    const insightsObj = computeInsights(bsDados, kanitz);
     const summary = {
       meses: bsDados.length,
       total_linhas: balancetes.reduce((s, b) => s + (b.linhas?.length || 0), 0),
@@ -516,12 +683,39 @@ Deno.serve(async (req) => {
             await supabase.from("indicadores").insert(indRows);
           }
 
+          // 4b. FIX #3 — persiste kanitz_scores
+          const kanitzRows = kanitz.map(k => ({
+            audit_id: auditId,
+            mes: `${k.mesKey}-01`,
+            ativo_total: k.ativo_total,
+            patrimonio_liquido: k.patrimonio_liquido,
+            x1: k.x1, x2: k.x2, x3: k.x3, x4: k.x4, x5: k.x5,
+            score: k.score, rating: k.rating, insight: k.insight,
+          }));
+          if (kanitzRows.length > 0) {
+            const { error: kErr } = await supabase.from("kanitz_scores").insert(kanitzRows);
+            if (kErr) console.warn("kanitz_scores insert warn:", kErr.message);
+          }
+
+          // 4c. FIX #3 — persiste insights determinísticos
+          const { error: iErr } = await supabase.from("insights").insert({
+            audit_id: auditId,
+            diagnostico: insightsObj.diagnostico,
+            problemas: insightsObj.problemas,
+            riscos: insightsObj.riscos,
+            recomendacoes: insightsObj.recomendacoes,
+            positivos: insightsObj.positivos,
+            tendencia: insightsObj.tendencia,
+            generated_by: "deterministic-bs-dados-v2",
+          });
+          if (iErr) console.warn("insights insert warn:", iErr.message);
+
           // 5. log
           await supabase.from("audit_logs").insert({
             audit_id: auditId,
             etapa: "bs_dados.persist",
             status: "ok",
-            payload: { meses: bsDados.length, errors: summary.errors },
+            payload: { meses: bsDados.length, errors: summary.errors, kanitz: kanitzRows.length },
           });
 
           persisted = true;
@@ -531,8 +725,7 @@ Deno.serve(async (req) => {
       }
     }
 
-
-    return new Response(JSON.stringify({ bsDados, indicadores, summary, persisted, audit_id: auditId }), {
+    return new Response(JSON.stringify({ bsDados, indicadores, kanitz, insights: insightsObj, summary, persisted, audit_id: auditId }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
