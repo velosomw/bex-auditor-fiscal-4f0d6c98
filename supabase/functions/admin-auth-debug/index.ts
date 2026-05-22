@@ -30,6 +30,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, id: u.id, email }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    if (action === 'create') {
+      const { email, password, role, full_name } = body;
+      if (!email || !password || !role) return new Response(JSON.stringify({ error: 'email+password+role required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      let u = list.users.find(x => x.email === email);
+      if (!u) {
+        const { data: created, error: cErr } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: full_name || email } });
+        if (cErr) throw cErr;
+        u = created.user!;
+      } else {
+        await admin.auth.admin.updateUserById(u.id, { password, email_confirm: true });
+      }
+      await admin.from('profiles').upsert({ user_id: u.id, full_name: full_name || email }, { onConflict: 'user_id' });
+      const { error: rErr } = await admin.from('user_roles').upsert({ user_id: u.id, role }, { onConflict: 'user_id,role' });
+      if (rErr) throw rErr;
+      return new Response(JSON.stringify({ ok: true, id: u.id, email, role }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     return new Response(JSON.stringify({ error: 'unknown action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e) {
     return new Response(JSON.stringify({ error: String((e as Error).message) }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
