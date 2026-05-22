@@ -143,20 +143,33 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
 export interface BSDadosRow {
   mes: string;            // "Março 2024"
   mesKey: string;         // "2024-03"
+  // DRE (variação mensal após detecção YTD)
   receita_liquida: number;
   cmv: number;
-  despesas: number;
+  despesas: number;             // despesas operacionais (administrativas, comerciais)
+  despesas_financeiras: number; // separado das operacionais
+  depreciacao: number;
+  amortizacao: number;
   resultado: number;
+  // BALANÇO — Ativos
   ativo_circulante: number;
-  passivo_circulante: number;
+  ativo_nao_circulante: number;
   estoques: number;
   disponivel: number;
+  contas_receber: number;       // Ref C (orth.)
+  imobilizado: number;          // Refs C1+D1 (orth.)
+  // BALANÇO — Passivos & PL
+  passivo_circulante: number;
+  passivo_nao_circulante: number;
+  patrimonio_liquido: number;
+  // Componentes de dívida (sempre positivos)
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
   fornecedores: number;
   credores_rj: number;
   divida_total: number;
+  // Flags
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
@@ -187,14 +200,17 @@ export const periodToMesKey = _periodToMesKey;
 function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
-    receita_liquida: 0, cmv: 0, despesas: 0, resultado: 0,
-    ativo_circulante: 0, passivo_circulante: 0,
-    estoques: 0, disponivel: 0,
+    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0,
+    depreciacao: 0, amortizacao: 0, resultado: 0,
+    ativo_circulante: 0, ativo_nao_circulante: 0,
+    estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
+    passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, divida_total: 0,
     hasReceita: false, hasBalanco: false, errors: [],
   };
 }
+
 
 // ─── Núcleo: agrupa linhas (Ref 1) ───────────────────────
 interface RowLike {
