@@ -9,20 +9,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logoBEx from "@/assets/marca_logo_BEx.jpeg";
 
-const generateChallenge = () => {
-  const useSum = Math.random() < 0.5;
-  if (useSum) {
-    const a = Math.floor(Math.random() * 9) + 1;
-    const b = Math.floor(Math.random() * 9) + 1;
-    return { a, b, sym: "+", answer: a + b };
-  }
-  // Subtração com resultado sempre >= 0 (a >= b) para evitar confusão com sinal negativo.
-  let a = Math.floor(Math.random() * 9) + 1;
-  let b = Math.floor(Math.random() * 9) + 1;
-  if (b > a) [a, b] = [b, a];
-  return { a, b, sym: "−", answer: a - b };
-};
-
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -32,8 +18,6 @@ const Login = () => {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
-  const [challenge, setChallenge] = useState(generateChallenge);
-  const [challengeAnswer, setChallengeAnswer] = useState("");
   const navigate = useNavigate();
   const { setRole, authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
 
@@ -73,26 +57,17 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const expected = challenge.answer;
-    const provided = Number(challengeAnswer.trim());
-    if (!challengeAnswer.trim() || Number.isNaN(provided) || provided !== expected) {
-      toast.error("Desafio de verificação incorreto. Tente novamente.");
-      setChallenge(generateChallenge());
-      setChallengeAnswer("");
-      return;
-    }
-
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const normalizedEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
 
 
     if (error) {
       if (error.message.includes("Email not confirmed")) {
         // Registrar tentativa de login com e-mail não confirmado
         await supabase.from("login_attempts").insert({
-          email,
+          email: normalizedEmail,
           status: 'pending_confirmation',
           user_agent: window.navigator.userAgent
         });
@@ -102,14 +77,12 @@ const Login = () => {
       } else {
         // Opcional: registrar outras falhas
         await supabase.from("login_attempts").insert({
-          email,
+          email: normalizedEmail,
           status: 'failed',
           user_agent: window.navigator.userAgent
         });
         toast.error("Credenciais inválidas. Verifique e-mail e senha.");
       }
-      setChallenge(generateChallenge());
-      setChallengeAnswer("");
       setLoading(false);
       return;
     }
@@ -258,38 +231,6 @@ const Login = () => {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(220,15%,55%)] hover:text-[hsl(222,25%,18%)] transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[hsl(220,15%,40%)] text-sm">
-                    Verificação de segurança
-                  </Label>
-                  <div className="flex items-center gap-3">
-                    <div className="px-3 h-10 flex items-center rounded-md bg-[hsl(220,30%,96%)] border border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] font-semibold text-sm whitespace-nowrap select-none">
-                      Quanto é {challenge.a} {challenge.sym} {challenge.b}?
-                    </div>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      value={challengeAnswer}
-                      onChange={(e) => setChallengeAnswer(e.target.value)}
-                      placeholder="Resposta"
-                      className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)] text-[hsl(222,25%,18%)] placeholder:text-[hsl(220,15%,65%)] focus-visible:ring-[hsl(217,91%,50%)]"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setChallenge(generateChallenge());
-                        setChallengeAnswer("");
-                      }}
-                      className="text-xs text-[hsl(217,91%,50%)] hover:underline whitespace-nowrap"
-                      aria-label="Gerar novo desafio"
-                    >
-                      Trocar
                     </button>
                   </div>
                 </div>
