@@ -1648,6 +1648,163 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_invoices: {
+        Row: {
+          abacatepay_billing_id: string | null
+          amount_cents: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          invoice_url: string | null
+          metadata: Json | null
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          pix_copy_paste: string | null
+          pix_qr_code: string | null
+          status: string
+          subscription_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          abacatepay_billing_id?: string | null
+          amount_cents: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          invoice_url?: string | null
+          metadata?: Json | null
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          pix_copy_paste?: string | null
+          pix_qr_code?: string | null
+          status?: string
+          subscription_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          abacatepay_billing_id?: string | null
+          amount_cents?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          invoice_url?: string | null
+          metadata?: Json | null
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          pix_copy_paste?: string | null
+          pix_qr_code?: string | null
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          features: Json
+          monthly_report_limit: number
+          name: string
+          price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          features?: Json
+          monthly_report_limit?: number
+          name: string
+          price_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          features?: Json
+          monthly_report_limit?: number
+          name?: string
+          price_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          abacatepay_customer_id: string | null
+          abacatepay_subscription_id: string | null
+          auto_renew: boolean
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string
+          id: string
+          metadata: Json | null
+          plan_code: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          abacatepay_customer_id?: string | null
+          abacatepay_subscription_id?: string | null
+          auto_renew?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          id?: string
+          metadata?: Json | null
+          plan_code: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          abacatepay_customer_id?: string | null
+          abacatepay_subscription_id?: string | null
+          auto_renew?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          id?: string
+          metadata?: Json | null
+          plan_code?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
