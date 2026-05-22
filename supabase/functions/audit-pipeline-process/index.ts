@@ -670,21 +670,31 @@ export function cleanBalanceteRows<T extends { conta: string; descricao: string;
   if (rows.length === 0) return rows;
 
   // FILTRO 1: hierarquia por código
-  const normalize = (c: string) => String(c || "").trim().replace(/[\s\-]+/g, ".").replace(/\.+/g, ".");
+  // Suporta DOIS layouts:
+  //  (a) código com separador: "1.1.01.001" → pai é prefixo + "."
+  //  (b) código contínuo: "7", "71", "711", "7110100017" → pai é prefixo puro
+  // Sem este suporte (a falha original), balancetes com códigos contínuos
+  // passavam todos os totalizadores adiante e inflavam o ativo em ~10x.
+  const normalize = (c: string) => String(c || "").trim().replace(/\s+/g, "").replace(/\.+$/g, "");
   const codes = rows.map((r) => normalize(r.conta));
-  const hasHierarchy = codes.some((c) => c.includes("."));
+  const codeSet = new Set(codes.filter(Boolean));
   let step1 = rows;
-  if (hasHierarchy) {
-    const codeSet = new Set(codes.filter(Boolean));
+  if (codeSet.size > 0) {
     step1 = rows.filter((r) => {
       const c = normalize(r.conta);
       if (!c) return true;
       for (const other of codeSet) {
-        if (other !== c && other.startsWith(c + ".")) return false;
+        if (other === c || other.length <= c.length) continue;
+        if (!other.startsWith(c)) continue;
+        const sep = other.charAt(c.length);
+        // pai com ponto: "1.1" prefixo de "1.1.01" (sep ".")
+        // pai contínuo: "711" prefixo de "7110" (sep numérico)
+        if (sep === "." || /[0-9]/.test(sep)) return false;
       }
       return true;
     });
   }
+
 
   // FILTRO 2: descrições sintéticas/totalizadoras genéricas
   const SYNTHETIC_PATTERNS = [
