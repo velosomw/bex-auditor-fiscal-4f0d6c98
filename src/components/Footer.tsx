@@ -61,9 +61,12 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Platform Access */}
         <div className="mt-12 pt-8 border-t border-primary-foreground/10">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          <div className="text-center text-xs text-primary-foreground/40">
+            © {new Date().getFullYear()} BEX Auditoria. Todos os direitos reservados.
+          </div>
+        </div>
+
             <span className="text-sm text-primary-foreground/50">Acesso à Plataforma:</span>
             <div className="flex gap-3">
               <Link
