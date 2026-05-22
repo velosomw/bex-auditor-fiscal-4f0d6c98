@@ -413,7 +413,7 @@ export function buildBSDados(
   const orderedKeys = Array.from(new Set(usableMesKeys)).sort();
   orderedKeys.forEach(k => {
     rowsByMes.set(k, emptyRow(k));
-    bucketsByMes.set(k, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
+    bucketsByMes.set(k, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false });
     if (dupSet.has(k)) {
       const r = rowsByMes.get(k)!;
       const count = dupList.find(d => d.mesKey === k)?.count ?? 2;
