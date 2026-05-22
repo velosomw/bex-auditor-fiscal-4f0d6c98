@@ -718,9 +718,12 @@ Deno.serve(async (req) => {
             audit_id: auditId,
             mes: `${k.mesKey}-01`,
             ativo_total: k.ativo_total,
+            passivo_total: k.passivo_total,
             patrimonio_liquido: k.patrimonio_liquido,
             x1: k.x1, x2: k.x2, x3: k.x3, x4: k.x4, x5: k.x5,
             score: k.score, rating: k.rating, insight: k.insight,
+            isg: k.isg, isg_rating: k.isg_rating,
+            modelo_preferencial: k.modelo_preferencial,
           }));
           if (kanitzRows.length > 0) {
             const { error: kErr } = await supabase.from("kanitz_scores").insert(kanitzRows);
