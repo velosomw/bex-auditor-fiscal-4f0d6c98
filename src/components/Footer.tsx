@@ -66,45 +66,8 @@ const Footer = () => {
             © {new Date().getFullYear()} BEX Auditoria. Todos os direitos reservados.
           </div>
         </div>
-
-            <span className="text-sm text-primary-foreground/50">Acesso à Plataforma:</span>
-            <div className="flex gap-3">
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-accent/10 border border-accent/20 text-accent text-sm font-semibold hover:bg-accent/20 transition-colors"
-              >
-                <Shield className="w-4 h-4" />
-                Auditor Chefe
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-primary-foreground/5 border border-primary-foreground/10 text-primary-foreground/70 text-sm font-semibold hover:bg-primary-foreground/10 transition-colors"
-              >
-                <Building2 className="w-4 h-4" />
-                Empresa
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-primary-foreground/5 border border-primary-foreground/10 text-primary-foreground/70 text-sm font-semibold hover:bg-primary-foreground/10 transition-colors"
-              >
-                <User className="w-4 h-4" />
-                Usuário
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-accent/10 border border-accent/20 text-accent text-sm font-semibold hover:bg-accent/20 transition-colors"
-              >
-                <Brain className="w-4 h-4" />
-                Gestor IA
-              </Link>
-            </div>
-          </div>
-
-          <div className="text-center text-xs text-primary-foreground/40">
-            © {new Date().getFullYear()} BEX Auditoria. Todos os direitos reservados.
-          </div>
-        </div>
       </div>
+
     </footer>
   );
 };
