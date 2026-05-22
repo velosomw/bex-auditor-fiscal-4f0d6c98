@@ -507,32 +507,39 @@ function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
     const PNC = r.passivo_nao_circulante;
     const PL = r.patrimonio_liquido;
     const LL = r.resultado;
-    // RLP: usar ANC inteiro como proxy quando não há separação de Imobilizado/Intangível
-    // (alinhado à fórmula da planilha do 1º período: LG = (AC+ANC)/(PC+PNC))
     const RLP = ANC;
     const safe = (n: number, d: number) => (Math.abs(d) < 0.01 ? 0 : n / d);
-    const x1 = safe(LL, PL);                          // RPL
-    const x2 = safe(AC + RLP, PC + PNC);              // LG
-    const x3 = safe(AC - r.estoques, PC);             // LS
-    const x4 = safe(AC, PC);                          // LC
-    const x5 = safe(PC + PNC, PL);                    // GE
-    const score = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
+
+    // FIX #3 — Bloqueio metodológico: Kanitz é INVÁLIDO quando |PL| < 5% do Ativo Total
+    // (denominadores RPL e GE divergem). NBC TA 200 §A20 — ceticismo profissional.
+    const plMin = Math.max(r.ativo_total * 0.05, 1);
+    const kanitzBloqueado = Math.abs(PL) < plMin || r.ativo_total <= 0;
+
+    const x1 = safe(LL, PL);
+    const x2 = safe(AC + RLP, PC + PNC);
+    const x3 = safe(AC - r.estoques, PC);
+    const x4 = safe(AC, PC);
+    const x5 = safe(PC + PNC, PL);
+    const scoreRaw = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
+    const score = kanitzBloqueado ? 0 : scoreRaw;
 
     let rating = "Pré-Insolvência (Penumbra)";
     let insight = "Faixa de penumbra — sinais de fragilidade, monitorar.";
-    if (score > 0) { rating = "Solvente"; insight = "Empresa em situação financeira saudável (TK > 0)."; }
+    if (kanitzBloqueado) {
+      rating = "Bloqueado (PL insuficiente)";
+      insight = `Kanitz não aplicável: |PL|=${Math.abs(PL).toFixed(0)} < 5% do Ativo Total (${r.ativo_total.toFixed(0)}). Use ISG.`;
+      console.log(`[computeKanitz] BLOQUEADO mes=${r.mesKey} |PL|=${Math.abs(PL).toFixed(0)} AT=${r.ativo_total.toFixed(0)}`);
+    } else if (score > 0) { rating = "Solvente"; insight = "Empresa em situação financeira saudável (TK > 0)."; }
     else if (score < -3) { rating = "Insolvência (Falência)"; insight = "Forte indicativo de insolvência (TK < -3)."; }
 
-    // ISG = Ativo Total / Passivo Total (exclui PL)
     const passivoTotal = PC + PNC;
     const isg = safe(r.ativo_total, passivoTotal);
     let isg_rating = "Crítico/Insolvente";
     if (isg >= 1.5) isg_rating = "Excelente/Solvente";
     else if (isg >= 1.0) isg_rating = "Aceitável/Equilíbrio";
 
-    // Quando PL <= 0, Kanitz é metodologicamente inadequado (planilha Giannini, aba ISG):
-    // promove ISG como indicador preferencial da narrativa.
-    const modelo_preferencial: "kanitz" | "isg" = PL <= 0 ? "isg" : "kanitz";
+    // Promove ISG como preferencial quando Kanitz bloqueado OU PL <= 0.
+    const modelo_preferencial: "kanitz" | "isg" = (kanitzBloqueado || PL <= 0) ? "isg" : "kanitz";
 
     return {
       mesKey: r.mesKey,
