@@ -522,8 +522,11 @@ function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
 }
 
 // ─── FIX #3: Insights determinísticos compactos ─────────
+// FIX #6 — Também devolve risk_level e conformidade calculados a partir
+// dos fatos (sem depender do output da IA, evita os "critico/35" travados).
 function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
-  diagnostico: string; problemas: any[]; riscos: any[]; recomendacoes: any[]; positivos: any[]; tendencia: string;
+  diagnostico: string; problemas: any[]; riscos: any[]; recomendacoes: any[]; positivos: any[];
+  tendencia: string; risk_level: "baixo"|"moderado"|"elevado"|"critico"; conformidade: number; risk_score: number;
 } {
   const ultimo = rows[rows.length - 1];
   const ultK = kanitz[kanitz.length - 1];
@@ -544,12 +547,42 @@ function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
   const tendencia = rows.length >= 2
     ? (rows[rows.length - 1].resultado < rows[0].resultado ? "deterioracao" : "melhora")
     : "estavel";
+
+  // FIX #6 — Risk score determinístico (0..100, maior = pior).
+  // Pondera: PL, liquidez, Kanitz/ISG, prejuízo recorrente, endividamento.
+  let risk_score = 0;
+  if (ultimo) {
+    if (ultimo.patrimonio_liquido < 0) risk_score += 35;
+    else if (ultimo.patrimonio_liquido < ultimo.ativo_total * 0.1) risk_score += 15;
+    if (ultimo.passivo_circulante > 0 && ultimo.ativo_circulante / ultimo.passivo_circulante < 1) risk_score += 20;
+    else if (ultimo.passivo_circulante > 0 && ultimo.ativo_circulante / ultimo.passivo_circulante < 1.2) risk_score += 8;
+    if (ultimo.resultado < 0) risk_score += 15;
+    if (ultK) {
+      if (ultK.modelo_preferencial === "isg") {
+        if (ultK.isg < 1.0) risk_score += 20;
+        else if (ultK.isg < 1.5) risk_score += 8;
+      } else {
+        if (ultK.score < -3) risk_score += 20;
+        else if (ultK.score <= 0) risk_score += 10;
+      }
+    }
+    if (rows.length >= 3) {
+      const recentes = rows.slice(-3);
+      const todosPrejuizo = recentes.every(r => r.resultado < 0);
+      if (todosPrejuizo) risk_score += 10;
+    }
+  }
+  risk_score = Math.min(100, risk_score);
+  const risk_level: "baixo"|"moderado"|"elevado"|"critico" =
+    risk_score >= 60 ? "critico" : risk_score >= 35 ? "elevado" : risk_score >= 15 ? "moderado" : "baixo";
+  const conformidade = Math.max(0, Math.round(100 - risk_score));
+
   const diagnostico = ultK
     ? (ultK.modelo_preferencial === "isg"
-        ? `ISG=${ultK.isg.toFixed(4)} (${ultK.isg_rating}). PL negativo — Kanitz inadequado, prevalece Índice de Solvência Geral. Kanitz informativo=${ultK.score.toFixed(2)}.`
-        : `Kanitz=${ultK.score.toFixed(2)} (${ultK.rating}). ISG=${ultK.isg.toFixed(2)} (${ultK.isg_rating}). ${ultK.insight}`)
+        ? `ISG=${ultK.isg.toFixed(4)} (${ultK.isg_rating}). PL negativo — Kanitz inadequado, prevalece Índice de Solvência Geral. Kanitz informativo=${ultK.score.toFixed(2)}. Risco=${risk_level} (${risk_score}/100).`
+        : `Kanitz=${ultK.score.toFixed(2)} (${ultK.rating}). ISG=${ultK.isg.toFixed(2)} (${ultK.isg_rating}). ${ultK.insight} Risco=${risk_level} (${risk_score}/100).`)
     : "Análise determinística baseada nos dados consolidados.";
-  return { diagnostico, problemas, riscos, recomendacoes, positivos, tendencia };
+  return { diagnostico, problemas, riscos, recomendacoes, positivos, tendencia, risk_level, conformidade, risk_score };
 }
 
 // ─── HTTP handler ────────────────────────────────────────
