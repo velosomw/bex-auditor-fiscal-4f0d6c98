@@ -277,6 +277,24 @@ function finalize(r: BSDadosRow): BSDadosRow {
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
   if (r.cmv > 0)     r.errors.push("CMV positivo (deveria ser negativo)");
+
+  // FIX #1 — Sanity guard: Estoques não pode ser ≥ 90% do Ativo Circulante.
+  // Sinaliza classificação inflada (descrições como "Adiantamento p/ Estoque"
+  // ou linhas-pai não podadas sendo somadas no bucket estoques).
+  if (r.estoques > 0 && r.ativo_circulante > 0 && r.estoques / r.ativo_circulante > 0.9) {
+    const before = r.estoques;
+    r.estoques = r.ativo_circulante * 0.7;
+    r.errors.push(`Estoques inflados (${(before/r.ativo_circulante*100).toFixed(1)}% do AC) — cap conservador aplicado a 70%`);
+  }
+
+  // FIX #5 — Sanity guard: divida_total não pode exceder Passivo Total + 10%.
+  // Sinaliza dupla contagem entre buckets de dívida (NN/DD/II1, BB/PP etc.).
+  const passivoEstimado = r.passivo_total > 0 ? r.passivo_total : r.passivo_circulante;
+  if (passivoEstimado > 0 && r.divida_total > passivoEstimado * 1.1) {
+    const before = r.divida_total;
+    r.divida_total = passivoEstimado;
+    r.errors.push(`Dívida total excedia Passivo Total (${before.toFixed(0)} vs ${passivoEstimado.toFixed(0)}) — provável dupla contagem; ajustada`);
+  }
   return r;
 }
 
@@ -350,15 +368,21 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
   for (const [, group] of byYear) {
     if (group.length < 2) continue;
     for (const k of dreKeys) {
-      // Detecta monotonia crescente em valor absoluto (sinal típico de YTD)
+      // FIX #2 — Threshold reduzido (1.02 = 2% de crescimento) e exige
+      // monotonia em TODOS os pares consecutivos do grupo. Crescimento mensal
+      // típico de receita em YTD é 8-15%/mês; 2% pega até casos suaves.
       let monotonicPairs = 0;
+      let totalPairs = 0;
       for (let i = 1; i < group.length; i++) {
         const prev = Math.abs(group[i - 1][k] as number);
         const curr = Math.abs(group[i][k] as number);
-        if (prev > 0 && curr > prev * 1.15) monotonicPairs++;
+        if (prev > 0) {
+          totalPairs++;
+          if (curr >= prev * 1.02) monotonicPairs++;
+        }
       }
-      // Se a maioria dos pares cresce significativamente → YTD
-      if (monotonicPairs >= Math.max(2, Math.floor((group.length - 1) * 0.6))) {
+      // Critério: >= 80% dos pares válidos crescem (forte sinal de YTD acumulado)
+      if (totalPairs >= 2 && monotonicPairs / totalPairs >= 0.8) {
         const original = group.map(g => g[k] as number);
         for (let i = group.length - 1; i >= 1; i--) {
           (group[i] as any)[k] = original[i] - original[i - 1];
@@ -498,8 +522,11 @@ function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
 }
 
 // ─── FIX #3: Insights determinísticos compactos ─────────
+// FIX #6 — Também devolve risk_level e conformidade calculados a partir
+// dos fatos (sem depender do output da IA, evita os "critico/35" travados).
 function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
-  diagnostico: string; problemas: any[]; riscos: any[]; recomendacoes: any[]; positivos: any[]; tendencia: string;
+  diagnostico: string; problemas: any[]; riscos: any[]; recomendacoes: any[]; positivos: any[];
+  tendencia: string; risk_level: "baixo"|"moderado"|"elevado"|"critico"; conformidade: number; risk_score: number;
 } {
   const ultimo = rows[rows.length - 1];
   const ultK = kanitz[kanitz.length - 1];
@@ -520,12 +547,42 @@ function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
   const tendencia = rows.length >= 2
     ? (rows[rows.length - 1].resultado < rows[0].resultado ? "deterioracao" : "melhora")
     : "estavel";
+
+  // FIX #6 — Risk score determinístico (0..100, maior = pior).
+  // Pondera: PL, liquidez, Kanitz/ISG, prejuízo recorrente, endividamento.
+  let risk_score = 0;
+  if (ultimo) {
+    if (ultimo.patrimonio_liquido < 0) risk_score += 35;
+    else if (ultimo.patrimonio_liquido < ultimo.ativo_total * 0.1) risk_score += 15;
+    if (ultimo.passivo_circulante > 0 && ultimo.ativo_circulante / ultimo.passivo_circulante < 1) risk_score += 20;
+    else if (ultimo.passivo_circulante > 0 && ultimo.ativo_circulante / ultimo.passivo_circulante < 1.2) risk_score += 8;
+    if (ultimo.resultado < 0) risk_score += 15;
+    if (ultK) {
+      if (ultK.modelo_preferencial === "isg") {
+        if (ultK.isg < 1.0) risk_score += 20;
+        else if (ultK.isg < 1.5) risk_score += 8;
+      } else {
+        if (ultK.score < -3) risk_score += 20;
+        else if (ultK.score <= 0) risk_score += 10;
+      }
+    }
+    if (rows.length >= 3) {
+      const recentes = rows.slice(-3);
+      const todosPrejuizo = recentes.every(r => r.resultado < 0);
+      if (todosPrejuizo) risk_score += 10;
+    }
+  }
+  risk_score = Math.min(100, risk_score);
+  const risk_level: "baixo"|"moderado"|"elevado"|"critico" =
+    risk_score >= 60 ? "critico" : risk_score >= 35 ? "elevado" : risk_score >= 15 ? "moderado" : "baixo";
+  const conformidade = Math.max(0, Math.round(100 - risk_score));
+
   const diagnostico = ultK
     ? (ultK.modelo_preferencial === "isg"
-        ? `ISG=${ultK.isg.toFixed(4)} (${ultK.isg_rating}). PL negativo — Kanitz inadequado, prevalece Índice de Solvência Geral. Kanitz informativo=${ultK.score.toFixed(2)}.`
-        : `Kanitz=${ultK.score.toFixed(2)} (${ultK.rating}). ISG=${ultK.isg.toFixed(2)} (${ultK.isg_rating}). ${ultK.insight}`)
+        ? `ISG=${ultK.isg.toFixed(4)} (${ultK.isg_rating}). PL negativo — Kanitz inadequado, prevalece Índice de Solvência Geral. Kanitz informativo=${ultK.score.toFixed(2)}. Risco=${risk_level} (${risk_score}/100).`
+        : `Kanitz=${ultK.score.toFixed(2)} (${ultK.rating}). ISG=${ultK.isg.toFixed(2)} (${ultK.isg_rating}). ${ultK.insight} Risco=${risk_level} (${risk_score}/100).`)
     : "Análise determinística baseada nos dados consolidados.";
-  return { diagnostico, problemas, riscos, recomendacoes, positivos, tendencia };
+  return { diagnostico, problemas, riscos, recomendacoes, positivos, tendencia, risk_level, conformidade, risk_score };
 }
 
 // ─── HTTP handler ────────────────────────────────────────

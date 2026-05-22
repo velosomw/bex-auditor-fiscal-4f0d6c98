@@ -21,6 +21,18 @@ export interface BSDadosBalanceteInput {
 export interface BSDadosResponse {
   bsDados: any[];
   indicadores: any[];
+  kanitz?: any[];
+  insights?: {
+    diagnostico: string;
+    problemas: any[];
+    riscos: any[];
+    recomendacoes: any[];
+    positivos: any[];
+    tendencia: string;
+    risk_level?: "baixo" | "moderado" | "elevado" | "critico";
+    conformidade?: number;
+    risk_score?: number;
+  };
   summary: { meses: number; total_linhas: number; errors: number };
   persisted?: boolean;
   audit_id?: string | null;

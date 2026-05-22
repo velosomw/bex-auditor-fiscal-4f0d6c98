@@ -1024,6 +1024,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                   deterministicFacts = {
                     bsDados: (persistResp as any).bsDados,
                     indicadores: (persistResp as any).indicadores ?? [],
+                    kanitz: (persistResp as any).kanitz ?? [],
+                    insights: (persistResp as any).insights ?? null,
                   };
                 }
                 if (!persistResp.persisted) {
@@ -1062,6 +1064,10 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         setCurrentStep(9);
         setProgress(100);
 
+        // FIX #6 — injeta insights determinísticos (risk_level/conformidade calculados a partir dos fatos)
+        if (deterministicFacts?.insights) {
+          (analysis as any).insightsDeterministicos = deterministicFacts.insights;
+        }
         onAnalysisReady(analysis, parsedData);
         setTimeout(onComplete, 500);
       } catch (err) {
@@ -4387,9 +4393,18 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
 
   const persistReport = (variant: "resumido" | "completo") => {
-    const riskLevel = aiAnalysis?.diagnostico?.riskLevel || "moderado";
+    // FIX #6 — Prioriza valores DETERMINÍSTICOS calculados em audit-bs-dados
+    // (insights.risk_level / conformidade / risk_score). Só cai no fallback
+    // baseado em diagnostico.riskLevel da IA quando o determinístico não veio.
+    const det = aiAnalysis?.insightsDeterministicos || aiAnalysis?.insights;
+    const detRiskLevel = det?.risk_level as "baixo"|"moderado"|"elevado"|"critico"|undefined;
+    const detConformidade = typeof det?.conformidade === "number" ? det.conformidade : null;
+    const aiRiskLevel = aiAnalysis?.diagnostico?.riskLevel;
+    const riskLevel = detRiskLevel || aiRiskLevel || "moderado";
     const pendencias = aiAnalysis?.pendencias?.length || 0;
-    const conformidade = riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35;
+    const conformidade = detConformidade ?? (
+      riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35
+    );
     const baseName = (parsedData as any)?.fileName || aiAnalysis?.fileName || "Auditoria";
     const title = variant === "completo"
       ? `Relatório Kanitz - Ref. (${baseName})`
@@ -4719,8 +4734,14 @@ const AuditContent = () => {
     setAiAnalysis(analysis);
     setParsedData(parsed);
     
-    const riskLevel = analysis?.diagnostico?.riskLevel || "moderado";
+    // FIX #6 — usa determinístico quando disponível
+    const det = analysis?.insightsDeterministicos || analysis?.insights;
+    const detRiskLevel = det?.risk_level as "baixo"|"moderado"|"elevado"|"critico"|undefined;
+    const detConformidade = typeof det?.conformidade === "number" ? det.conformidade : null;
+    const riskLevel = detRiskLevel || analysis?.diagnostico?.riskLevel || "moderado";
     const pendencias = analysis?.pendencias?.length || 0;
+    const conformidadeDefault = riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35;
+    const conformidade = detConformidade ?? conformidadeDefault;
     const newBatchId = `batch-${Date.now()}`;
     setBatchId(newBatchId);
     const docs = uploadedFiles.map(f => ({ fileName: f.name, fileSize: f.size, format: getFormat(f) }));
@@ -4732,7 +4753,7 @@ const AuditContent = () => {
       format: getFormat(f),
       date: new Date().toISOString().split("T")[0],
       status: "completed" as const,
-      conformidade: riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35,
+      conformidade,
       riscos: pendencias,
       riskLevel,
       batchId: newBatchId,
