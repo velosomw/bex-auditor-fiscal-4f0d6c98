@@ -347,15 +347,26 @@ function isSyntheticDesc(desc?: string): boolean {
  */
 function pruneParents(linhas: InputLinha[]): InputLinha[] {
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
-  const codes = linhas.map(l => normCode(l.conta));
-  const codeSet = new Set(codes.filter(Boolean));
+  const codeSet = new Set<string>();
+  for (const l of linhas) {
+    const c = normCode(l.conta);
+    if (c) codeSet.add(c);
+  }
+  // PERF — substitui O(n²) por sort + passada linear (O(n log n)).
+  // Marca `c` como pai sse existe `other` no conjunto que começa com `c`
+  // seguido de um separador hierárquico (dígito ou ponto).
+  const sorted = Array.from(codeSet).sort();
   const parents = new Set<string>();
-  for (const c of codeSet) {
-    for (const other of codeSet) {
-      if (other.length > c.length && other.startsWith(c)) {
-        const next = other.charAt(c.length);
-        if (/[0-9.]/.test(next) || c.endsWith(".")) { parents.add(c); break; }
-      }
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const c = sorted[i];
+    // Após o sort, qualquer descendente de `c` aparece imediatamente após.
+    // Varremos enquanto o prefixo bater.
+    for (let j = i + 1; j < sorted.length; j++) {
+      const other = sorted[j];
+      if (!other.startsWith(c)) break;
+      if (other.length === c.length) continue;
+      const next = other.charAt(c.length);
+      if (/[0-9.]/.test(next) || c.endsWith(".")) { parents.add(c); break; }
     }
   }
   const before = linhas.length;
