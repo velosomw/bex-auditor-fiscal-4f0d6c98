@@ -266,6 +266,8 @@ function finalize(r: BSDadosRow): BSDadosRow {
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
   // Resultado derivado da DRE (cmv/despesas já negativos) — evita dupla contagem do PL.
   r.resultado = r.receita_liquida + r.cmv + r.despesas;
+  r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
+  r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
   r.hasReceita = r.receita_liquida > 0;
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
@@ -273,13 +275,30 @@ function finalize(r: BSDadosRow): BSDadosRow {
   return r;
 }
 
-// ─── Núcleo: build + enrich (espelha MD §4 e §5) ─────────
-
 /**
- * Remove contas sintéticas (pais) quando existe ao menos uma folha do mesmo
- * ramo no balancete. Evita dupla contagem hierárquica
- * (ex.: 7 + 71 + 711 + 711010 + 7110100017 → mantém apenas 7110100017).
+ * FIX #1 (DEFINITIVO) — Prune hierárquico robusto.
+ * Combina:
+ *  (a) detecção de pais por código com separador "." OU contínuo numérico
+ *  (b) filtro de descrições sintéticas/totalizadoras conhecidas
  */
+const SYNTHETIC_DESC_PATTERNS: RegExp[] = [
+  /^ativo$/i, /^ativo\s+(circulante|n[aã]o\s+circulante|total|realiz[aá]vel)/i,
+  /^passivo$/i, /^passivo\s+(circulante|n[aã]o\s+circulante|total|exig[ií]vel)/i,
+  /^patrim[oô]nio\s+l[ií]quido$/i,
+  /^total\s+do?\s+(ativo|passivo|patrim[oô]nio|circulante|n[aã]o\s+circulante)/i,
+  /^total\s+geral/i, /^subtotal/i, /^totaliza/i,
+  /^demonstra[çc][aã]o\s+de?\s+resultado/i, /^demonstrativo\s+de?\s+resultado/i, /^dre$/i,
+  /^receita\s+(bruta|l[ií]quida|total|operacional)$/i,
+  /^despesa\s+(total|operacional)$/i,
+  /^resultado\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+  /^lucro\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+];
+function isSyntheticDesc(desc?: string): boolean {
+  const d = String(desc || "").trim();
+  if (!d) return false;
+  return SYNTHETIC_DESC_PATTERNS.some(p => p.test(d));
+}
+
 function pruneParents(linhas: InputLinha[]): InputLinha[] {
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
   const codes = linhas.map(l => normCode(l.conta));
@@ -289,26 +308,76 @@ function pruneParents(linhas: InputLinha[]): InputLinha[] {
     for (const other of codeSet) {
       if (other.length > c.length && other.startsWith(c)) {
         const next = other.charAt(c.length);
-        // Continuação hierárquica: próximo char é dígito ou '.', ou pai termina em '.'
-        if (/[0-9.]/.test(next) || c.endsWith(".")) {
-          parents.add(c);
-          break;
-        }
+        if (/[0-9.]/.test(next) || c.endsWith(".")) { parents.add(c); break; }
       }
     }
   }
   return linhas.filter(l => {
     const c = normCode(l.conta);
-    if (!c) return true; // linha sem código (descrição apenas) — mantém
+    // Remove descrições sintéticas mesmo quando sem código
+    if (isSyntheticDesc(l.descricao)) return false;
+    if (!c) return true;
     return !parents.has(c);
   });
+}
+
+/**
+ * FIX #2 — Desacumular DRE quando os valores aparecem como saldo YTD.
+ * Heurística:
+ *  - Para cada chave de DRE (receita_liquida, cmv, despesas), olhar a série mensal
+ *    DENTRO do mesmo ano-civil ordenada por mesKey.
+ *  - Se |valor(mês_n)| > |valor(mês_(n-1))| em 2+ pares consecutivos do mesmo ano,
+ *    considerar acumulado. Aplica differencing: novo_n = bruto_n - bruto_(n-1).
+ *  - Mês de janeiro nunca é desacumulado (é o ponto de partida do exercício).
+ *  - Reset entre anos preservado.
+ */
+function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
+  if (rows.length < 2) return rows;
+  const sorted = [...rows].sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas"> = ["receita_liquida", "cmv", "despesas"];
+  // Agrupar por ano
+  const byYear = new Map<string, BSDadosRow[]>();
+  for (const r of sorted) {
+    const y = r.mesKey.slice(0, 4);
+    if (!byYear.has(y)) byYear.set(y, []);
+    byYear.get(y)!.push(r);
+  }
+  for (const [, group] of byYear) {
+    if (group.length < 2) continue;
+    for (const k of dreKeys) {
+      // Detecta monotonia crescente em valor absoluto (sinal típico de YTD)
+      let monotonicPairs = 0;
+      for (let i = 1; i < group.length; i++) {
+        const prev = Math.abs(group[i - 1][k] as number);
+        const curr = Math.abs(group[i][k] as number);
+        if (prev > 0 && curr > prev * 1.15) monotonicPairs++;
+      }
+      // Se a maioria dos pares cresce significativamente → YTD
+      if (monotonicPairs >= Math.max(2, Math.floor((group.length - 1) * 0.6))) {
+        const original = group.map(g => g[k] as number);
+        for (let i = group.length - 1; i >= 1; i--) {
+          (group[i] as any)[k] = original[i] - original[i - 1];
+        }
+        for (const r of group) {
+          if (!r.errors.includes(`DRE.${k} desacumulada (YTD detectado)`)) {
+            r.errors.push(`DRE.${k} desacumulada (YTD detectado)`);
+          }
+          r.ytd_desacumulado = true;
+        }
+      }
+    }
+    // Recalcula resultado pós-desacumulação
+    for (const r of group) {
+      r.resultado = r.receita_liquida + r.cmv + r.despesas;
+    }
+  }
+  return sorted;
 }
 
 function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, Buckets>();
 
-  // Detecta duplicatas
   const dup: Record<string, number> = {};
   for (const b of balancetes) {
     const k = periodToMesKey(b.mes);
@@ -319,7 +388,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     const mesKey = periodToMesKey(b.mes);
     if (!rowsByMes.has(mesKey)) {
       rowsByMes.set(mesKey, emptyRow(mesKey));
-      bucketsByMes.set(mesKey, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
+      bucketsByMes.set(mesKey, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false });
     }
     if (dup[mesKey] > 1) {
       const r = rowsByMes.get(mesKey)!;
@@ -336,15 +405,18 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     }
   }
 
-  // Fallback AC/PC pelos componentes quando o totalizador não veio
   for (const [mesKey, row] of rowsByMes) {
     const b = bucketsByMes.get(mesKey)!;
     if (!b.sawACTotal && b.ac > 0) row.ativo_circulante = b.ac;
     if (!b.sawPCTotal && b.pc > 0) row.passivo_circulante = b.pc;
+    row.ativo_nao_circulante = b.anc;
+    row.passivo_nao_circulante = b.pnc;
+    row.patrimonio_liquido = b.pl;
   }
 
-  return Array.from(rowsByMes.values()).map(finalize)
+  const finalized = Array.from(rowsByMes.values()).map(finalize)
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+  return desacumularDRE(finalized);
 }
 
 const safePct = (a: number, b: number): number | null =>
