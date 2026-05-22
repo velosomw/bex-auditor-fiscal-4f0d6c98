@@ -549,6 +549,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
     setConfig({ files: state.config.files.filter(f => f.id !== id) });
     if (idx >= 0) setRawFiles(prev => prev.filter((_, i) => i !== idx));
     setFileMeses(prev => { const { [id]: _, ...rest } = prev; return rest; });
+    setFilePreview(prev => { const { [id]: _, ...rest } = prev; return rest; });
   };
 
   const missingMeses = state.config.files.filter(f => !fileMeses[f.id]);
