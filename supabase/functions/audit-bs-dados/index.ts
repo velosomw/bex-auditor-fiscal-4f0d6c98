@@ -52,6 +52,11 @@ interface BSDadosRow {
   resultado: number;
   ativo_circulante: number;
   passivo_circulante: number;
+  ativo_nao_circulante: number;     // FIX #3
+  passivo_nao_circulante: number;   // FIX #3
+  patrimonio_liquido: number;       // FIX #3
+  ativo_total: number;              // FIX #3
+  passivo_total: number;            // FIX #3
   estoques: number;
   disponivel: number;
   divida_tributaria: number;
@@ -63,6 +68,7 @@ interface BSDadosRow {
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
+  ytd_desacumulado?: boolean;
 }
 interface BSIndicators {
   mes: string;
@@ -73,6 +79,15 @@ interface BSIndicators {
   liquidezCorrente: number | null;
   liquidezSeca: number | null;
   liquidezImediata: number | null;
+}
+interface KanitzRow {
+  mesKey: string;
+  ativo_total: number;
+  patrimonio_liquido: number;
+  x1: number; x2: number; x3: number; x4: number; x5: number;
+  score: number;
+  rating: string;
+  insight: string;
 }
 
 // ─── Constantes (espelham bsDadosBuilder.ts) ─────────────
