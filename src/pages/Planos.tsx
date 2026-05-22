@@ -166,7 +166,7 @@ const Planos = () => {
               <Crown className="w-5 h-5 text-[hsl(217,91%,50%)] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6" />
               <h2 className="text-2xl font-bold">Plano Enterprise</h2>
             </div>
-            <p className="text-muted-foreground mb-6">Avance seu negócio com auditoria IA completa.</p>
+            <p className="text-muted-foreground mb-6">Avance seu negócio com Auditoria BEx IA completa.</p>
             <div className="mb-6">
               <span className="text-5xl font-bold">R$ 5,00</span>
               <span className="text-muted-foreground ml-2">/mês</span>
