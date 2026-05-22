@@ -138,10 +138,14 @@ export function extractColumnMonths(
   const out: Array<{ idx: number; mesKey: string; label: string }> = [];
   const seen = new Set<string>();
 
-  // Tenta detectar um ano no cabeçalho inteiro para fallback de meses sem ano
+  // Tenta detectar um ano no cabeçalho inteiro para fallback de meses sem ano.
+  // ⚠️ Só considera células CURTAS (≤ 20 chars) para evitar confundir códigos
+  // contábeis longos (ex: "2110102026") com ano.
   let inferredYear: number | null = null;
   for (const cell of headers) {
-    const m = String(cell || "").match(/\b(20\d{2})\b/);
+    const s = String(cell || "").trim();
+    if (!s || s.length > 20) continue;
+    const m = s.match(/\b(20\d{2})\b/);
     if (m) { inferredYear = Number(m[1]); break; }
   }
   // Se não há ano no header, tenta extrair do nome do arquivo (range tem prioridade)
