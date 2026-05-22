@@ -39,6 +39,8 @@ const PerfReport = lazy(() => import("./pages/PerfReport"));
 const EmailTemplatesEditor = lazy(() => import("./pages/EmailTemplatesEditor"));
 const Signup = lazy(() => import("./pages/Signup"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const Planos = lazy(() => import("./pages/Planos"));
+const MinhaAssinatura = lazy(() => import("./pages/MinhaAssinatura"));
 
 const queryClient = new QueryClient();
 
