@@ -521,7 +521,9 @@ function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
     ? (rows[rows.length - 1].resultado < rows[0].resultado ? "deterioracao" : "melhora")
     : "estavel";
   const diagnostico = ultK
-    ? `Kanitz=${ultK.score.toFixed(2)} (${ultK.rating}). ${ultK.insight}`
+    ? (ultK.modelo_preferencial === "isg"
+        ? `ISG=${ultK.isg.toFixed(4)} (${ultK.isg_rating}). PL negativo — Kanitz inadequado, prevalece Índice de Solvência Geral. Kanitz informativo=${ultK.score.toFixed(2)}.`
+        : `Kanitz=${ultK.score.toFixed(2)} (${ultK.rating}). ISG=${ultK.isg.toFixed(2)} (${ultK.isg_rating}). ${ultK.insight}`)
     : "Análise determinística baseada nos dados consolidados.";
   return { diagnostico, problemas, riscos, recomendacoes, positivos, tendencia };
 }
