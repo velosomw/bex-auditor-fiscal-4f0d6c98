@@ -437,6 +437,67 @@ function enrich(rows: BSDadosRow[]): BSIndicators[] {
   }));
 }
 
+// ─── FIX #3: Kanitz por mês ─────────────────────────────
+function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
+  return rows.map(r => {
+    const AC = r.ativo_circulante;
+    const PC = r.passivo_circulante;
+    const ELP = r.passivo_nao_circulante;
+    const PL = r.patrimonio_liquido;
+    const LL = r.resultado;
+    const RLP = 0;
+    const safe = (n: number, d: number) => (Math.abs(d) < 0.01 ? 0 : n / d);
+    const x1 = safe(LL, PL);
+    const x2 = safe(AC + RLP, PC + ELP);
+    const x3 = safe(AC - r.estoques, PC);
+    const x4 = safe(AC, PC);
+    const x5 = safe(PC + ELP, PL);
+    const score = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
+    let rating = "B - Atenção";
+    let insight = "Faixa de penumbra — monitorar.";
+    if (score > 0) { rating = "A - Solvente"; insight = "Empresa em situação financeira saudável."; }
+    else if (score < -3) { rating = "C - Insolvente"; insight = "Forte indicativo de insolvência."; }
+    return {
+      mesKey: r.mesKey,
+      ativo_total: r.ativo_total,
+      patrimonio_liquido: PL,
+      x1: Number(x1.toFixed(4)), x2: Number(x2.toFixed(4)), x3: Number(x3.toFixed(4)),
+      x4: Number(x4.toFixed(4)), x5: Number(x5.toFixed(4)),
+      score: Number(score.toFixed(4)),
+      rating, insight,
+    };
+  });
+}
+
+// ─── FIX #3: Insights determinísticos compactos ─────────
+function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
+  diagnostico: string; problemas: any[]; riscos: any[]; recomendacoes: any[]; positivos: any[]; tendencia: string;
+} {
+  const ultimo = rows[rows.length - 1];
+  const ultK = kanitz[kanitz.length - 1];
+  const problemas: any[] = [];
+  const riscos: any[] = [];
+  const positivos: any[] = [];
+  const recomendacoes: any[] = [];
+  if (ultimo) {
+    if (ultimo.resultado < 0) problemas.push({ tipo: "resultado_negativo", valor: ultimo.resultado, descricao: "Prejuízo no exercício" });
+    if (ultimo.patrimonio_liquido < 0) riscos.push({ tipo: "passivo_a_descoberto", valor: ultimo.patrimonio_liquido, descricao: "PL negativo" });
+    if (ultimo.passivo_circulante > ultimo.ativo_circulante) riscos.push({ tipo: "liquidez_critica", descricao: "PC > AC" });
+    if (ultK && ultK.score < -3) riscos.push({ tipo: "kanitz_insolvente", valor: ultK.score });
+    if (ultimo.divida_total > 0) problemas.push({ tipo: "endividamento", valor: ultimo.divida_total });
+    if (ultimo.receita_liquida > 0) positivos.push({ tipo: "receita_existente", valor: ultimo.receita_liquida });
+    recomendacoes.push({ acao: "Revisar política de capital de giro" });
+    if (ultimo.patrimonio_liquido < 0) recomendacoes.push({ acao: "Capitalização urgente" });
+  }
+  const tendencia = rows.length >= 2
+    ? (rows[rows.length - 1].resultado < rows[0].resultado ? "deterioracao" : "melhora")
+    : "estavel";
+  const diagnostico = ultK
+    ? `Kanitz=${ultK.score.toFixed(2)} (${ultK.rating}). ${ultK.insight}`
+    : "Análise determinística baseada nos dados consolidados.";
+  return { diagnostico, problemas, riscos, recomendacoes, positivos, tendencia };
+}
+
 // ─── HTTP handler ────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
