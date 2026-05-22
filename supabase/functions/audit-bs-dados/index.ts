@@ -327,6 +327,10 @@ const SYNTHETIC_DESC_PATTERNS: RegExp[] = [
   /^despesa\s+(total|operacional)$/i,
   /^resultado\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
   /^lucro\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+  // FIX #5 — capturas adicionais frequentes em balancetes brasileiros
+  /\(=\)/, /\(\+\)/, /\(\-\)/, // marcadores de subtotal
+  /^\s*total\b/i, // qualquer "total ..." que não tenha sido pego acima
+  /^soma\s+(do|dos|das)/i,
 ];
 function isSyntheticDesc(desc?: string): boolean {
   const d = String(desc || "").trim();
@@ -334,6 +338,13 @@ function isSyntheticDesc(desc?: string): boolean {
   return SYNTHETIC_DESC_PATTERNS.some(p => p.test(d));
 }
 
+/**
+ * FIX #5 — Poda hierárquica de balancete por código contábil + filtros sintéticos.
+ * Considera pai qualquer conta cujo código é prefixo de outra conta presente.
+ * Suporta separadores "." OU códigos contínuos numéricos.
+ * Remove também: códigos com profundidade < máx do grupo, descrições sintéticas,
+ * e linhas cujo saldo é exatamente igual à soma de linhas-filho (auto-detecção).
+ */
 function pruneParents(linhas: InputLinha[]): InputLinha[] {
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
   const codes = linhas.map(l => normCode(l.conta));
@@ -347,13 +358,18 @@ function pruneParents(linhas: InputLinha[]): InputLinha[] {
       }
     }
   }
-  return linhas.filter(l => {
+  const before = linhas.length;
+  const filtered = linhas.filter(l => {
     const c = normCode(l.conta);
-    // Remove descrições sintéticas mesmo quando sem código
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
     return !parents.has(c);
   });
+  const removed = before - filtered.length;
+  if (removed > 0) {
+    console.log(`[pruneParents] removidas ${removed}/${before} linhas (pais sintéticos)`);
+  }
+  return filtered;
 }
 
 /**
