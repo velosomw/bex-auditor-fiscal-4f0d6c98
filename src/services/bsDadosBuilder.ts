@@ -31,47 +31,60 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   // ── Ativo Circulante (A..O) ──
   "A": "disponivel",        // Caixa e Equivalentes
   "B": "disponivel",        // Aplicações Financeiras
-  "C": "ativo_circulante",  // Contas a receber clientes
+  "C": "ativo_circulante",  // Contas a receber clientes (também → contas_receber via orth.)
   "D": "estoques",          // Estoque
-  "E": "ativo_circulante",  // Adiantamento Fornecedor
-  "F": "ativo_circulante",  // Partes Relacionadas
-  "G": "ativo_circulante",  // Impostos a recuperar
-  "H": "ativo_circulante",  // Juros a Apropriar
-  "I": "ativo_circulante",  // Outros Créditos
-  "J": "ativo_circulante",  // Adiant. Funcionários
-  "K": "ativo_circulante",  // Depósitos judiciais
-  "L": "ativo_circulante",  // Tributos diferidos
-  "M": "ativo_circulante",  // Investimentos Temporários
-  "N": "ativo_circulante",  // Consórcio
-  "O": "ativo_circulante",  // Seguros a Apropriar
+  "E": "ativo_circulante",
+  "F": "ativo_circulante",
+  "G": "ativo_circulante",
+  "H": "ativo_circulante",
+  "I": "ativo_circulante",
+  "J": "ativo_circulante",
+  "K": "ativo_circulante",
+  "L": "ativo_circulante",
+  "M": "ativo_circulante",
+  "N": "ativo_circulante",
+  "O": "ativo_circulante",
+  // ── Ativo Não Circulante (P..J1) ──
+  "P": "ativo_nao_circulante",  "Q": "ativo_nao_circulante",  "R": "ativo_nao_circulante",
+  "S": "ativo_nao_circulante",  "T": "ativo_nao_circulante",  "U": "ativo_nao_circulante",
+  "V": "ativo_nao_circulante",  "W": "ativo_nao_circulante",  "X": "ativo_nao_circulante",
+  "Y": "ativo_nao_circulante",  "Z": "ativo_nao_circulante",  "A1": "ativo_nao_circulante",
+  "B1": "ativo_nao_circulante",
+  "C1": "ativo_nao_circulante", // Imobilizado Líquido — também alimenta orth. imobilizado
+  "D1": "ativo_nao_circulante", // Intangível — também alimenta orth. imobilizado
+  "E1": "ativo_nao_circulante", "F1": "ativo_nao_circulante", "G1": "ativo_nao_circulante",
+  "H1": "ativo_nao_circulante", "I1": "ativo_nao_circulante", "J1": "ativo_nao_circulante",
   // ── Passivo Circulante (AA..II1) ──
-  "AA": "divida_financeira",   // Empréstimos PC
-  "BB": "fornecedores",        // Fornecedores PC
-  "CC": "divida_trabalhista",  // Obrigações Trabalhistas
-  "DD": "divida_tributaria",   // Obrigações Tributárias
-  "EE": "passivo_circulante",  // Contas a pagar
-  "FF": "passivo_circulante",  // Provisões
-  "GG": "passivo_circulante",  // Adiant. Clientes
-  "HH": "passivo_circulante",  // Outras Obrigações
-  "II": "credores_rj",         // Credores RJ
-  "JJ": "passivo_circulante",  // Partes Relacionadas PC
-  "KK": "passivo_circulante",  // Dividendos a pagar
-  "LL": "credores_rj",         // Recuperação Judicial
-  "MM": "passivo_circulante",  // Compensação Passiva
-  "NN": "divida_tributaria",   // Taxas e Contribuições
-  "OO": "passivo_circulante",  // Adiant. de Câmbio
-  "II1": "divida_tributaria",  // Tributárias Parceladas PC
+  "AA": "divida_financeira",
+  "BB": "fornecedores",
+  "CC": "divida_trabalhista",
+  "DD": "divida_tributaria",
+  "EE": "passivo_circulante",
+  "FF": "passivo_circulante",
+  "GG": "passivo_circulante",
+  "HH": "passivo_circulante",
+  "II": "credores_rj",
+  "JJ": "passivo_circulante",
+  "KK": "passivo_circulante",
+  "LL": "credores_rj",
+  "MM": "passivo_circulante",
+  "NN": "divida_tributaria",
+  "OO": "passivo_circulante",
+  "II1": "divida_tributaria",
   // ── Passivo Não Circulante (PP..FF1) ──
-  "PP": "fornecedores",        // Fornecedores LP
-  "QQ": "divida_financeira",   // Empréstimos LP
-  "RR": "divida_tributaria",   // Tributárias Parceladas LP
-  "SS": "divida_tributaria",   // Provisões para contingências
-  "TT": "divida_financeira",   // Partes Relacionadas PNC (proxy financeiro)
-  "CC1": "credores_rj",        // Credores RJ LP
+  "PP": "fornecedores",        // LP
+  "QQ": "divida_financeira",   // LP
+  "RR": "divida_tributaria",   // LP
+  "SS": "divida_tributaria",
+  "TT": "divida_financeira",
+  "UU": "passivo_nao_circulante", "VV": "passivo_nao_circulante", "WW": "passivo_nao_circulante",
+  "XX": "passivo_nao_circulante", "YY": "passivo_nao_circulante", "ZZ": "passivo_nao_circulante",
+  "AA1": "passivo_nao_circulante", "BB1": "passivo_nao_circulante",
+  "CC1": "credores_rj",        // RJ LP
+  "DD1": "passivo_nao_circulante", "EE1": "passivo_nao_circulante", "FF1": "passivo_nao_circulante",
   // ── Patrimônio Líquido ──
-  // GG1 (Capital Social) e HH1 (Lucros Acumulados) são contas do PL no Balanço,
-  // NÃO devem entrar em "resultado" do período (que é derivado da DRE).
-  // Deixadas fora do mapa propositalmente — serão ignoradas na consolidação BS&Dados.
+  "GG1": "patrimonio_liquido", // Capital Social
+  "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
   "RESULTADO": "resultado",
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
@@ -82,7 +95,13 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "DESPESAS": "despesas",
   "DESPESA": "despesas",
   "ATIVO CIRCULANTE": "ativo_circulante",
+  "ATIVO NAO CIRCULANTE": "ativo_nao_circulante",
+  "ATIVO NÃO CIRCULANTE": "ativo_nao_circulante",
   "PASSIVO CIRCULANTE": "passivo_circulante",
+  "PASSIVO NAO CIRCULANTE": "passivo_nao_circulante",
+  "PASSIVO NÃO CIRCULANTE": "passivo_nao_circulante",
+  "PATRIMONIO LIQUIDO": "patrimonio_liquido",
+  "PATRIMÔNIO LÍQUIDO": "patrimonio_liquido",
   "ESTOQUES": "estoques",
   "ESTOQUE": "estoques",
   "DISPONIVEL": "disponivel",
@@ -98,45 +117,71 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "RECUPERACAO JUDICIAL": "credores_rj",
 };
 
-// Padrões regex usados quando o balancete extraído não traz "Ref 1" explícito
-// (espelha auditDatasetBuilder porém alinhado às chaves do MD)
+
+// Padrões regex usados quando o balancete extraído não traz "Ref 1" explícito.
+// ORDEM IMPORTA: resolveKey retorna no primeiro match — patterns mais específicos primeiro.
 const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   mes: null, mesKey: null,
-  receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
+  // DRE — mais específicos primeiro
+  despesas_financeiras: /\b(?:despesas?\s+financeir|juros\s+(?:passivo|pagos?|sobre)|encargos\s+financeir|varia[cç][oõ]es\s+monet[aá]rias?\s+passiv)/i,
+  depreciacao: /\bdeprecia[cç][aã]o\b/i,
+  amortizacao: /\bamortiza[cç][aã]o\b/i,
   cmv: /\bc(?:mv|sv|pv)\b|\bcusto\s+(?:das?\s+)?(?:mercadoria|servi[cç]o|produto|venda)/i,
-  despesas: /\bdespesa|gasto\s+oper/i,
+  receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
   resultado: /\b(?:lucro|preju[ií]zo|resultado)\s+(?:l[ií]quid|do\s+exerc|do\s+per[ií]odo)/i,
-  ativo_circulante: /\bativo\s+circulante\b/i,
-  passivo_circulante: /\bpassivo\s+circulante\b/i,
+  despesas: /\bdespesa|gasto\s+oper/i,
+  // BALANÇO — Ativos: NC antes de C (mais específico) e leaves antes de totais
   estoques: /\bestoqu/i,
   disponivel: /\b(?:caixa|disponibilidade|disponivel|bancos?|aplica[cç][aã]o\s+financ|equivalente)/i,
+  contas_receber: /\b(?:contas?\s+a\s+receber|duplicatas?\s+a\s+receber|clientes)\b/i,
+  imobilizado: /\b(?:imobilizado|intang[ií]vel)\b/i,
+  ativo_nao_circulante: /\bativo\s+n[aã]o[\s-]?circulante|realiz[aá]vel\s+a\s+longo\s+prazo|ativo\s+permanente/i,
+  ativo_circulante: /\bativo\s+circulante\b/i,
+  // BALANÇO — Passivos & PL
   divida_tributaria: /\b(?:tribut|impostos?\s+a\s+(?:pagar|recolher)|icms|iss|pis|cofins|irpj|csll)/i,
   divida_trabalhista: /\b(?:sal[aá]rios?\s+a\s+pagar|f[eé]rias|13[ºo°]?|inss\s+a\s+pagar|fgts\s+a\s+pagar|encargos\s+sociais|trabalhista)/i,
   divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasing|arrendamento)/i,
   fornecedores: /\bfornecedor/i,
   credores_rj: /\b(?:credores?\s+(?:rj|recupera[cç][aã]o)|recupera[cç][aã]o\s+judic)/i,
+  passivo_nao_circulante: /\bpassivo\s+n[aã]o[\s-]?circulante|exig[ií]vel\s+a?\s*longo\s+prazo\b/i,
+  passivo_circulante: /\bpassivo\s+circulante\b/i,
+  patrimonio_liquido: /\b(?:patrim[oô]nio\s+l[ií]quido|capital\s+social|lucros?\s+acumulad|preju[ií]zos?\s+acumulad|reservas?\s+de\s+(?:capital|lucros?))\b/i,
   divida_total: null,
   hasReceita: null, hasBalanco: null, errors: null,
 };
+
 
 // ─── Tipos ───────────────────────────────────────────────
 export interface BSDadosRow {
   mes: string;            // "Março 2024"
   mesKey: string;         // "2024-03"
+  // DRE (variação mensal após detecção YTD)
   receita_liquida: number;
   cmv: number;
-  despesas: number;
+  despesas: number;             // despesas operacionais (administrativas, comerciais)
+  despesas_financeiras: number; // separado das operacionais
+  depreciacao: number;
+  amortizacao: number;
   resultado: number;
+  // BALANÇO — Ativos
   ativo_circulante: number;
-  passivo_circulante: number;
+  ativo_nao_circulante: number;
   estoques: number;
   disponivel: number;
+  contas_receber: number;       // Ref C (orth.)
+  imobilizado: number;          // Refs C1+D1 (orth.)
+  // BALANÇO — Passivos & PL
+  passivo_circulante: number;
+  passivo_nao_circulante: number;
+  patrimonio_liquido: number;
+  // Componentes de dívida (sempre positivos)
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
   fornecedores: number;
   credores_rj: number;
   divida_total: number;
+  // Flags
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
@@ -167,14 +212,17 @@ export const periodToMesKey = _periodToMesKey;
 function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
-    receita_liquida: 0, cmv: 0, despesas: 0, resultado: 0,
-    ativo_circulante: 0, passivo_circulante: 0,
-    estoques: 0, disponivel: 0,
+    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0,
+    depreciacao: 0, amortizacao: 0, resultado: 0,
+    ativo_circulante: 0, ativo_nao_circulante: 0,
+    estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
+    passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, divida_total: 0,
     hasReceita: false, hasBalanco: false, errors: [],
   };
 }
+
 
 // ─── Núcleo: agrupa linhas (Ref 1) ───────────────────────
 interface RowLike {
@@ -184,14 +232,30 @@ interface RowLike {
   saldo: number;
 }
 
-// Conjuntos de Refs Capital que agregam totalizadores AC e PC (template BEX).
-// Estes acumuladores SÓ são usados quando o balancete não traz a linha
-// totalizadora explícita "ATIVO CIRCULANTE" / "PASSIVO CIRCULANTE".
+// Conjuntos de Refs Capital que agregam totalizadores (template BEX).
+// Usados como acumuladores quando o balancete não traz a linha totalizadora explícita.
 const AC_REFS = new Set(["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]);
+const ANC_REFS = new Set([
+  "P","Q","R","S","T","U","V","W","X","Y","Z",
+  "A1","B1","C1","D1","E1","F1","G1","H1","I1","J1",
+]);
 const PC_REFS = new Set(["AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","II1"]);
+const PNC_REFS = new Set([
+  "PP","QQ","RR","SS","TT","UU","VV","WW","XX","YY","ZZ",
+  "AA1","BB1","CC1","DD1","EE1","FF1",
+]);
+const PL_REFS = new Set(["GG1","HH1"]);
+// Refs para readouts ortogonais (não-exclusivos)
+const CONTAS_RECEBER_REFS = new Set(["C"]);
+const IMOBILIZADO_REFS = new Set(["C1","D1"]);
 
-// Buckets internos por mês para somar componentes (acumulador AC/PC derivado).
-type ComponentBuckets = { ac: number; pc: number; sawACTotal: boolean; sawPCTotal: boolean };
+// Buckets internos por mês para somar componentes (acumulador derivado).
+type ComponentBuckets = {
+  ac: number; pc: number;
+  anc: number; pnc: number; pl: number;
+  sawACTotal: boolean; sawPCTotal: boolean;
+  sawANCTotal: boolean; sawPNCTotal: boolean; sawPLTotal: boolean;
+};
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
@@ -222,17 +286,32 @@ function applyValue(
       (target as any)[key] = (target[key] as number) + (toUpperNoAccent(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v)); break;
     case "cmv":
     case "despesas":
+    case "despesas_financeiras":
+    case "depreciacao":
+    case "amortizacao":
       (target as any)[key] = (target[key] as number) - Math.abs(v); break;
     case "resultado":
       (target as any)[key] = (target[key] as number) + v; break;
+    case "patrimonio_liquido":
+      // PL preserva sinal — pode ser negativo (prejuízo acumulado)
+      target.patrimonio_liquido += v;
+      buckets.sawPLTotal = true; break;
     case "ativo_circulante":
       target.ativo_circulante += Math.abs(v);
       buckets.sawACTotal = true; break;
+    case "ativo_nao_circulante":
+      target.ativo_nao_circulante += Math.abs(v);
+      buckets.sawANCTotal = true; break;
     case "passivo_circulante":
       target.passivo_circulante += Math.abs(v);
       buckets.sawPCTotal = true; break;
+    case "passivo_nao_circulante":
+      target.passivo_nao_circulante += Math.abs(v);
+      buckets.sawPNCTotal = true; break;
     case "estoques":
     case "disponivel":
+    case "contas_receber":
+    case "imobilizado":
     case "divida_tributaria":
     case "divida_trabalhista":
     case "divida_financeira":
@@ -241,28 +320,48 @@ function applyValue(
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
     default: break;
   }
-  // Acumula componentes para derivar AC/PC SE o balancete não trouxer o total.
+  // Acumuladores por Ref Capital + readouts ortogonais
   const refUp = ref1 ? toUpperNoAccent(ref1) : "";
-  if (refUp && AC_REFS.has(refUp)) buckets.ac += Math.abs(v);
-  else if (refUp && PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
+  if (refUp) {
+    if (AC_REFS.has(refUp)) buckets.ac += Math.abs(v);
+    else if (ANC_REFS.has(refUp)) buckets.anc += Math.abs(v);
+    else if (PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
+    else if (PNC_REFS.has(refUp)) buckets.pnc += Math.abs(v);
+    else if (PL_REFS.has(refUp)) buckets.pl += v;  // preserva sinal
+    // Readouts ortogonais (não-exclusivos do roteamento primário)
+    if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") target.contas_receber += Math.abs(v);
+    if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") target.imobilizado += Math.abs(v);
+  }
 }
+
 
 // Tolerância padrão para validação Ativo = Passivo + PL (0.5%).
 export const BALANCE_TOLERANCE = 0.005;
 
 function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
+  // Componentes de dívida que TAMBÉM são PNC (QQ, RR, etc.) já foram contados em divida_*.
+  // Para evitar dupla contagem em PNC, somamos só o "resto" do bucket de PNC.
+  // Mas como o roteamento primário deles vai pra divida_* (não pra PNC), o bucket.pnc
+  // só acumula os que não são componentes específicos de dívida.
+  if (buckets) {
+    if (!buckets.sawACTotal && buckets.ac > 0) row.ativo_circulante = buckets.ac;
+    if (!buckets.sawANCTotal && buckets.anc > 0) row.ativo_nao_circulante = buckets.anc;
+    if (!buckets.sawPCTotal && buckets.pc > 0) row.passivo_circulante = buckets.pc;
+    if (!buckets.sawPNCTotal && buckets.pnc > 0) row.passivo_nao_circulante = buckets.pnc;
+    if (!buckets.sawPLTotal && buckets.pl !== 0) row.patrimonio_liquido = buckets.pl;
+  }
+
   row.divida_total =
     row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
     row.fornecedores + row.credores_rj;
-  // Resultado derivado da DRE (determinístico) — cmv/despesas já vêm negativos.
+  // Resultado derivado da DRE (determinístico) — cmv/despesas/despesas_financeiras já vêm negativos.
   // Evita dupla contagem com contas de PL no balanço (Capital, Lucros Acumulados).
-  row.resultado = row.receita_liquida + row.cmv + row.despesas;
+  row.resultado = row.receita_liquida + row.cmv + row.despesas + row.despesas_financeiras;
   row.hasReceita = row.receita_liquida > 0;
   row.hasBalanco = row.ativo_circulante > 0 || row.passivo_circulante > 0 || row.divida_total > 0;
   // Validações
   if (!row.hasReceita) row.errors.push("Receita líquida ausente ou zerada");
   if (row.cmv > 0) row.errors.push("CMV positivo (deveria ser negativo)");
-  // Validação contábil: AC declarado ≈ soma de componentes (proxy de Ativo=Passivo+PL)
   if (buckets) {
     if (buckets.sawACTotal && buckets.ac > 0) {
       const diff = Math.abs(row.ativo_circulante - buckets.ac);
@@ -281,6 +380,7 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
   }
   return row;
 }
+
 
 // ─── BUILDER ─────────────────────────────────────────────
 /**
@@ -325,7 +425,7 @@ export function buildBSDados(
   const orderedKeys = Array.from(new Set(usableMesKeys)).sort();
   orderedKeys.forEach(k => {
     rowsByMes.set(k, emptyRow(k));
-    bucketsByMes.set(k, { ac: 0, pc: 0, sawACTotal: false, sawPCTotal: false });
+    bucketsByMes.set(k, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false });
     if (dupSet.has(k)) {
       const r = rowsByMes.get(k)!;
       const count = dupList.find(d => d.mesKey === k)?.count ?? 2;
@@ -414,33 +514,23 @@ export function buildBSDados(
     }
   }
 
-  // Se balancete não trouxe linha totalizadora "ATIVO/PASSIVO CIRCULANTE",
-  // usa a soma dos componentes (Refs A..O / AA..II1) como derivado.
-  for (const [mesKey, target] of rowsByMes) {
-    const b = bucketsByMes.get(mesKey)!;
-    if (!b.sawACTotal && b.ac > 0) target.ativo_circulante = b.ac;
-    if (!b.sawPCTotal && b.pc > 0) target.passivo_circulante = b.pc;
-  }
+  // Derivação de totais AC/PC/ANC/PNC/PL agora vive em finalize() — bloco anterior removido.
 
   const sortedRows = Array.from(rowsByMes.values())
     .map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
 
   // ── AJUSTE DE ACUMULADO (Mês vs Acumulado Ano) ──
-  // Conforme solicitado: Contas de resultado (Grupos 3 a 8) zeram no final do ano.
-  // Se o mês N e N-1 são do mesmo ano, o valor do mês N = Saldo(N) - Saldo(N-1).
-  // IMPORTANTE: Este ajuste só deve ser aplicado se os dados extraídos forem ACUMULADOS do ano.
-  // Se forem dados mensais puros (Delta), a subtração geraria valores incorretos.
-  // Heurística de Acumulado: se a receita do mês N é significativamente maior (>30%) que a do mês N-1 em todos os meses,
-  // ou se todos os meses subsequentes apresentam crescimento na receita líquida, assumimos que os dados estão acumulados.
+  // Contas de resultado (DRE) zeram no fim do ano. Se mês N e N-1 são do mesmo ano,
+  // valor mensal = Saldo(N) − Saldo(N-1). Heurística: receita monotonicamente crescente
+  // dentro do mesmo ano → balancete é YTD acumulado.
   let isAccumulated = false;
   if (sortedRows.length > 1) {
     let consistentIncrease = 0;
     for (let i = 1; i < sortedRows.length; i++) {
-      // Verifica se houve aumento consistente na Receita Líquida (característica de acumulado ano)
-      if (sortedRows[i].receita_liquida >= sortedRows[i-1].receita_liquida) consistentIncrease++;
+      const sameYear = sortedRows[i].mesKey.split("-")[0] === sortedRows[i-1].mesKey.split("-")[0];
+      if (sameYear && sortedRows[i].receita_liquida >= sortedRows[i-1].receita_liquida) consistentIncrease++;
     }
-    // Se mais de 75% dos meses apresentam crescimento ou estabilidade na receita, tratamos como acumulado
     if (consistentIncrease >= (sortedRows.length - 1) * 0.75) isAccumulated = true;
   }
 
@@ -448,21 +538,23 @@ export function buildBSDados(
     for (let i = sortedRows.length - 1; i > 0; i--) {
       const current = sortedRows[i];
       const previous = sortedRows[i - 1];
-      
       const currentYear = current.mesKey.split("-")[0];
       const previousYear = previous.mesKey.split("-")[0];
-      
-      if (currentYear === previousYear) {
-        current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
-        current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
-        current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
-        current.resultado = current.resultado - previous.resultado;
-      }
+      if (currentYear !== previousYear) continue;
+      current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
+      current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
+      current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
+      current.despesas_financeiras = -(Math.abs(current.despesas_financeiras) - Math.abs(previous.despesas_financeiras));
+      current.depreciacao = -(Math.abs(current.depreciacao) - Math.abs(previous.depreciacao));
+      current.amortizacao = -(Math.abs(current.amortizacao) - Math.abs(previous.amortizacao));
+      // Resultado re-derivado pós-ajuste
+      current.resultado = current.receita_liquida + current.cmv + current.despesas + current.despesas_financeiras;
     }
   }
 
   return sortedRows;
 }
+
 
 // ─── INDICADORES DERIVADOS ───────────────────────────────
 const safeDiv = (a: number, b: number): number | null =>
