@@ -1366,7 +1366,10 @@ const computeIndicatorsFromBSRows = (rows: any[]) => {
 /* ── Tab 2: Indicadores Econômico-Financeiros ── */
 const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any; bsRows?: any[] }) => {
   const { state } = useAudit();
-  const computedInd = bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null);
+  const computedInd = useMemo(
+    () => (bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null)),
+    [bsRows, parsedData],
+  );
   const hasComputed = Object.keys(computedInd).length > 0;
 
   const aiInd = aiAnalysis?.indicadoresCalculados;
