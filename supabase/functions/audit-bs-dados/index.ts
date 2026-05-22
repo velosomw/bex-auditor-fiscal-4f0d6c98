@@ -347,15 +347,26 @@ function isSyntheticDesc(desc?: string): boolean {
  */
 function pruneParents(linhas: InputLinha[]): InputLinha[] {
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
-  const codes = linhas.map(l => normCode(l.conta));
-  const codeSet = new Set(codes.filter(Boolean));
+  const codeSet = new Set<string>();
+  for (const l of linhas) {
+    const c = normCode(l.conta);
+    if (c) codeSet.add(c);
+  }
+  // PERF — substitui O(n²) por sort + passada linear (O(n log n)).
+  // Marca `c` como pai sse existe `other` no conjunto que começa com `c`
+  // seguido de um separador hierárquico (dígito ou ponto).
+  const sorted = Array.from(codeSet).sort();
   const parents = new Set<string>();
-  for (const c of codeSet) {
-    for (const other of codeSet) {
-      if (other.length > c.length && other.startsWith(c)) {
-        const next = other.charAt(c.length);
-        if (/[0-9.]/.test(next) || c.endsWith(".")) { parents.add(c); break; }
-      }
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const c = sorted[i];
+    // Após o sort, qualquer descendente de `c` aparece imediatamente após.
+    // Varremos enquanto o prefixo bater.
+    for (let j = i + 1; j < sorted.length; j++) {
+      const other = sorted[j];
+      if (!other.startsWith(c)) break;
+      if (other.length === c.length) continue;
+      const next = other.charAt(c.length);
+      if (/[0-9.]/.test(next) || c.endsWith(".")) { parents.add(c); break; }
     }
   }
   const before = linhas.length;
@@ -758,11 +769,20 @@ Deno.serve(async (req) => {
                 });
               }
             }
-            // Insere em lotes de 500 para evitar payload grande
+            // PERF — paraleliza chunks (concorrência limitada a 6 para não estourar PgBouncer).
+            const chunks: any[][] = [];
             for (let i = 0; i < linesIns.length; i += 500) {
-              const chunk = linesIns.slice(i, i + 500);
-              const { error: lErr } = await supabase.from("balancete_lines").insert(chunk);
-              if (lErr) console.warn("balancete_lines insert warn:", lErr.message);
+              chunks.push(linesIns.slice(i, i + 500));
+            }
+            const CONCURRENCY = 6;
+            for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+              const wave = chunks.slice(i, i + CONCURRENCY);
+              const results = await Promise.all(
+                wave.map(chunk => supabase.from("balancete_lines").insert(chunk)),
+              );
+              for (const r of results) {
+                if (r.error) console.warn("balancete_lines insert warn:", r.error.message);
+              }
             }
           }
 
