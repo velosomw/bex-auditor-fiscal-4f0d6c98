@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Check, X, Sparkles, Crown } from "lucide-react";
-import Layout from "@/components/Layout";
+import { Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +36,7 @@ const Planos = () => {
   };
 
   return (
-    <Layout>
+    <Fragment>
       <section className="bg-[hsl(222,47%,11%)] text-white py-20 px-6">
         <div className="max-w-6xl mx-auto text-center">
           <Badge className="mb-4 bg-[hsl(217,91%,50%)]/20 text-[hsl(217,91%,70%)] border-[hsl(217,91%,50%)]/30">
@@ -119,7 +119,7 @@ const Planos = () => {
           <Button variant="outline" onClick={() => navigate("/contato")}>Fale Conosco</Button>
         </div>
       </section>
-    </Layout>
+    </Fragment>
   );
 };
 
