@@ -368,15 +368,21 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
   for (const [, group] of byYear) {
     if (group.length < 2) continue;
     for (const k of dreKeys) {
-      // Detecta monotonia crescente em valor absoluto (sinal típico de YTD)
+      // FIX #2 — Threshold reduzido (1.02 = 2% de crescimento) e exige
+      // monotonia em TODOS os pares consecutivos do grupo. Crescimento mensal
+      // típico de receita em YTD é 8-15%/mês; 2% pega até casos suaves.
       let monotonicPairs = 0;
+      let totalPairs = 0;
       for (let i = 1; i < group.length; i++) {
         const prev = Math.abs(group[i - 1][k] as number);
         const curr = Math.abs(group[i][k] as number);
-        if (prev > 0 && curr > prev * 1.15) monotonicPairs++;
+        if (prev > 0) {
+          totalPairs++;
+          if (curr >= prev * 1.02) monotonicPairs++;
+        }
       }
-      // Se a maioria dos pares cresce significativamente → YTD
-      if (monotonicPairs >= Math.max(2, Math.floor((group.length - 1) * 0.6))) {
+      // Critério: >= 80% dos pares válidos crescem (forte sinal de YTD acumulado)
+      if (totalPairs >= 2 && monotonicPairs / totalPairs >= 0.8) {
         const original = group.map(g => g[k] as number);
         for (let i = group.length - 1; i >= 1; i--) {
           (group[i] as any)[k] = original[i] - original[i - 1];
