@@ -275,8 +275,13 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
               para isolar um único nível. A coluna <strong>Reduzido</strong> do arquivo original é apenas
               um código contábil — <strong>não é número de documento fiscal</strong>.
             </p>
-
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">{filtered.length}/{linhas.length} contas</Badge>
+            <Badge variant="outline" className="text-xs">{visibleMeses.length}/{meses.length} meses</Badge>
+          </div>
         </div>
+
 
         <div className="flex flex-wrap items-center gap-2">
           <MultiSelect
