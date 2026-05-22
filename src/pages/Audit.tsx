@@ -4728,8 +4728,14 @@ const AuditContent = () => {
     setAiAnalysis(analysis);
     setParsedData(parsed);
     
-    const riskLevel = analysis?.diagnostico?.riskLevel || "moderado";
+    // FIX #6 — usa determinístico quando disponível
+    const det = analysis?.insightsDeterministicos || analysis?.insights;
+    const detRiskLevel = det?.risk_level as "baixo"|"moderado"|"elevado"|"critico"|undefined;
+    const detConformidade = typeof det?.conformidade === "number" ? det.conformidade : null;
+    const riskLevel = detRiskLevel || analysis?.diagnostico?.riskLevel || "moderado";
     const pendencias = analysis?.pendencias?.length || 0;
+    const conformidadeDefault = riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35;
+    const conformidade = detConformidade ?? conformidadeDefault;
     const newBatchId = `batch-${Date.now()}`;
     setBatchId(newBatchId);
     const docs = uploadedFiles.map(f => ({ fileName: f.name, fileSize: f.size, format: getFormat(f) }));
@@ -4741,7 +4747,7 @@ const AuditContent = () => {
       format: getFormat(f),
       date: new Date().toISOString().split("T")[0],
       status: "completed" as const,
-      conformidade: riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35,
+      conformidade,
       riscos: pendencias,
       riskLevel,
       batchId: newBatchId,
