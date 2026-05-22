@@ -105,13 +105,26 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       else if (r === "gestor_ia") prefetchGestorRoutes();
     };
 
-    // onAuthStateChange dispara INITIAL_SESSION automaticamente — não precisa de getSession() separado.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       void applySession(session?.user ?? null);
     });
 
+    // Backstop: se INITIAL_SESSION não disparar (storage corrompido, race condition),
+    // buscamos a sessão manualmente para evitar "Carregando…" infinito.
+    supabase.auth.getSession().then(({ data }) => {
+      void applySession(data.session?.user ?? null);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    // Hard timeout: garante que a UI nunca fica travada em loading mais de 4s.
+    const timeoutId = window.setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 4000);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
