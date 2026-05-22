@@ -83,11 +83,16 @@ interface BSIndicators {
 interface KanitzRow {
   mesKey: string;
   ativo_total: number;
+  passivo_total: number;
   patrimonio_liquido: number;
   x1: number; x2: number; x3: number; x4: number; x5: number;
   score: number;
   rating: string;
   insight: string;
+  // ISG (Índice de Solvência Geral) — usado quando PL < 0 (Kanitz inadequado)
+  isg: number;
+  isg_rating: string;
+  modelo_preferencial: "kanitz" | "isg";
 }
 
 // ─── Constantes (espelham bsDadosBuilder.ts) ─────────────
