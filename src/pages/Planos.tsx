@@ -28,7 +28,7 @@ const entFeatures = [
 
 const Planos = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { authenticated: user } = useUser();
 
   const handleContratarEnterprise = () => {
     if (user) navigate("/minha-assinatura?upgrade=enterprise");
