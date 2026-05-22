@@ -339,18 +339,29 @@ function applyValue(
 export const BALANCE_TOLERANCE = 0.005;
 
 function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
+  // Componentes de dívida que TAMBÉM são PNC (QQ, RR, etc.) já foram contados em divida_*.
+  // Para evitar dupla contagem em PNC, somamos só o "resto" do bucket de PNC.
+  // Mas como o roteamento primário deles vai pra divida_* (não pra PNC), o bucket.pnc
+  // só acumula os que não são componentes específicos de dívida.
+  if (buckets) {
+    if (!row.sawACSpotted(buckets) && buckets.ac > 0) row.ativo_circulante = buckets.ac;
+    if (!buckets.sawANCTotal && buckets.anc > 0) row.ativo_nao_circulante = buckets.anc;
+    if (!buckets.sawPCTotal && buckets.pc > 0) row.passivo_circulante = buckets.pc;
+    if (!buckets.sawPNCTotal && buckets.pnc > 0) row.passivo_nao_circulante = buckets.pnc;
+    if (!buckets.sawPLTotal && buckets.pl !== 0) row.patrimonio_liquido = buckets.pl;
+  }
+
   row.divida_total =
     row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
     row.fornecedores + row.credores_rj;
-  // Resultado derivado da DRE (determinístico) — cmv/despesas já vêm negativos.
+  // Resultado derivado da DRE (determinístico) — cmv/despesas/despesas_financeiras já vêm negativos.
   // Evita dupla contagem com contas de PL no balanço (Capital, Lucros Acumulados).
-  row.resultado = row.receita_liquida + row.cmv + row.despesas;
+  row.resultado = row.receita_liquida + row.cmv + row.despesas + row.despesas_financeiras;
   row.hasReceita = row.receita_liquida > 0;
   row.hasBalanco = row.ativo_circulante > 0 || row.passivo_circulante > 0 || row.divida_total > 0;
   // Validações
   if (!row.hasReceita) row.errors.push("Receita líquida ausente ou zerada");
   if (row.cmv > 0) row.errors.push("CMV positivo (deveria ser negativo)");
-  // Validação contábil: AC declarado ≈ soma de componentes (proxy de Ativo=Passivo+PL)
   if (buckets) {
     if (buckets.sawACTotal && buckets.ac > 0) {
       const diff = Math.abs(row.ativo_circulante - buckets.ac);
@@ -369,6 +380,7 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
   }
   return row;
 }
+
 
 // ─── BUILDER ─────────────────────────────────────────────
 /**
