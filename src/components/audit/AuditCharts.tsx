@@ -18,6 +18,7 @@ import { EXCEL_COLORS, fmtMilhar, fmtPct, fmtDec, generateInsights } from "@/ser
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import WindowSelector, { applyWindow, type Window } from "./WindowSelector";
 import MonthsConsistencyAlert from "./MonthsConsistencyAlert";
+import SanityDiagnostico from "./SanityDiagnostico";
 
 interface Props {
   parsedData?: ParsedFinancialData | null;
