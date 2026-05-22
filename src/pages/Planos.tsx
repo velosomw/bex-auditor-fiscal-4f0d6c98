@@ -25,7 +25,7 @@ const proFeatures = [
 const entFeatures = [
   { ok: true, label: "Tudo do plano PRO" },
   { ok: true, label: "6 relatórios completos BEx Auditoria IA/mês" },
-  { ok: true, label: "+10 relatórios PRO (desbloqueio PRO 10)" },
+  { ok: true, label: "Workspace de análise Pós-Relatórios" },
   { ok: true, label: "Total de 16 relatórios mensais" },
   { ok: true, label: "2 relatórios simultâneos PRO + Kanitz" },
   { ok: true, label: "Workspace de análise pós-relatório" },
@@ -121,7 +121,7 @@ const Planos = () => {
           <Badge className="mb-4 bg-[hsl(217,91%,50%)]/20 text-[hsl(217,91%,70%)] border-[hsl(217,91%,50%)]/30">
             Planos e Assinatura
           </Badge>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight font-sans">
             Escolha o plano ideal para o seu escritório
           </h1>
           <p className="text-lg text-white/70 max-w-2xl mx-auto">
