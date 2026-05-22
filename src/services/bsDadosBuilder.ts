@@ -344,7 +344,7 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
   // Mas como o roteamento primário deles vai pra divida_* (não pra PNC), o bucket.pnc
   // só acumula os que não são componentes específicos de dívida.
   if (buckets) {
-    if (!row.sawACSpotted(buckets) && buckets.ac > 0) row.ativo_circulante = buckets.ac;
+    if (!buckets.sawACTotal && buckets.ac > 0) row.ativo_circulante = buckets.ac;
     if (!buckets.sawANCTotal && buckets.anc > 0) row.ativo_nao_circulante = buckets.anc;
     if (!buckets.sawPCTotal && buckets.pc > 0) row.passivo_circulante = buckets.pc;
     if (!buckets.sawPNCTotal && buckets.pnc > 0) row.passivo_nao_circulante = buckets.pnc;
