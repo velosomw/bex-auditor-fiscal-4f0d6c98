@@ -277,6 +277,24 @@ function finalize(r: BSDadosRow): BSDadosRow {
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
   if (r.cmv > 0)     r.errors.push("CMV positivo (deveria ser negativo)");
+
+  // FIX #1 — Sanity guard: Estoques não pode ser ≥ 90% do Ativo Circulante.
+  // Sinaliza classificação inflada (descrições como "Adiantamento p/ Estoque"
+  // ou linhas-pai não podadas sendo somadas no bucket estoques).
+  if (r.estoques > 0 && r.ativo_circulante > 0 && r.estoques / r.ativo_circulante > 0.9) {
+    const before = r.estoques;
+    r.estoques = r.ativo_circulante * 0.7;
+    r.errors.push(`Estoques inflados (${(before/r.ativo_circulante*100).toFixed(1)}% do AC) — cap conservador aplicado a 70%`);
+  }
+
+  // FIX #5 — Sanity guard: divida_total não pode exceder Passivo Total + 10%.
+  // Sinaliza dupla contagem entre buckets de dívida (NN/DD/II1, BB/PP etc.).
+  const passivoEstimado = r.passivo_total > 0 ? r.passivo_total : r.passivo_circulante;
+  if (passivoEstimado > 0 && r.divida_total > passivoEstimado * 1.1) {
+    const before = r.divida_total;
+    r.divida_total = passivoEstimado;
+    r.errors.push(`Dívida total excedia Passivo Total (${before.toFixed(0)} vs ${passivoEstimado.toFixed(0)}) — provável dupla contagem; ajustada`);
+  }
   return r;
 }
 
