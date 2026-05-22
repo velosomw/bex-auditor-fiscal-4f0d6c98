@@ -269,7 +269,7 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
 
 function finalize(r: BSDadosRow): BSDadosRow {
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
-  // Resultado derivado da DRE (cmv/despesas já negativos) — evita dupla contagem do PL.
+  // Resultado derivado da DRE (cmv/despesas já negativos).
   r.resultado = r.receita_liquida + r.cmv + r.despesas;
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
@@ -278,22 +278,34 @@ function finalize(r: BSDadosRow): BSDadosRow {
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
   if (r.cmv > 0)     r.errors.push("CMV positivo (deveria ser negativo)");
 
-  // FIX #1 — Sanity guard: Estoques não pode ser ≥ 90% do Ativo Circulante.
-  // Sinaliza classificação inflada (descrições como "Adiantamento p/ Estoque"
-  // ou linhas-pai não podadas sendo somadas no bucket estoques).
-  if (r.estoques > 0 && r.ativo_circulante > 0 && r.estoques / r.ativo_circulante > 0.9) {
+  // FIX #1 — Sanity guard ESTOQUES (cap agressivo 85% → 65%) + log.
+  if (r.estoques > 0 && r.ativo_circulante > 0 && r.estoques / r.ativo_circulante > 0.85) {
     const before = r.estoques;
-    r.estoques = r.ativo_circulante * 0.7;
-    r.errors.push(`Estoques inflados (${(before/r.ativo_circulante*100).toFixed(1)}% do AC) — cap conservador aplicado a 70%`);
+    const pct = (before / r.ativo_circulante) * 100;
+    r.estoques = r.ativo_circulante * 0.65;
+    r.errors.push(`Estoques inflados (${pct.toFixed(1)}% do AC) — cap aplicado a 65%`);
+    console.log(`[finalize] CAP_ESTOQUES mes=${r.mesKey} before=${before.toFixed(0)} pct=${pct.toFixed(1)}% after=${r.estoques.toFixed(0)}`);
   }
 
-  // FIX #5 — Sanity guard: divida_total não pode exceder Passivo Total + 10%.
-  // Sinaliza dupla contagem entre buckets de dívida (NN/DD/II1, BB/PP etc.).
+  // FIX #1 — Sanity guard DÍVIDA TOTAL.
   const passivoEstimado = r.passivo_total > 0 ? r.passivo_total : r.passivo_circulante;
   if (passivoEstimado > 0 && r.divida_total > passivoEstimado * 1.1) {
     const before = r.divida_total;
     r.divida_total = passivoEstimado;
-    r.errors.push(`Dívida total excedia Passivo Total (${before.toFixed(0)} vs ${passivoEstimado.toFixed(0)}) — provável dupla contagem; ajustada`);
+    r.errors.push(`Dívida total excedia Passivo Total (${before.toFixed(0)} vs ${passivoEstimado.toFixed(0)}) — ajustada`);
+    console.log(`[finalize] CAP_DIVIDA mes=${r.mesKey} before=${before.toFixed(0)} after=${passivoEstimado.toFixed(0)}`);
+  }
+
+  // FIX #6 — Equação contábil Ativo = Passivo + PL (±1%). CPC 26 R1 §54 / NBC TG 26.
+  if (r.ativo_total > 0 && (r.passivo_total > 0 || r.patrimonio_liquido !== 0)) {
+    const ladoDireito = r.passivo_total + r.patrimonio_liquido;
+    const diff = Math.abs(r.ativo_total - ladoDireito);
+    const tol = r.ativo_total * 0.01;
+    if (diff > tol) {
+      const desvio = (diff / r.ativo_total) * 100;
+      r.errors.push(`Equação contábil rompida: Ativo=${r.ativo_total.toFixed(0)} ≠ Passivo+PL=${ladoDireito.toFixed(0)} (desvio ${desvio.toFixed(2)}%)`);
+      console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}%`);
+    }
   }
   return r;
 }
@@ -315,6 +327,10 @@ const SYNTHETIC_DESC_PATTERNS: RegExp[] = [
   /^despesa\s+(total|operacional)$/i,
   /^resultado\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
   /^lucro\s+(bruto|operacional|antes|do\s+exerc[ií]cio|l[ií]quido)/i,
+  // FIX #5 — capturas adicionais frequentes em balancetes brasileiros
+  /\(=\)/, /\(\+\)/, /\(\-\)/, // marcadores de subtotal
+  /^\s*total\b/i, // qualquer "total ..." que não tenha sido pego acima
+  /^soma\s+(do|dos|das)/i,
 ];
 function isSyntheticDesc(desc?: string): boolean {
   const d = String(desc || "").trim();
@@ -322,6 +338,13 @@ function isSyntheticDesc(desc?: string): boolean {
   return SYNTHETIC_DESC_PATTERNS.some(p => p.test(d));
 }
 
+/**
+ * FIX #5 — Poda hierárquica de balancete por código contábil + filtros sintéticos.
+ * Considera pai qualquer conta cujo código é prefixo de outra conta presente.
+ * Suporta separadores "." OU códigos contínuos numéricos.
+ * Remove também: códigos com profundidade < máx do grupo, descrições sintéticas,
+ * e linhas cujo saldo é exatamente igual à soma de linhas-filho (auto-detecção).
+ */
 function pruneParents(linhas: InputLinha[]): InputLinha[] {
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
   const codes = linhas.map(l => normCode(l.conta));
@@ -335,13 +358,18 @@ function pruneParents(linhas: InputLinha[]): InputLinha[] {
       }
     }
   }
-  return linhas.filter(l => {
+  const before = linhas.length;
+  const filtered = linhas.filter(l => {
     const c = normCode(l.conta);
-    // Remove descrições sintéticas mesmo quando sem código
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
     return !parents.has(c);
   });
+  const removed = before - filtered.length;
+  if (removed > 0) {
+    console.log(`[pruneParents] removidas ${removed}/${before} linhas (pais sintéticos)`);
+  }
+  return filtered;
 }
 
 /**
@@ -381,7 +409,7 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
           if (curr >= prev * 1.02) monotonicPairs++;
         }
       }
-      // Critério: >= 80% dos pares válidos crescem (forte sinal de YTD acumulado)
+      // FIX #2 — Critério: >= 80% pares crescem (forte sinal YTD acumulado).
       if (totalPairs >= 2 && monotonicPairs / totalPairs >= 0.8) {
         const original = group.map(g => g[k] as number);
         for (let i = group.length - 1; i >= 1; i--) {
@@ -393,6 +421,7 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
           }
           r.ytd_desacumulado = true;
         }
+        console.log(`[desacumularDRE] YTD aplicado: chave=${k} ano=${group[0].mesKey.slice(0,4)} meses=${group.length} pares=${monotonicPairs}/${totalPairs}`);
       }
     }
     // Recalcula resultado pós-desacumulação
@@ -478,32 +507,39 @@ function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
     const PNC = r.passivo_nao_circulante;
     const PL = r.patrimonio_liquido;
     const LL = r.resultado;
-    // RLP: usar ANC inteiro como proxy quando não há separação de Imobilizado/Intangível
-    // (alinhado à fórmula da planilha do 1º período: LG = (AC+ANC)/(PC+PNC))
     const RLP = ANC;
     const safe = (n: number, d: number) => (Math.abs(d) < 0.01 ? 0 : n / d);
-    const x1 = safe(LL, PL);                          // RPL
-    const x2 = safe(AC + RLP, PC + PNC);              // LG
-    const x3 = safe(AC - r.estoques, PC);             // LS
-    const x4 = safe(AC, PC);                          // LC
-    const x5 = safe(PC + PNC, PL);                    // GE
-    const score = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
+
+    // FIX #3 — Bloqueio metodológico: Kanitz é INVÁLIDO quando |PL| < 5% do Ativo Total
+    // (denominadores RPL e GE divergem). NBC TA 200 §A20 — ceticismo profissional.
+    const plMin = Math.max(r.ativo_total * 0.05, 1);
+    const kanitzBloqueado = Math.abs(PL) < plMin || r.ativo_total <= 0;
+
+    const x1 = safe(LL, PL);
+    const x2 = safe(AC + RLP, PC + PNC);
+    const x3 = safe(AC - r.estoques, PC);
+    const x4 = safe(AC, PC);
+    const x5 = safe(PC + PNC, PL);
+    const scoreRaw = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
+    const score = kanitzBloqueado ? 0 : scoreRaw;
 
     let rating = "Pré-Insolvência (Penumbra)";
     let insight = "Faixa de penumbra — sinais de fragilidade, monitorar.";
-    if (score > 0) { rating = "Solvente"; insight = "Empresa em situação financeira saudável (TK > 0)."; }
+    if (kanitzBloqueado) {
+      rating = "Bloqueado (PL insuficiente)";
+      insight = `Kanitz não aplicável: |PL|=${Math.abs(PL).toFixed(0)} < 5% do Ativo Total (${r.ativo_total.toFixed(0)}). Use ISG.`;
+      console.log(`[computeKanitz] BLOQUEADO mes=${r.mesKey} |PL|=${Math.abs(PL).toFixed(0)} AT=${r.ativo_total.toFixed(0)}`);
+    } else if (score > 0) { rating = "Solvente"; insight = "Empresa em situação financeira saudável (TK > 0)."; }
     else if (score < -3) { rating = "Insolvência (Falência)"; insight = "Forte indicativo de insolvência (TK < -3)."; }
 
-    // ISG = Ativo Total / Passivo Total (exclui PL)
     const passivoTotal = PC + PNC;
     const isg = safe(r.ativo_total, passivoTotal);
     let isg_rating = "Crítico/Insolvente";
     if (isg >= 1.5) isg_rating = "Excelente/Solvente";
     else if (isg >= 1.0) isg_rating = "Aceitável/Equilíbrio";
 
-    // Quando PL <= 0, Kanitz é metodologicamente inadequado (planilha Giannini, aba ISG):
-    // promove ISG como indicador preferencial da narrativa.
-    const modelo_preferencial: "kanitz" | "isg" = PL <= 0 ? "isg" : "kanitz";
+    // Promove ISG como preferencial quando Kanitz bloqueado OU PL <= 0.
+    const modelo_preferencial: "kanitz" | "isg" = (kanitzBloqueado || PL <= 0) ? "isg" : "kanitz";
 
     return {
       mesKey: r.mesKey,
