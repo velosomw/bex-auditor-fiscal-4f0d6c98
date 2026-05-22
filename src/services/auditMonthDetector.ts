@@ -236,11 +236,14 @@ export function detectMonthFromYearLabel(label: string, fallbackMonth?: MonthRef
     return { key, label: monthLabel(key), source: "header", confidence: 0.9 };
   }
 
-  // Apenas YYYY → assume dezembro daquele ano (fechamento)
-  m = n.match(/(20\d{2})/);
+  // Apenas YYYY → assume dezembro daquele ano (fechamento).
+  // ⚠️ GUARD ANTI-ALUCINAÇÃO: a string INTEIRA precisa ser um ano (eventualmente
+  // com contexto explícito). Códigos contábeis como "2110102026" NÃO devem ser
+  // interpretados como ano 2026 → Dez/2026 (bug histórico que poluía gráficos).
+  m = n.match(/^(?:ano\s+|exerc[ií]cio\s+|per[ií]odo\s+)?(20\d{2})(?:\s*(?:anual|fechamento|dez|dezembro))?$/);
   if (m) {
     const key = `${m[1]}-12`;
-    return { key, label: monthLabel(key), source: "header", confidence: 0.6 };
+    return { key, label: monthLabel(key), source: "header", confidence: 0.55 };
   }
 
   // "atual"/"saldo atual" → herda do nome do arquivo se disponível
