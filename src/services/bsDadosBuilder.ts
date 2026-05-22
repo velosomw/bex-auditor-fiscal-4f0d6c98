@@ -31,47 +31,60 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   // ── Ativo Circulante (A..O) ──
   "A": "disponivel",        // Caixa e Equivalentes
   "B": "disponivel",        // Aplicações Financeiras
-  "C": "ativo_circulante",  // Contas a receber clientes
+  "C": "ativo_circulante",  // Contas a receber clientes (também → contas_receber via orth.)
   "D": "estoques",          // Estoque
-  "E": "ativo_circulante",  // Adiantamento Fornecedor
-  "F": "ativo_circulante",  // Partes Relacionadas
-  "G": "ativo_circulante",  // Impostos a recuperar
-  "H": "ativo_circulante",  // Juros a Apropriar
-  "I": "ativo_circulante",  // Outros Créditos
-  "J": "ativo_circulante",  // Adiant. Funcionários
-  "K": "ativo_circulante",  // Depósitos judiciais
-  "L": "ativo_circulante",  // Tributos diferidos
-  "M": "ativo_circulante",  // Investimentos Temporários
-  "N": "ativo_circulante",  // Consórcio
-  "O": "ativo_circulante",  // Seguros a Apropriar
+  "E": "ativo_circulante",
+  "F": "ativo_circulante",
+  "G": "ativo_circulante",
+  "H": "ativo_circulante",
+  "I": "ativo_circulante",
+  "J": "ativo_circulante",
+  "K": "ativo_circulante",
+  "L": "ativo_circulante",
+  "M": "ativo_circulante",
+  "N": "ativo_circulante",
+  "O": "ativo_circulante",
+  // ── Ativo Não Circulante (P..J1) ──
+  "P": "ativo_nao_circulante",  "Q": "ativo_nao_circulante",  "R": "ativo_nao_circulante",
+  "S": "ativo_nao_circulante",  "T": "ativo_nao_circulante",  "U": "ativo_nao_circulante",
+  "V": "ativo_nao_circulante",  "W": "ativo_nao_circulante",  "X": "ativo_nao_circulante",
+  "Y": "ativo_nao_circulante",  "Z": "ativo_nao_circulante",  "A1": "ativo_nao_circulante",
+  "B1": "ativo_nao_circulante",
+  "C1": "ativo_nao_circulante", // Imobilizado Líquido — também alimenta orth. imobilizado
+  "D1": "ativo_nao_circulante", // Intangível — também alimenta orth. imobilizado
+  "E1": "ativo_nao_circulante", "F1": "ativo_nao_circulante", "G1": "ativo_nao_circulante",
+  "H1": "ativo_nao_circulante", "I1": "ativo_nao_circulante", "J1": "ativo_nao_circulante",
   // ── Passivo Circulante (AA..II1) ──
-  "AA": "divida_financeira",   // Empréstimos PC
-  "BB": "fornecedores",        // Fornecedores PC
-  "CC": "divida_trabalhista",  // Obrigações Trabalhistas
-  "DD": "divida_tributaria",   // Obrigações Tributárias
-  "EE": "passivo_circulante",  // Contas a pagar
-  "FF": "passivo_circulante",  // Provisões
-  "GG": "passivo_circulante",  // Adiant. Clientes
-  "HH": "passivo_circulante",  // Outras Obrigações
-  "II": "credores_rj",         // Credores RJ
-  "JJ": "passivo_circulante",  // Partes Relacionadas PC
-  "KK": "passivo_circulante",  // Dividendos a pagar
-  "LL": "credores_rj",         // Recuperação Judicial
-  "MM": "passivo_circulante",  // Compensação Passiva
-  "NN": "divida_tributaria",   // Taxas e Contribuições
-  "OO": "passivo_circulante",  // Adiant. de Câmbio
-  "II1": "divida_tributaria",  // Tributárias Parceladas PC
+  "AA": "divida_financeira",
+  "BB": "fornecedores",
+  "CC": "divida_trabalhista",
+  "DD": "divida_tributaria",
+  "EE": "passivo_circulante",
+  "FF": "passivo_circulante",
+  "GG": "passivo_circulante",
+  "HH": "passivo_circulante",
+  "II": "credores_rj",
+  "JJ": "passivo_circulante",
+  "KK": "passivo_circulante",
+  "LL": "credores_rj",
+  "MM": "passivo_circulante",
+  "NN": "divida_tributaria",
+  "OO": "passivo_circulante",
+  "II1": "divida_tributaria",
   // ── Passivo Não Circulante (PP..FF1) ──
-  "PP": "fornecedores",        // Fornecedores LP
-  "QQ": "divida_financeira",   // Empréstimos LP
-  "RR": "divida_tributaria",   // Tributárias Parceladas LP
-  "SS": "divida_tributaria",   // Provisões para contingências
-  "TT": "divida_financeira",   // Partes Relacionadas PNC (proxy financeiro)
-  "CC1": "credores_rj",        // Credores RJ LP
+  "PP": "fornecedores",        // LP
+  "QQ": "divida_financeira",   // LP
+  "RR": "divida_tributaria",   // LP
+  "SS": "divida_tributaria",
+  "TT": "divida_financeira",
+  "UU": "passivo_nao_circulante", "VV": "passivo_nao_circulante", "WW": "passivo_nao_circulante",
+  "XX": "passivo_nao_circulante", "YY": "passivo_nao_circulante", "ZZ": "passivo_nao_circulante",
+  "AA1": "passivo_nao_circulante", "BB1": "passivo_nao_circulante",
+  "CC1": "credores_rj",        // RJ LP
+  "DD1": "passivo_nao_circulante", "EE1": "passivo_nao_circulante", "FF1": "passivo_nao_circulante",
   // ── Patrimônio Líquido ──
-  // GG1 (Capital Social) e HH1 (Lucros Acumulados) são contas do PL no Balanço,
-  // NÃO devem entrar em "resultado" do período (que é derivado da DRE).
-  // Deixadas fora do mapa propositalmente — serão ignoradas na consolidação BS&Dados.
+  "GG1": "patrimonio_liquido", // Capital Social
+  "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
   "RESULTADO": "resultado",
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
@@ -82,7 +95,13 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "DESPESAS": "despesas",
   "DESPESA": "despesas",
   "ATIVO CIRCULANTE": "ativo_circulante",
+  "ATIVO NAO CIRCULANTE": "ativo_nao_circulante",
+  "ATIVO NÃO CIRCULANTE": "ativo_nao_circulante",
   "PASSIVO CIRCULANTE": "passivo_circulante",
+  "PASSIVO NAO CIRCULANTE": "passivo_nao_circulante",
+  "PASSIVO NÃO CIRCULANTE": "passivo_nao_circulante",
+  "PATRIMONIO LIQUIDO": "patrimonio_liquido",
+  "PATRIMÔNIO LÍQUIDO": "patrimonio_liquido",
   "ESTOQUES": "estoques",
   "ESTOQUE": "estoques",
   "DISPONIVEL": "disponivel",
@@ -97,6 +116,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "CREDORES RJ": "credores_rj",
   "RECUPERACAO JUDICIAL": "credores_rj",
 };
+
 
 // Padrões regex usados quando o balancete extraído não traz "Ref 1" explícito
 // (espelha auditDatasetBuilder porém alinhado às chaves do MD)
