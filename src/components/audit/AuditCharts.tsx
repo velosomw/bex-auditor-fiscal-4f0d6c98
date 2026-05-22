@@ -127,6 +127,7 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
         entries={entries}
         datasetMesKeys={fullDataset.map(d => d.mesKey).filter(Boolean) as string[]}
       />
+      <SanityDiagnostico dataset={fullDataset} />
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
           {fullDataset.length} mês(es) consolidado(s) — exibindo {dataset.length}
