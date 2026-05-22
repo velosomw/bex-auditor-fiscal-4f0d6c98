@@ -538,6 +538,8 @@ Deno.serve(async (req) => {
     const balancetes: InputBalancete[] = sanitized;
     const bsDados = buildBSDados(balancetes);
     const indicadores = enrich(bsDados);
+    const kanitz = computeKanitz(bsDados);
+    const insightsObj = computeInsights(bsDados, kanitz);
     const summary = {
       meses: bsDados.length,
       total_linhas: balancetes.reduce((s, b) => s + (b.linhas?.length || 0), 0),
