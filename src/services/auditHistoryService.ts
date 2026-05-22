@@ -82,6 +82,17 @@ export function saveAuditBatch(entries: AuditHistoryEntry[]) {
 export function clearAuditHistory() {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(REPORTS_KEY);
+  // Limpeza remota best-effort (não bloqueia a UI)
+  void (async () => {
+    try {
+      const uid = (await supabase.auth.getSession()).data.session?.user?.id;
+      if (!uid) return;
+      await (supabase.from("audit_documents") as any).delete().eq("created_by", uid);
+      await (supabase.from("audit_reports") as any).delete().eq("created_by", uid);
+    } catch (e) {
+      console.warn("[auditHistoryService] clearAuditHistory remoto falhou:", e);
+    }
+  })();
 }
 
 /* =================================================================
