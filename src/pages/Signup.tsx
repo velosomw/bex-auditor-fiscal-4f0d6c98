@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, UserPlus, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,10 @@ const FREE_DOMAINS = new Set<string>([]); // E-mails pessoais agora são permiti
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const selectedPlan = params.get("plan") || "pro";
+  const redirectAfter = params.get("redirect") || (selectedPlan === "enterprise" ? "/minha-assinatura?upgrade=enterprise" : "/user");
+  const loginHref = `/login?redirect=${encodeURIComponent(redirectAfter)}`;
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,7 +46,7 @@ const Signup = () => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectAfter)}`,
         data: {
           full_name: fullName,
           company_name: companyName,

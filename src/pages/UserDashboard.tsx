@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp, Trash2, ChevronsRight, Building2 } from "lucide-react";
+import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp, Trash2, ChevronsRight, Building2, Crown, Rocket } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -184,24 +184,36 @@ const UserDashboard = () => {
             <p className="text-muted-foreground">Resumo das suas auditorias e documentos analisados</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate("/user/empresas")}
-              className="gap-1.5"
-            >
-              <Building2 className="w-4 h-4" /> Empresas
-            </Button>
             {!isReadOnly && (
-              <Button
-                size="sm"
-                onClick={() => navigate("/user/empresas")}
-                className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
-              >
-                <Plus className="w-4 h-4" /> Nova Auditoria
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/user/empresas")}
+                  className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                >
+                  <Plus className="w-4 h-4" /> Nova Auditoria
+                </Button>
+                <Button
+                  size="sm"
+                  variant="success"
+                  onClick={() => navigate("/minha-assinatura?upgrade=enterprise")}
+                  className="gap-1.5"
+                >
+                  <Rocket className="w-4 h-4" /> Avançar meu negócio
+                </Button>
+              </>
             )}
           </div>
+        </div>
+
+        {/* Inline ações rápidas */}
+        <div className="flex flex-wrap items-center gap-2 -mt-2">
+          <Button variant="outline" size="sm" onClick={() => navigate("/user/empresas")} className="gap-1.5">
+            <Building2 className="w-4 h-4" /> Visualizar Empresas
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate("/minha-assinatura")} className="gap-1.5">
+            <Crown className="w-4 h-4" /> Minha Assinatura
+          </Button>
         </div>
 
         {/* KPI Cards */}
