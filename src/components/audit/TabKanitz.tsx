@@ -253,7 +253,92 @@ const TabKanitz = ({
         </Card>
       )}
 
+      {/* ── ISG — Índice de Solvência Geral (MD: complementar/obrigatório quando PL ≤ 0) ── */}
+      {latestISG && (
+        <Card className={plNegativo ? "border-red-500/40 bg-red-500/5" : "border-border"}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-accent" />
+              Insolvência Geral (ISG)
+              {plNegativo && (
+                <Badge className="bg-red-500/15 text-red-700 border border-red-500/30 text-[10px]">
+                  PL ≤ 0 — análise obrigatória
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Capacidade do Ativo Total cobrir o capital de terceiros (PC + PNC). Útil quando o Kanitz
+              fica restrito por PL não-positivo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg bg-muted/30">
+                <p className="text-[10px] text-muted-foreground">ISG ({latestISG.mes})</p>
+                <p className="text-3xl font-bold font-mono" style={{ color: latestISG.color }}>
+                  {latestISG.isg.toFixed(2)}
+                </p>
+                <p className="text-[10px] mt-1" style={{ color: latestISG.color }}>
+                  {latestISG.icon} {latestISG.label}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30">
+                <p className="text-[10px] text-muted-foreground">Ativo Total</p>
+                <p className="text-lg font-bold font-mono">{fmt(latestISG.ativoTotal)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">AC + ANC</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30">
+                <p className="text-[10px] text-muted-foreground">Capital de Terceiros</p>
+                <p className="text-lg font-bold font-mono">{fmt(latestISG.capitalTerceiros)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">PC + PNC</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30">
+                <p className="text-[10px] text-muted-foreground">Fórmula</p>
+                <code className="text-[11px] font-mono">AT / (PC + PNC)</code>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  &gt; 1,5 Solvente · 1,0–1,5 Atenção · &lt; 1,0 Insolvente
+                </p>
+              </div>
+            </div>
+            {latestISG.reason && (
+              <p className="text-[11px] text-amber-700 bg-amber-500/10 border border-amber-500/30 rounded p-2">
+                ⚠ {latestISG.reason}
+              </p>
+            )}
+            {isgSeries.length > 1 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">Mês</TableHead>
+                    <TableHead className="text-right text-[10px]">Ativo Total</TableHead>
+                    <TableHead className="text-right text-[10px]">PC + PNC</TableHead>
+                    <TableHead className="text-right text-[10px]">ISG</TableHead>
+                    <TableHead className="text-right text-[10px]">Classificação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isgSeries.map(r => (
+                    <TableRow key={r.mesKey}>
+                      <TableCell className="text-xs font-semibold">{r.mes}</TableCell>
+                      <TableCell className="text-right text-xs font-mono">{fmt(r.ativoTotal)}</TableCell>
+                      <TableCell className="text-right text-xs font-mono">{fmt(r.capitalTerceiros)}</TableCell>
+                      <TableCell className="text-right text-xs font-mono font-bold" style={{ color: r.color }}>
+                        {r.isg.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right text-[10px]" style={{ color: r.color }}>
+                        {r.icon} {r.label}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sub-tabs */}
+
       <Tabs value={subTab} onValueChange={setSubTab}>
         <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
           <TabsTrigger value="visao-geral" className="text-[10px]">Visão Geral</TabsTrigger>
