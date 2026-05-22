@@ -83,6 +83,7 @@ const App = () => (
               <Route path="/user/empresas" element={<RoleGuard allow={["usuario","empresa","contabilidade"]}><UserEmpresas /></RoleGuard>} />
               <Route path="/user/report/:id" element={<RoleGuard allow={["usuario","empresa","contabilidade","auditor_chefe"]}><ReportView /></RoleGuard>} />
               <Route path="/audit" element={<RoleGuard allow={["usuario","empresa","contabilidade","auditor_chefe"]}><Audit /></RoleGuard>} />
+              <Route path="/minha-assinatura" element={<RoleGuard allow={["usuario","empresa","contabilidade"]}><MinhaAssinatura /></RoleGuard>} />
               <Route path="/gestor-ia" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><GestorIA /></RoleGuard>} />
               <Route path="/gestor-ia/agentes" element={<RoleGuard allow={["gestor_ia","coordenadora"]}><GestaoAgentes /></RoleGuard>} />
               <Route path="/modelo-matematico" element={<RoleGuard allow={["auditor_chefe","gestor_ia","coordenadora"]}><ModeloMatematico /></RoleGuard>} />
