@@ -15,6 +15,7 @@ const navItems = [
       { label: "Consultoria Completa", href: "/solucoes/consultoria-completa" },
     ],
   },
+  { label: "Planos", href: "/planos" },
   { label: "Sobre Nós", href: "/sobre" },
   { label: "Contato", href: "/contato" },
 ];
