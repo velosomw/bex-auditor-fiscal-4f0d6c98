@@ -936,7 +936,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         setProgress(50);
 
         let pipelineResult = null;
+        let deterministicFacts: any | null = null;
         if (parsedData && (parsedData.balanco.length > 0 || parsedData.dre.length > 0)) {
+
           try {
             pipelineResult = await runAuditPipeline(
               parsedData,
@@ -962,53 +964,74 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
           // P0: Persistência server-side BS & Dados (snapshot auditável em pipeline_analysis_results).
           // Converte parsedData → balancetes[{mes, linhas[]}] e dispara a Edge Function.
           try {
+
             const { consolidateBSDadosOnServer } = await import("@/services/bsDadosServerClient");
             const { detectMonthRangeFromFilename } = await import("@/services/auditMonthDetector");
             const allRows = [...(parsedData?.balanco || []), ...(parsedData?.dre || [])];
-            const periods = parsedData?.years ?? [];
+            const periodsRaw = parsedData?.years ?? [];
+            // FIX #1: descarta placeholders ("atual", "corrente", "—", ano sem mês)
+            const validKey = (k: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(k);
+            const periods = periodsRaw.filter(validKey);
             const userMeses = (balanceteEntries || [])
               .map(e => e.mesReferencia)
-              // CRÍTICO: "auto" não é um mês — sinaliza que o usuário pediu auto-detecção.
-              // Filtra para que o fallback (range do filename → colunas do XLSX) seja usado.
-              .filter((k): k is string => !!k && k !== "auto" && /^\d{4}-(0[1-9]|1[0-2])$/.test(k));
+              .filter((k): k is string => !!k && k !== "auto" && validKey(k));
 
             // PRIORIDADE de fonte da verdade para a lista de meses:
             //  1) meses confirmados pelo usuário no MonthsConfirmDialog
             //  2) range expandido do nome do arquivo (ex: "08.2025 a 01.2026" → 6 meses)
-            //  3) períodos detectados nas colunas do XLSX (último recurso, podem estar errados)
+            //  3) períodos válidos detectados nas colunas do XLSX
             const fileName0 = files[0]?.name || "";
-            const rangeFromName = detectMonthRangeFromFilename(fileName0).map(m => m.key);
+            const rangeFromName = detectMonthRangeFromFilename(fileName0).map(m => m.key).filter(validKey);
             const meses = userMeses.length > 0
               ? Array.from(new Set(userMeses)).sort()
               : (rangeFromName.length > 0 ? rangeFromName : periods);
 
-            const balancetes = meses.map(mes => {
-              const linhas = allRows.map(r => {
-                const matchKey = Object.keys(r.values || {}).find(k => k === mes || k.startsWith(`${mes}-`));
-                const v = r.values?.[mes] ?? (matchKey ? r.values?.[matchKey] : 0) ?? 0;
-                return {
-                  conta: r.conta,
-                  descricao: r.descricao,
-                  ref1: (r as any).ref1 ?? (r as any).refCapital ?? inferRefByCode(r.conta),
-                  saldo: Number(v) || 0,
-                };
-              }).filter(l => Number.isFinite(l.saldo) && l.saldo !== 0); // descarta linhas zeradas no mês
-              return { mes, linhas };
-            }).filter(b => b.linhas.length > 0);
-            if (balancetes.length > 0 && balancetes.some(b => b.linhas.length > 0)) {
-              const persistResp = await consolidateBSDadosOnServer(balancetes, {
-                companyId: companyId ?? undefined,
-                fileName: files[0]?.name,
-                variant: "completo",
+            if (meses.length === 0) {
+              // FIX #1: aborta consolidação quando não há meses determinísticos.
+              // Antes, "atual-01" era passado adiante e quebrava o cast ::date na
+              // edge function, fazendo perder TODA a persistência (bs_dados / indicadores / kanitz).
+              console.error("⛔ BS & Dados: nenhum mês válido (YYYY-MM) detectado. Abortando consolidação determinística.", { periodsRaw, userMeses, rangeFromName });
+              toast({
+                title: "Mês não identificado",
+                description: "Não foi possível detectar um mês YYYY-MM válido nos balancetes. Atribua manualmente o mês antes de reprocessar.",
+                variant: "destructive",
               });
-              console.log(
-                `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false} | audit_id=${persistResp.audit_id ?? "—"}`
-              );
-              if (!persistResp.persisted) {
-                console.error("⚠️ BS & Dados: persistência server-side falhou silenciosamente. companyId=", companyId, "meses=", meses);
-              }
             } else {
-              console.error("⚠️ BS & Dados: nenhum balancete a persistir. meses=", meses, "userMeses=", userMeses, "rangeFromName=", rangeFromName, "periods=", periods);
+              const balancetes = meses.map(mes => {
+                const linhas = allRows.map(r => {
+                  const matchKey = Object.keys(r.values || {}).find(k => k === mes || k.startsWith(`${mes}-`));
+                  const v = r.values?.[mes] ?? (matchKey ? r.values?.[matchKey] : 0) ?? 0;
+                  return {
+                    conta: r.conta,
+                    descricao: r.descricao,
+                    ref1: (r as any).ref1 ?? (r as any).refCapital ?? inferRefByCode(r.conta),
+                    saldo: Number(v) || 0,
+                  };
+                }).filter(l => Number.isFinite(l.saldo) && l.saldo !== 0); // descarta linhas zeradas no mês
+                return { mes, linhas };
+              }).filter(b => b.linhas.length > 0);
+              if (balancetes.length > 0 && balancetes.some(b => b.linhas.length > 0)) {
+                const persistResp = await consolidateBSDadosOnServer(balancetes, {
+                  companyId: companyId ?? undefined,
+                  fileName: files[0]?.name,
+                  variant: "completo",
+                });
+                console.log(
+                  `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false} | audit_id=${persistResp.audit_id ?? "—"}`
+                );
+                // FIX #4: captura ground-truth para injetar como FATOS FIXOS na IA.
+                if (Array.isArray((persistResp as any).bsDados) && (persistResp as any).bsDados.length > 0) {
+                  deterministicFacts = {
+                    bsDados: (persistResp as any).bsDados,
+                    indicadores: (persistResp as any).indicadores ?? [],
+                  };
+                }
+                if (!persistResp.persisted) {
+                  console.error("⚠️ BS & Dados: persistência server-side falhou silenciosamente. companyId=", companyId, "meses=", meses);
+                }
+              } else {
+                console.error("⚠️ BS & Dados: nenhum balancete a persistir após filtragem. meses=", meses);
+              }
             }
           } catch (e) {
             console.error("❌ Persistência BS & Dados (server) falhou:", e);
@@ -1021,7 +1044,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         }, pipelineResult, {
           companyId: companyId ?? null,
           periodo: dataToAnalyze?.documentInfo?.periodo ?? null,
+          deterministicFacts,
         });
+
 
         setCurrentStep(6);
         setProgress(70);

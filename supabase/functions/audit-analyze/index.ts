@@ -492,7 +492,7 @@ serve(async (req) => {
   }
 
   try {
-    const { balanco, dre, documentInfo, config, pipeline } = await req.json();
+    const { balanco, dre, documentInfo, config, pipeline, deterministicFacts } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -583,6 +583,33 @@ ${(pipeline.few_shot_examples || []).slice(0, 3).map((ex: any, i: number) => `Ex
 `
       : "";
 
+    // ── FATOS DETERMINÍSTICOS (FIX #4) ──────────────────────
+    // Quando o pipeline BS&Dados já consolidou totais por mês, eles SÃO
+    // o ground-truth contábil. A IA está PROIBIDA de reinterpretar/sobrescrever
+    // estes valores — qualquer narrativa que contradiga este bloco é alucinação.
+    const facts = deterministicFacts && Array.isArray(deterministicFacts.bsDados) && deterministicFacts.bsDados.length > 0
+      ? deterministicFacts
+      : null;
+    const factsBlock = facts ? `
+## ⚠️ FATOS DETERMINÍSTICOS — VERDADE CONTÁBIL (NÃO REINTERPRETAR)
+Estes valores foram consolidados pelo motor matemático BEx a partir do balancete bruto.
+São NÃO-NEGOCIÁVEIS. NUNCA invente Passivo, PL ou Resultado diferentes destes.
+Se um indicador depender de Passivo Total ou PL e estes não constarem aqui, marque como "não calculável" — NÃO chute.
+
+${facts.bsDados.map((r: any) => (
+`### ${r.mes} (${r.mesKey})
+- Receita Líquida: ${Number(r.receita_liquida).toFixed(2)}
+- CMV: ${Number(r.cmv).toFixed(2)} | Despesas: ${Number(r.despesas).toFixed(2)} | Resultado: ${Number(r.resultado).toFixed(2)}
+- Ativo Circulante: ${Number(r.ativo_circulante).toFixed(2)} | Passivo Circulante: ${Number(r.passivo_circulante).toFixed(2)}
+- Estoques: ${Number(r.estoques).toFixed(2)} | Disponível: ${Number(r.disponivel).toFixed(2)}
+- Dívida Financeira: ${Number(r.divida_financeira).toFixed(2)} | Tributária: ${Number(r.divida_tributaria).toFixed(2)} | Trabalhista: ${Number(r.divida_trabalhista).toFixed(2)}
+- Fornecedores: ${Number(r.fornecedores).toFixed(2)} | Credores RJ: ${Number(r.credores_rj).toFixed(2)} | Dívida Total: ${Number(r.divida_total).toFixed(2)}`
+)).join("\n\n")}
+
+${Array.isArray(facts.indicadores) && facts.indicadores.length > 0 ? `### Indicadores determinísticos (use estes valores diretamente)
+${facts.indicadores.map((i: any) => `- ${i.mes}: LC=${i.liquidezCorrente ?? "—"} | LS=${i.liquidezSeca ?? "—"} | LI=${i.liquidezImediata ?? "—"} | CMV%=${i.cmvPercent ?? "—"} | Resultado%=${i.resultadoPercent ?? "—"}`).join("\n")}` : ""}
+` : "";
+
     const userPrompt = `Analise os seguintes dados financeiros usando a pipeline multi-agente (Estruturador → Auditor → Risk Engine → Gerador):
 
 ## CONFIGURAÇÃO DA ANÁLISE
@@ -591,7 +618,8 @@ ${(pipeline.few_shot_examples || []).slice(0, 3).map((ex: any, i: number) => `Ex
 ${documentInfo ? `- Empresa: ${documentInfo.empresa || "Não informado"}
 - Período: ${documentInfo.periodo || "Não informado"}
 - Tipo de Documento: ${documentInfo.tipo || "Não informado"}` : ""}
-${pipelineBlock}
+${factsBlock}${pipelineBlock}
+
 ${resolvedAccountsBlock}
 ## BALANÇO PATRIMONIAL ${reducedBalanco !== balanco ? "(somente contas NÃO resolvidas pelo cache — Camada 3)" : ""}
 ${JSON.stringify(reducedBalanco, null, 2)}
