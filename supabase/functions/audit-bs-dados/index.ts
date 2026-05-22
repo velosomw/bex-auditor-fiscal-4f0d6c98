@@ -200,6 +200,8 @@ function emptyRow(mesKey: string): BSDadosRow {
     mes: mesKeyToLabel(mesKey), mesKey,
     receita_liquida: 0, cmv: 0, despesas: 0, resultado: 0,
     ativo_circulante: 0, passivo_circulante: 0,
+    ativo_nao_circulante: 0, passivo_nao_circulante: 0,
+    patrimonio_liquido: 0, ativo_total: 0, passivo_total: 0,
     estoques: 0, disponivel: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, divida_total: 0,
@@ -220,7 +222,19 @@ function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   return null;
 }
 
-interface Buckets { ac: number; pc: number; sawACTotal: boolean; sawPCTotal: boolean }
+// FIX #3 — Buckets estendidos: trackeia ANC, PNC, PL via ref1 para Kanitz
+interface Buckets {
+  ac: number; pc: number;
+  anc: number; pnc: number; pl: number;
+  sawACTotal: boolean; sawPCTotal: boolean;
+}
+
+// ANC = P..J1 (15 refs do MD §2.2)
+const ANC_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z","A1","B1","C1","D1","E1","F1","G1","H1","I1","J1"]);
+// PNC = PP..FF1 (§2.4)
+const PNC_REFS = new Set(["PP","QQ","RR","SS","TT","UU","VV","WW","XX","YY","ZZ","A1A","B1A","C1A","D1A","E1A","F1A","AA1","BB1","CC1A","DD1","EE1","FF1"]);
+// PL = GG1, HH1 + "Resultado" (§2.5)
+const PL_REFS = new Set(["GG1","HH1","RESULTADO_EXERCICIO"]);
 
 function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: string | null | undefined, b: Buckets) {
   if (!Number.isFinite(v)) return;
@@ -243,6 +257,9 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
   const refUp = ref1 ? upper(ref1) : "";
   if (refUp && AC_REFS.has(refUp)) b.ac += Math.abs(v);
   else if (refUp && PC_REFS.has(refUp)) b.pc += Math.abs(v);
+  else if (refUp && ANC_REFS.has(refUp)) b.anc += Math.abs(v);
+  else if (refUp && PNC_REFS.has(refUp)) b.pnc += Math.abs(v);
+  else if (refUp && PL_REFS.has(refUp)) b.pl += v; // PL preserva sinal
 }
 
 function finalize(r: BSDadosRow): BSDadosRow {
