@@ -955,8 +955,16 @@ async function runPipeline(
       code_overrides: codeOverrides,
     });
 
-    // 5. Persistir balancete_data
+    // 5. Persistir balancete_data — limpa entradas anteriores do mesmo documento
+    //    para evitar conflito com balancete_data_doc_conta_uq em reprocessamentos.
     if (normalizedRows.length > 0) {
+      const { error: bdDelErr } = await supabase
+        .from("balancete_data")
+        .delete()
+        .eq("document_id", documentId);
+      if (bdDelErr) {
+        console.warn("balancete_data prune warn:", bdDelErr.message);
+      }
       const { error: bdErr } = await supabase.from("balancete_data").insert(
         normalizedRows.map((r) => ({
           document_id: documentId,
