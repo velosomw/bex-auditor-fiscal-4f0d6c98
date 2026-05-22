@@ -683,12 +683,39 @@ Deno.serve(async (req) => {
             await supabase.from("indicadores").insert(indRows);
           }
 
+          // 4b. FIX #3 — persiste kanitz_scores
+          const kanitzRows = kanitz.map(k => ({
+            audit_id: auditId,
+            mes: `${k.mesKey}-01`,
+            ativo_total: k.ativo_total,
+            patrimonio_liquido: k.patrimonio_liquido,
+            x1: k.x1, x2: k.x2, x3: k.x3, x4: k.x4, x5: k.x5,
+            score: k.score, rating: k.rating, insight: k.insight,
+          }));
+          if (kanitzRows.length > 0) {
+            const { error: kErr } = await supabase.from("kanitz_scores").insert(kanitzRows);
+            if (kErr) console.warn("kanitz_scores insert warn:", kErr.message);
+          }
+
+          // 4c. FIX #3 — persiste insights determinísticos
+          const { error: iErr } = await supabase.from("insights").insert({
+            audit_id: auditId,
+            diagnostico: insightsObj.diagnostico,
+            problemas: insightsObj.problemas,
+            riscos: insightsObj.riscos,
+            recomendacoes: insightsObj.recomendacoes,
+            positivos: insightsObj.positivos,
+            tendencia: insightsObj.tendencia,
+            generated_by: "deterministic-bs-dados-v2",
+          });
+          if (iErr) console.warn("insights insert warn:", iErr.message);
+
           // 5. log
           await supabase.from("audit_logs").insert({
             audit_id: auditId,
             etapa: "bs_dados.persist",
             status: "ok",
-            payload: { meses: bsDados.length, errors: summary.errors },
+            payload: { meses: bsDados.length, errors: summary.errors, kanitz: kanitzRows.length },
           });
 
           persisted = true;
@@ -698,8 +725,7 @@ Deno.serve(async (req) => {
       }
     }
 
-
-    return new Response(JSON.stringify({ bsDados, indicadores, summary, persisted, audit_id: auditId }), {
+    return new Response(JSON.stringify({ bsDados, indicadores, kanitz, insights: insightsObj, summary, persisted, audit_id: auditId }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
