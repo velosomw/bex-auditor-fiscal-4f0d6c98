@@ -232,14 +232,30 @@ interface RowLike {
   saldo: number;
 }
 
-// Conjuntos de Refs Capital que agregam totalizadores AC e PC (template BEX).
-// Estes acumuladores SÓ são usados quando o balancete não traz a linha
-// totalizadora explícita "ATIVO CIRCULANTE" / "PASSIVO CIRCULANTE".
+// Conjuntos de Refs Capital que agregam totalizadores (template BEX).
+// Usados como acumuladores quando o balancete não traz a linha totalizadora explícita.
 const AC_REFS = new Set(["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"]);
+const ANC_REFS = new Set([
+  "P","Q","R","S","T","U","V","W","X","Y","Z",
+  "A1","B1","C1","D1","E1","F1","G1","H1","I1","J1",
+]);
 const PC_REFS = new Set(["AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","II1"]);
+const PNC_REFS = new Set([
+  "PP","QQ","RR","SS","TT","UU","VV","WW","XX","YY","ZZ",
+  "AA1","BB1","CC1","DD1","EE1","FF1",
+]);
+const PL_REFS = new Set(["GG1","HH1"]);
+// Refs para readouts ortogonais (não-exclusivos)
+const CONTAS_RECEBER_REFS = new Set(["C"]);
+const IMOBILIZADO_REFS = new Set(["C1","D1"]);
 
-// Buckets internos por mês para somar componentes (acumulador AC/PC derivado).
-type ComponentBuckets = { ac: number; pc: number; sawACTotal: boolean; sawPCTotal: boolean };
+// Buckets internos por mês para somar componentes (acumulador derivado).
+type ComponentBuckets = {
+  ac: number; pc: number;
+  anc: number; pnc: number; pl: number;
+  sawACTotal: boolean; sawPCTotal: boolean;
+  sawANCTotal: boolean; sawPNCTotal: boolean; sawPLTotal: boolean;
+};
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
@@ -270,17 +286,32 @@ function applyValue(
       (target as any)[key] = (target[key] as number) + (toUpperNoAccent(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v)); break;
     case "cmv":
     case "despesas":
+    case "despesas_financeiras":
+    case "depreciacao":
+    case "amortizacao":
       (target as any)[key] = (target[key] as number) - Math.abs(v); break;
     case "resultado":
       (target as any)[key] = (target[key] as number) + v; break;
+    case "patrimonio_liquido":
+      // PL preserva sinal — pode ser negativo (prejuízo acumulado)
+      target.patrimonio_liquido += v;
+      buckets.sawPLTotal = true; break;
     case "ativo_circulante":
       target.ativo_circulante += Math.abs(v);
       buckets.sawACTotal = true; break;
+    case "ativo_nao_circulante":
+      target.ativo_nao_circulante += Math.abs(v);
+      buckets.sawANCTotal = true; break;
     case "passivo_circulante":
       target.passivo_circulante += Math.abs(v);
       buckets.sawPCTotal = true; break;
+    case "passivo_nao_circulante":
+      target.passivo_nao_circulante += Math.abs(v);
+      buckets.sawPNCTotal = true; break;
     case "estoques":
     case "disponivel":
+    case "contas_receber":
+    case "imobilizado":
     case "divida_tributaria":
     case "divida_trabalhista":
     case "divida_financeira":
@@ -289,11 +320,20 @@ function applyValue(
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
     default: break;
   }
-  // Acumula componentes para derivar AC/PC SE o balancete não trouxer o total.
+  // Acumuladores por Ref Capital + readouts ortogonais
   const refUp = ref1 ? toUpperNoAccent(ref1) : "";
-  if (refUp && AC_REFS.has(refUp)) buckets.ac += Math.abs(v);
-  else if (refUp && PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
+  if (refUp) {
+    if (AC_REFS.has(refUp)) buckets.ac += Math.abs(v);
+    else if (ANC_REFS.has(refUp)) buckets.anc += Math.abs(v);
+    else if (PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
+    else if (PNC_REFS.has(refUp)) buckets.pnc += Math.abs(v);
+    else if (PL_REFS.has(refUp)) buckets.pl += v;  // preserva sinal
+    // Readouts ortogonais (não-exclusivos do roteamento primário)
+    if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") target.contas_receber += Math.abs(v);
+    if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") target.imobilizado += Math.abs(v);
+  }
 }
+
 
 // Tolerância padrão para validação Ativo = Passivo + PL (0.5%).
 export const BALANCE_TOLERANCE = 0.005;
