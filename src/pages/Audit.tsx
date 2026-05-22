@@ -936,7 +936,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         setProgress(50);
 
         let pipelineResult = null;
+        let deterministicFacts: any | null = null;
         if (parsedData && (parsedData.balanco.length > 0 || parsedData.dre.length > 0)) {
+
           try {
             pipelineResult = await runAuditPipeline(
               parsedData,
