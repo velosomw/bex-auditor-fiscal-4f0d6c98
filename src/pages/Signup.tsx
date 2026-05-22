@@ -46,7 +46,7 @@ const Signup = () => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectAfter)}`,
         data: {
           full_name: fullName,
           company_name: companyName,
