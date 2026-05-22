@@ -118,26 +118,38 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
 };
 
 
-// Padrões regex usados quando o balancete extraído não traz "Ref 1" explícito
-// (espelha auditDatasetBuilder porém alinhado às chaves do MD)
+// Padrões regex usados quando o balancete extraído não traz "Ref 1" explícito.
+// ORDEM IMPORTA: resolveKey retorna no primeiro match — patterns mais específicos primeiro.
 const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   mes: null, mesKey: null,
-  receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
+  // DRE — mais específicos primeiro
+  despesas_financeiras: /\b(?:despesas?\s+financeir|juros\s+(?:passivo|pagos?|sobre)|encargos\s+financeir|varia[cç][oõ]es\s+monet[aá]rias?\s+passiv)/i,
+  depreciacao: /\bdeprecia[cç][aã]o\b/i,
+  amortizacao: /\bamortiza[cç][aã]o\b/i,
   cmv: /\bc(?:mv|sv|pv)\b|\bcusto\s+(?:das?\s+)?(?:mercadoria|servi[cç]o|produto|venda)/i,
-  despesas: /\bdespesa|gasto\s+oper/i,
+  receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
   resultado: /\b(?:lucro|preju[ií]zo|resultado)\s+(?:l[ií]quid|do\s+exerc|do\s+per[ií]odo)/i,
-  ativo_circulante: /\bativo\s+circulante\b/i,
-  passivo_circulante: /\bpassivo\s+circulante\b/i,
+  despesas: /\bdespesa|gasto\s+oper/i,
+  // BALANÇO — Ativos: NC antes de C (mais específico) e leaves antes de totais
   estoques: /\bestoqu/i,
   disponivel: /\b(?:caixa|disponibilidade|disponivel|bancos?|aplica[cç][aã]o\s+financ|equivalente)/i,
+  contas_receber: /\b(?:contas?\s+a\s+receber|duplicatas?\s+a\s+receber|clientes)\b/i,
+  imobilizado: /\b(?:imobilizado|intang[ií]vel)\b/i,
+  ativo_nao_circulante: /\bativo\s+n[aã]o[\s-]?circulante|realiz[aá]vel\s+a\s+longo\s+prazo|ativo\s+permanente/i,
+  ativo_circulante: /\bativo\s+circulante\b/i,
+  // BALANÇO — Passivos & PL
   divida_tributaria: /\b(?:tribut|impostos?\s+a\s+(?:pagar|recolher)|icms|iss|pis|cofins|irpj|csll)/i,
   divida_trabalhista: /\b(?:sal[aá]rios?\s+a\s+pagar|f[eé]rias|13[ºo°]?|inss\s+a\s+pagar|fgts\s+a\s+pagar|encargos\s+sociais|trabalhista)/i,
   divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasing|arrendamento)/i,
   fornecedores: /\bfornecedor/i,
   credores_rj: /\b(?:credores?\s+(?:rj|recupera[cç][aã]o)|recupera[cç][aã]o\s+judic)/i,
+  passivo_nao_circulante: /\bpassivo\s+n[aã]o[\s-]?circulante|exig[ií]vel\s+a?\s*longo\s+prazo\b/i,
+  passivo_circulante: /\bpassivo\s+circulante\b/i,
+  patrimonio_liquido: /\b(?:patrim[oô]nio\s+l[ií]quido|capital\s+social|lucros?\s+acumulad|preju[ií]zos?\s+acumulad|reservas?\s+de\s+(?:capital|lucros?))\b/i,
   divida_total: null,
   hasReceita: null, hasBalanco: null, errors: null,
 };
+
 
 // ─── Tipos ───────────────────────────────────────────────
 export interface BSDadosRow {
