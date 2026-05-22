@@ -4760,7 +4760,7 @@ const AuditContent = () => {
               // Validação de cota mensal por variante (configurada no Gestor IA)
               if (company?.id) {
                 const variant = selectedDepth === "tecnico" ? "completo" : "resumido";
-                const { allowed, reason, quota } = canGenerateForCompany(company.id, variant);
+                const { allowed, reason, quota } = await canGenerateForCompany(company.id, variant);
                 if (!allowed) {
                   toast({
                     title: "Cota mensal esgotada",
