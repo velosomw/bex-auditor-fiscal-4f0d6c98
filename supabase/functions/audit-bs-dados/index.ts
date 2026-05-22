@@ -442,34 +442,57 @@ function enrich(rows: BSDadosRow[]): BSIndicators[] {
   }));
 }
 
-// ─── FIX #3: Kanitz por mês ─────────────────────────────
+// ─── FIX #3 + KANITZ-AUDIT: Kanitz + ISG por mês ─────────
+// Validado contra "Planilha Utilizar no Projeto Kanitz Giannini" + "Modelo Termômetro de Kanitz".
+// LG agora usa RLP real (aproximado por ANC quando não há breakout de Imobilizado/Intangível).
+// ISG é calculado em todos os meses e promovido a indicador preferencial quando PL < 0.
 function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
   return rows.map(r => {
     const AC = r.ativo_circulante;
+    const ANC = r.ativo_nao_circulante;
     const PC = r.passivo_circulante;
-    const ELP = r.passivo_nao_circulante;
+    const PNC = r.passivo_nao_circulante;
     const PL = r.patrimonio_liquido;
     const LL = r.resultado;
-    const RLP = 0;
+    // RLP: usar ANC inteiro como proxy quando não há separação de Imobilizado/Intangível
+    // (alinhado à fórmula da planilha do 1º período: LG = (AC+ANC)/(PC+PNC))
+    const RLP = ANC;
     const safe = (n: number, d: number) => (Math.abs(d) < 0.01 ? 0 : n / d);
-    const x1 = safe(LL, PL);
-    const x2 = safe(AC + RLP, PC + ELP);
-    const x3 = safe(AC - r.estoques, PC);
-    const x4 = safe(AC, PC);
-    const x5 = safe(PC + ELP, PL);
+    const x1 = safe(LL, PL);                          // RPL
+    const x2 = safe(AC + RLP, PC + PNC);              // LG
+    const x3 = safe(AC - r.estoques, PC);             // LS
+    const x4 = safe(AC, PC);                          // LC
+    const x5 = safe(PC + PNC, PL);                    // GE
     const score = 0.05 * x1 + 1.65 * x2 + 3.55 * x3 - 1.06 * x4 - 0.33 * x5;
-    let rating = "B - Atenção";
-    let insight = "Faixa de penumbra — monitorar.";
-    if (score > 0) { rating = "A - Solvente"; insight = "Empresa em situação financeira saudável."; }
-    else if (score < -3) { rating = "C - Insolvente"; insight = "Forte indicativo de insolvência."; }
+
+    let rating = "Pré-Insolvência (Penumbra)";
+    let insight = "Faixa de penumbra — sinais de fragilidade, monitorar.";
+    if (score > 0) { rating = "Solvente"; insight = "Empresa em situação financeira saudável (TK > 0)."; }
+    else if (score < -3) { rating = "Insolvência (Falência)"; insight = "Forte indicativo de insolvência (TK < -3)."; }
+
+    // ISG = Ativo Total / Passivo Total (exclui PL)
+    const passivoTotal = PC + PNC;
+    const isg = safe(r.ativo_total, passivoTotal);
+    let isg_rating = "Crítico/Insolvente";
+    if (isg >= 1.5) isg_rating = "Excelente/Solvente";
+    else if (isg >= 1.0) isg_rating = "Aceitável/Equilíbrio";
+
+    // Quando PL <= 0, Kanitz é metodologicamente inadequado (planilha Giannini, aba ISG):
+    // promove ISG como indicador preferencial da narrativa.
+    const modelo_preferencial: "kanitz" | "isg" = PL <= 0 ? "isg" : "kanitz";
+
     return {
       mesKey: r.mesKey,
       ativo_total: r.ativo_total,
+      passivo_total: passivoTotal,
       patrimonio_liquido: PL,
       x1: Number(x1.toFixed(4)), x2: Number(x2.toFixed(4)), x3: Number(x3.toFixed(4)),
       x4: Number(x4.toFixed(4)), x5: Number(x5.toFixed(4)),
       score: Number(score.toFixed(4)),
       rating, insight,
+      isg: Number(isg.toFixed(4)),
+      isg_rating,
+      modelo_preferencial,
     };
   });
 }
