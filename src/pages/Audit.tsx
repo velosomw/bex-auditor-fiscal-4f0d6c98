@@ -4387,9 +4387,18 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
 
   const persistReport = (variant: "resumido" | "completo") => {
-    const riskLevel = aiAnalysis?.diagnostico?.riskLevel || "moderado";
+    // FIX #6 — Prioriza valores DETERMINÍSTICOS calculados em audit-bs-dados
+    // (insights.risk_level / conformidade / risk_score). Só cai no fallback
+    // baseado em diagnostico.riskLevel da IA quando o determinístico não veio.
+    const det = aiAnalysis?.insightsDeterministicos || aiAnalysis?.insights;
+    const detRiskLevel = det?.risk_level as "baixo"|"moderado"|"elevado"|"critico"|undefined;
+    const detConformidade = typeof det?.conformidade === "number" ? det.conformidade : null;
+    const aiRiskLevel = aiAnalysis?.diagnostico?.riskLevel;
+    const riskLevel = detRiskLevel || aiRiskLevel || "moderado";
     const pendencias = aiAnalysis?.pendencias?.length || 0;
-    const conformidade = riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35;
+    const conformidade = detConformidade ?? (
+      riskLevel === "baixo" ? 95 : riskLevel === "moderado" ? 78 : riskLevel === "elevado" ? 55 : 35
+    );
     const baseName = (parsedData as any)?.fileName || aiAnalysis?.fileName || "Auditoria";
     const title = variant === "completo"
       ? `Relatório Kanitz - Ref. (${baseName})`
