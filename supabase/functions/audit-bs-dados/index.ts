@@ -269,7 +269,7 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
 
 function finalize(r: BSDadosRow): BSDadosRow {
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
-  // Resultado derivado da DRE (cmv/despesas já negativos) — evita dupla contagem do PL.
+  // Resultado derivado da DRE (cmv/despesas já negativos).
   r.resultado = r.receita_liquida + r.cmv + r.despesas;
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
@@ -278,22 +278,34 @@ function finalize(r: BSDadosRow): BSDadosRow {
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
   if (r.cmv > 0)     r.errors.push("CMV positivo (deveria ser negativo)");
 
-  // FIX #1 — Sanity guard: Estoques não pode ser ≥ 90% do Ativo Circulante.
-  // Sinaliza classificação inflada (descrições como "Adiantamento p/ Estoque"
-  // ou linhas-pai não podadas sendo somadas no bucket estoques).
-  if (r.estoques > 0 && r.ativo_circulante > 0 && r.estoques / r.ativo_circulante > 0.9) {
+  // FIX #1 — Sanity guard ESTOQUES (cap agressivo 85% → 65%) + log.
+  if (r.estoques > 0 && r.ativo_circulante > 0 && r.estoques / r.ativo_circulante > 0.85) {
     const before = r.estoques;
-    r.estoques = r.ativo_circulante * 0.7;
-    r.errors.push(`Estoques inflados (${(before/r.ativo_circulante*100).toFixed(1)}% do AC) — cap conservador aplicado a 70%`);
+    const pct = (before / r.ativo_circulante) * 100;
+    r.estoques = r.ativo_circulante * 0.65;
+    r.errors.push(`Estoques inflados (${pct.toFixed(1)}% do AC) — cap aplicado a 65%`);
+    console.log(`[finalize] CAP_ESTOQUES mes=${r.mesKey} before=${before.toFixed(0)} pct=${pct.toFixed(1)}% after=${r.estoques.toFixed(0)}`);
   }
 
-  // FIX #5 — Sanity guard: divida_total não pode exceder Passivo Total + 10%.
-  // Sinaliza dupla contagem entre buckets de dívida (NN/DD/II1, BB/PP etc.).
+  // FIX #1 — Sanity guard DÍVIDA TOTAL.
   const passivoEstimado = r.passivo_total > 0 ? r.passivo_total : r.passivo_circulante;
   if (passivoEstimado > 0 && r.divida_total > passivoEstimado * 1.1) {
     const before = r.divida_total;
     r.divida_total = passivoEstimado;
-    r.errors.push(`Dívida total excedia Passivo Total (${before.toFixed(0)} vs ${passivoEstimado.toFixed(0)}) — provável dupla contagem; ajustada`);
+    r.errors.push(`Dívida total excedia Passivo Total (${before.toFixed(0)} vs ${passivoEstimado.toFixed(0)}) — ajustada`);
+    console.log(`[finalize] CAP_DIVIDA mes=${r.mesKey} before=${before.toFixed(0)} after=${passivoEstimado.toFixed(0)}`);
+  }
+
+  // FIX #6 — Equação contábil Ativo = Passivo + PL (±1%). CPC 26 R1 §54 / NBC TG 26.
+  if (r.ativo_total > 0 && (r.passivo_total > 0 || r.patrimonio_liquido !== 0)) {
+    const ladoDireito = r.passivo_total + r.patrimonio_liquido;
+    const diff = Math.abs(r.ativo_total - ladoDireito);
+    const tol = r.ativo_total * 0.01;
+    if (diff > tol) {
+      const desvio = (diff / r.ativo_total) * 100;
+      r.errors.push(`Equação contábil rompida: Ativo=${r.ativo_total.toFixed(0)} ≠ Passivo+PL=${ladoDireito.toFixed(0)} (desvio ${desvio.toFixed(2)}%)`);
+      console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}%`);
+    }
   }
   return r;
 }
