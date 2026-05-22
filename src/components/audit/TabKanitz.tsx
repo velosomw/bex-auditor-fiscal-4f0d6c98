@@ -152,15 +152,31 @@ const TabKanitz = ({
   }
 
   if (kanitzResults.length === 0 && monthlySeries.length === 0) {
+    const hasDRE = !!parsedData?.dre?.length;
+    const hasBalanco = !!parsedData?.balanco?.length;
     return (
       <Card>
-        <CardContent className="py-12 text-center">
-          <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Nenhum dado financeiro disponível para calcular o Termômetro de Kanitz.</p>
+        <CardContent className="py-12 text-center space-y-3">
+          <AlertTriangle className="w-10 h-10 text-muted-foreground mx-auto" />
+          <p className="text-sm text-muted-foreground font-medium">
+            Não foi possível calcular o Termômetro de Kanitz com os dados atuais.
+          </p>
+          <div className="max-w-md mx-auto text-left text-xs text-muted-foreground space-y-1.5 bg-muted/30 rounded p-3 border">
+            <p className="font-semibold text-foreground">O modelo Kanitz exige:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Balanço Patrimonial {hasBalanco ? "✅ encontrado" : "❌ ausente"}</li>
+              <li>DRE com Lucro Líquido {hasDRE ? "✅ encontrada" : "❌ ausente — sem ela X1 (RPL) não pode ser calculado"}</li>
+              <li>Pelo menos 1 período (mês ou ano) completo</li>
+            </ul>
+            <p className="mt-2 italic">
+              Envie o arquivo de DRE correspondente ao mesmo período do balancete para liberar o cálculo automático.
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
   }
+
 
   return (
     <div className="space-y-4">
