@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
+import { computeIndicatorsForRow as _computeIndicatorRow } from "@/services/indicatorsEngine";
 import PlatformLayout from "@/components/PlatformLayout";
 import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData } from "@/services/auditAIService";
@@ -1317,8 +1318,6 @@ const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => 
 };
 
 /* ── Helper: indicators from processed BS rows (SSOT) — delega à engine única ── */
-import { computeIndicatorsForRow as _computeIndicatorRow } from "@/services/indicatorsEngine";
-
 const computeIndicatorsFromBSRows = (rows: any[]) => {
   if (!rows || rows.length === 0) return {};
   const result: Record<string, any> = {};
