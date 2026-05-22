@@ -690,16 +690,28 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
     );
 
-    // (a) snapshot legacy em pipeline_analysis_results (compat)
+    // ─── BACKGROUND TASKS — não bloqueiam a resposta ────────
+    // Coletor de promises diferidas. Tudo o que não é necessário no payload de
+    // retorno (legacy snapshot, balancete_lines, audit_logs) vai para waitUntil.
+    const backgroundTasks: Promise<unknown>[] = [];
+    const runBackground = (label: string, p: Promise<unknown>) => {
+      backgroundTasks.push(
+        p.catch((e) => console.warn(`[bg:${label}]`, (e as Error)?.message || e)),
+      );
+    };
+
+    // (a) snapshot legacy em pipeline_analysis_results (compat) — BACKGROUND
     if (body.document_id && typeof body.document_id === "string") {
-      const { error } = await supabase.from("pipeline_analysis_results").insert({
-        document_id: body.document_id,
-        indicadores: { bsDados, indicadores, summary, generated_at: new Date().toISOString() },
-        mapping_score: bsDados.length ? 1 : 0,
-        validation_score: summary.errors === 0 ? 1 : 0.5,
-        quality_score: summary.errors === 0 && bsDados.length ? 1 : 0.5,
-      });
-      persisted = !error;
+      runBackground("pipeline_analysis_results",
+        supabase.from("pipeline_analysis_results").insert({
+          document_id: body.document_id,
+          indicadores: { bsDados, indicadores, summary, generated_at: new Date().toISOString() },
+          mapping_score: bsDados.length ? 1 : 0,
+          validation_score: summary.errors === 0 ? 1 : 0.5,
+          quality_score: summary.errors === 0 && bsDados.length ? 1 : 0.5,
+        }),
+      );
+      persisted = true;
     }
 
     // (b) MD MASTER: cria audit + balancetes + bs_dados + indicadores
@@ -711,7 +723,7 @@ Deno.serve(async (req) => {
         );
         const createdBy = userData?.user?.id;
         if (createdBy) {
-          // 1. cria auditoria
+          // 1. cria auditoria (FOREGROUND — precisamos do audit_id no retorno)
           const { data: auditRow, error: aErr } = await supabase
             .from("audits")
             .insert({
@@ -728,7 +740,7 @@ Deno.serve(async (req) => {
           if (aErr) throw aErr;
           auditId = auditRow.id as string;
 
-          // 2. balancetes (1 linha por mês) — captura IDs para gravar lines
+          // 2. balancetes (1 linha por mês) — FOREGROUND (lines FK depende)
           const balancetesIns = balancetes.map((b) => ({
             audit_id: auditId,
             created_by: createdBy,
@@ -749,8 +761,7 @@ Deno.serve(async (req) => {
               balIdByMes.set(String(row.mes_referencia).slice(0, 7), row.id as string);
             }
 
-            // 2b. PERSISTÊNCIA GRANULAR: balancete_lines (conta × período × saldo)
-            // — fundação da rastreabilidade temporal (Onda 1).
+            // 2b. balancete_lines → BACKGROUND (payload grande, não usado no retorno)
             const linesIns: any[] = [];
             for (const b of balancetes) {
               const mesKey = periodToMesKey(b.mes);
@@ -769,24 +780,25 @@ Deno.serve(async (req) => {
                 });
               }
             }
-            // PERF — paraleliza chunks (concorrência limitada a 6 para não estourar PgBouncer).
             const chunks: any[][] = [];
             for (let i = 0; i < linesIns.length; i += 500) {
               chunks.push(linesIns.slice(i, i + 500));
             }
             const CONCURRENCY = 6;
-            for (let i = 0; i < chunks.length; i += CONCURRENCY) {
-              const wave = chunks.slice(i, i + CONCURRENCY);
-              const results = await Promise.all(
-                wave.map(chunk => supabase.from("balancete_lines").insert(chunk)),
-              );
-              for (const r of results) {
-                if (r.error) console.warn("balancete_lines insert warn:", r.error.message);
+            runBackground("balancete_lines", (async () => {
+              for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+                const wave = chunks.slice(i, i + CONCURRENCY);
+                const results = await Promise.all(
+                  wave.map(chunk => supabase.from("balancete_lines").insert(chunk)),
+                );
+                for (const r of results) {
+                  if (r.error) console.warn("balancete_lines insert warn:", r.error.message);
+                }
               }
-            }
+            })());
           }
 
-          // 3. bs_dados (snapshot consolidado)
+          // 3-4. snapshots consolidados — FOREGROUND em paralelo (independentes).
           const bsRows = bsDados.map((r) => ({
             audit_id: auditId,
             mes: `${r.mesKey}-01`,
@@ -806,11 +818,6 @@ Deno.serve(async (req) => {
             divida_total: r.divida_total,
             errors: r.errors,
           }));
-          if (bsRows.length > 0) {
-            await supabase.from("bs_dados").upsert(bsRows, { onConflict: "audit_id,mes" });
-          }
-
-          // 4. indicadores
           const indRows = indicadores.map((i, idx) => ({
             audit_id: auditId,
             mes: `${bsDados[idx].mesKey}-01`,
@@ -822,11 +829,6 @@ Deno.serve(async (req) => {
             liquidez_seca: i.liquidezSeca,
             liquidez_imediata: i.liquidezImediata,
           }));
-          if (indRows.length > 0) {
-            await supabase.from("indicadores").insert(indRows);
-          }
-
-          // 4b. FIX #3 — persiste kanitz_scores
           const kanitzRows = kanitz.map(k => ({
             audit_id: auditId,
             mes: `${k.mesKey}-01`,
@@ -838,13 +840,15 @@ Deno.serve(async (req) => {
             isg: k.isg, isg_rating: k.isg_rating,
             modelo_preferencial: k.modelo_preferencial,
           }));
-          if (kanitzRows.length > 0) {
-            const { error: kErr } = await supabase.from("kanitz_scores").insert(kanitzRows);
-            if (kErr) console.warn("kanitz_scores insert warn:", kErr.message);
-          }
 
-          // 4c. FIX #3 — persiste insights determinísticos
-          const { error: iErr } = await supabase.from("insights").insert({
+          const parallelOps: Promise<unknown>[] = [];
+          if (bsRows.length > 0)
+            parallelOps.push(supabase.from("bs_dados").upsert(bsRows, { onConflict: "audit_id,mes" }));
+          if (indRows.length > 0)
+            parallelOps.push(supabase.from("indicadores").insert(indRows));
+          if (kanitzRows.length > 0)
+            parallelOps.push(supabase.from("kanitz_scores").insert(kanitzRows));
+          parallelOps.push(supabase.from("insights").insert({
             audit_id: auditId,
             diagnostico: insightsObj.diagnostico,
             problemas: insightsObj.problemas,
@@ -853,22 +857,37 @@ Deno.serve(async (req) => {
             positivos: insightsObj.positivos,
             tendencia: insightsObj.tendencia,
             generated_by: "deterministic-bs-dados-v2",
-          });
-          if (iErr) console.warn("insights insert warn:", iErr.message);
+          }));
+          const parallelResults = await Promise.all(parallelOps);
+          for (const r of parallelResults) {
+            const err = (r as any)?.error;
+            if (err) console.warn("[parallel persist]", err.message);
+          }
 
-          // 5. log
-          await supabase.from("audit_logs").insert({
-            audit_id: auditId,
-            etapa: "bs_dados.persist",
-            status: "ok",
-            payload: { meses: bsDados.length, errors: summary.errors, kanitz: kanitzRows.length },
-          });
+          // 5. audit_log → BACKGROUND
+          runBackground("audit_logs",
+            supabase.from("audit_logs").insert({
+              audit_id: auditId,
+              etapa: "bs_dados.persist",
+              status: "ok",
+              payload: { meses: bsDados.length, errors: summary.errors, kanitz: kanitzRows.length },
+            }),
+          );
 
           persisted = true;
         }
       } catch (mdErr) {
         console.warn("MD MASTER persist warn:", (mdErr as Error)?.message);
+
       }
+    }
+
+    // Sustenta os inserts diferidos após o response retornar.
+    if (backgroundTasks.length > 0) {
+      try {
+        // @ts-ignore — EdgeRuntime é injetado pelo Supabase Edge Runtime
+        (globalThis as any).EdgeRuntime?.waitUntil?.(Promise.all(backgroundTasks));
+      } catch { /* sem suporte ao waitUntil — ignora */ }
     }
 
     return new Response(JSON.stringify({ bsDados, indicadores, kanitz, insights: insightsObj, summary, persisted, audit_id: auditId }), {
