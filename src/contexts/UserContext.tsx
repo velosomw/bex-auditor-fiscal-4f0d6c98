@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, R
 import { UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
 import type { User as SupaUser } from "@supabase/supabase-js";
+import { prefetchUserRoutes, prefetchStaffRoutes, prefetchGestorRoutes } from "@/lib/routePrefetch";
 
 interface UserContextType {
   role: UserRole | null;
