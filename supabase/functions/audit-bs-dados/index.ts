@@ -345,14 +345,41 @@ Deno.serve(async (req) => {
       });
     }
 
-    const balancetes: InputBalancete[] = body.balancetes;
+    // ── SANITIZAÇÃO DE mesKey (FIX #2) ───────────────────────
+    // Rejeita placeholders ("atual", "corrente", "—") que quebram o cast ::date
+    // mais adiante e fazem perder TODA a persistência determinística.
+    const isValidMesKey = (k: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(k);
+    const rawBalancetes: InputBalancete[] = body.balancetes;
+    const sanitized: InputBalancete[] = [];
+    const rejected: Array<{ mes: string; reason: string }> = [];
+    for (const b of rawBalancetes) {
+      const mk = periodToMesKey(b.mes);
+      if (isValidMesKey(mk)) {
+        sanitized.push({ ...b, mes: mk });
+      } else {
+        rejected.push({ mes: b.mes, reason: `mês inválido após normalização: "${mk}"` });
+      }
+    }
+    if (sanitized.length === 0) {
+      return new Response(JSON.stringify({
+        error: "Nenhum balancete com mês válido (YYYY-MM). Forneça meses explícitos antes de consolidar.",
+        rejected,
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (rejected.length > 0) {
+      console.warn(`[audit-bs-dados] ${rejected.length} balancete(s) descartados por mês inválido:`, rejected);
+    }
+
+    const balancetes: InputBalancete[] = sanitized;
     const bsDados = buildBSDados(balancetes);
     const indicadores = enrich(bsDados);
     const summary = {
       meses: bsDados.length,
       total_linhas: balancetes.reduce((s, b) => s + (b.linhas?.length || 0), 0),
       errors: bsDados.reduce((s, r) => s + r.errors.length, 0),
+      rejected_meses: rejected.length,
     };
+
 
     let persisted = false;
     let auditId: string | null = null;
