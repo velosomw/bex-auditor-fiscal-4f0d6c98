@@ -4393,12 +4393,16 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
 
   const persistReport = (variant: "resumido" | "completo") => {
-    // FIX #6 — Prioriza valores DETERMINÍSTICOS calculados em audit-bs-dados
-    // (insights.risk_level / conformidade / risk_score). Só cai no fallback
-    // baseado em diagnostico.riskLevel da IA quando o determinístico não veio.
+    // FIX #4 — SEMPRE prioriza valores DETERMINÍSTICOS do servidor.
+    // Quando ausentes, registra warning para investigação (não silencia).
     const det = aiAnalysis?.insightsDeterministicos || aiAnalysis?.insights;
     const detRiskLevel = det?.risk_level as "baixo"|"moderado"|"elevado"|"critico"|undefined;
     const detConformidade = typeof det?.conformidade === "number" ? det.conformidade : null;
+    if (!detRiskLevel || detConformidade === null) {
+      console.warn("[persistReport] insightsDeterministicos AUSENTE — usando fallback IA. audit-bs-dados pode não ter rodado.", {
+        hasDet: !!det, detKeys: det ? Object.keys(det) : [],
+      });
+    }
     const aiRiskLevel = aiAnalysis?.diagnostico?.riskLevel;
     const riskLevel = detRiskLevel || aiRiskLevel || "moderado";
     const pendencias = aiAnalysis?.pendencias?.length || 0;
