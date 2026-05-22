@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, R
 import { UserRole } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
 import type { User as SupaUser } from "@supabase/supabase-js";
+import { prefetchUserRoutes, prefetchStaffRoutes, prefetchGestorRoutes } from "@/lib/routePrefetch";
 
 interface UserContextType {
   role: UserRole | null;
@@ -95,6 +96,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       setRoleState(userRole);
       if (userRole) localStorage.setItem("userRole", userRole);
       else localStorage.removeItem("userRole");
+
+      // Prefetch idle das rotas mais usadas por perfil — chunks ficam em cache
+      // antes do clique, eliminando o "Carregando…" na navegação.
+      const r = userRole || cached;
+      if (r === "usuario" || r === "empresa" || r === "contabilidade") prefetchUserRoutes();
+      else if (r === "auditor_chefe" || r === "coordenadora") prefetchStaffRoutes();
+      else if (r === "gestor_ia") prefetchGestorRoutes();
     };
 
     // onAuthStateChange dispara INITIAL_SESSION automaticamente — não precisa de getSession() separado.
