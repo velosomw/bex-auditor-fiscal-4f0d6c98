@@ -209,8 +209,8 @@ const UserEmpresas = () => {
     }
   };
 
-  const handleNewAudit = (c: Company) => {
-    const { allowed, reason, quota } = canGenerateForCompany(c.id, "resumido");
+  const handleNewAudit = async (c: Company) => {
+    const { allowed, reason, quota } = await canGenerateForCompany(c.id, "resumido");
     if (!allowed) {
       toast({
         title: "Cota mensal esgotada",
