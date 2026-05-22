@@ -52,20 +52,28 @@ export function classifyKanitz(score: number): KanitzRating {
 }
 
 export function calcKanitzScore(input: {
-  resultado: number; pl: number; ac: number; pc: number; estoques: number; dividaTotal: number;
+  resultado: number; pl: number; ac: number; anc: number; pc: number; pnc: number;
+  estoques: number; dividaTotal: number;
 }): { K: number; RL: number; LG: number; LS: number; LC: number; GE: number } {
-  const pl = input.pl || 1;
+  const pl = input.pl;
   const pc = input.pc || 1;
-  
-  const RL = input.resultado / pl;
-  const LG = input.ac / (input.dividaTotal || 1); // Proxy para LG quando não temos ANC/PNC
+  const at = (input.ac || 0) + (input.anc || 0);
+  const pt = (input.pc || 0) + (input.pnc || 0);
+
+  // RL = Rentabilidade do PL = Lucro / PL  (N/A se PL ≤ 0)
+  const RL = pl > 0 ? input.resultado / pl : 0;
+  // LG = Liquidez Geral = (AC + ANC_realizável) / (PC + PNC).
+  // Sem RLP discriminado, usamos ANC total como proxy de ativos realizáveis a longo prazo.
+  const LG = pt > 0 ? (input.ac + input.anc) / pt : (input.ac / (input.dividaTotal || 1));
   const LS = (input.ac - input.estoques) / pc;
   const LC = input.ac / pc;
-  const GE = (input.dividaTotal || 0) / pl;
-  
+  // GE = Grau de Endividamento = (PC + PNC) / PL  (N/A se PL ≤ 0)
+  const GE = pl > 0 ? pt / pl : 0;
+
   const K = (0.05 * RL) + (1.65 * LG) + (3.55 * LS) - (1.06 * LC) - (0.33 * GE);
   return { K: Number(K.toFixed(4)), RL, LG, LS, LC, GE };
 }
+
 
 function genInsight(score: number, prevScore?: number): string {
   if (score < -7) return "Alto risco de insolvência — reestruturação imediata recomendada (Lei 11.101/2005).";
@@ -89,24 +97,33 @@ export function buildKanitzMonthlySeries(rows: BSDadosRow[] | null | undefined):
   for (const r of sorted) {
     const warnings: string[] = [];
 
-    // Proxies determinísticos
-    const ativoTotal = r.ativo_circulante > 0 ? r.ativo_circulante : 0;
+    // Ativo Total — usa ANC real quando capturado, senão proxy = AC.
+    const ancCaptured = (r.ativo_nao_circulante || 0) > 0;
+    const ativoTotal = (r.ativo_circulante || 0) + (r.ativo_nao_circulante || 0);
     if (ativoTotal === 0) warnings.push("Ativo total ausente — score não confiável");
-    else warnings.push("Ativo Total = Ativo Circulante (proxy: ANC não capturado no balancete)");
+    else if (!ancCaptured) warnings.push("Ativo Não Circulante não capturado — Ativo Total = AC (proxy)");
 
-    const patrimonioLiquido = ativoTotal - (r.divida_total || 0);
-    warnings.push("PL = Ativo Total − Dívida Total (equação contábil aproximada)");
+    // PL — usa valor real do SSOT (REF GG1 + HH1); fallback à equação contábil só se ausente.
+    const plCaptured = (r.patrimonio_liquido || 0) !== 0;
+    const patrimonioLiquido = plCaptured
+      ? r.patrimonio_liquido
+      : ativoTotal - (r.divida_total || 0);
+    if (!plCaptured) warnings.push("PL não capturado — usando Ativo Total − Dívida Total (aproximação)");
 
-    // Liquidez
+    // Liquidez (real, agora que ANC/PNC vêm do SSOT)
     const liquidezCorrente = r.passivo_circulante > 0 ? r.ativo_circulante / r.passivo_circulante : 0;
-    // Liquidez Geral ≈ AC / (PC + LP financeiro) — aproximamos com PC (sem ANC/PNC, é igual à LC)
-    const liquidezGeral = liquidezCorrente;
+    const passivoTotal = (r.passivo_circulante || 0) + (r.passivo_nao_circulante || 0);
+    const liquidezGeral = passivoTotal > 0
+      ? ((r.ativo_circulante || 0) + (r.ativo_nao_circulante || 0)) / passivoTotal
+      : liquidezCorrente;
 
     const { K, RL, LG, LS, LC, GE } = calcKanitzScore({
       resultado: r.resultado || 0,
       pl: patrimonioLiquido,
       ac: r.ativo_circulante || 0,
+      anc: r.ativo_nao_circulante || 0,
       pc: r.passivo_circulante || 0,
+      pnc: r.passivo_nao_circulante || 0,
       estoques: r.estoques || 0,
       dividaTotal: r.divida_total || 0,
     });
@@ -131,6 +148,7 @@ export function buildKanitzMonthlySeries(rows: BSDadosRow[] | null | undefined):
     });
     prevScore = K;
   }
+
 
   return out;
 }

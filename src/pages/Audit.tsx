@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
+import { computeIndicatorsForRow as _computeIndicatorRow } from "@/services/indicatorsEngine";
 import PlatformLayout from "@/components/PlatformLayout";
 import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData } from "@/services/auditAIService";
@@ -1316,53 +1317,47 @@ const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => 
   return result;
 };
 
-/* ── Helper: compute indicators from processed BS rows (SSOT) ── */
+/* ── Helper: indicators from processed BS rows (SSOT) — delega à engine única ── */
 const computeIndicatorsFromBSRows = (rows: any[]) => {
   if (!rows || rows.length === 0) return {};
   const result: Record<string, any> = {};
-  
-  rows.forEach(r => {
-    const ac = r.ativo_circulante || 0;
-    const pc = r.passivo_circulante || 0;
-    const pl = r.patrimonio_liquido || (r.ativo_circulante - r.divida_total) || 0;
-    const estoque = r.estoques || 0;
-    const caixa = r.disponivel || 0;
-    const receita = r.receita_liquida || 0;
-    const lucro = r.resultado || 0;
-    const cmv = Math.abs(r.cmv || 0);
-    const at = ac || 1; 
-    const pt = r.divida_total || 0;
-
+  for (const r of rows) {
+    const ind = _computeIndicatorRow(r);
     result[r.mesKey] = {
-      liquidezCorrente: pc ? ac / pc : 0,
-      liquidezSeca: pc ? (ac - estoque) / pc : 0,
-      liquidezImediata: pc ? caixa / pc : 0,
-      liquidezGeral: pc ? ac / pc : 0, // Proxy
-      endividamentoGeral: at ? pt / at : 0,
-      composicaoEndividamento: pt ? pc / pt : 0,
-      imobilizacaoPL: 0,
-      coberturaJuros: 0,
-      giroAtivo: at ? receita / at : 0,
-      pmr: 0,
-      pmp: cmv ? (r.fornecedores * 360) / cmv : 0,
-      idadeMediaEstoque: cmv ? (estoque * 360) / cmv : 0,
-      margemLiquida: receita ? lucro / receita : 0,
-      margemOperacional: receita ? lucro / receita : 0,
-      roa: at ? lucro / at : 0,
-      roe: Math.abs(pl) ? lucro / Math.abs(pl) : 0,
-      _ac: ac, _anc: 0, _pc: pc, _pnc: 0, _pl: pl, _caixa: caixa,
-      _receita: receita, _lucro: lucro, _resOp: lucro, _despFin: 0,
-      _imob: 0, _estoque: estoque, _fornecedores: r.fornecedores, _cmv: cmv,
-      _contasReceber: 0,
+      liquidezCorrente: ind.liquidezCorrente,
+      liquidezSeca: ind.liquidezSeca,
+      liquidezImediata: ind.liquidezImediata,
+      liquidezGeral: ind.liquidezGeral,
+      endividamentoGeral: ind.endividamentoGeral,
+      composicaoEndividamento: ind.composicaoEndividamento,
+      imobilizacaoPL: ind.imobilizacaoPL,
+      coberturaJuros: ind.coberturaJuros,
+      giroAtivo: ind.giroAtivo,
+      pmr: ind.pmr,
+      pmp: ind.pmp,
+      idadeMediaEstoque: ind.idadeMediaEstoque,
+      margemLiquida: ind.margemLiquida,
+      margemOperacional: ind.margemOperacional,
+      roa: ind.roa,
+      roe: ind.roe,
+      ebitda: ind.ebitda,
+      _ac: ind._ac, _anc: ind._anc, _pc: ind._pc, _pnc: ind._pnc, _pl: ind._pl,
+      _caixa: ind._caixa, _receita: ind._receita, _lucro: ind._resultado,
+      _resOp: ind._resultado + ind._despFin, _despFin: ind._despFin,
+      _imob: ind._imob, _estoque: ind._estoque,
+      _fornecedores: ind._fornecedores, _cmv: ind._cmv,
+      _contasReceber: ind._contasReceber,
       _divida_financeira: r.divida_financeira || 0,
       _divida_tributaria: r.divida_tributaria || 0,
       _divida_trabalhista: r.divida_trabalhista || 0,
       _credores_rj: r.credores_rj || 0,
-
+      _depreciacao: ind._depreciacao,
+      _amortizacao: ind._amortizacao,
     };
-  });
+  }
   return result;
 };
+
 /* ── Tab 2: Indicadores Econômico-Financeiros ── */
 const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any; bsRows?: any[] }) => {
   const { state } = useAudit();
