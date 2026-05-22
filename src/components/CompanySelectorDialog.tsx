@@ -37,10 +37,10 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
       .finally(() => setLoading(false));
   }, [open]);
 
-  const handleConfirmSelect = () => {
+  const handleConfirmSelect = async () => {
     const c = companies.find(c => c.id === selectedId);
     if (!c) return;
-    const { allowed, reason, quota } = canGenerateForCompany(c.id, "resumido");
+    const { allowed, reason, quota } = await canGenerateForCompany(c.id, "resumido");
     if (!allowed) {
       toast({
         title: "Cota mensal esgotada",

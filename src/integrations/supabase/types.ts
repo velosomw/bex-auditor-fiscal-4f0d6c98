@@ -1591,6 +1591,63 @@ export type Database = {
         }
         Relationships: []
       }
+      report_company_quota_extras: {
+        Row: {
+          company_id: string
+          company_name: string
+          completo_extra: number
+          created_at: string
+          id: string
+          resumido_extra: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          company_name: string
+          completo_extra?: number
+          created_at?: string
+          id?: string
+          resumido_extra?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          company_name?: string
+          completo_extra?: number
+          created_at?: string
+          id?: string
+          resumido_extra?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      report_global_quotas: {
+        Row: {
+          completo: number
+          id: boolean
+          resumido: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          completo?: number
+          id?: boolean
+          resumido?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          completo?: number
+          id?: boolean
+          resumido?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string

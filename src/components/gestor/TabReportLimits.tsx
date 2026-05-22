@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -6,44 +6,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Search, Save, Trash2, FileBarChart, Building2, Globe2, FileText, FileStack, CalendarClock } from "lucide-react";
+import { Search, Save, Trash2, FileBarChart, Building2, Globe2, FileText, FileStack, CalendarClock, Loader2 } from "lucide-react";
 import {
   getGlobalLimits, setGlobalLimits,
   getPerCompanyExtras, setPerCompanyExtra, removePerCompanyExtra,
-  getCompanyQuota, getCompanyMonthlyUsage,
+  getAllCompaniesMonthlyUsage,
+  type GlobalLimits, type PerCompanyExtra,
 } from "@/services/reportLimitsService";
 import { listCompanies, type Company } from "@/services/companiesService";
-import { getGeneratedReports } from "@/services/auditHistoryService";
+
+const DEFAULT_GLOBAL: GlobalLimits = { resumido: 50, completo: 10 };
 
 const TabReportLimits = () => {
-  const [global, setGlobal] = useState(getGlobalLimits());
+  const [global, setGlobal] = useState<GlobalLimits>(DEFAULT_GLOBAL);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [perLimits, setPerLimits] = useState(getPerCompanyExtras());
+  const [perLimits, setPerLimits] = useState<PerCompanyExtra[]>([]);
+  const [usageMap, setUsageMap] = useState<Map<string, { resumido: number; completo: number }>>(new Map());
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState<string>("all");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [extraResumido, setExtraResumido] = useState<string>("0");
   const [extraCompleto, setExtraCompleto] = useState<string>("0");
-  const [reports] = useState(getGeneratedReports());
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    listCompanies().then(setCompanies).catch(() => setCompanies([]));
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [g, extras, comps, usage] = await Promise.all([
+        getGlobalLimits(),
+        getPerCompanyExtras(),
+        listCompanies().catch(() => [] as Company[]),
+        getAllCompaniesMonthlyUsage(),
+      ]);
+      setGlobal(g);
+      setPerLimits(extras);
+      setCompanies(comps);
+      setUsageMap(usage);
+    } catch (e: any) {
+      toast.error("Falha ao carregar cotas: " + (e?.message ?? "erro desconhecido"));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const reportsByCompany = useMemo(() => {
-    const map = new Map<string, { resumido: number; completo: number }>();
-    const now = new Date();
-    reports.forEach(r => {
-      if (!r.companyId) return;
-      const d = new Date(r.date);
-      if (d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth()) return;
-      const cur = map.get(r.companyId) || { resumido: 0, completo: 0 };
-      if (r.variant === "completo") cur.completo += 1;
-      else cur.resumido += 1;
-      map.set(r.companyId, cur);
-    });
-    return map;
-  }, [reports]);
+  useEffect(() => { reload(); }, [reload]);
 
   const sectors = useMemo(() => {
     const set = new Set<string>();
@@ -60,31 +67,60 @@ const TabReportLimits = () => {
     });
   }, [companies, search, stateFilter]);
 
-  const totalResumidos = reports.filter(r => r.variant === "resumido").length;
-  const totalCompletos = reports.filter(r => r.variant === "completo").length;
-  const companiesWithReports = reportsByCompany.size;
+  const totals = useMemo(() => {
+    let totalResumidos = 0, totalCompletos = 0;
+    usageMap.forEach(v => { totalResumidos += v.resumido; totalCompletos += v.completo; });
+    return { totalResumidos, totalCompletos, companiesWithReports: usageMap.size };
+  }, [usageMap]);
 
-  const handleSaveGlobal = () => {
-    setGlobalLimits(global);
-    toast.success(`Cotas mensais salvas: ${global.resumido} resumidos · ${global.completo} completos por empresa`);
+  const handleSaveGlobal = async () => {
+    setSaving(true);
+    try {
+      await setGlobalLimits(global);
+      toast.success(`Cotas mensais salvas: ${global.resumido} resumidos · ${global.completo} completos por empresa`);
+      await reload();
+    } catch (e: any) {
+      toast.error("Erro ao salvar cotas: " + (e?.message ?? "verifique se você é Gestor IA"));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleAddPerCompany = () => {
+  const handleAddPerCompany = async () => {
     const c = companies.find(x => x.id === selectedCompanyId);
     if (!c) return toast.error("Selecione uma empresa");
-    const r = parseInt(extraResumido, 10) || 0;
-    const co = parseInt(extraCompleto, 10) || 0;
+    const r = Math.max(0, parseInt(extraResumido, 10) || 0);
+    const co = Math.max(0, parseInt(extraCompleto, 10) || 0);
     if (r === 0 && co === 0) return toast.error("Informe ao menos 1 unidade extra");
-    setPerCompanyExtra(c.id, c.name, { resumido: r, completo: co });
-    setPerLimits(getPerCompanyExtras());
-    toast.success(`Extras atribuídos a ${c.name}: +${r} resumidos · +${co} completos`);
+    setSaving(true);
+    try {
+      await setPerCompanyExtra(c.id, c.name, { resumido: r, completo: co });
+      toast.success(`Extras atribuídos a ${c.name}: +${r} resumidos · +${co} completos`);
+      await reload();
+    } catch (e: any) {
+      toast.error("Erro ao salvar extras: " + (e?.message ?? "permissão negada"));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleRemovePer = (id: string) => {
-    removePerCompanyExtra(id);
-    setPerLimits(getPerCompanyExtras());
-    toast.info("Cota extra removida");
+  const handleRemovePer = async (id: string) => {
+    try {
+      await removePerCompanyExtra(id);
+      toast.info("Cota extra removida");
+      await reload();
+    } catch (e: any) {
+      toast.error("Erro ao remover: " + (e?.message ?? "permissão negada"));
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -102,12 +138,12 @@ const TabReportLimits = () => {
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileBarChart className="w-3.5 h-3.5" /> Emitidos</div>
-          <div className="text-3xl font-bold mt-2">{totalResumidos + totalCompletos}</div>
-          <div className="text-xs text-muted-foreground">{totalResumidos} resumidos · {totalCompletos} completos</div>
+          <div className="text-3xl font-bold mt-2">{totals.totalResumidos + totals.totalCompletos}</div>
+          <div className="text-xs text-muted-foreground">{totals.totalResumidos} resumidos · {totals.totalCompletos} completos</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Building2 className="w-3.5 h-3.5" /> Empresas Ativas</div>
-          <div className="text-3xl font-bold mt-2">{companiesWithReports}</div>
+          <div className="text-3xl font-bold mt-2">{totals.companiesWithReports}</div>
           <div className="text-xs text-muted-foreground">consumindo cota no mês</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
@@ -130,20 +166,28 @@ const TabReportLimits = () => {
           <div>
             <Label className="text-xs">Resumidos / mês</Label>
             <Input
-              type="number" min={0} max={999}
+              type="number" min={0} max={9999}
               value={global.resumido}
-              onChange={(e) => setGlobal({ ...global, resumido: parseInt(e.target.value) || 0 })}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, resumido: Number.isFinite(v) && v >= 0 ? v : 0 });
+              }}
             />
           </div>
           <div>
             <Label className="text-xs">Completos / mês</Label>
             <Input
-              type="number" min={0} max={999}
+              type="number" min={0} max={9999}
               value={global.completo}
-              onChange={(e) => setGlobal({ ...global, completo: parseInt(e.target.value) || 0 })}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, completo: Number.isFinite(v) && v >= 0 ? v : 0 });
+              }}
             />
           </div>
-          <Button onClick={handleSaveGlobal}><Save className="w-4 h-4" /> Salvar</Button>
+          <Button onClick={handleSaveGlobal} disabled={saving}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar
+          </Button>
         </div>
       </div>
 
@@ -165,15 +209,15 @@ const TabReportLimits = () => {
           </div>
           <div>
             <Label className="text-xs">+ Resumidos</Label>
-            <Input type="number" min={0} max={99} value={extraResumido} onChange={e => setExtraResumido(e.target.value)} />
+            <Input type="number" min={0} max={999} value={extraResumido} onChange={e => setExtraResumido(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">+ Completos</Label>
-            <Input type="number" min={0} max={99} value={extraCompleto} onChange={e => setExtraCompleto(e.target.value)} />
+            <Input type="number" min={0} max={999} value={extraCompleto} onChange={e => setExtraCompleto(e.target.value)} />
           </div>
         </div>
         <div className="mt-3">
-          <Button onClick={handleAddPerCompany}>Atribuir Cota Extra</Button>
+          <Button onClick={handleAddPerCompany} disabled={saving}>Atribuir Cota Extra</Button>
         </div>
 
         {perLimits.length > 0 && (
@@ -249,17 +293,20 @@ const TabReportLimits = () => {
                 <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Nenhuma empresa encontrada.</TableCell></TableRow>
               )}
               {filteredCompanies.map(c => {
-                const q = getCompanyQuota(c.id);
-                const pctR = q.resumido.limit > 0 ? (q.resumido.used / q.resumido.limit) * 100 : 0;
-                const pctC = q.completo.limit > 0 ? (q.completo.used / q.completo.limit) * 100 : 0;
+                const extra = perLimits.find(p => p.companyId === c.id);
+                const limR = global.resumido + (extra?.resumido ?? 0);
+                const limC = global.completo + (extra?.completo ?? 0);
+                const used = usageMap.get(c.id) || { resumido: 0, completo: 0 };
+                const pctR = limR > 0 ? (used.resumido / limR) * 100 : 0;
+                const pctC = limC > 0 ? (used.completo / limC) * 100 : 0;
                 const worst = Math.max(pctR, pctC);
                 const status = worst >= 100 ? "esgotado" : worst >= 80 ? "alerta" : "ok";
                 return (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{c.cnpj || "—"}</TableCell>
-                    <TableCell className="text-center font-mono text-xs">{q.resumido.used}/{q.resumido.limit}</TableCell>
-                    <TableCell className="text-center font-mono text-xs">{q.completo.used}/{q.completo.limit}</TableCell>
+                    <TableCell className="text-center font-mono text-xs">{used.resumido}/{limR}</TableCell>
+                    <TableCell className="text-center font-mono text-xs">{used.completo}/{limC}</TableCell>
                     <TableCell className="text-center">
                       {status === "esgotado" ? <Badge variant="destructive">Esgotado</Badge>
                         : status === "alerta" ? <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/20">Alerta</Badge>

@@ -1,134 +1,158 @@
-import { getGeneratedReports } from "./auditHistoryService";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Cotas mensais de relatórios por variante (resumido / completo).
  *
+ * PERSISTÊNCIA: 100% em banco (tabelas report_global_quotas e report_company_quota_extras).
+ * Antes ficava em localStorage do gestor — por isso outros usuários nunca recebiam
+ * a configuração. CONTAGEM mensal vem de audit_reports (DB), não mais do histórico local.
+ *
  * Regras:
- *  - Limite GLOBAL definido pelo Gestor IA (padrão 50 resumidos / 10 completos por mês).
- *  - Cada empresa pode receber uma cota EXTRA pontual (resumido + completo) que se soma ao global.
- *  - Selecionar "Relatório Completo" consome 1 completo + 1 resumido (gera os dois documentos).
- *  - Selecionar "Relatório Resumido" consome apenas 1 resumido.
- *  - Renovação mensal: contagens consideram somente relatórios emitidos no mês corrente.
+ *  - Cota GLOBAL definida pelo Gestor IA (padrão 50 resumidos / 10 completos por mês).
+ *  - Cada empresa pode receber cota EXTRA pontual que se soma à global.
+ *  - "Relatório Completo" consome 1 completo + 1 resumido.
+ *  - "Relatório Resumido" consome 1 resumido.
+ *  - Renovação mensal: contagens consideram apenas o mês corrente.
  */
 
 export type ReportVariant = "resumido" | "completo";
 
-const GLOBAL_KEY = "bex_report_limits_global_v2";
-const PER_COMPANY_KEY = "bex_report_limits_per_company_v2";
-// Compat antigos
-const LEGACY_GLOBAL_KEY = "bex_report_limit_global";
-const LEGACY_PER_COMPANY_KEY = "bex_report_limits_per_company";
-
-export interface GlobalLimits {
-  resumido: number;
-  completo: number;
-}
-
+export interface GlobalLimits { resumido: number; completo: number; }
 export interface PerCompanyExtra {
   companyId: string;
   companyName: string;
   resumido: number;
   completo: number;
 }
-
-const DEFAULT_GLOBAL: GlobalLimits = { resumido: 50, completo: 10 };
-
-/* ────────────────── Global ────────────────── */
-export function getGlobalLimits(): GlobalLimits {
-  try {
-    const raw = localStorage.getItem(GLOBAL_KEY);
-    if (raw) {
-      const v = JSON.parse(raw);
-      return {
-        resumido: Math.max(0, parseInt(v.resumido, 10) || DEFAULT_GLOBAL.resumido),
-        completo: Math.max(0, parseInt(v.completo, 10) || DEFAULT_GLOBAL.completo),
-      };
-    }
-    // migra valor único antigo (era “relatórios totais por empresa”)
-    const legacy = localStorage.getItem(LEGACY_GLOBAL_KEY);
-    if (legacy) {
-      const n = parseInt(legacy, 10);
-      if (Number.isFinite(n) && n > 0) {
-        return { resumido: n, completo: Math.max(1, Math.floor(n / 5)) };
-      }
-    }
-  } catch {}
-  return { ...DEFAULT_GLOBAL };
-}
-
-export function setGlobalLimits(value: GlobalLimits) {
-  const safe: GlobalLimits = {
-    resumido: Math.max(0, Math.floor(value.resumido)),
-    completo: Math.max(0, Math.floor(value.completo)),
-  };
-  localStorage.setItem(GLOBAL_KEY, JSON.stringify(safe));
-}
-
-/* ────────────────── Por empresa (extras) ────────────────── */
-export function getPerCompanyExtras(): PerCompanyExtra[] {
-  try {
-    const raw = localStorage.getItem(PER_COMPANY_KEY);
-    if (raw) return JSON.parse(raw);
-    // migra estrutura antiga {companyId, companyName, extra}
-    const legacy = localStorage.getItem(LEGACY_PER_COMPANY_KEY);
-    if (legacy) {
-      const old: { companyId: string; companyName: string; extra: number }[] = JSON.parse(legacy);
-      return old.map(o => ({
-        companyId: o.companyId,
-        companyName: o.companyName,
-        resumido: o.extra,
-        completo: Math.max(0, Math.floor(o.extra / 5)),
-      }));
-    }
-  } catch {}
-  return [];
-}
-
-export function setPerCompanyExtra(companyId: string, companyName: string, extras: { resumido: number; completo: number }) {
-  const list = getPerCompanyExtras();
-  const idx = list.findIndex(l => l.companyId === companyId);
-  const entry: PerCompanyExtra = {
-    companyId,
-    companyName,
-    resumido: Math.max(0, Math.min(99, Math.floor(extras.resumido))),
-    completo: Math.max(0, Math.min(99, Math.floor(extras.completo))),
-  };
-  if (idx >= 0) list[idx] = entry;
-  else list.push(entry);
-  localStorage.setItem(PER_COMPANY_KEY, JSON.stringify(list));
-}
-
-export function removePerCompanyExtra(companyId: string) {
-  const list = getPerCompanyExtras().filter(l => l.companyId !== companyId);
-  localStorage.setItem(PER_COMPANY_KEY, JSON.stringify(list));
-}
-
-/* ────────────────── Cálculo de cotas ────────────────── */
 export interface CompanyQuota {
   resumido: { used: number; limit: number; remaining: number };
   completo: { used: number; limit: number; remaining: number };
 }
 
-function isThisMonth(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-}
+const DEFAULT_GLOBAL: GlobalLimits = { resumido: 50, completo: 10 };
 
-export function getCompanyMonthlyUsage(companyId: string): { resumido: number; completo: number } {
-  const reports = getGeneratedReports().filter(r => r.companyId === companyId && isThisMonth(r.date));
+/* ────────────────── Global (DB) ────────────────── */
+export async function getGlobalLimits(): Promise<GlobalLimits> {
+  const { data, error } = await supabase
+    .from("report_global_quotas")
+    .select("resumido, completo")
+    .eq("id", true)
+    .maybeSingle();
+  if (error || !data) return { ...DEFAULT_GLOBAL };
   return {
-    resumido: reports.filter(r => r.variant === "resumido").length,
-    completo: reports.filter(r => r.variant === "completo").length,
+    resumido: Number.isFinite(Number(data.resumido)) ? Number(data.resumido) : DEFAULT_GLOBAL.resumido,
+    completo: Number.isFinite(Number(data.completo)) ? Number(data.completo) : DEFAULT_GLOBAL.completo,
   };
 }
 
-export function getCompanyQuota(companyId: string): CompanyQuota {
-  const global = getGlobalLimits();
-  const extras = getPerCompanyExtras().find(l => l.companyId === companyId);
-  const used = getCompanyMonthlyUsage(companyId);
-  const limR = global.resumido + (extras?.resumido ?? 0);
-  const limC = global.completo + (extras?.completo ?? 0);
+export async function setGlobalLimits(value: GlobalLimits): Promise<void> {
+  const safe = {
+    resumido: Math.max(0, Math.floor(Number(value.resumido) || 0)),
+    completo: Math.max(0, Math.floor(Number(value.completo) || 0)),
+  };
+  const { data: userRes } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from("report_global_quotas")
+    .update({ ...safe, updated_at: new Date().toISOString(), updated_by: userRes?.user?.id ?? null })
+    .eq("id", true);
+  if (error) throw error;
+}
+
+/* ────────────────── Por empresa (extras DB) ────────────────── */
+export async function getPerCompanyExtras(): Promise<PerCompanyExtra[]> {
+  const { data, error } = await supabase
+    .from("report_company_quota_extras")
+    .select("company_id, company_name, resumido_extra, completo_extra")
+    .order("company_name");
+  if (error || !data) return [];
+  return data.map(r => ({
+    companyId: r.company_id,
+    companyName: r.company_name,
+    resumido: Number(r.resumido_extra) || 0,
+    completo: Number(r.completo_extra) || 0,
+  }));
+}
+
+export async function setPerCompanyExtra(
+  companyId: string,
+  companyName: string,
+  extras: { resumido: number; completo: number },
+): Promise<void> {
+  const { data: userRes } = await supabase.auth.getUser();
+  const payload = {
+    company_id: companyId,
+    company_name: companyName,
+    resumido_extra: Math.max(0, Math.min(999, Math.floor(Number(extras.resumido) || 0))),
+    completo_extra: Math.max(0, Math.min(999, Math.floor(Number(extras.completo) || 0))),
+    updated_at: new Date().toISOString(),
+    updated_by: userRes?.user?.id ?? null,
+  };
+  const { error } = await supabase
+    .from("report_company_quota_extras")
+    .upsert(payload, { onConflict: "company_id" });
+  if (error) throw error;
+}
+
+export async function removePerCompanyExtra(companyId: string): Promise<void> {
+  const { error } = await supabase
+    .from("report_company_quota_extras")
+    .delete()
+    .eq("company_id", companyId);
+  if (error) throw error;
+}
+
+/* ────────────────── Uso mensal (DB: audit_reports) ────────────────── */
+function monthBounds(d = new Date()): { start: string; end: string } {
+  const start = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0).toISOString();
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 0, 0).toISOString();
+  return { start, end };
+}
+
+export async function getCompanyMonthlyUsage(companyId: string): Promise<{ resumido: number; completo: number }> {
+  const { start, end } = monthBounds();
+  const { data, error } = await supabase
+    .from("audit_reports")
+    .select("variant")
+    .eq("company_id", companyId)
+    .gte("created_at", start)
+    .lt("created_at", end);
+  if (error || !data) return { resumido: 0, completo: 0 };
+  let resumido = 0, completo = 0;
+  for (const r of data) {
+    if (r.variant === "completo") completo += 1;
+    else resumido += 1;
+  }
+  return { resumido, completo };
+}
+
+export async function getAllCompaniesMonthlyUsage(): Promise<Map<string, { resumido: number; completo: number }>> {
+  const { start, end } = monthBounds();
+  const { data, error } = await supabase
+    .from("audit_reports")
+    .select("company_id, variant")
+    .gte("created_at", start)
+    .lt("created_at", end);
+  const map = new Map<string, { resumido: number; completo: number }>();
+  if (error || !data) return map;
+  for (const r of data) {
+    if (!r.company_id) continue;
+    const cur = map.get(r.company_id) || { resumido: 0, completo: 0 };
+    if (r.variant === "completo") cur.completo += 1;
+    else cur.resumido += 1;
+    map.set(r.company_id, cur);
+  }
+  return map;
+}
+
+export async function getCompanyQuota(companyId: string): Promise<CompanyQuota> {
+  const [global, extras, used] = await Promise.all([
+    getGlobalLimits(),
+    getPerCompanyExtras(),
+    getCompanyMonthlyUsage(companyId),
+  ]);
+  const extra = extras.find(l => l.companyId === companyId);
+  const limR = global.resumido + (extra?.resumido ?? 0);
+  const limC = global.completo + (extra?.completo ?? 0);
   return {
     resumido: { used: used.resumido, limit: limR, remaining: Math.max(0, limR - used.resumido) },
     completo: { used: used.completo, limit: limC, remaining: Math.max(0, limC - used.completo) },
@@ -140,11 +164,11 @@ export function getCompanyQuota(companyId: string): CompanyQuota {
  * - Resumido: precisa de 1 resumido disponível.
  * - Completo: precisa de 1 completo + 1 resumido disponíveis (gera os dois).
  */
-export function canGenerateForCompany(
+export async function canGenerateForCompany(
   companyId: string,
   variant: ReportVariant = "resumido",
-): { allowed: boolean; reason?: string; quota: CompanyQuota } {
-  const quota = getCompanyQuota(companyId);
+): Promise<{ allowed: boolean; reason?: string; quota: CompanyQuota }> {
+  const quota = await getCompanyQuota(companyId);
   if (variant === "completo") {
     if (quota.completo.remaining <= 0) {
       return { allowed: false, reason: `Cota mensal de Completos esgotada (${quota.completo.used}/${quota.completo.limit}).`, quota };
@@ -154,41 +178,8 @@ export function canGenerateForCompany(
     }
     return { allowed: true, quota };
   }
-  // resumido
   if (quota.resumido.remaining <= 0) {
     return { allowed: false, reason: `Cota mensal de Resumidos esgotada (${quota.resumido.used}/${quota.resumido.limit}).`, quota };
   }
   return { allowed: true, quota };
-}
-
-/* ────────────────── Compat (API antiga) ────────────────── */
-/** @deprecated use getGlobalLimits */
-export function getGlobalLimit(): number {
-  return getGlobalLimits().resumido;
-}
-/** @deprecated use setGlobalLimits */
-export function setGlobalLimit(value: number) {
-  const cur = getGlobalLimits();
-  setGlobalLimits({ ...cur, resumido: value });
-}
-/** @deprecated use getPerCompanyExtras */
-export function getPerCompanyLimits() {
-  return getPerCompanyExtras().map(e => ({ companyId: e.companyId, companyName: e.companyName, extra: e.resumido }));
-}
-/** @deprecated use setPerCompanyExtra */
-export function setPerCompanyLimit(companyId: string, companyName: string, extra: number) {
-  const cur = getPerCompanyExtras().find(l => l.companyId === companyId);
-  setPerCompanyExtra(companyId, companyName, { resumido: extra, completo: cur?.completo ?? 0 });
-}
-/** @deprecated use removePerCompanyExtra */
-export function removePerCompanyLimit(companyId: string) {
-  removePerCompanyExtra(companyId);
-}
-/** @deprecated use getCompanyQuota */
-export function getCompanyLimit(companyId: string): number {
-  return getCompanyQuota(companyId).resumido.limit;
-}
-/** @deprecated use getCompanyMonthlyUsage */
-export function getCompanyReportCount(companyId: string): number {
-  return getCompanyMonthlyUsage(companyId).resumido;
 }
