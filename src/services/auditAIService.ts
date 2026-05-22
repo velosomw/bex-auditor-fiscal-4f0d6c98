@@ -873,7 +873,7 @@ export async function analyzeFinancialData(
   parsedData: ParsedFinancialData,
   config: { depth: string; purpose: string },
   pipeline?: PipelineResult | null,
-  ctx?: { companyId?: string | null; periodo?: string | null }
+  ctx?: { companyId?: string | null; periodo?: string | null; deterministicFacts?: any | null }
 ): Promise<any> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -902,8 +902,10 @@ export async function analyzeFinancialData(
             quality_score: pipeline.scores.quality,
           }
         : undefined,
+      deterministicFacts: ctx?.deterministicFacts ?? null,
     }),
   });
+
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({ error: "Erro desconhecido" }));
