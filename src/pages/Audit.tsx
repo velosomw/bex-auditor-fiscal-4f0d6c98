@@ -1024,6 +1024,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                   deterministicFacts = {
                     bsDados: (persistResp as any).bsDados,
                     indicadores: (persistResp as any).indicadores ?? [],
+                    kanitz: (persistResp as any).kanitz ?? [],
+                    insights: (persistResp as any).insights ?? null,
                   };
                 }
                 if (!persistResp.persisted) {
