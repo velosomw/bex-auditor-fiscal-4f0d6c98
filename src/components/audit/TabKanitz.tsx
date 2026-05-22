@@ -21,6 +21,7 @@ import {
   buildKanitzMonthlySeries, summarizeKanitzSeries, KANITZ_RATING_META,
   type KanitzMonthlyResult,
 } from "@/services/kanitzMonthly";
+import { buildISGSeries, type ISGResult } from "@/services/indicatorsEngine";
 
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${(n * 100).toFixed(2)}%`;
@@ -123,6 +124,10 @@ const TabKanitz = ({
   );
   const monthlySeries = useMemo(() => buildKanitzMonthlySeries(bsRows), [bsRows]);
   const monthlySummary = useMemo(() => summarizeKanitzSeries(monthlySeries), [monthlySeries]);
+  // ISG — Índice de Solvência Geral (exibido sempre; crítico quando PL ≤ 0)
+  const isgSeries = useMemo<ISGResult[]>(() => buildISGSeries(bsRows), [bsRows]);
+  const latestISG = isgSeries.length > 0 ? isgSeries[isgSeries.length - 1] : null;
+  const plNegativo = bsRows.some(r => (r.patrimonio_liquido || 0) <= 0);
 
   // ▶ Camadas 1–5 do MD: pipeline canônico (anual — preservado para compat)
   const v2Series = buildKanitzSeries(parsedData || null, aiAnalysis);
