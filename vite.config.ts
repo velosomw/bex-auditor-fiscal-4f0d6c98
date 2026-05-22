@@ -31,7 +31,9 @@ export default defineConfig(({ mode }) => ({
           if (id.includes("react-router")) return "router";
           if (id.includes("@tanstack")) return "tanstack";
           if (id.includes("@supabase")) return "supabase";
-          if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          // NÃO separar recharts/d3 em chunk próprio: o split quebra a ordem de
+          // inicialização interna (TDZ "Cannot access 'P' before initialization").
+          // Deixar o Rollup colocar junto com os demais vendors evita o bug.
           if (id.includes("framer-motion") || id.includes("motion-dom") || id.includes("motion-utils")) return "motion";
           if (id.includes("@radix-ui")) return "radix";
           if (id.includes("lucide-react")) return "icons";
