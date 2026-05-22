@@ -15,11 +15,8 @@ Deno.serve(async (req) => {
     if (action === 'list') {
       const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
       if (error) throw error;
-      const targets = ['auditor@auditor.com.br','gestor@gestor.com.br','usuario@usuario.com.br','empresa@empresa.com.br','wagner.velosom@gmail.com','contabilidade@empresa.com.br'];
-      const found = data.users
-        .filter(u => targets.includes(u.email || ''))
-        .map(u => ({ id: u.id, email: u.email, confirmed: !!u.email_confirmed_at, banned: (u as any).banned_until, last_sign_in: u.last_sign_in_at }));
-      return new Response(JSON.stringify({ found, total: data.users.length }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const all = data.users.map(u => ({ id: u.id, email: u.email, confirmed: !!u.email_confirmed_at, last_sign_in: u.last_sign_in_at }));
+      return new Response(JSON.stringify({ all, total: data.users.length }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'reset') {
