@@ -142,7 +142,7 @@ const Planos = () => {
             <p className="text-muted-foreground mb-6">Para começar a usar a plataforma sem custo.</p>
             <div className="mb-6">
               <span className="text-5xl font-bold">Grátis</span>
-              <span className="text-muted-foreground ml-2">para sempre</span>
+              <span className="text-muted-foreground ml-2">para 1 ano</span>
             </div>
             <ul className="space-y-3 mb-8 flex-1">
               {proFeatures.map((f) => (
