@@ -266,12 +266,22 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             <CardDescription className="text-xs">
               Filtros combinados (AND): <strong>Mês</strong> × <strong>Ref Capital</strong> × <strong>Código</strong> + busca livre.
             </CardDescription>
+            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+              ℹ️ Esta visualização exibe <strong>todas as contas extraídas</strong> do balancete — incluindo
+              contas <em>sintéticas</em> (totalizadoras de nível superior) e <em>analíticas</em> (folha).
+              Se uma mesma descrição aparece em códigos diferentes, normalmente trata-se da hierarquia
+              contábil (ex: <code className="text-[10px]">2.1</code> = Passivo Circulante sintético,{" "}
+              <code className="text-[10px]">2.1.01</code> = sub-grupo). Use o filtro de <strong>Código</strong>{" "}
+              para isolar um único nível. A coluna <strong>Reduzido</strong> do arquivo original é apenas
+              um código contábil — <strong>não é número de documento fiscal</strong>.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">{filtered.length}/{linhas.length} contas</Badge>
             <Badge variant="outline" className="text-xs">{visibleMeses.length}/{meses.length} meses</Badge>
           </div>
         </div>
+
 
         <div className="flex flex-wrap items-center gap-2">
           <MultiSelect

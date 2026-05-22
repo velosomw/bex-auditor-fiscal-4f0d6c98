@@ -138,10 +138,14 @@ export function extractColumnMonths(
   const out: Array<{ idx: number; mesKey: string; label: string }> = [];
   const seen = new Set<string>();
 
-  // Tenta detectar um ano no cabeçalho inteiro para fallback de meses sem ano
+  // Tenta detectar um ano no cabeçalho inteiro para fallback de meses sem ano.
+  // ⚠️ Só considera células CURTAS (≤ 20 chars) para evitar confundir códigos
+  // contábeis longos (ex: "2110102026") com ano.
   let inferredYear: number | null = null;
   for (const cell of headers) {
-    const m = String(cell || "").match(/\b(20\d{2})\b/);
+    const s = String(cell || "").trim();
+    if (!s || s.length > 20) continue;
+    const m = s.match(/\b(20\d{2})\b/);
     if (m) { inferredYear = Number(m[1]); break; }
   }
   // Se não há ano no header, tenta extrair do nome do arquivo (range tem prioridade)
@@ -236,11 +240,14 @@ export function detectMonthFromYearLabel(label: string, fallbackMonth?: MonthRef
     return { key, label: monthLabel(key), source: "header", confidence: 0.9 };
   }
 
-  // Apenas YYYY → assume dezembro daquele ano (fechamento)
-  m = n.match(/(20\d{2})/);
+  // Apenas YYYY → assume dezembro daquele ano (fechamento).
+  // ⚠️ GUARD ANTI-ALUCINAÇÃO: a string INTEIRA precisa ser um ano (eventualmente
+  // com contexto explícito). Códigos contábeis como "2110102026" NÃO devem ser
+  // interpretados como ano 2026 → Dez/2026 (bug histórico que poluía gráficos).
+  m = n.match(/^(?:ano\s+|exerc[ií]cio\s+|per[ií]odo\s+)?(20\d{2})(?:\s*(?:anual|fechamento|dez|dezembro))?$/);
   if (m) {
     const key = `${m[1]}-12`;
-    return { key, label: monthLabel(key), source: "header", confidence: 0.6 };
+    return { key, label: monthLabel(key), source: "header", confidence: 0.55 };
   }
 
   // "atual"/"saldo atual" → herda do nome do arquivo se disponível

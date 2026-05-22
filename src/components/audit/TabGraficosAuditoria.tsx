@@ -239,6 +239,15 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
     );
   }
 
+  // Diagnóstico de completude — explica ao usuário o que está disponível e o que falta.
+  const hasDRE = !!parsedData?.dre?.length;
+  const hasBalanco = !!parsedData?.balanco?.length;
+  const hasTemplateSheets = !!(data?.folha || data?.fcp || data?.prevReal || data?.balanco);
+  const missingHints: string[] = [];
+  if (!hasDRE) missingHints.push("DRE ausente — KPIs de receita, custo, lucro, margem e Kanitz não podem ser calculados.");
+  if (!hasBalanco) missingHints.push("Balanço Patrimonial ausente — índices de liquidez e endividamento não disponíveis.");
+  if (!hasTemplateSheets) missingHints.push("Abas auxiliares (Folha, FCP, Fluxo Prev×Real) não encontradas — envie o template .xlsm BEX para visualizar esses blocos.");
+
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -263,6 +272,50 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
           </div>
         </CardHeader>
       </Card>
+
+      {/* DIAGNÓSTICO DE EXTRAÇÃO — sempre visível para orientar o usuário */}
+      <Card className="border-[hsl(34,95%,55%)]/30 bg-[hsl(34,95%,55%)]/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-[hsl(34,95%,55%)]" />
+            Diagnóstico da Extração de Dados
+          </CardTitle>
+          <CardDescription className="text-[11px]">
+            Resumo do que a IA conseguiu extrair do(s) arquivo(s) — ajuda a entender a completude da auditoria.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-xs">
+          <div className="grid sm:grid-cols-2 gap-2">
+            <div className={`flex items-center gap-2 p-2 rounded border ${hasBalanco ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-[hsl(0,75%,55%)]/40 bg-[hsl(0,75%,55%)]/10"}`}>
+              {hasBalanco ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <AlertTriangle className="w-3.5 h-3.5 text-[hsl(0,75%,55%)]" />}
+              <span><strong>Balanço Patrimonial:</strong> {hasBalanco ? `${parsedData!.balanco.length} contas` : "ausente"}</span>
+            </div>
+            <div className={`flex items-center gap-2 p-2 rounded border ${hasDRE ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-[hsl(0,75%,55%)]/40 bg-[hsl(0,75%,55%)]/10"}`}>
+              {hasDRE ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <AlertTriangle className="w-3.5 h-3.5 text-[hsl(0,75%,55%)]" />}
+              <span><strong>DRE:</strong> {hasDRE ? `${parsedData!.dre.length} linhas` : "ausente — envie a DRE para liberar Kanitz e KPIs"}</span>
+            </div>
+            <div className={`flex items-center gap-2 p-2 rounded border ${hasTemplateSheets ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-muted bg-muted/30"}`}>
+              {hasTemplateSheets ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <Activity className="w-3.5 h-3.5 text-muted-foreground" />}
+              <span><strong>Template BEX (.xlsm):</strong> {hasTemplateSheets ? "detectado" : "não detectado — apenas balancete contábil"}</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded border border-[hsl(217,91%,50%)]/30 bg-[hsl(217,91%,50%)]/5">
+              <Activity className="w-3.5 h-3.5 text-[hsl(217,91%,50%)]" />
+              <span><strong>Períodos detectados:</strong> {parsedData?.years?.length ?? 0}</span>
+            </div>
+          </div>
+          {missingHints.length > 0 && (
+            <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground list-disc pl-5">
+              {missingHints.map((h, i) => <li key={i}>{h}</li>)}
+            </ul>
+          )}
+          <p className="text-[10px] text-muted-foreground mt-2 italic">
+            ℹ️ Datas como Nov/2026 ou Dez/2026 que apareçam sem contexto provavelmente vinham de
+            códigos contábeis interpretados como ano — corrigido nesta versão (heurística estrita
+            de detecção de período).
+          </p>
+        </CardContent>
+      </Card>
+
 
       {/* ── 6 GRÁFICOS DO RELATÓRIO BEX/KANITZ — base única mensal ── */}
       <Card>
