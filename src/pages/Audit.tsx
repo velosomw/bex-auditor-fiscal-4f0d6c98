@@ -1064,6 +1064,10 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         setCurrentStep(9);
         setProgress(100);
 
+        // FIX #6 — injeta insights determinísticos (risk_level/conformidade calculados a partir dos fatos)
+        if (deterministicFacts?.insights) {
+          (analysis as any).insightsDeterministicos = deterministicFacts.insights;
+        }
         onAnalysisReady(analysis, parsedData);
         setTimeout(onComplete, 500);
       } catch (err) {
