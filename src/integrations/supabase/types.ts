@@ -1308,7 +1308,11 @@ export type Database = {
           created_at: string
           id: string
           insight: string | null
+          isg: number | null
+          isg_rating: string | null
           mes: string
+          modelo_preferencial: string | null
+          passivo_total: number | null
           patrimonio_liquido: number | null
           rating: string
           score: number
@@ -1324,7 +1328,11 @@ export type Database = {
           created_at?: string
           id?: string
           insight?: string | null
+          isg?: number | null
+          isg_rating?: string | null
           mes: string
+          modelo_preferencial?: string | null
+          passivo_total?: number | null
           patrimonio_liquido?: number | null
           rating?: string
           score?: number
@@ -1340,7 +1348,11 @@ export type Database = {
           created_at?: string
           id?: string
           insight?: string | null
+          isg?: number | null
+          isg_rating?: string | null
           mes?: string
+          modelo_preferencial?: string | null
+          passivo_total?: number | null
           patrimonio_liquido?: number | null
           rating?: string
           score?: number
