@@ -40,7 +40,8 @@ import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
 import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { getFileFormat as getFormat } from "@/services/auditAIService";
-import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename, type MultiMonthParsed } from "@/services/auditMonthDetector";
+import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename, extractColumnMonths, reconcileMonthsWithFilename, type MultiMonthParsed } from "@/services/auditMonthDetector";
+import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 
 /* ── Helpers ── */
@@ -441,6 +442,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
   const [rawFiles, setRawFiles] = useState<File[]>([]);
   // mes atribuído por documento: { docId: "2024-03" }
   const [fileMeses, setFileMeses] = useState<Record<string, string>>({});
+  const [filePreview, setFilePreview] = useState<Record<string, { loading: boolean; months: Array<{ key: string; label: string }>; error?: string }>>({});
 
   // Ano vigente (atual) até 2029; usuário seleciona mês + ano
   const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -514,6 +516,32 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
       });
       return next;
     });
+    // Pré-parse leve: lê apenas o cabeçalho do XLSX para detectar colunas mensais
+    newDocs.forEach(async (doc, i) => {
+      const file = filesArr[i];
+      if (!/\.(xlsx|xls|xlsm|xlsb|xltx|xltm)$/i.test(file.name)) return;
+      setFilePreview(prev => ({ ...prev, [doc.id]: { loading: true, months: [] } }));
+      try {
+        const buf = await file.arrayBuffer();
+        const { sheetNames, sheetToMatrix } = await readWorkbook(buf);
+        let best: Array<{ idx: number; mesKey: string; label: string }> = [];
+        for (const name of sheetNames) {
+          const matrix = sheetToMatrix(name);
+          // Procura a linha de cabeçalho nas primeiras 15 linhas
+          for (let r = 0; r < Math.min(15, matrix.length); r++) {
+            const cols = extractColumnMonths(matrix[r] || [], { fileName: file.name });
+            if (cols.length > best.length) best = cols;
+            if (best.length >= 3) break;
+          }
+          if (best.length >= 3) break;
+        }
+        const reconciled = reconcileMonthsWithFilename(best, file.name);
+        const months = reconciled.map(c => ({ key: c.mesKey, label: c.label }));
+        setFilePreview(prev => ({ ...prev, [doc.id]: { loading: false, months } }));
+      } catch (err) {
+        setFilePreview(prev => ({ ...prev, [doc.id]: { loading: false, months: [], error: String((err as Error)?.message || err) } }));
+      }
+    });
   };
 
   const removeFile = (id: string) => {
@@ -521,6 +549,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
     setConfig({ files: state.config.files.filter(f => f.id !== id) });
     if (idx >= 0) setRawFiles(prev => prev.filter((_, i) => i !== idx));
     setFileMeses(prev => { const { [id]: _, ...rest } = prev; return rest; });
+    setFilePreview(prev => { const { [id]: _, ...rest } = prev; return rest; });
   };
 
   const missingMeses = state.config.files.filter(f => !fileMeses[f.id]);
@@ -667,20 +696,33 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                               </Select>
                             )}
                           </div>
-                          {/* Prévia inline dos meses detectados pelo nome do arquivo */}
+                          {/* Prévia inline: combina detecção pelo nome do arquivo + leitura dos cabeçalhos do XLSX */}
                           {isAuto && (() => {
-                            const detected = detectMonthRangeFromFilename(f.fileName);
+                            const fromName = detectMonthRangeFromFilename(f.fileName);
+                            const preview = filePreview[f.id];
+                            const fromHeaders = preview?.months || [];
+                            // Prioriza headers (mais confiável); cai para filename
+                            const detected = fromHeaders.length > 0 ? fromHeaders : fromName;
+                            const origem = fromHeaders.length > 0 ? "colunas da planilha" : "nome do arquivo";
+
+                            if (preview?.loading) {
+                              return (
+                                <div className="mt-2 text-[10px] text-muted-foreground bg-muted/40 border border-border rounded px-2 py-1.5">
+                                  ⏳ Lendo cabeçalhos da planilha…
+                                </div>
+                              );
+                            }
                             if (detected.length === 0) {
                               return (
                                 <div className="mt-2 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                                  ⚠️ Não foi possível detectar período pelo nome. Os meses serão lidos das colunas da planilha durante o processamento.
+                                  ℹ️ Nenhum período detectado automaticamente. Os meses serão extraídos no processamento — ou selecione manualmente acima.
                                 </div>
                               );
                             }
                             return (
                               <div className="mt-2 space-y-1">
                                 <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide">
-                                  {detected.length} {detected.length === 1 ? "mês detectado" : "meses detectados"} no arquivo:
+                                  {detected.length} {detected.length === 1 ? "mês detectado" : "meses detectados"} ({origem}):
                                 </p>
                                 <div className="flex flex-wrap gap-1">
                                   {detected.map(m => (
