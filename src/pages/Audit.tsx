@@ -963,8 +963,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
 
           // P0: Persistência server-side BS & Dados (snapshot auditável em pipeline_analysis_results).
           // Converte parsedData → balancetes[{mes, linhas[]}] e dispara a Edge Function.
-          let deterministicFacts: any | null = null;
           try {
+
             const { consolidateBSDadosOnServer } = await import("@/services/bsDadosServerClient");
             const { detectMonthRangeFromFilename } = await import("@/services/auditMonthDetector");
             const allRows = [...(parsedData?.balanco || []), ...(parsedData?.dre || [])];
