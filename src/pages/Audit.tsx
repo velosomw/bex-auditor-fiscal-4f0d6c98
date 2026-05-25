@@ -569,6 +569,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
     const entries: BalanceteEntry[] = state.config.files.map(f => ({
       fileName: f.fileName,
       mesReferencia: fileMeses[f.id] || null,
+      isYtd: !!fileIsYtd[f.id],
     }));
     onMesesReady?.(entries);
     onFilesReady(rawFiles);
