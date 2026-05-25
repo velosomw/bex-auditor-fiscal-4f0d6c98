@@ -276,7 +276,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
               Pivot — Balancete Consolidado (linha-a-linha)
             </CardTitle>
             <CardDescription className="text-xs">
-              Filtros combinados (AND): <strong>Mês</strong> × <strong>Ref Capital</strong> × <strong>Código</strong> + busca livre.
+              Filtros combinados (AND): <strong>Mês</strong> × <strong>Código</strong> + busca livre.
             </CardDescription>
             <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
               ℹ️ Esta visualização exibe <strong>todas as contas extraídas</strong> do balancete — incluindo
