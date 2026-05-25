@@ -538,7 +538,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     for (const linha of linhasLeaf) {
       const key = resolveKey(linha);
       if (!key) continue;
-      applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? inferRefByCode(linha.conta), buckets);
+      applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao), buckets);
     }
   }
 
