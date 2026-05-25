@@ -873,7 +873,39 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
   const [progress, setProgress] = useState(0);
   const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const startTimeRef = useRef<number>(Date.now());
   const startedRef = useRef(false);
+
+  // Timer regressivo: atualiza a cada 1s
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Estimativa dinâmica: tempo total baseado em progresso atual + duração nominal.
+  const nominalTotalSec = useMemo(
+    () => Math.round(processingSteps.reduce((acc, s) => acc + (s.duration || 0), 0) / 1000),
+    [],
+  );
+  const estimatedTotalSec = useMemo(() => {
+    if (progress >= 100) return elapsedSec;
+    if (progress > 8 && elapsedSec > 2) {
+      // 70% extrapolação real, 30% âncora nominal — evita oscilações nos primeiros segundos.
+      const projected = (elapsedSec / progress) * 100;
+      return Math.round(projected * 0.7 + nominalTotalSec * 0.3);
+    }
+    return nominalTotalSec;
+  }, [progress, elapsedSec, nominalTotalSec]);
+  const remainingSec = Math.max(0, estimatedTotalSec - elapsedSec);
+  const fmtTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m > 0 ? `${m}m ${String(r).padStart(2, "0")}s` : `${r}s`;
+  };
 
   useEffect(() => {
     if (startedRef.current) return;
