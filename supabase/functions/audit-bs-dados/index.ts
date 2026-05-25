@@ -116,26 +116,49 @@ interface KanitzRow {
 const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const REF1_MAP: Record<string, keyof BSDadosRow> = {
-  "A": "disponivel", "B": "disponivel", "C": "ativo_circulante", "D": "estoques",
+  "A": "disponivel", "B": "disponivel", "C": "contas_receber", "D": "estoques",
   "E": "ativo_circulante", "F": "ativo_circulante", "G": "ativo_circulante", "H": "ativo_circulante",
   "I": "ativo_circulante", "J": "ativo_circulante", "K": "ativo_circulante", "L": "ativo_circulante",
   "M": "ativo_circulante", "N": "ativo_circulante", "O": "ativo_circulante",
+  // ANC (P..J1) — roteiam direto para ativo_nao_circulante; C1/D1 também alimentam imobilizado
+  "P": "ativo_nao_circulante", "Q": "ativo_nao_circulante", "R": "ativo_nao_circulante",
+  "S": "ativo_nao_circulante", "T": "ativo_nao_circulante", "U": "ativo_nao_circulante",
+  "V": "ativo_nao_circulante", "W": "ativo_nao_circulante", "X": "ativo_nao_circulante",
+  "Y": "ativo_nao_circulante", "Z": "ativo_nao_circulante", "A1": "ativo_nao_circulante",
+  "B1": "ativo_nao_circulante", "C1": "imobilizado", "D1": "imobilizado",
+  "E1": "ativo_nao_circulante", "F1": "ativo_nao_circulante", "G1": "ativo_nao_circulante",
+  "H1": "ativo_nao_circulante", "I1": "ativo_nao_circulante", "J1": "ativo_nao_circulante",
+  // PC
   "AA": "divida_financeira", "BB": "fornecedores", "CC": "divida_trabalhista",
   "DD": "divida_tributaria", "II": "credores_rj", "LL": "credores_rj",
   "EE": "passivo_circulante", "FF": "passivo_circulante", "GG": "passivo_circulante", "HH": "passivo_circulante",
-  "JJ": "passivo_circulante", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
+  "JJ": "outras_obrigacoes", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
   "OO": "passivo_circulante", "II1": "divida_tributaria",
-  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "SS": "divida_tributaria", "TT": "divida_financeira", "CC1": "credores_rj",
-  "DD1": "passivo_nao_circulante",
-  // Totalizadores (linhas de autoridade)
+  // PNC (PP..FF1) — completar gap vs cliente
+  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria",
+  "SS": "divida_tributaria", "TT": "divida_financeira",
+  "UU": "passivo_nao_circulante", "VV": "passivo_nao_circulante", "WW": "passivo_nao_circulante",
+  "XX": "passivo_nao_circulante", "YY": "passivo_nao_circulante", "ZZ": "passivo_nao_circulante",
+  "AA1": "passivo_nao_circulante", "BB1": "passivo_nao_circulante",
+  "CC1": "credores_rj",
+  "DD1": "passivo_nao_circulante", "EE1": "passivo_nao_circulante", "FF1": "passivo_nao_circulante",
+  // PL
+  "GG1": "patrimonio_liquido", "HH1": "patrimonio_liquido",
+  // Totalizadores
   "AC_TOTAL": "ativo_circulante", "PC_TOTAL": "passivo_circulante",
   "ANC_TOTAL": "ativo_nao_circulante", "PNC_TOTAL": "passivo_nao_circulante", "PL_TOTAL": "patrimonio_liquido",
-  // GG1/HH1 (PL: Capital/Lucros Acumulados) NÃO mapeados para "resultado" — resultado vem da DRE.
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
-  "DESPESAS_FIN": "despesas", "DESPESAS_NOP": "despesas",
+  "DESPESAS_FIN": "despesas_financeiras",   // antes fundia em "despesas" — agora separado
+  "DESPESAS_NOP": "despesas",                // não operacionais ainda em despesas (sinal próprio)
+  "DESPESAS FINANCEIRAS": "despesas_financeiras",
+  "DEPRECIACAO": "depreciacao", "DEPRECIAÇÃO": "depreciacao",
+  "AMORTIZACAO": "amortizacao", "AMORTIZAÇÃO": "amortizacao",
   "ATIVO CIRCULANTE": "ativo_circulante", "PASSIVO CIRCULANTE": "passivo_circulante",
+  "ATIVO NAO CIRCULANTE": "ativo_nao_circulante", "ATIVO NÃO CIRCULANTE": "ativo_nao_circulante",
+  "PASSIVO NAO CIRCULANTE": "passivo_nao_circulante", "PASSIVO NÃO CIRCULANTE": "passivo_nao_circulante",
+  "PATRIMONIO LIQUIDO": "patrimonio_liquido", "PATRIMÔNIO LÍQUIDO": "patrimonio_liquido",
   "ESTOQUES": "estoques", "ESTOQUE": "estoques", "DISPONIVEL": "disponivel", "DISPONÍVEL": "disponivel",
   "PASSIVO TRIBUTARIO": "divida_tributaria", "PASSIVO TRIBUTÁRIO": "divida_tributaria",
   "PASSIVO TRABALHISTA": "divida_trabalhista",
