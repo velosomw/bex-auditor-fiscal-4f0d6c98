@@ -283,7 +283,7 @@ function emptyRow(mesKey: string): BSDadosRow {
 }
 
 function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
-  const ref1 = linha.ref1 ?? inferRefByCode(linha.conta);
+  const ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
   if (ref1) {
     const k = REF1_MAP[upper(ref1)];
     if (k) return k;
