@@ -14,7 +14,7 @@ import {
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
   Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Clock
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
