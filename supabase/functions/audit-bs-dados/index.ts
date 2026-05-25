@@ -358,6 +358,9 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
     case "receita_liquida": row.receita_liquida += refUp === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v); break;
     case "cmv":             row.cmv -= Math.abs(v); break;
     case "despesas":        row.despesas -= Math.abs(v); break;
+    case "despesas_financeiras": row.despesas_financeiras -= Math.abs(v); break;
+    case "depreciacao":     row.depreciacao -= Math.abs(v); break;
+    case "amortizacao":     row.amortizacao -= Math.abs(v); break;
     case "resultado":       row.resultado += v; break;
     case "ativo_circulante":
       if (isTotal) { row.ativo_circulante = Math.max(row.ativo_circulante, Math.abs(v)); b.sawACTotal = true; }
@@ -376,6 +379,9 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
     case "patrimonio_liquido":
       row.patrimonio_liquido = isTotal ? (Math.abs(row.patrimonio_liquido) >= Math.abs(v) ? row.patrimonio_liquido : v) : row.patrimonio_liquido + v;
       break;
+    case "contas_receber":
+    case "imobilizado":
+    case "outras_obrigacoes":
     case "estoques":
     case "disponivel":
     case "divida_tributaria":
