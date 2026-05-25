@@ -41,14 +41,17 @@ export interface IndicatorRow {
   liquidezGeral: number;
   // Endividamento
   endividamentoGeral: number;
-  composicaoEndividamento: number;
+  composicaoEndividamento: number;       // PC / PT (CECP)
+  composicaoEndividamentoLP: number;     // PNC / PT (CELP) — NOVO
   imobilizacaoPL: number;
   coberturaJuros: number;
-  // Atividade
+  // Atividade (anualizado ×360 conforme planilha BEX)
   giroAtivo: number;
-  pmr: number;
-  pmp: number;
-  idadeMediaEstoque: number;
+  pmr: number;                           // PMC — Período Médio de Cobrança
+  pmp: number;                           // Período Médio de Pagamento
+  idadeMediaEstoque: number;             // IME
+  cicloOperacional: number;              // CO = IME + PMC — NOVO
+  cicloCaixa: number;                    // CC = CO − PMP — NOVO
   // Rentabilidade
   margemLiquida: number;
   margemOperacional: number;
@@ -106,6 +109,9 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   // LAJIR (proxy): resultado + despesas financeiras (somando juros de volta)
   const lajir = resultado + despFinAbs;
 
+  const pmr = div(contasReceber * 360, receita);
+  const pmp = div(r.fornecedores * 360, cmvAbs);
+  const ime = div(estoque * 360, cmvAbs);
   return {
     mesKey: r.mesKey,
     mes: r.mes,
@@ -117,19 +123,22 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     // Endividamento
     endividamentoGeral: div(pt, at),
     composicaoEndividamento: div(pc, pt),
+    composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
     coberturaJuros: despFinAbs > 0 ? div(lajir, despFinAbs) : 0,
-    // Atividade — base MENSAL (multiplicador 30, não 360)
+    // Atividade — ANUALIZADA (×360 conforme planilha BEX/ÍNDICES Fase2)
     giroAtivo: div(receita, at),
-    pmr: div(contasReceber * 30, receita),
-    pmp: div(r.fornecedores * 30, cmvAbs),
-    idadeMediaEstoque: div(estoque * 30, cmvAbs),
+    pmr,
+    pmp,
+    idadeMediaEstoque: ime,
+    cicloOperacional: ime + pmr,
+    cicloCaixa: ime + pmr - pmp,
     // Rentabilidade
     margemLiquida: div(resultado, receita),
     margemOperacional: div(lajir, receita),
     roa: div(resultado, at),
     roe: pl > 0 ? div(resultado, pl) : 0,
-    // EBITDA
+    // EBITDA = Resultado + |DespFin| + |Depreciação| + |Amortização|
     ebitda: lajir + depAbs + amortAbs,
     // Bases
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl,

@@ -1,168 +1,67 @@
-## Diagnóstico do problema (causa-raiz)
+## Documento de referência gerado
 
-Após auditar o código, identifiquei **uma causa-raiz comum** para quase todas as divergências relatadas:
+`Auditoria_Revisao_Engine_Indicadores_v3.docx` — baixe e revise. Contém: diagnóstico do que está errado, tabela completa de mapeamento por grupo contábil, fórmulas oficiais da aba ÍNDICES (Fase2), fórmulas Kanitz/ISG, plano de implementação e critério de validação contra o balancete Giannini.
 
-**`computeIndicatorsFromBSRows` em `src/pages/Audit.tsx` (linhas 1320–1365) é incompleto.** A função consome `BSDadosRow` (SSOT) mas:
+<presentation-artifact path="Auditoria_Revisao_Engine_Indicadores_v3.docx" mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"></presentation-artifact>
 
-- Não tem `ativo_nao_circulante`, `passivo_nao_circulante` nem `patrimonio_liquido` no input (a `BSDadosRow` atual não os carrega).
-- Liquidez Geral usa fallback `AC/PC` (linha 1340 — proxy errado).
-- Liquidez Seca está correta, mas o `estoques` pode estar duplicando (componente ∈ AC).
-- Endividamento Total usa `pt = divida_total` (componentes) ÷ `at = AC` apenas — totalmente incorreto.
-- Atividade (PMR, Giro): `_contasReceber = 0` hardcoded → PMR sempre 0.
-- Rentabilidade: `margemOperacional = margemLiquida` (sem LAJIR separado).
-- EBITDA: `_resOp = lucro` e `_despFin = 0` → reduz a `lucro` apenas.
-- ROE: usa PL derivado errado (`AC − dívida_total`).
-- A aba Endividamento usa esses mesmos campos → "Estrutura da Dívida" e "Dívida Líquida" herdam o erro.
-- A aba Pivot exclui PL e Resultado porque `REF1_MAP` em `bsDadosBuilder.ts` (linhas 71–74) ignora `GG1`/`HH1` propositalmente.
-- DRE no `BSDadosRow` acumula CMV e Despesas via SOMA mensal (ok para receita/cmv mês a mês), mas quando o balancete entrega valores **acumulados YTD**, o que vai pro relatório é o acumulado — divergente do esperado (variação mensal).
-- Kanitz consome `computeIndicators` que depende de PL e ANC corretos — herda os mesmos buracos. Não existe ISG implementado.
+## Problema identificado nos 3 arquivos
 
-## Estratégia de correção
+A função `REF_BY_PREFIX` em `src/services/auditAIService.ts` foi calibrada para UM plano de contas. No balancete Giannini os mesmos códigos significam coisas diferentes:
 
-Reconstruir a engine de indicadores **inteiramente a partir do SSOT (BS & Dados)**, estendendo a `BSDadosRow` para carregar os campos faltantes que o template BEX já tem na origem. Manter o builder atual como ponto único de extração → engine derivada idempotente → todas as abas leem da mesma engine.
+| Código | Plano hardcoded atual | Plano Giannini real |
+|---|---|---|
+| 111 | Caixa (correto por acaso) | Bens e Numerários (ok) |
+| 211 | Empréstimos e Financiamentos | **Fornecedores** |
+| 212 | Fornecedores | **Contas a Pagar** |
+| 215 | (não mapeado) | **Instituições Financeiras** = empréstimos reais |
+| 7 | DESPESAS operacionais | **Despesas/Receitas Financeiras** |
+| 8 | DESPESAS operacionais | **Não Operacionais** |
 
-```text
-Balancete → bsDadosBuilder (SSOT) ──┐
-                                    ├─→ engine indicadores (NOVA, completa)
-                                    │     ├─→ TabIndicadores
-                                    │     ├─→ TabEndividamento
-                                    │     ├─→ TabPatrimonial
-                                    │     ├─→ TabBSDados
-                                    │     ├─→ TabPivot (com PL+Resultado)
-                                    │     ├─→ TabGráficos
-                                    │     └─→ TabKanitz (com ISG)
-                                    └─→ memória de cálculo (UI explicativa)
-```
+Resultado: dívida financeira inflada, fornecedores subestimados, EBITDA e Cobertura de Juros incorretos.
 
-## Etapas
+## Mudanças a aplicar
 
-### 1. Estender `BSDadosRow` (`src/services/bsDadosBuilder.ts`)
+**1. `src/services/auditAIService.ts` — Classificação por grupo (2 dígitos), não plano específico**
 
-Adicionar campos do template BEX que faltam:
+Substituir `REF_BY_PREFIX` por uma lógica em 2 camadas:
 
-- `ativo_nao_circulante` (Σ Refs P..J1)
-- `passivo_nao_circulante` (Σ Refs PP..FF1)
-- `patrimonio_liquido` (Σ Refs GG1 + HH1 + resultado acumulado)
-- `imobilizado` (Refs C1 + D1)
-- `contas_receber` (Ref C)
-- `despesas_financeiras` (separado de despesas operacionais via regex)
-- `depreciacao` / `amortizacao` (via regex no DRE)
-- `cmv_mensal` / `despesas_mensal` / `receita_mensal` — variação mês a mês quando o balancete entrega YTD acumulado
+- **Camada A (autoritativa):** quando a linha do balancete tiver código curto (2-3 dígitos) e nome canônico de grupo (`Ativo Circulante`, `Passivo Não Circulante`, `Patrimônio Líquido`, etc.), usa o VALOR DECLARADO como total do grupo e pula as folhas internas para evitar dupla contagem.
+- **Camada B (sub-classificação PC/PNC):** para componentes do Passivo, usa o 2º nível + regex na descrição → fornecedores / trabalhista / tributária / financeira / credores RJ.
 
-Detecção YTD-vs-mensal: comparar receita do mês N com mês N-1 ordenado cronologicamente. Se monotônica crescente e razão estável → YTD; deltar contra mês anterior.
+**2. `src/services/bsDadosBuilder.ts`**
 
-### 2. Atualizar `REF1_MAP` para incluir PL e ANC
+- Adicionar campo `outras_nao_operacionais` (separar grupo 8).
+- Atualizar `FALLBACK_PATTERNS` para reconhecer nomes-padrão dos grupos.
+- `divida_financeira` passa a vir de descrição (Empréstimos/Financiamentos/Inst. Financeiras), não do código.
 
-- Mapear `GG1`, `HH1` → `patrimonio_liquido`
-- Mapear `P..J1` → `ativo_nao_circulante`
-- Mapear `PP..FF1` (exceto já mapeados como dívida) → `passivo_nao_circulante`
-- Não duplicar: contas já mapeadas a `divida_financeira`/`fornecedores`/etc continuam só lá; PNC recebe apenas as não-classificadas como componente de dívida específica.
+**3. `src/services/indicatorsEngine.ts` — Anualizar atividade**
 
-### 3. Criar `src/services/indicatorsEngine.ts` (novo)
+- IME, PMC, PMP passam de multiplicador 30 (mensal) para 360 (alinhado ÍNDICES Fase2).
+- Adicionar `cicloOperacional = IME + PMC`, `cicloCaixa = CO − PMP`, `composicaoEndivLP = PNC / PT`.
 
-Engine única que consome `BSDadosRow[]` e produz `IndicatorRow` por mês:
+**4. `src/components/audit/TabKanitz.tsx` — Termômetro real**
 
-```text
-Liquidez:
-  liquidezCorrente   = AC / PC
-  liquidezSeca       = (AC − Estoques) / PC
-  liquidezImediata   = Disponível / PC
-  liquidezGeral      = (AC + ANC_realizavel) / (PC + PNC)
-                      [usa ANC total como proxy se RLP não separado]
+- Gauge vertical Recharts (faixas −7…0 vermelho / 0…+3 amarelo / +3…+7 verde) com ponteiro no FI do mês.
+- Série temporal mensal do FI.
+- Quando todos os meses têm PL ≤ 0, troca automaticamente para ISG como indicador primário (faixas 1,0 / 1,5).
 
-Endividamento:
-  endividamentoGeral       = (PC + PNC) / (AC + ANC)
-  composicaoEndividamento  = PC / (PC + PNC)
-  imobilizacaoPL           = Imobilizado / PL  (se PL>0; senão N/A)
-  coberturaJuros           = (Resultado + |DespFin|) / |DespFin|
+**5. `src/components/audit/TabGraficosAuditoria.tsx` — Gráficos faltantes**
 
-Atividade:
-  giroAtivo            = Receita / (AC + ANC)
-  pmr                  = (ContasReceber × 30) / ReceitaMensal   [mensal!]
-  pmp                  = (Fornecedores × 30) / CMVMensal
-  idadeMediaEstoque    = (Estoques × 30) / CMVMensal
+- BarChart empilhado: Endividamento por categoria por mês (Tributárias / Trabalhistas / Empr. / Fornecedores / Credores RJ / Outras) + LineChart de TOTAL sobreposto.
+- LineChart ISG mensal com bandas em 1,0 e 1,5.
 
-Rentabilidade:
-  margemLiquida        = Resultado / Receita
-  margemOperacional    = (Resultado + |DespFin|) / Receita     [proxy LAJIR]
-  roa                  = Resultado / (AC + ANC)
-  roe                  = Resultado / PL                          [N/A se PL≤0]
+## Critério de aceite
 
-EBITDA:
-  ebitda = LAJIR + Depreciação + Amortização
-         = (Resultado + |DespFin|) + |Depreciação| + |Amortização|
-```
+Após implementar, com o balancete Giannini Ago/2025 a engine deve ler:
+- Ativo Circulante = **75.575.226,58** (código 11)
+- Disponível = **492.194,16** (código 111)
+- Clientes = **20.604.366,18** (código 112)
+- Liquidez Corrente Ago/2025 deve bater com o cálculo manual AC/PC do balancete (não mais 0,90 espúrio).
 
-PMR/PMP/idade-estoque passam a usar 30 (mensal) e a base mensal da DRE — não mais 360 sobre receita acumulada.
+## Risco
 
-### 4. Refatorar `src/pages/Audit.tsx`
+Mudança na classificação afeta **todas** as métricas exibidas. Recomendo aplicar e validar no balancete Giannini imediatamente após (você abre a aba Indicadores e confirma os valores).
 
-- Apagar `computeIndicatorsFromBSRows` e `computeIndicatorsFromParsed` (linhas 1265–1365).
-- Substituir por `useIndicators(bsRows)` que delega à engine nova.
-- `TabIndicadores`, `TabEndividamento` e card "EBITDA Estimado" passam a ler dessa engine.
-- "Estrutura da Dívida" e "Dívida Líquida" reescritas com valores da SSOT + tooltip de origem.
-- "Curto vs Longo Prazo" recalculado com PC e PNC reais; tooltip exibe origem.
-- Em cada quadro adicionar `FormulaInfo` com fórmula + contas usadas (já existe o componente).
+## Próximo passo
 
-### 5. Corrigir variação mensal na DRE (BS & Dados)
-
-No `bsDadosBuilder.ts`:
-
-- Após consolidar todos os meses, detectar se DRE é YTD (regra: monotônica crescente entre meses consecutivos no mesmo ano) e converter para mensal: `mes_N = ytd_N − ytd_(N-1)` (com `mes_1 = ytd_1`).
-- Aplicar para `receita_liquida`, `cmv`, `despesas`, `despesas_financeiras`, `depreciacao`, `amortizacao`. Manter `resultado` derivado depois da conversão.
-- O quadro "Demonstração de Resultado e Performance" da `TabBSDados` passa a exibir variação mensal coerente.
-
-### 6. Pivot — incluir PL e Resultado (`TabPivotBalancete.tsx`)
-
-Atualmente filtra só Refs A..O / AA..II1. Atualizar a montagem das linhas para incluir:
-
-- PL: Refs `GG1`, `HH1`
-- Resultado: linhas com `RESULTADO` ou regex de "resultado do exercício"
-
-Adicionar coluna "Grupo" (Ativo / Passivo / PL / Resultado) para ficar legível.
-
-### 7. Kanitz + ISG (`src/services/kanitzCalculator.ts` + `TabKanitz.tsx`)
-
-- Indicadores X1..X5 do Kanitz passam a usar PL, ANC, PNC reais do SSOT (corrige todos os Xi).
-- Adicionar **ISG (Índice de Solvência Geral)**:
-  - Fórmula: `ISG = AtivoTotal / (PC + PNC)` (ativo total ÷ capital de terceiros)
-  - Faixas: `>1.5 Solvente | 1.0–1.5 Atenção | <1.0 Insolvente`
-  - Exibido quando PL ≤ 0 (situação da empresa) e/ou sempre como quadro complementar.
-- Novo card "Insolvência Geral (ISG)" na aba Kanitz com fórmula, valor, faixa e alerta visual.
-
-### 8. Gráficos de Auditoria
-
-Sem mudança de lógica — os 6 gráficos já leem de `MonthlyDatum` via `bsDadosToMonthlyDatum`. Atualizar esse adapter para propagar os novos campos (ANC, PNC, PL, despFin, deprec/amort) ao `MonthlyDatum`, e os gráficos voltam a bater (Liquidez Geral, Endividamento, EBITDA, Resultado/RL).
-
-## Detalhes técnicos
-
-**Arquivos modificados:**
-
-- `src/services/bsDadosBuilder.ts` — novos campos + REF1_MAP atualizado + detecção YTD→mensal
-- `src/services/indicatorsEngine.ts` — **novo**, engine única
-- `src/services/bsDadosToMonthlyDatum.ts` — propagar novos campos
-- `src/services/kanitzCalculator.ts` — usar PL/ANC/PNC reais + função `computeISG`
-- `src/pages/Audit.tsx` — `TabIndicadores`, `TabEndividamento` consomem engine nova; remover funções duplicadas
-- `src/components/audit/TabBSDados.tsx` — exibir DRE em variação mensal
-- `src/components/audit/TabKanitz.tsx` — novo card ISG
-- `src/components/audit/TabPivotBalancete.tsx` — incluir PL e Resultado + coluna Grupo
-
-**Sem alteração:**
-
-- `src/components/audit/AuditCharts.tsx` / `TabGraficosAuditoria.tsx` — leem do dataset; correção propaga
-- `src/contexts/AuditContext.tsx`
-- Estrutura de banco — tudo derivado em runtime
-
-**Validações automáticas a manter:**
-
-- Ativo = Passivo + PL (tolerância 0,5%)
-- Receita ≠ 0; CMV ≤ 0
-- Mês duplicado: soma + alerta
-
-## Entrega
-
-Implementação em **uma rodada** após aprovação. Cada aba do Diagnóstico exibirá `FormulaInfo` com a fórmula exata e as contas (ou Refs) usadas, para auditoria visual.
-
-## Pendência
-
-Não recebi a fórmula/faixas oficiais do ISG. Vou usar a definição clássica `ISG = AT / (PC + PNC)` com cortes 1.5 / 1.0. Se preferir outra, me passe antes que eu codifique.
+Aprovar este plano para eu executar as 5 mudanças acima em uma única rodada. Os arquivos das auditorias existentes serão reprocessados automaticamente ao abrir (não há migração de dados — tudo é recalculado em tempo de visualização).

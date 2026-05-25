@@ -64,7 +64,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "GG": "passivo_circulante",
   "HH": "passivo_circulante",
   "II": "credores_rj",
-  "JJ": "passivo_circulante",
+  "JJ": "outras_obrigacoes",  // resíduo do PC sub-classificado
   "KK": "passivo_circulante",
   "LL": "credores_rj",
   "MM": "passivo_circulante",
@@ -86,6 +86,15 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "GG1": "patrimonio_liquido", // Capital Social
   "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
   "RESULTADO": "resultado",
+  // ── Totais de grupo (autoritativos quando linha-totalizadora existe) ──
+  "AC_TOTAL":  "ativo_circulante",
+  "ANC_TOTAL": "ativo_nao_circulante",
+  "PC_TOTAL":  "passivo_circulante",
+  "PNC_TOTAL": "passivo_nao_circulante",
+  "PL_TOTAL":  "patrimonio_liquido",
+  // ── DRE — categorias separadas ──
+  "DESPESAS_FIN": "despesas_financeiras", // grupo 7
+  "DESPESAS_NOP": "outras_nao_operacionais", // grupo 8
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
@@ -94,9 +103,11 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "CMV": "cmv",
   "DESPESAS": "despesas",
   "DESPESA": "despesas",
+  "DESPESAS FINANCEIRAS": "despesas_financeiras",
   "ATIVO CIRCULANTE": "ativo_circulante",
   "ATIVO NAO CIRCULANTE": "ativo_nao_circulante",
   "ATIVO NÃO CIRCULANTE": "ativo_nao_circulante",
+  "ATIVO PERMANENTE": "ativo_nao_circulante",
   "PASSIVO CIRCULANTE": "passivo_circulante",
   "PASSIVO NAO CIRCULANTE": "passivo_nao_circulante",
   "PASSIVO NÃO CIRCULANTE": "passivo_nao_circulante",
@@ -147,6 +158,8 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   passivo_circulante: /\bpassivo\s+circulante\b/i,
   patrimonio_liquido: /\b(?:patrim[oô]nio\s+l[ií]quido|capital\s+social|lucros?\s+acumulad|preju[ií]zos?\s+acumulad|reservas?\s+de\s+(?:capital|lucros?))\b/i,
   divida_total: null,
+  outras_obrigacoes: null,
+  outras_nao_operacionais: null,
   hasReceita: null, hasBalanco: null, errors: null,
 };
 
@@ -159,7 +172,8 @@ export interface BSDadosRow {
   receita_liquida: number;
   cmv: number;
   despesas: number;             // despesas operacionais (administrativas, comerciais)
-  despesas_financeiras: number; // separado das operacionais
+  despesas_financeiras: number; // grupo 7 — separado das operacionais
+  outras_nao_operacionais: number; // grupo 8 — não operacionais (signed)
   depreciacao: number;
   amortizacao: number;
   resultado: number;
@@ -180,6 +194,7 @@ export interface BSDadosRow {
   divida_financeira: number;
   fornecedores: number;
   credores_rj: number;
+  outras_obrigacoes: number;    // resíduo do PC (Ref JJ)
   divida_total: number;
   // Flags
   hasReceita: boolean;
@@ -213,12 +228,13 @@ function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
     receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0,
+    outras_nao_operacionais: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
     ativo_circulante: 0, ativo_nao_circulante: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
-    fornecedores: 0, credores_rj: 0, divida_total: 0,
+    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0,
     hasReceita: false, hasBalanco: false, errors: [],
   };
 }
@@ -259,7 +275,7 @@ type ComponentBuckets = {
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
-  const ref1 = row.ref1 ?? inferRefByCode(row.conta || "");
+  const ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
   if (ref1) {
     const k = REF1_MAP[toUpperNoAccent(ref1)];
     if (k) return k;
@@ -317,7 +333,11 @@ function applyValue(
     case "divida_financeira":
     case "fornecedores":
     case "credores_rj":
+    case "outras_obrigacoes":
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
+    case "outras_nao_operacionais":
+      // grupo 8 — preserva sinal (pode ser receita ou despesa não operacional)
+      target.outras_nao_operacionais += v; break;
     default: break;
   }
   // Acumuladores por Ref Capital + readouts ortogonais
@@ -351,9 +371,16 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     if (!buckets.sawPLTotal && buckets.pl !== 0) row.patrimonio_liquido = buckets.pl;
   }
 
+  // Se PC declarado > soma de componentes classificados, atribui o resíduo a outras_obrigacoes
+  const componentesPCConhecidos =
+    row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
+    row.fornecedores + row.credores_rj + row.outras_obrigacoes;
+  if (row.passivo_circulante > componentesPCConhecidos) {
+    row.outras_obrigacoes += row.passivo_circulante - componentesPCConhecidos;
+  }
   row.divida_total =
     row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
-    row.fornecedores + row.credores_rj;
+    row.fornecedores + row.credores_rj + row.outras_obrigacoes;
   // Resultado derivado da DRE (determinístico) — cmv/despesas/despesas_financeiras já vêm negativos.
   // Evita dupla contagem com contas de PL no balanço (Capital, Lucros Acumulados).
   row.resultado = row.receita_liquida + row.cmv + row.despesas + row.despesas_financeiras;
@@ -461,7 +488,7 @@ export function buildBSDados(
   });
 
   for (const row of leafRows) {
-    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta) ?? null;
+    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? null;
     const valuesObj = row.values || {};
     const periodKeys = Object.keys(valuesObj);
 
