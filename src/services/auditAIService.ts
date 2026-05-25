@@ -661,7 +661,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
       allRows.push({
         conta: contaRaw,
         descricao: descRaw || contaRaw,
-        ref1: inferRefByCode(contaRaw),
+        ref1: inferRefByCode(contaRaw, descRaw),
         values,
       });
     }
