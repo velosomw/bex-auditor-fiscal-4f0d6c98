@@ -1,0 +1,1 @@
+DELETE FROM public.audit_account_cache WHERE company_id = '0f77eb1b-eb0e-4ec2-a7f0-757b1c1f5ad3';
