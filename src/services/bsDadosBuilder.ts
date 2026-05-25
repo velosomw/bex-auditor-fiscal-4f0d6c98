@@ -170,7 +170,8 @@ export interface BSDadosRow {
   receita_liquida: number;
   cmv: number;
   despesas: number;             // despesas operacionais (administrativas, comerciais)
-  despesas_financeiras: number; // separado das operacionais
+  despesas_financeiras: number; // grupo 7 — separado das operacionais
+  outras_nao_operacionais: number; // grupo 8 — não operacionais (signed)
   depreciacao: number;
   amortizacao: number;
   resultado: number;
@@ -191,6 +192,7 @@ export interface BSDadosRow {
   divida_financeira: number;
   fornecedores: number;
   credores_rj: number;
+  outras_obrigacoes: number;    // resíduo do PC (Ref JJ)
   divida_total: number;
   // Flags
   hasReceita: boolean;
