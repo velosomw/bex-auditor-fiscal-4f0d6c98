@@ -371,9 +371,16 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     if (!buckets.sawPLTotal && buckets.pl !== 0) row.patrimonio_liquido = buckets.pl;
   }
 
+  // Se PC declarado > soma de componentes classificados, atribui o resíduo a outras_obrigacoes
+  const componentesPCConhecidos =
+    row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
+    row.fornecedores + row.credores_rj + row.outras_obrigacoes;
+  if (row.passivo_circulante > componentesPCConhecidos) {
+    row.outras_obrigacoes += row.passivo_circulante - componentesPCConhecidos;
+  }
   row.divida_total =
     row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
-    row.fornecedores + row.credores_rj;
+    row.fornecedores + row.credores_rj + row.outras_obrigacoes;
   // Resultado derivado da DRE (determinístico) — cmv/despesas/despesas_financeiras já vêm negativos.
   // Evita dupla contagem com contas de PL no balanço (Capital, Lucros Acumulados).
   row.resultado = row.receita_liquida + row.cmv + row.despesas + row.despesas_financeiras;
