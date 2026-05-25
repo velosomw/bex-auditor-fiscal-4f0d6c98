@@ -86,6 +86,15 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "GG1": "patrimonio_liquido", // Capital Social
   "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
   "RESULTADO": "resultado",
+  // ── Totais de grupo (autoritativos quando linha-totalizadora existe) ──
+  "AC_TOTAL":  "ativo_circulante",
+  "ANC_TOTAL": "ativo_nao_circulante",
+  "PC_TOTAL":  "passivo_circulante",
+  "PNC_TOTAL": "passivo_nao_circulante",
+  "PL_TOTAL":  "patrimonio_liquido",
+  // ── DRE — categorias separadas ──
+  "DESPESAS_FIN": "despesas_financeiras", // grupo 7
+  "DESPESAS_NOP": "outras_nao_operacionais", // grupo 8
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
@@ -94,9 +103,11 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "CMV": "cmv",
   "DESPESAS": "despesas",
   "DESPESA": "despesas",
+  "DESPESAS FINANCEIRAS": "despesas_financeiras",
   "ATIVO CIRCULANTE": "ativo_circulante",
   "ATIVO NAO CIRCULANTE": "ativo_nao_circulante",
   "ATIVO NÃO CIRCULANTE": "ativo_nao_circulante",
+  "ATIVO PERMANENTE": "ativo_nao_circulante",
   "PASSIVO CIRCULANTE": "passivo_circulante",
   "PASSIVO NAO CIRCULANTE": "passivo_nao_circulante",
   "PASSIVO NÃO CIRCULANTE": "passivo_nao_circulante",
