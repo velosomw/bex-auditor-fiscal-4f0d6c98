@@ -38,18 +38,18 @@ export const ROUTING_MATRIX: Record<
   Record<Criticality, { model: string; provider: "google" | "openai"; serviceTag: string }>
 > = {
   ocr_parse: {
-    low:    { model: "google/gemini-2.5-flash-lite", provider: "google", serviceTag: "gemini_flash_lite" },
-    medium: { model: "google/gemini-3-flash-preview", provider: "google", serviceTag: "gemini_flash" },
-    high:   { model: "google/gemini-2.5-pro",         provider: "google", serviceTag: "gemini_pro" },
+    low:    { model: "google/gemini-3.1-flash-lite-preview", provider: "google", serviceTag: "gemini_3_flash_lite" },
+    medium: { model: "google/gemini-3.5-flash",              provider: "google", serviceTag: "gemini_3_flash" },
+    high:   { model: "google/gemini-3.1-pro-preview",        provider: "google", serviceTag: "gemini_3_pro" },
   },
   structure_extract: {
-    low:    { model: "google/gemini-2.5-flash-lite", provider: "google", serviceTag: "gemini_flash_lite" },
-    medium: { model: "google/gemini-2.5-flash",      provider: "google", serviceTag: "gemini_flash" },
-    high:   { model: "google/gemini-2.5-pro",        provider: "google", serviceTag: "gemini_pro" },
+    low:    { model: "google/gemini-3.1-flash-lite-preview", provider: "google", serviceTag: "gemini_3_flash_lite" },
+    medium: { model: "google/gemini-3.5-flash",              provider: "google", serviceTag: "gemini_3_flash" },
+    high:   { model: "google/gemini-3.1-pro-preview",        provider: "google", serviceTag: "gemini_3_pro" },
   },
   audit_insights: {
-    low:    { model: "google/gemini-3-flash-preview", provider: "google", serviceTag: "gemini_flash" },
-    medium: { model: "google/gemini-2.5-pro",         provider: "google", serviceTag: "gemini_pro" },
+    low:    { model: "google/gemini-3.5-flash",       provider: "google", serviceTag: "gemini_3_flash" },
+    medium: { model: "google/gemini-3.1-pro-preview", provider: "google", serviceTag: "gemini_3_pro" },
     high:   { model: "openai/gpt-5",                  provider: "openai", serviceTag: "gpt5" },
   },
   risk_advanced: {
@@ -59,9 +59,9 @@ export const ROUTING_MATRIX: Record<
     high:   { model: "openai/gpt-5",      provider: "openai", serviceTag: "gpt5" },
   },
   chat_assistant: {
-    low:    { model: "google/gemini-3-flash-preview", provider: "google", serviceTag: "gemini_flash" },
-    medium: { model: "google/gemini-3-flash-preview", provider: "google", serviceTag: "gemini_flash" },
-    high:   { model: "google/gemini-2.5-pro",         provider: "google", serviceTag: "gemini_pro" },
+    low:    { model: "google/gemini-3.5-flash",       provider: "google", serviceTag: "gemini_3_flash" },
+    medium: { model: "google/gemini-3.5-flash",       provider: "google", serviceTag: "gemini_3_flash" },
+    high:   { model: "google/gemini-3.1-pro-preview", provider: "google", serviceTag: "gemini_3_pro" },
   },
   embeddings: {
     low:    { model: "google/text-embedding-004", provider: "google", serviceTag: "embedding" },
@@ -69,10 +69,20 @@ export const ROUTING_MATRIX: Record<
     high:   { model: "google/text-embedding-004", provider: "google", serviceTag: "embedding" },
   },
   report_generation: {
-    low:    { model: "google/gemini-3-flash-preview", provider: "google", serviceTag: "gemini_flash" },
-    medium: { model: "google/gemini-2.5-pro",         provider: "google", serviceTag: "gemini_pro" },
+    low:    { model: "google/gemini-3.5-flash",       provider: "google", serviceTag: "gemini_3_flash" },
+    medium: { model: "google/gemini-3.1-pro-preview", provider: "google", serviceTag: "gemini_3_pro" },
     high:   { model: "openai/gpt-5",                  provider: "openai", serviceTag: "gpt5" },
   },
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Fallback chain — usado pelo ai-fetch quando um preview falha (5xx/404).
+// Mantém estabilidade caso modelos 3.x em preview fiquem indisponíveis.
+// ─────────────────────────────────────────────────────────────────
+export const MODEL_FALLBACK: Record<string, string[]> = {
+  "google/gemini-3.1-pro-preview":        ["google/gemini-2.5-pro", "openai/gpt-5"],
+  "google/gemini-3.5-flash":              ["google/gemini-3-flash-preview", "google/gemini-2.5-flash"],
+  "google/gemini-3.1-flash-lite-preview": ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"],
 };
 
 export interface RiskSignals {
