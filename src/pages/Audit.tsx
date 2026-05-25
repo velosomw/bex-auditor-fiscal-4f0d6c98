@@ -1521,7 +1521,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
                 const ebitda = (d._resOp || 0) + (d._despFin || 0);
                 return (
                   <div key={y} className="p-4 rounded-lg bg-muted/30 text-center">
-                    <p className="text-xs text-muted-foreground">{y}</p>
+                    <p className="text-xs text-muted-foreground">{/^\d{4}-\d{1,2}$/.test(y) ? mesKeyToLabel(y) : y}</p>
                     <p className="text-lg font-bold font-mono text-foreground">{fmt(ebitda)}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Desp. Financeiras</p>
                   </div>
