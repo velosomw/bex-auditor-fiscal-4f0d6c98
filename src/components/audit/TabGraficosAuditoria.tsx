@@ -61,6 +61,8 @@ const EmptyState = ({ icon: Icon, title }: { icon: any; title: string }) => (
 const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
   const [data, setData] = useState<BalanceteChartsResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showDiagnostico, setShowDiagnostico] = useState(false);
+  const [showIndicadores, setShowIndicadores] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
