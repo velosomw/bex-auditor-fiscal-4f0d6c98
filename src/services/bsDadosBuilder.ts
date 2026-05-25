@@ -351,6 +351,12 @@ type ComponentBuckets = {
   groupTotalsPresent: Set<string>;
   /** Diagnóstico — valor declarado pelo GT por campo principal */
   declared: Partial<Record<keyof BSDadosRow, number>>;
+  /** Diagnóstico — valor declarado pelo GT por código de grupo (2 dígitos) */
+  declaredByGroup: Record<string, number>;
+  /** Diagnóstico — soma das folhas (drill-down) por código de grupo */
+  calculatedByGroup: Record<string, number>;
+  /** Camada usada para alimentar cada grupo (A=GT, B=drill-down, C=regex) */
+  layerByGroup: Record<string, "A" | "B" | "C">;
 };
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
