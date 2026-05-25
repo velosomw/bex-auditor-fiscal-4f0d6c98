@@ -42,6 +42,8 @@ interface InputLinha {
 interface InputBalancete {
   mes: string;
   linhas: InputLinha[];
+  /** Usuário marcou este balancete como YTD (saldo acumulado desde Jan). */
+  is_ytd?: boolean;
 }
 interface BSDadosRow {
   mes: string;
@@ -69,7 +71,15 @@ interface BSDadosRow {
   hasBalanco: boolean;
   errors: string[];
   ytd_desacumulado?: boolean;
+  /** Flags YTD consolidadas (também persistidas em bs_dados.ytd_flags). */
+  ytd_flags?: {
+    is_ytd_input?: boolean;       // usuário marcou no upload
+    ytd_desacumulado?: boolean;   // reconstrução exata por subtração YTD-YTD aplicada
+    ytd_outlier_flag?: boolean;   // detecção automática isolada (sem normalização)
+    ytd_source_count?: number;    // qtd de balancetes YTD consecutivos usados na subtração
+  };
 }
+
 interface BSIndicators {
   mes: string;
   cmvPercent: number | null;
