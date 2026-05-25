@@ -239,6 +239,39 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      <MapeamentoPorGrupo rows={rows} />
     </div>
+  );
+}
+
+/** Tooltip de memória de cálculo para um indicador (numerador, denominador, fórmula, origem). */
+function MemoryCell({ row, indicador, value }: { row: BSDadosRow; indicador: string; value: number | null }) {
+  const memorias = buildIndicatorMemory(row);
+  const mem = memorias.find(m => m.indicador === indicador);
+  if (!mem) return <span>{value == null ? "—" : value.toFixed(2)}</span>;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="cursor-help underline decoration-dotted decoration-accent/50 underline-offset-4">
+            {value == null ? "—" : value.toFixed(2)}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-sm text-[11px] space-y-1">
+          <div className="font-semibold">{mem.indicador} = {mem.resultado == null ? "—" : mem.resultado.toFixed(2)}</div>
+          <div className="text-muted-foreground">Fórmula: <span className="font-mono">{mem.formula}</span></div>
+          <div className="border-t pt-1">
+            <div><strong>Numerador</strong> ({mem.numerador.rotulo}): {fmt(mem.numerador.valor)}</div>
+            <div className="text-muted-foreground text-[10px]">↳ origem: {mem.numerador.origem}</div>
+          </div>
+          <div>
+            <div><strong>Denominador</strong> ({mem.denominador.rotulo}): {fmt(mem.denominador.valor)}</div>
+            <div className="text-muted-foreground text-[10px]">↳ origem: {mem.denominador.origem}</div>
+          </div>
+          {mem.classificacao && <div className="border-t pt-1 text-accent">Classificação: {mem.classificacao}</div>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
