@@ -1,67 +1,118 @@
-## Documento de referência gerado
+## Diagnóstico confirmado
 
-`Auditoria_Revisao_Engine_Indicadores_v3.docx` — baixe e revise. Contém: diagnóstico do que está errado, tabela completa de mapeamento por grupo contábil, fórmulas oficiais da aba ÍNDICES (Fase2), fórmulas Kanitz/ISG, plano de implementação e critério de validação contra o balancete Giannini.
+Validei contra os dois documentos:
 
-<presentation-artifact path="Auditoria_Revisao_Engine_Indicadores_v3.docx" mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"></presentation-artifact>
+**1. Fase2 — aba ÍNDICES** define as fórmulas oficiais BEX. Elas já estão corretas em `src/services/indicatorsEngine.ts`. Nada a mexer nas fórmulas.
 
-## Problema identificado nos 3 arquivos
+**2. Balancete Giannini (08/2025–01/2026)** revela o problema real: o plano de contas usa códigos **estruturais por grupo** (não específicos por conta). Os grupos de 2 dígitos são autoritativos e o balancete já traz os subtotais:
 
-A função `REF_BY_PREFIX` em `src/services/auditAIService.ts` foi calibrada para UM plano de contas. No balancete Giannini os mesmos códigos significam coisas diferentes:
-
-| Código | Plano hardcoded atual | Plano Giannini real |
+| Cód | Grupo | Ago/2025 |
 |---|---|---|
-| 111 | Caixa (correto por acaso) | Bens e Numerários (ok) |
-| 211 | Empréstimos e Financiamentos | **Fornecedores** |
-| 212 | Fornecedores | **Contas a Pagar** |
-| 215 | (não mapeado) | **Instituições Financeiras** = empréstimos reais |
-| 7 | DESPESAS operacionais | **Despesas/Receitas Financeiras** |
-| 8 | DESPESAS operacionais | **Não Operacionais** |
+| 11 | Ativo Circulante | 75.575.226,58 |
+| 12 | Ativo Não Circulante | 2.741.435,72 |
+| 13 | Ativo Permanente | 2.537.106,02 |
+| 21 | Passivo Circulante | −68.372.775,30 |
+| 22 | Não Circulante LP | −338.639.419,32 |
+| 23 | Patrimônio Líquido | 301.909.389,98 |
+| 31+32+33 | Receita Líquida | (resultado das 3 linhas) |
+| 4 | Custo das Vendas/Serviços (CMV) | 33.092.841,63 |
+| 5 | Custo Industrial | — |
+| 6 | Despesas Operacionais | 19.068.652,21 |
+| 7 | Despesas/Receitas Financeiras | 27.010.961,60 |
+| 8 | Despesas/Receitas Não Operacionais | 11.396,64 |
 
-Resultado: dívida financeira inflada, fornecedores subestimados, EBITDA e Cobertura de Juros incorretos.
+**Liquidez Corrente real Ago/2025** = 75.575.226,58 / 68.372.775,30 = **1,1053**
+**O pipeline atual mostra 0,9** porque:
+- `REF_BY_PREFIX` mapeia código 211 → "Empréstimos" (no Giannini 211 = Fornecedores e 215 = Instituições Financeiras)
+- Soma folhas em vez de usar o subtotal declarado do grupo → dupla contagem e classificação errada
+- Trata receita/CMV pelo sinal sem considerar que receita (grupo 3) pode vir negativa por convenção credora
 
-## Mudanças a aplicar
+## O que vou mudar
 
-**1. `src/services/auditAIService.ts` — Classificação por grupo (2 dígitos), não plano específico**
+### 1. `src/services/bsDadosBuilder.ts` — novo classificador "Grupo-First"
 
-Substituir `REF_BY_PREFIX` por uma lógica em 2 camadas:
+Substituir a lógica atual por um pipeline em 3 camadas, **nessa ordem**:
 
-- **Camada A (autoritativa):** quando a linha do balancete tiver código curto (2-3 dígitos) e nome canônico de grupo (`Ativo Circulante`, `Passivo Não Circulante`, `Patrimônio Líquido`, etc.), usa o VALOR DECLARADO como total do grupo e pula as folhas internas para evitar dupla contagem.
-- **Camada B (sub-classificação PC/PNC):** para componentes do Passivo, usa o 2º nível + regex na descrição → fornecedores / trabalhista / tributária / financeira / credores RJ.
+**Camada A (autoritativa) — Subtotais declarados por grupo**
 
-**2. `src/services/bsDadosBuilder.ts`**
+Quando a linha tem código de 1–2 dígitos E nome canônico de grupo, usa o **valor declarado** e marca as folhas internas como "já consumidas" (não soma novamente):
 
-- Adicionar campo `outras_nao_operacionais` (separar grupo 8).
-- Atualizar `FALLBACK_PATTERNS` para reconhecer nomes-padrão dos grupos.
-- `divida_financeira` passa a vir de descrição (Empréstimos/Financiamentos/Inst. Financeiras), não do código.
+```text
+Cód  Grupo                              → Campo SSOT
+1X   Ativo Circulante (11)              → ativo_circulante = |valor|
+1X   Ativo Não Circulante (12+13)       → ativo_nao_circulante = |valor|
+2X   Passivo Circulante (21)            → passivo_circulante = |valor|
+2X   Passivo Não Circulante (22)        → passivo_nao_circulante = |valor|
+2X   Patrimônio Líquido (23)            → patrimonio_liquido = |valor|
+3X   Receita Bruta (31)                 → soma p/ receita
+3X   Devoluções (32) + Impostos (33)    → subtrai p/ receita_liquida
+4X   Custo Vendas/Serviços (CMV)        → cmv = -|valor|
+5X   Custo Industrial                   → cmv += -|valor|  (entra no CMV)
+6X   Despesas Operacionais              → despesas = -|valor|
+7X   Despesas/Receitas Financeiras      → despesas_financeiras (separa do op.)
+8X   Não Operacionais                   → outras_nao_operacionais (separado)
+```
 
-**3. `src/services/indicatorsEngine.ts` — Anualizar atividade**
+**Camada B (sub-classificação) — 3 dígitos para drill-down**
 
-- IME, PMC, PMP passam de multiplicador 30 (mensal) para 360 (alinhado ÍNDICES Fase2).
-- Adicionar `cicloOperacional = IME + PMC`, `cicloCaixa = CO − PMP`, `composicaoEndivLP = PNC / PT`.
+Para alimentar gráfico de endividamento e EBITDA:
+```text
+111      → disponivel (Caixa/Bancos/Aplicações curto)
+112      → contas_receber
+113      → estoques
+115      → tributos_a_recuperar
+131      → imobilizado
+211      → fornecedores
+213      → divida_trabalhista
+214      → divida_tributaria
+215, 221 → divida_financeira (Inst. Financeiras + Empréstimos LP)
+21*+name~/RJ|Recuperação/ → credores_rj
+711      → componente despFin (já agregado por 7 na Camada A)
+```
 
-**4. `src/components/audit/TabKanitz.tsx` — Termômetro real**
+**Camada C (fallback regex)** — só quando NÃO há subtotal declarado para o grupo. Usa nome canônico (Fornecedores, Empréstimos, Instituições Financeiras, Salários, Tributos, etc.).
 
-- Gauge vertical Recharts (faixas −7…0 vermelho / 0…+3 amarelo / +3…+7 verde) com ponteiro no FI do mês.
-- Série temporal mensal do FI.
-- Quando todos os meses têm PL ≤ 0, troca automaticamente para ISG como indicador primário (faixas 1,0 / 1,5).
+### 2. `src/services/auditAIService.ts`
 
-**5. `src/components/audit/TabGraficosAuditoria.tsx` — Gráficos faltantes**
+Substituir `REF_BY_PREFIX` hardcoded por chamada à nova função `classifyByGroup(conta, descricao)` exportada do `bsDadosBuilder`. Ref1 passa a ser derivado do grupo de 2 dígitos + sub-componente.
 
-- BarChart empilhado: Endividamento por categoria por mês (Tributárias / Trabalhistas / Empr. / Fornecedores / Credores RJ / Outras) + LineChart de TOTAL sobreposto.
-- LineChart ISG mensal com bandas em 1,0 e 1,5.
+### 3. `supabase/functions/audit-bs-dados/index.ts`
+
+Replicar o classificador Grupo-First no servidor (mesma lógica, em TS Deno). Hoje a edge function tem fallback IA — quando o grupo de 2 dígitos está declarado, **não chama IA**, usa o subtotal direto. Reduz custo e elimina ruído.
+
+### 4. `src/services/indicatorsEngine.ts`
+
+Sem mudanças nas fórmulas. Adicionar apenas:
+- Inclusão de **Custo Industrial (grupo 5)** dentro do CMV para PMP/IME
+- Separação de **Despesas Financeiras (grupo 7)** vs **Despesas Operacionais (grupo 6)** para Margem Operacional e Cobertura de Juros corretas
+
+### 5. `src/components/audit/SanityDiagnostico.tsx`
+
+Painel de transparência ganha uma seção **"Mapeamento por Grupo"** mostrando para cada mês:
+- Grupo (11/21/22/23/3/4/5/6/7/8) → valor declarado vs valor calculado a partir das folhas
+- Alerta visual quando divergência >5% (sinaliza folhas órfãs ou plano não-padrão)
 
 ## Critério de aceite
 
-Após implementar, com o balancete Giannini Ago/2025 a engine deve ler:
-- Ativo Circulante = **75.575.226,58** (código 11)
-- Disponível = **492.194,16** (código 111)
-- Clientes = **20.604.366,18** (código 112)
-- Liquidez Corrente Ago/2025 deve bater com o cálculo manual AC/PC do balancete (não mais 0,90 espúrio).
+Com o balancete Giannini Ago/2025 carregado:
+- AC = 75.575.226,58 ✓
+- PC = 68.372.775,30 ✓
+- Disponível (111) = 492.194,16 ✓
+- Clientes (112) = 20.604.366,18 ✓
+- Estoque (113) = 46.786.497,61 ✓
+- **Liquidez Corrente = 1,11** (não mais 0,9)
+- **Liquidez Seca** = (75.575.226,58 − 46.786.497,61) / 68.372.775,30 = **0,42**
+- **Liquidez Imediata** = 492.194,16 / 68.372.775,30 = **0,007**
+- **Liquidez Geral** = (75.575.226,58 + 2.741.435,72 + 2.537.106,02) / (68.372.775,30 + 338.639.419,32) ≈ **0,20**
+- Ativo Total ≈ Passivo Total + PL (com tolerância ±1%)
+- Endividamento, Atividade (PMR/PMP/IME × 360), Margens, ROE, EBITDA recalculados a partir da nova base
 
 ## Risco
 
-Mudança na classificação afeta **todas** as métricas exibidas. Recomendo aplicar e validar no balancete Giannini imediatamente após (você abre a aba Indicadores e confirma os valores).
+Mudança afeta TODAS as métricas exibidas. Por isso o painel "Mapeamento por Grupo" entra junto — você consegue auditar visualmente em qualquer balancete novo se o classificador acertou.
+
+**Sem backfill** das auditorias antigas (como você definiu antes). Quando abrir a auditoria Giannini de novo, a edge function reprocessa e grava os números corretos.
 
 ## Próximo passo
 
-Aprovar este plano para eu executar as 5 mudanças acima em uma única rodada. Os arquivos das auditorias existentes serão reprocessados automaticamente ao abrir (não há migração de dados — tudo é recalculado em tempo de visualização).
+Aprove para eu executar as 5 mudanças em uma única rodada. Em seguida você reabre a auditoria Giannini e validamos os números acima ao vivo.
