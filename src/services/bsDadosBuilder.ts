@@ -502,7 +502,12 @@ export function buildBSDados(
   const orderedKeys = Array.from(new Set(usableMesKeys)).sort();
   orderedKeys.forEach(k => {
     rowsByMes.set(k, emptyRow(k));
-    bucketsByMes.set(k, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false });
+    bucketsByMes.set(k, {
+      ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0,
+      sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false,
+      groupTotalsPresent: new Set<string>(),
+      declared: {},
+    });
     if (dupSet.has(k)) {
       const r = rowsByMes.get(k)!;
       const count = dupList.find(d => d.mesKey === k)?.count ?? 2;
@@ -512,19 +517,19 @@ export function buildBSDados(
   });
 
   // Itera DRE + Balanço, mapeando por período → mesKey.
-  // Quando useUser=true, ignoramos a chave de período do parsed (vem genérica como "2024")
-  // e distribuímos as linhas para todos os meses do usuário (fallback de mês único).
   const allRows = [
     ...((parsed.dre ?? []) as any[]),
     ...((parsed.balanco ?? []) as any[]),
   ];
 
   // ── Prune de contas sintéticas (pais) para evitar dupla contagem ─────
-  // Se existe 7110100017, então 7 / 71 / 711 / 711010 são pais e devem ser ignorados.
+  // GRUPO-FIRST: PRESERVAMOS os totalizadores de grupo (11/12/13/21/22/23/31/32/33/4/5/6/7/8)
+  // mesmo que tenham folhas — eles são autoritativos.
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
   const allCodes = new Set(allRows.map(r => normCode(r.conta)).filter(Boolean));
   const parentCodes = new Set<string>();
   for (const c of allCodes) {
+    if (GROUP_TOTAL_CODES.has(c)) continue; // GT nunca entra em parentCodes
     for (const other of allCodes) {
       if (other.length > c.length && other.startsWith(c)) {
         const next = other.charAt(c.length);
@@ -534,11 +539,47 @@ export function buildBSDados(
   }
   const leafRows = allRows.filter(r => {
     const c = normCode(r.conta);
-    return !c || !parentCodes.has(c);
+    if (!c) return true;
+    if (GROUP_TOTAL_CODES.has(c)) return true; // sempre preserva GT
+    return !parentCodes.has(c);
   });
 
+  // ── 1ª passada: detecta GTs presentes por mesKey ──
+  const gtPresentByMes = new Map<string, Set<string>>();
+  for (const row of leafRows) {
+    const c = normCode(row.conta);
+    if (!GROUP_TOTAL_CODES.has(c)) continue;
+    const valuesObj = row.values || {};
+    for (const period of Object.keys(valuesObj)) {
+      const v = Number(valuesObj[period]);
+      if (!Number.isFinite(v) || v === 0) continue;
+      let mesKey: string;
+      if (useUser && Object.keys(valuesObj).length <= 1 && userMesKeys.length > 0) {
+        mesKey = userMesKeys[0];
+      } else {
+        mesKey = periodToMesKey(period);
+      }
+      if (!gtPresentByMes.has(mesKey)) gtPresentByMes.set(mesKey, new Set());
+      gtPresentByMes.get(mesKey)!.add(c);
+      const buckets = bucketsByMes.get(mesKey);
+      if (buckets) buckets.groupTotalsPresent.add(c);
+    }
+  }
+
+  const hasParentGT = (conta: string, mesKey: string): boolean => {
+    const gts = gtPresentByMes.get(mesKey);
+    if (!gts) return false;
+    for (const gt of gts) {
+      if (conta !== gt && conta.startsWith(gt)) return true;
+    }
+    return false;
+  };
+
+  // ── 2ª passada: roteia valores ──
   for (const row of leafRows) {
     const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? null;
+    const conta = normCode(row.conta);
+    const isGroupTotal = GROUP_TOTAL_CODES.has(conta);
     const valuesObj = row.values || {};
     const periodKeys = Object.keys(valuesObj);
 
@@ -552,10 +593,6 @@ export function buildBSDados(
       });
       if (!key) continue;
 
-      // Resolve mesKey: NUNCA replicar o saldo de 1 período em N meses do usuário —
-      // isso causa alucinação (mesmo valor repetido). Quando o parser só trouxe 1
-      // período e há múltiplos meses do usuário, aplicamos APENAS ao primeiro mês
-      // e marcamos os demais com erro explicativo (visível na aba BS & Dados).
       let targetKeys: string[];
       if (useUser && periodKeys.length <= 1 && userMesKeys.length > 0) {
         targetKeys = [userMesKeys[0]];
@@ -567,7 +604,8 @@ export function buildBSDados(
         const target = rowsByMes.get(mesKey);
         const buckets = bucketsByMes.get(mesKey);
         if (!target || !buckets) continue;
-        applyValue(target, key, Number(value) || 0, ref1, buckets);
+        const parentGT = !isGroupTotal && hasParentGT(conta, mesKey);
+        applyValue(target, key, Number(value) || 0, ref1, buckets, isGroupTotal, parentGT);
       }
     }
   }
