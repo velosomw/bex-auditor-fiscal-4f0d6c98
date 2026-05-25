@@ -566,6 +566,9 @@ export function buildBSDados(
       sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false,
       groupTotalsPresent: new Set<string>(),
       declared: {},
+      declaredByGroup: {},
+      calculatedByGroup: {},
+      layerByGroup: {},
     });
     if (dupSet.has(k)) {
       const r = rowsByMes.get(k)!;
