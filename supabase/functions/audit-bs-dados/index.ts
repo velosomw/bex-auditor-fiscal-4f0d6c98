@@ -962,6 +962,7 @@ Deno.serve(async (req) => {
             credores_rj: r.credores_rj,
             divida_total: r.divida_total,
             errors: r.errors,
+            ytd_flags: r.ytd_flags ?? null,
           }));
           const indRows = indicadores.map((i, idx) => ({
             audit_id: auditId,
