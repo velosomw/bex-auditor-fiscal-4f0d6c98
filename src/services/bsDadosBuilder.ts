@@ -815,6 +815,56 @@ export function computeBSIndicators(r: BSDadosRow) {
   };
 }
 
+/** Memória de cálculo explicável para cada indicador (numerador, denominador, fórmula, origem). */
+export interface IndicatorMemory {
+  indicador: string;
+  formula: string;
+  numerador: { rotulo: string; valor: number; origem: string };
+  denominador: { rotulo: string; valor: number; origem: string };
+  resultado: number | null;
+  classificacao?: string;
+}
+
+const origemGrupo = (r: BSDadosRow, grupoCodigo: string, fallback: string): string => {
+  const g = r.grupos?.find(x => x.grupo === grupoCodigo);
+  if (!g) return fallback;
+  const camadaLabel = g.camada === "A" ? "subtotal declarado" : g.camada === "B" ? "drill-down" : "fallback regex";
+  return `linha "${g.grupo} ${g.rotulo}" (Camada ${g.camada} — ${camadaLabel})`;
+};
+
+const classifyLC = (v: number | null): string =>
+  v == null ? "—" : v >= 1.5 ? "Saudável (≥ 1,5)" : v >= 1.0 ? "Adequada (1,0–1,5)" : "Insuficiente (< 1,0)";
+
+export function buildIndicatorMemory(r: BSDadosRow): IndicatorMemory[] {
+  const lc = safeDiv(r.ativo_circulante, r.passivo_circulante);
+  const ls = safeDiv(r.ativo_circulante - r.estoques, r.passivo_circulante);
+  const li = safeDiv(r.disponivel, r.passivo_circulante);
+  return [
+    {
+      indicador: "Liquidez Corrente",
+      formula: "AC / PC",
+      numerador: { rotulo: "Ativo Circulante", valor: r.ativo_circulante, origem: origemGrupo(r, "11", "AC (agregado)") },
+      denominador: { rotulo: "Passivo Circulante", valor: r.passivo_circulante, origem: origemGrupo(r, "21", "PC (agregado, abs aplicado)") },
+      resultado: lc,
+      classificacao: classifyLC(lc),
+    },
+    {
+      indicador: "Liquidez Seca",
+      formula: "(AC − Estoques) / PC",
+      numerador: { rotulo: "AC − Estoques", valor: r.ativo_circulante - r.estoques, origem: `${origemGrupo(r, "11", "AC")} − Estoques (R$ ${r.estoques.toLocaleString("pt-BR")})` },
+      denominador: { rotulo: "Passivo Circulante", valor: r.passivo_circulante, origem: origemGrupo(r, "21", "PC") },
+      resultado: ls,
+    },
+    {
+      indicador: "Liquidez Imediata",
+      formula: "Disponível / PC",
+      numerador: { rotulo: "Disponível", valor: r.disponivel, origem: "Drill-down 111 (Caixa/Bancos/Aplicações)" },
+      denominador: { rotulo: "Passivo Circulante", valor: r.passivo_circulante, origem: origemGrupo(r, "21", "PC") },
+      resultado: li,
+    },
+  ];
+}
+
 // ─── EXPORT XLSX (CSV simples — sem dependência) ─────────
 export function exportBSDadosToCSV(rows: BSDadosRow[]): string {
   const headers = [
