@@ -165,6 +165,30 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
 
 
 // ─── Tipos ───────────────────────────────────────────────
+
+/** Status do semáforo trifásico para mapeamento por grupo. */
+export type GroupMappingStatus = "ok" | "atencao" | "erro" | "sem_total";
+
+/** Trilha de classificação por grupo (2 dígitos) — usada na UI explicável. */
+export interface GroupMappingEntry {
+  /** Código do grupo (ex.: "11", "21", "4") */
+  grupo: string;
+  /** Rótulo amigável (Ativo Circulante, Passivo Circulante, etc.) */
+  rotulo: string;
+  /** Valor declarado pela linha totalizadora (Camada A). Undefined se ausente. */
+  declarado?: number;
+  /** Soma das folhas (drill-down, Camada B) coletadas para o grupo. */
+  calculado: number;
+  /** Divergência percentual entre declarado e calculado (0..1). */
+  desvioPct: number;
+  /** Camada usada para alimentar o agregado: A=GT, B=drill-down, C=regex fallback. */
+  camada: "A" | "B" | "C";
+  /** Status do semáforo (1%/3%/>3%). */
+  status: GroupMappingStatus;
+  /** Campo do BSDadosRow alimentado (ativo_circulante, passivo_circulante, etc.). */
+  campo: keyof BSDadosRow;
+}
+
 export interface BSDadosRow {
   mes: string;            // "Março 2024"
   mesKey: string;         // "2024-03"
@@ -200,6 +224,35 @@ export interface BSDadosRow {
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
+  /** Trilha de auditoria explicável — mapeamento por grupo (2 dígitos). */
+  grupos?: GroupMappingEntry[];
+}
+
+/** Rótulo humano para cada código de grupo (2 dígitos). */
+export const GROUP_LABELS: Record<string, { rotulo: string; campo: keyof BSDadosRow }> = {
+  "11": { rotulo: "Ativo Circulante",            campo: "ativo_circulante" },
+  "12": { rotulo: "Ativo Não Circulante (RLP)",  campo: "ativo_nao_circulante" },
+  "13": { rotulo: "Ativo Permanente",            campo: "ativo_nao_circulante" },
+  "21": { rotulo: "Passivo Circulante",          campo: "passivo_circulante" },
+  "22": { rotulo: "Passivo Não Circulante",      campo: "passivo_nao_circulante" },
+  "23": { rotulo: "Patrimônio Líquido",          campo: "patrimonio_liquido" },
+  "31": { rotulo: "Receita Bruta",               campo: "receita_liquida" },
+  "32": { rotulo: "Deduções da Receita",         campo: "receita_liquida" },
+  "33": { rotulo: "Impostos sobre Vendas",       campo: "receita_liquida" },
+  "4":  { rotulo: "CMV / Custo de Serviços",     campo: "cmv" },
+  "5":  { rotulo: "Custo Industrial",            campo: "cmv" },
+  "6":  { rotulo: "Despesas Operacionais",       campo: "despesas" },
+  "7":  { rotulo: "Despesas/Receitas Financeiras", campo: "despesas_financeiras" },
+  "8":  { rotulo: "Não Operacionais",            campo: "outras_nao_operacionais" },
+};
+
+/** Classifica desvio em status trifásico (1%/3%/>3%). */
+export function classifyDeviation(desvio: number, declaradoAusente: boolean): GroupMappingStatus {
+  if (declaradoAusente) return "sem_total";
+  const abs = Math.abs(desvio);
+  if (abs <= 0.01) return "ok";
+  if (abs <= 0.03) return "atencao";
+  return "erro";
 }
 
 export interface BalanceteEntry {
