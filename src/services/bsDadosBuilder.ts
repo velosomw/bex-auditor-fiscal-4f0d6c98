@@ -628,14 +628,21 @@ export function buildBSDados(
     }
   }
 
-  const hasParentGT = (conta: string, mesKey: string): boolean => {
+  const findParentGT = (conta: string, mesKey: string): string | null => {
     const gts = gtPresentByMes.get(mesKey);
-    if (!gts) return false;
+    if (!gts) return null;
+    // Prefere o GT mais longo (mais específico) — ex.: "21" antes de "2"
+    let best: string | null = null;
     for (const gt of gts) {
-      if (conta !== gt && conta.startsWith(gt)) return true;
+      if (conta !== gt && conta.startsWith(gt)) {
+        if (!best || gt.length > best.length) best = gt;
+      }
     }
-    return false;
+    return best;
   };
+
+  const hasParentGT = (conta: string, mesKey: string): boolean =>
+    findParentGT(conta, mesKey) !== null;
 
   // ── 2ª passada: roteia valores ──
   for (const row of leafRows) {
@@ -668,6 +675,28 @@ export function buildBSDados(
         if (!target || !buckets) continue;
         const parentGT = !isGroupTotal && hasParentGT(conta, mesKey);
         applyValue(target, key, Number(value) || 0, ref1, buckets, isGroupTotal, parentGT);
+
+        // ── Trilha por grupo (2 dígitos) — alimenta painel "Mapeamento por Grupo" ──
+        const v = Math.abs(Number(value) || 0);
+        if (isGroupTotal) {
+          buckets.declaredByGroup[conta] = (buckets.declaredByGroup[conta] || 0) + v;
+          buckets.layerByGroup[conta] = "A";
+        } else {
+          const parent = findParentGT(conta, mesKey);
+          if (parent) {
+            buckets.calculatedByGroup[parent] = (buckets.calculatedByGroup[parent] || 0) + v;
+            if (!buckets.layerByGroup[parent]) buckets.layerByGroup[parent] = "A"; // GT já estará "A"
+          } else {
+            // Folha sem GT pai — Camada C (fallback regex/ref1)
+            // Inferimos o grupo pelo 1-2 dígito do código quando possível
+            const inferred = GROUP_TOTAL_CODES.has(conta.slice(0, 2)) ? conta.slice(0, 2)
+                            : GROUP_TOTAL_CODES.has(conta.slice(0, 1)) ? conta.slice(0, 1) : null;
+            if (inferred) {
+              buckets.calculatedByGroup[inferred] = (buckets.calculatedByGroup[inferred] || 0) + v;
+              if (!buckets.layerByGroup[inferred]) buckets.layerByGroup[inferred] = "C";
+            }
+          }
+        }
       }
     }
   }
