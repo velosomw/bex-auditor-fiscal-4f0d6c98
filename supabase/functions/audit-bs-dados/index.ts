@@ -311,13 +311,30 @@ const PL_REFS = new Set(["GG1","HH1","RESULTADO_EXERCICIO"]);
 
 function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: string | null | undefined, b: Buckets) {
   if (!Number.isFinite(v)) return;
+  const refUp = ref1 ? upper(ref1) : "";
+  const isTotal = refUp.endsWith("_TOTAL"); // AC_TOTAL, PC_TOTAL, ANC_TOTAL, PNC_TOTAL, PL_TOTAL
   switch (key) {
-    case "receita_liquida": row.receita_liquida += upper(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v); break;
+    case "receita_liquida": row.receita_liquida += refUp === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v); break;
     case "cmv":             row.cmv -= Math.abs(v); break;
     case "despesas":        row.despesas -= Math.abs(v); break;
     case "resultado":       row.resultado += v; break;
-    case "ativo_circulante":  row.ativo_circulante  += Math.abs(v); b.sawACTotal = true; break;
-    case "passivo_circulante": row.passivo_circulante += Math.abs(v); b.sawPCTotal = true; break;
+    case "ativo_circulante":
+      if (isTotal) { row.ativo_circulante = Math.max(row.ativo_circulante, Math.abs(v)); b.sawACTotal = true; }
+      else { row.ativo_circulante += Math.abs(v); }
+      break;
+    case "passivo_circulante":
+      if (isTotal) { row.passivo_circulante = Math.max(row.passivo_circulante, Math.abs(v)); b.sawPCTotal = true; }
+      else { row.passivo_circulante += Math.abs(v); }
+      break;
+    case "ativo_nao_circulante":
+      row.ativo_nao_circulante = isTotal ? Math.max(row.ativo_nao_circulante, Math.abs(v)) : row.ativo_nao_circulante + Math.abs(v);
+      break;
+    case "passivo_nao_circulante":
+      row.passivo_nao_circulante = isTotal ? Math.max(row.passivo_nao_circulante, Math.abs(v)) : row.passivo_nao_circulante + Math.abs(v);
+      break;
+    case "patrimonio_liquido":
+      row.patrimonio_liquido = isTotal ? (Math.abs(row.patrimonio_liquido) >= Math.abs(v) ? row.patrimonio_liquido : v) : row.patrimonio_liquido + v;
+      break;
     case "estoques":
     case "disponivel":
     case "divida_tributaria":
@@ -327,7 +344,6 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
     case "credores_rj":
       (row as any)[key] += Math.abs(v); break;
   }
-  const refUp = ref1 ? upper(ref1) : "";
   if (refUp && AC_REFS.has(refUp)) b.ac += Math.abs(v);
   else if (refUp && PC_REFS.has(refUp)) b.pc += Math.abs(v);
   else if (refUp && ANC_REFS.has(refUp)) b.anc += Math.abs(v);
