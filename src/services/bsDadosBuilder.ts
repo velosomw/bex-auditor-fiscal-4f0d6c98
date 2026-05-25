@@ -209,6 +209,8 @@ export interface BalanceteEntry {
   mesReferencia: string | null;
   /** Quando o usuário escolheu "auto-detect", lista de meses YYYY-MM resolvidos pelo parser. */
   mesesDetectados?: string[];
+  /** Usuário marcou no upload que este balancete contém saldos YTD (acumulado desde Janeiro). */
+  isYtd?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────

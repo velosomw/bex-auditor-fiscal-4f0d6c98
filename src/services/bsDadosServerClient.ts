@@ -17,6 +17,8 @@ export interface BSDadosLinhaInput {
 export interface BSDadosBalanceteInput {
   mes: string;
   linhas: BSDadosLinhaInput[];
+  /** Usuário marcou no upload que este balancete contém saldos YTD (acumulado desde Jan). */
+  is_ytd?: boolean;
 }
 export interface BSDadosResponse {
   bsDados: any[];

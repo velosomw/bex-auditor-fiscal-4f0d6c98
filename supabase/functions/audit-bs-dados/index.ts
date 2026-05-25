@@ -42,6 +42,8 @@ interface InputLinha {
 interface InputBalancete {
   mes: string;
   linhas: InputLinha[];
+  /** Usuário marcou este balancete como YTD (saldo acumulado desde Jan). */
+  is_ytd?: boolean;
 }
 interface BSDadosRow {
   mes: string;
@@ -69,7 +71,15 @@ interface BSDadosRow {
   hasBalanco: boolean;
   errors: string[];
   ytd_desacumulado?: boolean;
+  /** Flags YTD consolidadas (também persistidas em bs_dados.ytd_flags). */
+  ytd_flags?: {
+    is_ytd_input?: boolean;       // usuário marcou no upload
+    ytd_desacumulado?: boolean;   // reconstrução exata por subtração YTD-YTD aplicada
+    ytd_outlier_flag?: boolean;   // detecção automática isolada (sem normalização)
+    ytd_source_count?: number;    // qtd de balancetes YTD consecutivos usados na subtração
+  };
 }
+
 interface BSIndicators {
   mes: string;
   cmvPercent: number | null;
@@ -477,11 +487,13 @@ function pruneParents(linhas: InputLinha[]): InputLinha[] {
  *  - Mês de janeiro nunca é desacumulado (é o ponto de partida do exercício).
  *  - Reset entre anos preservado.
  */
-function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
+function desacumularDRE(
+  rows: BSDadosRow[],
+  userYtdByMesKey: Map<string, boolean>,
+): BSDadosRow[] {
   if (rows.length < 2) return rows;
   const sorted = [...rows].sort((a, b) => a.mesKey.localeCompare(b.mesKey));
   const dreKeys: Array<"receita_liquida" | "cmv" | "despesas"> = ["receita_liquida", "cmv", "despesas"];
-  // Agrupar por ano
   const byYear = new Map<string, BSDadosRow[]>();
   for (const r of sorted) {
     const y = r.mesKey.slice(0, 4);
@@ -490,10 +502,14 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
   }
   for (const [, group] of byYear) {
     if (group.length < 2) continue;
+
+    // Opção B (RECONSTRUÇÃO EXATA): se >=2 meses consecutivos do mesmo ano
+    // estão marcados como YTD pelo usuário, força subtração YTD-YTD —
+    // valor exato, sem heurística de mediana ou monotonia.
+    const ytdMarked = group.filter(r => userYtdByMesKey.get(r.mesKey)).length;
+    const userForceExact = ytdMarked >= 2;
+
     for (const k of dreKeys) {
-      // FIX #2 — Threshold reduzido (1.02 = 2% de crescimento) e exige
-      // monotonia em TODOS os pares consecutivos do grupo. Crescimento mensal
-      // típico de receita em YTD é 8-15%/mês; 2% pega até casos suaves.
       let monotonicPairs = 0;
       let totalPairs = 0;
       for (let i = 1; i < group.length; i++) {
@@ -504,22 +520,28 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
           if (curr >= prev * 1.02) monotonicPairs++;
         }
       }
-      // FIX #2 — Critério: >= 80% pares crescem (forte sinal YTD acumulado).
-      if (totalPairs >= 2 && monotonicPairs / totalPairs >= 0.8) {
+      const heuristicMatch = totalPairs >= 2 && monotonicPairs / totalPairs >= 0.8;
+      if (userForceExact || heuristicMatch) {
         const original = group.map(g => g[k] as number);
         for (let i = group.length - 1; i >= 1; i--) {
           (group[i] as any)[k] = original[i] - original[i - 1];
         }
+        const tag = userForceExact
+          ? `DRE.${k} desacumulada (YTD marcado pelo usuário — subtração exata)`
+          : `DRE.${k} desacumulada (YTD detectado)`;
         for (const r of group) {
-          if (!r.errors.includes(`DRE.${k} desacumulada (YTD detectado)`)) {
-            r.errors.push(`DRE.${k} desacumulada (YTD detectado)`);
-          }
+          if (!r.errors.includes(tag)) r.errors.push(tag);
           r.ytd_desacumulado = true;
+          r.ytd_flags = {
+            ...(r.ytd_flags || {}),
+            is_ytd_input: !!userYtdByMesKey.get(r.mesKey) || r.ytd_flags?.is_ytd_input,
+            ytd_desacumulado: true,
+            ytd_source_count: ytdMarked || group.length,
+          };
         }
-        console.log(`[desacumularDRE] YTD aplicado: chave=${k} ano=${group[0].mesKey.slice(0,4)} meses=${group.length} pares=${monotonicPairs}/${totalPairs}`);
+        console.log(`[desacumularDRE] aplicado: chave=${k} ano=${group[0].mesKey.slice(0,4)} fonte=${userForceExact ? "user" : "heurística"} pares=${monotonicPairs}/${totalPairs}`);
       }
     }
-    // Recalcula resultado pós-desacumulação
     for (const r of group) {
       r.resultado = r.receita_liquida + r.cmv + r.despesas;
     }
@@ -527,14 +549,48 @@ function desacumularDRE(rows: BSDadosRow[]): BSDadosRow[] {
   return sorted;
 }
 
+/**
+ * Detecção de outlier YTD isolado (Opção A+C — apenas badge, sem normalização).
+ * Para cada mês cuja Receita Líquida >= 3× mediana dos demais meses do ano,
+ * marca ytd_outlier_flag=true. Não altera valores — apenas sinaliza.
+ * Pulado para meses já marcados como ytd_desacumulado (já tratados pela Opção B).
+ */
+function detectYtdOutliers(rows: BSDadosRow[]): BSDadosRow[] {
+  if (rows.length < 3) return rows;
+  const byYear = new Map<string, BSDadosRow[]>();
+  for (const r of rows) {
+    const y = r.mesKey.slice(0, 4);
+    if (!byYear.has(y)) byYear.set(y, []);
+    byYear.get(y)!.push(r);
+  }
+  for (const [, group] of byYear) {
+    if (group.length < 3) continue;
+    for (const r of group) {
+      if (r.ytd_desacumulado) continue;
+      const others = group.filter(x => x !== r && x.receita_liquida > 0).map(x => x.receita_liquida).sort((a, b) => a - b);
+      if (others.length < 2) continue;
+      const median = others[Math.floor(others.length / 2)];
+      if (median > 0 && r.receita_liquida >= median * 3) {
+        r.ytd_flags = { ...(r.ytd_flags || {}), ytd_outlier_flag: true };
+        const msg = `Possível YTD isolado: Receita ${r.receita_liquida.toFixed(0)} ≥ 3× mediana (${median.toFixed(0)}) — valor mantido como está`;
+        if (!r.errors.includes(msg)) r.errors.push(msg);
+        console.log(`[detectYtdOutliers] mes=${r.mesKey} receita=${r.receita_liquida.toFixed(0)} mediana=${median.toFixed(0)}`);
+      }
+    }
+  }
+  return rows;
+}
+
 function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, Buckets>();
+  const userYtdByMesKey = new Map<string, boolean>();
 
   const dup: Record<string, number> = {};
   for (const b of balancetes) {
     const k = periodToMesKey(b.mes);
     dup[k] = (dup[k] || 0) + 1;
+    if (b.is_ytd) userYtdByMesKey.set(k, true);
   }
 
   for (const b of balancetes) {
@@ -549,6 +605,9 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
       if (!r.errors.includes(msg)) r.errors.push(msg);
     }
     const row = rowsByMes.get(mesKey)!;
+    if (b.is_ytd) {
+      row.ytd_flags = { ...(row.ytd_flags || {}), is_ytd_input: true };
+    }
     const buckets = bucketsByMes.get(mesKey)!;
     const linhasLeaf = pruneParents(b.linhas || []);
     for (const linha of linhasLeaf) {
@@ -569,8 +628,10 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
 
   const finalized = Array.from(rowsByMes.values()).map(finalize)
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
-  return desacumularDRE(finalized);
+  const desacumulated = desacumularDRE(finalized, userYtdByMesKey);
+  return detectYtdOutliers(desacumulated);
 }
+
 
 const safePct = (a: number, b: number): number | null =>
   !b || !Number.isFinite(b) ? null : Number(((a / b) * 100).toFixed(2));
@@ -901,6 +962,7 @@ Deno.serve(async (req) => {
             credores_rj: r.credores_rj,
             divida_total: r.divida_total,
             errors: r.errors,
+            ytd_flags: r.ytd_flags ?? null,
           }));
           const indRows = indicadores.map((i, idx) => ({
             audit_id: auditId,

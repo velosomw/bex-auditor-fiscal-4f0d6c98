@@ -443,6 +443,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
   const [rawFiles, setRawFiles] = useState<File[]>([]);
   // mes atribuído por documento: { docId: "2024-03" }
   const [fileMeses, setFileMeses] = useState<Record<string, string>>({});
+  const [fileIsYtd, setFileIsYtd] = useState<Record<string, boolean>>({});
   const [filePreview, setFilePreview] = useState<Record<string, { loading: boolean; months: Array<{ key: string; label: string }>; error?: string }>>({});
 
   // Ano vigente (atual) até 2029; usuário seleciona mês + ano
@@ -568,6 +569,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
     const entries: BalanceteEntry[] = state.config.files.map(f => ({
       fileName: f.fileName,
       mesReferencia: fileMeses[f.id] || null,
+      isYtd: !!fileIsYtd[f.id],
     }));
     onMesesReady?.(entries);
     onFilesReady(rawFiles);
@@ -738,6 +740,15 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                         </div>
                       );
                     })()}
+                    <label className="mt-2 flex items-center gap-2 text-[11px] text-foreground cursor-pointer select-none px-1">
+                      <input
+                        type="checkbox"
+                        checked={!!fileIsYtd[f.id]}
+                        onChange={(e) => setFileIsYtd(prev => ({ ...prev, [f.id]: e.target.checked }))}
+                        className="h-3.5 w-3.5 accent-emerald-600"
+                      />
+                      <span><strong>Balancete YTD</strong> (saldos acumulados desde Janeiro). Marque em 2+ meses consecutivos para reconstrução exata por subtração.</span>
+                    </label>
                   </div>
                 );
               })}
@@ -1030,6 +1041,10 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                 variant: "destructive",
               });
             } else {
+              const ytdByMes = new Map<string, boolean>();
+              for (const e of (balanceteEntries || [])) {
+                if (e.isYtd && e.mesReferencia && validKey(e.mesReferencia)) ytdByMes.set(e.mesReferencia, true);
+              }
               const balancetes = meses.map(mes => {
                 const linhas = allRows.map(r => {
                   const matchKey = Object.keys(r.values || {}).find(k => k === mes || k.startsWith(`${mes}-`));
@@ -1040,8 +1055,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                     ref1: (r as any).ref1 ?? (r as any).refCapital ?? inferRefByCode(r.conta),
                     saldo: Number(v) || 0,
                   };
-                }).filter(l => Number.isFinite(l.saldo) && l.saldo !== 0); // descarta linhas zeradas no mês
-                return { mes, linhas };
+                }).filter(l => Number.isFinite(l.saldo) && l.saldo !== 0);
+                return { mes, linhas, is_ytd: ytdByMes.get(mes) || false };
               }).filter(b => b.linhas.length > 0);
               if (balancetes.length > 0 && balancetes.some(b => b.linhas.length > 0)) {
                 const persistResp = await consolidateBSDadosOnServer(balancetes, {
