@@ -355,7 +355,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             <TableRow className="bg-muted/30">
               <TableHead className="font-bold whitespace-nowrap">Código</TableHead>
               <TableHead className="font-bold">Descrição</TableHead>
-              <TableHead className="font-bold">Ref</TableHead>
               {visibleMeses.map(m => (
                 <TableHead key={m} className="text-right whitespace-nowrap">{mesKeyToLabel(m)}</TableHead>
               ))}
@@ -366,11 +365,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
               <TableRow key={l.conta}>
                 <TableCell className="font-mono text-[10px]">{l.conta}</TableCell>
                 <TableCell className="max-w-[280px] truncate">{l.descricao}</TableCell>
-                <TableCell>
-                  {l.ref1 ? (
-                    <Badge variant="outline" className="text-[10px] font-mono">{l.ref1}</Badge>
-                  ) : <span className="text-muted-foreground">—</span>}
-                </TableCell>
                 {visibleMeses.map(m => (
                   <TableCell key={m} className="text-right tabular-nums">{fmt(l.byMes[m] || 0)}</TableCell>
                 ))}
@@ -378,7 +372,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3 + visibleMeses.length} className="text-center text-muted-foreground py-8 text-xs">
+                <TableCell colSpan={2 + visibleMeses.length} className="text-center text-muted-foreground py-8 text-xs">
                   Nenhuma linha corresponde aos filtros selecionados.
                 </TableCell>
               </TableRow>
