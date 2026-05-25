@@ -254,60 +254,92 @@ export async function parseMultipleFiles(files: File[]): Promise<{ parsed: Parse
 type BalanceteRowParsed = { conta: string; descricao: string; ref1?: string; values: Record<string, number> };
 
 /**
- * REF_BY_PREFIX — Classificador determinístico do plano de contas BEx.
- * Mapeia prefixo do código contábil (Extenso) → Ref Capital (Ref 1).
- * Aplicado ANTES do fallback regex/IA. Cobre layout padrão BEx
- * (Ativo 1 / Passivo 2 / PL 23-24 / Receita 3 / Custo 4 / Despesa 5).
- * Ordem importa: o primeiro match vence (do mais específico ao mais genérico).
+ * REF_BY_PREFIX — Classificador GENÉRICO por grupo contábil brasileiro.
+ *
+ * Princípio: 1º dígito = natureza (1 Ativo, 2 Passivo, 3-8 DRE).
+ *            2º dígito = grupo (11 AC, 12 ANC, 13 Permanente, 21 PC,
+ *            22 PNC, 23 PL, 4/5 Custos, 6 Desp.Op, 7 Desp.Fin, 8 Não Op).
+ *            3º+ dígitos = subgrupo. Para Passivo Circulante (21X) e PNC (22X)
+ *            a sub-classificação é resolvida combinando código + DESCRIÇÃO,
+ *            porque planos diferentes usam 211/212/215 com significados distintos
+ *            (testado contra plano padrão BEx e plano Giannini).
+ *
+ * Ordem importa: padrões mais específicos primeiro.
  */
 const REF_BY_PREFIX: Array<[RegExp, string]> = [
-  // ── ATIVO CIRCULANTE ─────────────────────────
-  [/^11101/, "A"],   // Caixa e Equivalentes
-  [/^11102/, "B"],   // Aplicações Financeiras
-  [/^1111/,  "C"],   // Clientes / Duplicatas a receber
+  // ── ATIVO CIRCULANTE — subgrupos canônicos ───
+  [/^111/,   "A"],   // Bens e Numerários / Caixa / Disponível
+  [/^1111/,  "C"],   // Clientes (planos onde 111x = clientes)
+  [/^112/,   "C"],   // Clientes / Contas a Receber (padrão Giannini)
   [/^113/,   "D"],   // Estoques
-  [/^1141/,  "E"],   // Tributos a recuperar
-  [/^1142/,  "F"],   // Adiantamentos
-  [/^119/,   "G"],   // Outros Ativos Circulantes
+  [/^114/,   "E"],   // Tributos a Recuperar / Outros Valores a Receber
+  [/^115/,   "F"],   // Adiantamentos / Valores a Recuperar
+  [/^116/,   "G"],   [/^117/, "G"], [/^118/, "G"], [/^119/, "G"],
+  [/^11/,    "AC_TOTAL"],  // Linha-totalizadora Ativo Circulante
   // ── ATIVO NÃO CIRCULANTE ─────────────────────
-  [/^121/,   "P"],   // Realizável a Longo Prazo
+  [/^121/,   "P"],   // Realizável a Longo Prazo / Outros Créditos LP
   [/^122/,   "Q"],   // Investimentos
   [/^123/,   "R"],   // Imobilizado
   [/^124/,   "S"],   // Intangível
-  // ── PASSIVO CIRCULANTE ───────────────────────
-  [/^211/,   "AA"],  // Empréstimos e Financiamentos PC
-  [/^212/,   "BB"],  // Fornecedores PC
-  [/^213/,   "CC"],  // Obrigações Trabalhistas
-  [/^214/,   "DD"],  // Obrigações Tributárias
-  [/^2148/,  "II1"], // Tributos Parcelados PC
-  [/^2151/,  "II"],  // Credores RJ PC
-  [/^2152/,  "LL"],  // Recuperação Judicial PC
+  [/^12/,    "ANC_TOTAL"],
+  [/^131/,   "R"],   // Imobilizado (planos com 13X = Permanente)
+  [/^132/,   "S"],   // Intangível
+  [/^13/,    "ANC_TOTAL"], // Permanente integra ANC
+  // ── PASSIVO CIRCULANTE — sub-classificação via descrição ─
+  [/^21[1-9]/, "PC_COMPONENT"],
+  [/^21/,    "PC_TOTAL"],
   // ── PASSIVO NÃO CIRCULANTE ───────────────────
-  [/^221/,   "QQ"],  // Empréstimos LP
-  [/^222/,   "PP"],  // Fornecedores LP
-  [/^223/,   "RR"],  // Tributárias Parceladas LP
-  [/^224/,   "CC1"], // Credores RJ LP
+  [/^22[1-9]/, "PNC_COMPONENT"],
+  [/^22/,    "PNC_TOTAL"],
   // ── PATRIMÔNIO LÍQUIDO ───────────────────────
-  [/^231/,   "GG1"], // Capital Social
-  [/^232/,   "HH1"], // Reservas
-  [/^24/,    "GG1"], // PL alternativo
+  [/^231/,   "GG1"], [/^232/, "HH1"], [/^233/, "HH1"], [/^234/, "HH1"],
+  [/^23/,    "PL_TOTAL"],
+  [/^24/,    "GG1"],
   // ── DRE ──────────────────────────────────────
-  [/^31/,    "RECEITA"],   // Receita Bruta
-  [/^32/,    "DEDUCOES_RECEITA"], // Devoluções/abatimentos
-  [/^33/,    "DEDUCOES_RECEITA"], // Impostos sobre vendas
-  [/^4/,     "CMV"],       // Custos
-  [/^5/,     "DESPESAS"],  // Despesas Operacionais
-  [/^6/,     "DESPESAS"],  // Outras despesas/receitas operacionais
-  [/^7/,     "DESPESAS"],  // Resultado financeiro (proxy no resultado)
-  [/^8/,     "DESPESAS"],  // Grupos de encerramento / outros
+  [/^31/,    "RECEITA"],
+  [/^32/,    "DEDUCOES_RECEITA"],
+  [/^33/,    "DEDUCOES_RECEITA"],
+  [/^4/,     "CMV"],
+  [/^5/,     "CMV"],          // Custo Industrial → CMV
+  [/^6/,     "DESPESAS"],     // Despesas Operacionais
+  [/^7/,     "DESPESAS_FIN"], // Despesas/Receitas FINANCEIRAS
+  [/^8/,     "DESPESAS_NOP"], // Despesas/Receitas NÃO Operacionais
 ];
 
-/** Resolve Ref 1 a partir do código contábil (determinístico, sem IA). */
-export function inferRefByCode(code: string): string | undefined {
+const stripAccents = (s: string) =>
+  (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/** Sub-classifica componentes de Passivo Circulante (21X) pela descrição. */
+function classifyPCByDescription(desc: string): string {
+  const d = stripAccents(desc);
+  if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "II";
+  if (/fornecedor/.test(d)) return "BB";
+  if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "AA";
+  if (/sal[aá]ri|f[eé]rias|13[ºo°]|d[eé]cimo\s+terceiro|inss|fgts|trabalhi|encargos\s+soci|provis[aã]o.*f[eé]ria/.test(d)) return "CC";
+  if (/tribut|imposto|icms|iss|pis|cofins|irpj|csll|simples|parcelament|refis/.test(d)) return "DD";
+  return "JJ"; // Outras Obrigações (resíduo do PC)
+}
+
+/** Sub-classifica componentes de Passivo Não Circulante (22X) pela descrição. */
+function classifyPNCByDescription(desc: string): string {
+  const d = stripAccents(desc);
+  if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "CC1";
+  if (/fornecedor/.test(d)) return "PP";
+  if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "QQ";
+  if (/tribut|imposto|parcelament|refis/.test(d)) return "RR";
+  return "DD1";
+}
+
+/** Resolve Ref 1 a partir do código contábil + descrição (determinístico, sem IA). */
+export function inferRefByCode(code: string, descricao?: string): string | undefined {
   if (!code) return undefined;
   const c = String(code).replace(/\s+/g, "");
   for (const [pattern, ref] of REF_BY_PREFIX) {
-    if (pattern.test(c)) return ref;
+    if (pattern.test(c)) {
+      if (ref === "PC_COMPONENT") return classifyPCByDescription(descricao || "");
+      if (ref === "PNC_COMPONENT") return classifyPNCByDescription(descricao || "");
+      return ref;
+    }
   }
   return undefined;
 }
