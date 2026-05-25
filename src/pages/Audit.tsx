@@ -14,7 +14,7 @@ import {
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
   Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Clock
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -873,7 +873,39 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
   const [progress, setProgress] = useState(0);
   const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const startTimeRef = useRef<number>(Date.now());
   const startedRef = useRef(false);
+
+  // Timer regressivo: atualiza a cada 1s
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Estimativa dinâmica: tempo total baseado em progresso atual + duração nominal.
+  const nominalTotalSec = useMemo(
+    () => Math.round(processingSteps.reduce((acc, s) => acc + (s.duration || 0), 0) / 1000),
+    [],
+  );
+  const estimatedTotalSec = useMemo(() => {
+    if (progress >= 100) return elapsedSec;
+    if (progress > 8 && elapsedSec > 2) {
+      // 70% extrapolação real, 30% âncora nominal — evita oscilações nos primeiros segundos.
+      const projected = (elapsedSec / progress) * 100;
+      return Math.round(projected * 0.7 + nominalTotalSec * 0.3);
+    }
+    return nominalTotalSec;
+  }, [progress, elapsedSec, nominalTotalSec]);
+  const remainingSec = Math.max(0, estimatedTotalSec - elapsedSec);
+  const fmtTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m > 0 ? `${m}m ${String(r).padStart(2, "0")}s` : `${r}s`;
+  };
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -1103,10 +1135,13 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
     );
   }
 
+  const activeStep = processingSteps[Math.min(currentStep, processingSteps.length - 1)];
+  const activeLabel = activeStep?.label ?? "Inicializando análise...";
+
   return (
     <div className="space-y-8">
       <StepTimeline currentStep={3} />
-      <div className="max-w-lg mx-auto space-y-8 py-8">
+      <div className="max-w-xl mx-auto space-y-8 py-8">
         <div className="text-center space-y-3">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-[hsl(258,90%,66%)] animate-spin" />
@@ -1116,36 +1151,73 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
             O Auditor Contábil Sênior IA está analisando seus documentos em tempo real...
           </p>
         </div>
-        <div className="space-y-3">
-          <Progress value={progress} className="h-2" />
-          <p className="text-xs text-muted-foreground text-center">{progress}%</p>
-          {pipelineProgress && (
-            <div className="rounded-lg border border-[hsl(258,90%,66%)]/20 bg-[hsl(258,90%,66%)]/5 px-3 py-2 flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 text-[hsl(258,90%,66%)] animate-spin shrink-0" />
-              <p className="text-xs text-foreground/90 truncate" title={pipelineProgress}>
-                {pipelineProgress}
+
+        {/* Card unificado em destaque — substitui a lista de tópicos */}
+        <div className="rounded-2xl border border-[hsl(258,90%,66%)]/25 bg-gradient-to-br from-[hsl(258,90%,66%)]/8 to-transparent p-5 space-y-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/15 flex items-center justify-center shrink-0">
+              <Loader2 className="w-5 h-5 text-[hsl(258,90%,66%)] animate-spin" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Etapa {Math.min(currentStep + 1, processingSteps.length)} de {processingSteps.length}
               </p>
-            </div>
-          )}
-        </div>
-        <div className="space-y-2">
-          {processingSteps.map((step, i) => (
-            <div key={i} className={`flex items-center gap-3 p-2.5 rounded-lg transition-all ${
-              i < currentStep ? "bg-emerald-500/5" :
-              i === currentStep ? "bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20" :
-              "opacity-40"
-            }`}>
-              {i < currentStep ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-              ) : i === currentStep ? (
-                <Loader2 className="w-4 h-4 text-[hsl(258,90%,66%)] animate-spin shrink-0" />
-              ) : (
-                <div className="w-4 h-4 rounded-full border border-border shrink-0" />
+              <p className="text-sm font-semibold text-foreground leading-snug truncate" title={activeLabel}>
+                {activeLabel}
+              </p>
+              {pipelineProgress && (
+                <p className="text-[11px] text-muted-foreground mt-1 truncate" title={pipelineProgress}>
+                  {pipelineProgress}
+                </p>
               )}
-              <span className="text-xs text-foreground">{step.label}</span>
             </div>
-          ))}
+          </div>
+
+          <Progress value={progress} className="h-2" />
+
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
+            <span>{progress}% concluído</span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3 h-3" />
+              {progress >= 100
+                ? `Finalizado em ${fmtTime(elapsedSec)}`
+                : <>Restante estimado: <strong className="text-foreground font-mono">{fmtTime(remainingSec)}</strong></>}
+            </span>
+          </div>
         </div>
+
+        {/* Toggle: visualização anterior (lista de tópicos detalhada) */}
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setShowDetails(v => !v)}
+            className="text-xs text-[hsl(258,90%,66%)] hover:underline inline-flex items-center gap-1"
+          >
+            {showDetails ? "Ocultar etapas detalhadas" : "Ver etapas detalhadas"}
+            <ChevronDown className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+
+        {showDetails && (
+          <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            {processingSteps.map((step, i) => (
+              <div key={i} className={`flex items-center gap-3 p-2.5 rounded-lg transition-all ${
+                i < currentStep ? "bg-emerald-500/5" :
+                i === currentStep ? "bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20" :
+                "opacity-40"
+              }`}>
+                {i < currentStep ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                ) : i === currentStep ? (
+                  <Loader2 className="w-4 h-4 text-[hsl(258,90%,66%)] animate-spin shrink-0" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full border border-border shrink-0" />
+                )}
+                <span className="text-xs text-foreground">{step.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
