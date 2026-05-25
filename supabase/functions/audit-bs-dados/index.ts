@@ -50,33 +50,40 @@ interface BSDadosRow {
   mesKey: string;
   receita_liquida: number;
   cmv: number;
-  despesas: number;
+  despesas: number;                 // grupo 6 — operacionais
+  despesas_financeiras: number;     // grupo 7 — separado (alinhado com client)
+  depreciacao: number;
+  amortizacao: number;
   resultado: number;
   ativo_circulante: number;
   passivo_circulante: number;
-  ativo_nao_circulante: number;     // FIX #3
-  passivo_nao_circulante: number;   // FIX #3
-  patrimonio_liquido: number;       // FIX #3
-  ativo_total: number;              // FIX #3
-  passivo_total: number;            // FIX #3
+  ativo_nao_circulante: number;
+  passivo_nao_circulante: number;
+  patrimonio_liquido: number;
+  ativo_total: number;
+  passivo_total: number;
   estoques: number;
+  estoques_bruto?: number;          // pré-cap (apenas se cap foi aplicado)
   disponivel: number;
+  contas_receber: number;
+  imobilizado: number;
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
   fornecedores: number;
   credores_rj: number;
+  outras_obrigacoes: number;
   divida_total: number;
+  divida_total_bruto?: number;      // pré-cap
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
   ytd_desacumulado?: boolean;
-  /** Flags YTD consolidadas (também persistidas em bs_dados.ytd_flags). */
   ytd_flags?: {
-    is_ytd_input?: boolean;       // usuário marcou no upload
-    ytd_desacumulado?: boolean;   // reconstrução exata por subtração YTD-YTD aplicada
-    ytd_outlier_flag?: boolean;   // detecção automática isolada (sem normalização)
-    ytd_source_count?: number;    // qtd de balancetes YTD consecutivos usados na subtração
+    is_ytd_input?: boolean;
+    ytd_desacumulado?: boolean;
+    ytd_outlier_flag?: boolean;     // mês marcado p/ excluir de gráficos mensais
+    ytd_source_count?: number;
   };
 }
 
