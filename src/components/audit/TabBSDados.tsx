@@ -6,12 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Download, AlertTriangle, CheckCircle2, Database } from "lucide-react";
 import {
-  buildBSDados, exportBSDadosToCSV, computeBSIndicators,
-  type BalanceteEntry,
+  buildBSDados, exportBSDadosToCSV, computeBSIndicators, buildIndicatorMemory,
+  type BalanceteEntry, type BSDadosRow,
 } from "@/services/bsDadosBuilder";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import WindowSelector, { applyWindow, type Window } from "./WindowSelector";
 import EquilibrioBadge from "./EquilibrioBadge";
+import MapeamentoPorGrupo from "./MapeamentoPorGrupo";
 
 interface Props {
   parsedData: ParsedFinancialData | null;
