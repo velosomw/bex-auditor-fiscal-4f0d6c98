@@ -127,18 +127,18 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
     coberturaJuros: despFinAbs > 0 ? div(lajir, despFinAbs) : 0,
-    // Atividade — ANUALIZADA (×360 conforme planilha BEX/ÍNDICES Fase2)
+    // Atividade — DIAS sobre base mensal (×30); CO=IME+PMR, CC=CO−PMP
     giroAtivo: div(receita, at),
     pmr,
     pmp,
     idadeMediaEstoque: ime,
     cicloOperacional: ime + pmr,
     cicloCaixa: ime + pmr - pmp,
-    // Rentabilidade
+    // Rentabilidade — ROA/ROE ANUALIZADOS (×12) a partir do resultado mensal
     margemLiquida: div(resultado, receita),
     margemOperacional: div(lajir, receita),
-    roa: div(resultado, at),
-    roe: pl > 0 ? div(resultado, pl) : 0,
+    roa: div(resultado, at) * 12,
+    roe: pl > 0 ? div(resultado, pl) * 12 : 0,
     // EBITDA = Resultado + |DespFin| + |Depreciação| + |Amortização|
     ebitda: lajir + depAbs + amortAbs,
     // Bases
