@@ -333,7 +333,11 @@ function applyValue(
     case "divida_financeira":
     case "fornecedores":
     case "credores_rj":
+    case "outras_obrigacoes":
       (target as any)[key] = (target[key] as number) + Math.abs(v); break;
+    case "outras_nao_operacionais":
+      // grupo 8 — preserva sinal (pode ser receita ou despesa não operacional)
+      target.outras_nao_operacionais += v; break;
     default: break;
   }
   // Acumuladores por Ref Capital + readouts ortogonais
