@@ -488,7 +488,7 @@ export function buildBSDados(
   });
 
   for (const row of leafRows) {
-    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta) ?? null;
+    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? null;
     const valuesObj = row.values || {};
     const periodKeys = Object.keys(valuesObj);
 
