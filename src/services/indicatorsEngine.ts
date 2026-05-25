@@ -15,18 +15,18 @@
  *   Liquidez Seca       = (AC − Estoques) / PC
  *   Liquidez Imediata   = Disponível / PC
  *   Liquidez Geral      = (AC + ANC) / (PC + PNC)   [usa ANC total como proxy de RLP]
- *   Endividamento Geral = (PC + PNC) / (AC + ANC)
+ *   Endividamento Geral = (PC + PNC) / (AC + ANC)   [ETA — Endividamento Total sobre Ativos]
  *   Composição Endiv.   = PC / (PC + PNC)
  *   Imobilização do PL  = Imobilizado / PL          [N/A se PL ≤ 0]
  *   Cobertura de Juros  = (Resultado + |DespFin|) / |DespFin|
  *   Giro do Ativo       = Receita / (AC + ANC)
- *   PMR  = (ContasReceber × 30) / ReceitaMensal
- *   PMP  = (Fornecedores × 30) / |CMV mensal|
- *   IME  = (Estoques × 30) / |CMV mensal|
+ *   PMR  = (ContasReceber × 30) / ReceitaMensal     [base mensal, planilha BEX]
+ *   PMP  = (Fornecedores   × 30) / |CMV mensal|
+ *   IME  = (Estoques       × 30) / |CMV mensal|
  *   Margem Líquida      = Resultado / Receita
  *   Margem Operacional  = (Resultado + |DespFin|) / Receita   [proxy LAJIR]
- *   ROA                 = Resultado / (AC + ANC)
- *   ROE                 = Resultado / PL                       [N/A se PL ≤ 0]
+ *   ROA (anual)         = (Resultado / (AC + ANC)) × 12
+ *   ROE (anual)         = (Resultado / PL) × 12               [N/A se PL ≤ 0]
  *   EBITDA              = (Resultado + |DespFin|) + |Depreciação| + |Amortização|
  */
 import type { BSDadosRow } from "@/services/bsDadosBuilder";
@@ -109,9 +109,10 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   // LAJIR (proxy): resultado + despesas financeiras (somando juros de volta)
   const lajir = resultado + despFinAbs;
 
-  const pmr = div(contasReceber * 360, receita);
-  const pmp = div(r.fornecedores * 360, cmvAbs);
-  const ime = div(estoque * 360, cmvAbs);
+  // Prazos em DIAS sobre base mensal (×30) — bate com planilha BEX p/ meses isolados e séries
+  const pmr = div(contasReceber * 30, receita);
+  const pmp = div(r.fornecedores * 30, cmvAbs);
+  const ime = div(estoque * 30, cmvAbs);
   return {
     mesKey: r.mesKey,
     mes: r.mes,
@@ -126,18 +127,18 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
     coberturaJuros: despFinAbs > 0 ? div(lajir, despFinAbs) : 0,
-    // Atividade — ANUALIZADA (×360 conforme planilha BEX/ÍNDICES Fase2)
+    // Atividade — DIAS sobre base mensal (×30); CO=IME+PMR, CC=CO−PMP
     giroAtivo: div(receita, at),
     pmr,
     pmp,
     idadeMediaEstoque: ime,
     cicloOperacional: ime + pmr,
     cicloCaixa: ime + pmr - pmp,
-    // Rentabilidade
+    // Rentabilidade — ROA/ROE ANUALIZADOS (×12) a partir do resultado mensal
     margemLiquida: div(resultado, receita),
     margemOperacional: div(lajir, receita),
-    roa: div(resultado, at),
-    roe: pl > 0 ? div(resultado, pl) : 0,
+    roa: div(resultado, at) * 12,
+    roe: pl > 0 ? div(resultado, pl) * 12 : 0,
     // EBITDA = Resultado + |DespFin| + |Depreciação| + |Amortização|
     ebitda: lajir + depAbs + amortAbs,
     // Bases
