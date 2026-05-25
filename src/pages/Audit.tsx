@@ -443,6 +443,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
   const [rawFiles, setRawFiles] = useState<File[]>([]);
   // mes atribuído por documento: { docId: "2024-03" }
   const [fileMeses, setFileMeses] = useState<Record<string, string>>({});
+  const [fileIsYtd, setFileIsYtd] = useState<Record<string, boolean>>({});
   const [filePreview, setFilePreview] = useState<Record<string, { loading: boolean; months: Array<{ key: string; label: string }>; error?: string }>>({});
 
   // Ano vigente (atual) até 2029; usuário seleciona mês + ano
