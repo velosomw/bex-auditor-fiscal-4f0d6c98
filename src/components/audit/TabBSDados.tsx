@@ -6,12 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Download, AlertTriangle, CheckCircle2, Database } from "lucide-react";
 import {
-  buildBSDados, exportBSDadosToCSV, computeBSIndicators,
-  type BalanceteEntry,
+  buildBSDados, exportBSDadosToCSV, computeBSIndicators, buildIndicatorMemory,
+  type BalanceteEntry, type BSDadosRow,
 } from "@/services/bsDadosBuilder";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import WindowSelector, { applyWindow, type Window } from "./WindowSelector";
 import EquilibrioBadge from "./EquilibrioBadge";
+import MapeamentoPorGrupo from "./MapeamentoPorGrupo";
 
 interface Props {
   parsedData: ParsedFinancialData | null;
@@ -148,10 +149,10 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
                     <TableCell className="text-right tabular-nums">{fmt(r.disponivel)}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(r.divida_total)}</TableCell>
                     <TableCell className="text-right tabular-nums font-bold text-accent">
-                      {ind.liquidez_corrente == null ? "—" : ind.liquidez_corrente.toFixed(2)}
+                      <MemoryCell row={r} indicador="Liquidez Corrente" value={ind.liquidez_corrente} />
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-bold text-accent">
-                      {ind.liquidez_seca == null ? "—" : ind.liquidez_seca.toFixed(2)}
+                      <MemoryCell row={r} indicador="Liquidez Seca" value={ind.liquidez_seca} />
                     </TableCell>
                   </TableRow>
                 );
@@ -238,6 +239,39 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
           </Table>
         </CardContent>
       </Card>
+
+      <MapeamentoPorGrupo rows={rows} />
     </div>
+  );
+}
+
+/** Tooltip de memória de cálculo para um indicador (numerador, denominador, fórmula, origem). */
+function MemoryCell({ row, indicador, value }: { row: BSDadosRow; indicador: string; value: number | null }) {
+  const memorias = buildIndicatorMemory(row);
+  const mem = memorias.find(m => m.indicador === indicador);
+  if (!mem) return <span>{value == null ? "—" : value.toFixed(2)}</span>;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="cursor-help underline decoration-dotted decoration-accent/50 underline-offset-4">
+            {value == null ? "—" : value.toFixed(2)}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-sm text-[11px] space-y-1">
+          <div className="font-semibold">{mem.indicador} = {mem.resultado == null ? "—" : mem.resultado.toFixed(2)}</div>
+          <div className="text-muted-foreground">Fórmula: <span className="font-mono">{mem.formula}</span></div>
+          <div className="border-t pt-1">
+            <div><strong>Numerador</strong> ({mem.numerador.rotulo}): {fmt(mem.numerador.valor)}</div>
+            <div className="text-muted-foreground text-[10px]">↳ origem: {mem.numerador.origem}</div>
+          </div>
+          <div>
+            <div><strong>Denominador</strong> ({mem.denominador.rotulo}): {fmt(mem.denominador.valor)}</div>
+            <div className="text-muted-foreground text-[10px]">↳ origem: {mem.denominador.origem}</div>
+          </div>
+          {mem.classificacao && <div className="border-t pt-1 text-accent">Classificação: {mem.classificacao}</div>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

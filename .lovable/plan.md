@@ -1,118 +1,133 @@
-## Diagnóstico confirmado
+## Objetivo
 
-Validei contra os dois documentos:
+Chegar em **Liquidez Corrente Ago/2025 = 1,11** (= 75.575.226,58 / 68.372.775,30) com **auditoria explicável**: para cada número exibido, conseguimos mostrar (a) **origem** (quais linhas do balancete entraram), (b) **composição** (folhas vs subtotal de grupo), (c) **trilha da fórmula** (numerador, denominador, faixa, classificação).
 
-**1. Fase2 — aba ÍNDICES** define as fórmulas oficiais BEX. Elas já estão corretas em `src/services/indicatorsEngine.ts`. Nada a mexer nas fórmulas.
+## Por que hoje dá ~0,9 (e não 1,11)
 
-**2. Balancete Giannini (08/2025–01/2026)** revela o problema real: o plano de contas usa códigos **estruturais por grupo** (não específicos por conta). Os grupos de 2 dígitos são autoritativos e o balancete já traz os subtotais:
+Causas-raiz, em ordem de impacto:
 
-| Cód | Grupo | Ago/2025 |
+1. **Dupla contagem AC/PC** — `bsDadosBuilder` soma tanto a linha sintética do grupo (cód 11, 21) quanto as analíticas filhas (111, 112, 211...). Já mitigado parcialmente pela lógica Grupo-First, mas falta **registrar e expor** quais folhas foram "consumidas".
+2. **Sinal do Passivo** — Giannini traz PC com saldo credor negativo. Algumas linhas escapam do `abs()` quando o ref1 é resolvido por regex em vez do código de grupo.
+3. **Mapeamento por nome de conta no Giannini** — código 211 = Fornecedores (não Empréstimos como no padrão BEX). O `REF1_MAP` por letras (AA/BB/CC) não se aplica; o roteador por código de grupo é quem decide.
+4. **Falta de trilha** — nenhuma UI mostra qual camada (A=total declarado, B=drill-down 3 dígitos, C=regex) classificou cada linha. Sem isso, divergências passam invisíveis.
+
+## Estratégia: Auditoria Explicável em 3 camadas
+
+### Camada 1 — Classificador determinístico (Grupo-First com trilha)
+
+Em `bsDadosBuilder.ts` e na edge function `audit-bs-dados`:
+
+```text
+Para cada linha do balancete:
+  ├── Camada A: código tem 1-2 dígitos E é GROUP_TOTAL_CODE?
+  │     → usa valor declarado (com abs() se grupo 2X)
+  │     → marca todas as filhas como "consumidas-por-pai"
+  │     → registra trilha: { camada: "A", origem: "subtotal declarado grupo XX" }
+  │
+  ├── Camada B: código tem 3+ dígitos E pai (2 dígitos) está presente?
+  │     → NÃO soma no agregado (pai já contou)
+  │     → alimenta apenas drill-down (disponivel, estoques, fornecedores...)
+  │     → registra trilha: { camada: "B", origem: "drill-down de grupo XX" }
+  │
+  └── Camada C: nenhum totalizador de grupo encontrado
+        → fallback regex por nome canônico (Fornecedores, Empréstimos...)
+        → soma no agregado
+        → registra trilha: { camada: "C", origem: "regex sobre descrição" }
+```
+
+**Regras de sinal (não mudam, mas ficam explícitas na trilha):**
+- Ativo: preserva sinal nativo (redutoras negativas reduzem o agregado)
+- Passivo + PL: `abs()` aplicado no **agregado final do grupo**, nunca por linha (evita inflar quando há contas redutoras de passivo)
+- Receita (grupo 3): `abs()` no agregado
+- CMV/Despesas (4,5,6): `-abs()`
+- Resultado: preserva sinal nativo
+
+### Camada 2 — Validação trifásica com semáforo
+
+Substitui tolerância fixa de 1%. Para cada grupo de 2 dígitos:
+
+| Faixa | Cor | Ação |
 |---|---|---|
-| 11 | Ativo Circulante | 75.575.226,58 |
-| 12 | Ativo Não Circulante | 2.741.435,72 |
-| 13 | Ativo Permanente | 2.537.106,02 |
-| 21 | Passivo Circulante | −68.372.775,30 |
-| 22 | Não Circulante LP | −338.639.419,32 |
-| 23 | Patrimônio Líquido | 301.909.389,98 |
-| 31+32+33 | Receita Líquida | (resultado das 3 linhas) |
-| 4 | Custo das Vendas/Serviços (CMV) | 33.092.841,63 |
-| 5 | Custo Industrial | — |
-| 6 | Despesas Operacionais | 19.068.652,21 |
-| 7 | Despesas/Receitas Financeiras | 27.010.961,60 |
-| 8 | Despesas/Receitas Não Operacionais | 11.396,64 |
+| desvio ≤ 1% | verde | OK — soma das folhas ≈ subtotal declarado |
+| 1% < desvio ≤ 3% | amarelo | Alerta — divergência de arredondamento ou conta órfã |
+| desvio > 3% | vermelho | Erro de extração — bloqueia geração de indicadores até revisão |
 
-**Liquidez Corrente real Ago/2025** = 75.575.226,58 / 68.372.775,30 = **1,1053**
-**O pipeline atual mostra 0,9** porque:
-- `REF_BY_PREFIX` mapeia código 211 → "Empréstimos" (no Giannini 211 = Fornecedores e 215 = Instituições Financeiras)
-- Soma folhas em vez de usar o subtotal declarado do grupo → dupla contagem e classificação errada
-- Trata receita/CMV pelo sinal sem considerar que receita (grupo 3) pode vir negativa por convenção credora
+Equação contábil (Ativo = Passivo + PL) usa as mesmas 3 faixas.
 
-## O que vou mudar
+### Camada 3 — Trilha visível na UI
 
-### 1. `src/services/bsDadosBuilder.ts` — novo classificador "Grupo-First"
-
-Substituir a lógica atual por um pipeline em 3 camadas, **nessa ordem**:
-
-**Camada A (autoritativa) — Subtotais declarados por grupo**
-
-Quando a linha tem código de 1–2 dígitos E nome canônico de grupo, usa o **valor declarado** e marca as folhas internas como "já consumidas" (não soma novamente):
+Novo painel **"Mapeamento por Grupo"** em `SanityDiagnostico.tsx`, expandindo o diagnóstico atual:
 
 ```text
-Cód  Grupo                              → Campo SSOT
-1X   Ativo Circulante (11)              → ativo_circulante = |valor|
-1X   Ativo Não Circulante (12+13)       → ativo_nao_circulante = |valor|
-2X   Passivo Circulante (21)            → passivo_circulante = |valor|
-2X   Passivo Não Circulante (22)        → passivo_nao_circulante = |valor|
-2X   Patrimônio Líquido (23)            → patrimonio_liquido = |valor|
-3X   Receita Bruta (31)                 → soma p/ receita
-3X   Devoluções (32) + Impostos (33)    → subtrai p/ receita_liquida
-4X   Custo Vendas/Serviços (CMV)        → cmv = -|valor|
-5X   Custo Industrial                   → cmv += -|valor|  (entra no CMV)
-6X   Despesas Operacionais              → despesas = -|valor|
-7X   Despesas/Receitas Financeiras      → despesas_financeiras (separa do op.)
-8X   Não Operacionais                   → outras_nao_operacionais (separado)
+┌─ Ago/2025 ────────────────────────────────────────────────┐
+│ Grupo 11 Ativo Circulante                                 │
+│   Declarado (linha 11):     R$ 75.575.226,58              │
+│   Soma das folhas (111+112+113+...): R$ 75.575.226,58     │
+│   Divergência: 0,00% ✅                                    │
+│   Camada usada: A (subtotal autoritativo)                  │
+│   Drill-down ativo: 111→Disponível, 112→Clientes, 113→... │
+│                                                            │
+│ Grupo 21 Passivo Circulante                               │
+│   Declarado (linha 21): R$ 68.372.775,30 (módulo)         │
+│   Soma das folhas:      R$ 68.372.775,30                  │
+│   Divergência: 0,00% ✅                                    │
+│   Camada: A                                                │
+│                                                            │
+│ Equação: AT (80,8M) ≈ PT+PL (80,8M) ✅                    │
+└────────────────────────────────────────────────────────────┘
 ```
 
-**Camada B (sub-classificação) — 3 dígitos para drill-down**
+E em cada indicador (card Liquidez Corrente):
 
-Para alimentar gráfico de endividamento e EBITDA:
 ```text
-111      → disponivel (Caixa/Bancos/Aplicações curto)
-112      → contas_receber
-113      → estoques
-115      → tributos_a_recuperar
-131      → imobilizado
-211      → fornecedores
-213      → divida_trabalhista
-214      → divida_tributaria
-215, 221 → divida_financeira (Inst. Financeiras + Empréstimos LP)
-21*+name~/RJ|Recuperação/ → credores_rj
-711      → componente despFin (já agregado por 7 na Camada A)
+Liquidez Corrente = 1,11
+  ├── Numerador: AC = R$ 75.575.226,58
+  │     └── origem: linha "11 ATIVO CIRCULANTE" (Camada A)
+  ├── Denominador: PC = R$ 68.372.775,30
+  │     └── origem: linha "21 PASSIVO CIRCULANTE" (Camada A, abs aplicado)
+  ├── Fórmula: AC / PC
+  └── Classificação: > 1,0 = Saudável
 ```
 
-**Camada C (fallback regex)** — só quando NÃO há subtotal declarado para o grupo. Usa nome canônico (Fornecedores, Empréstimos, Instituições Financeiras, Salários, Tributos, etc.).
+## O que muda em código
 
-### 2. `src/services/auditAIService.ts`
+| Arquivo | Mudança |
+|---|---|
+| `src/services/bsDadosBuilder.ts` | Adicionar `trilha: ClassificationTrail[]` em `BSDadosRow`; finalizar Grupo-First com `parentGTPresent`; expor `classifyByGroup()` para uso externo |
+| `src/services/auditAIService.ts` | Trocar `REF_BY_PREFIX` por `classifyByGroup()`; cada linha passa a carregar `{camada, motivo}` |
+| `src/services/indicatorsEngine.ts` | Adicionar `_origem` em cada indicador (qual campo BS Dados alimentou); incluir grupo 5 no CMV; separar grupo 7 (DespFin) de grupo 6 (DespOp) |
+| `supabase/functions/audit-bs-dados/index.ts` | Replicar Grupo-First server-side; gravar trilha em `bs_dados.metadata` |
+| `src/components/audit/SanityDiagnostico.tsx` | Novo painel "Mapeamento por Grupo" com semáforo 1%/3%/>3% por grupo e por mês |
+| `src/components/audit/TabBSDados.tsx` (ou onde indicadores são exibidos) | Tooltip "Memória de cálculo" com numerador, denominador, origem e fórmula |
 
-Substituir `REF_BY_PREFIX` hardcoded por chamada à nova função `classifyByGroup(conta, descricao)` exportada do `bsDadosBuilder`. Ref1 passa a ser derivado do grupo de 2 dígitos + sub-componente.
+## Critério de aceite (balancete Giannini Ago/2025)
 
-### 3. `supabase/functions/audit-bs-dados/index.ts`
+| Item | Esperado |
+|---|---|
+| AC (grupo 11) | 75.575.226,58 |
+| PC (grupo 21) | 68.372.775,30 |
+| Disponível (111) | 492.194,16 |
+| Clientes (112) | 20.604.366,18 |
+| Estoque (113) | 46.786.497,61 |
+| **Liquidez Corrente** | **1,11** |
+| Liquidez Seca | 0,42 |
+| Liquidez Imediata | 0,007 |
+| Liquidez Geral | ~0,20 |
+| Equação AT ≈ PT+PL | desvio < 1% |
+| Trilha visível para cada indicador | sim (camada A/B/C + origem) |
 
-Replicar o classificador Grupo-First no servidor (mesma lógica, em TS Deno). Hoje a edge function tem fallback IA — quando o grupo de 2 dígitos está declarado, **não chama IA**, usa o subtotal direto. Reduz custo e elimina ruído.
+## Risco e mitigação
 
-### 4. `src/services/indicatorsEngine.ts`
+- **Risco:** mudança de classificador altera TODOS os indicadores. **Mitigação:** painel "Mapeamento por Grupo" entra na mesma release — qualquer divergência fica visível antes de virar relatório.
+- **Sem backfill** das auditorias antigas. Reabrir a auditoria Giannini reprocessa via edge function.
 
-Sem mudanças nas fórmulas. Adicionar apenas:
-- Inclusão de **Custo Industrial (grupo 5)** dentro do CMV para PMP/IME
-- Separação de **Despesas Financeiras (grupo 7)** vs **Despesas Operacionais (grupo 6)** para Margem Operacional e Cobertura de Juros corretas
+## Execução (1 rodada)
 
-### 5. `src/components/audit/SanityDiagnostico.tsx`
+1. `bsDadosBuilder.ts` — fechar Grupo-First + trilha
+2. `audit-bs-dados/index.ts` — replicar server-side + gravar trilha
+3. `indicatorsEngine.ts` — adicionar `_origem` por indicador
+4. `auditAIService.ts` — usar `classifyByGroup()`
+5. `SanityDiagnostico.tsx` — painel "Mapeamento por Grupo" com semáforo trifásico
+6. Tooltip "Memória de cálculo" nos cards de indicadores
 
-Painel de transparência ganha uma seção **"Mapeamento por Grupo"** mostrando para cada mês:
-- Grupo (11/21/22/23/3/4/5/6/7/8) → valor declarado vs valor calculado a partir das folhas
-- Alerta visual quando divergência >5% (sinaliza folhas órfãs ou plano não-padrão)
-
-## Critério de aceite
-
-Com o balancete Giannini Ago/2025 carregado:
-- AC = 75.575.226,58 ✓
-- PC = 68.372.775,30 ✓
-- Disponível (111) = 492.194,16 ✓
-- Clientes (112) = 20.604.366,18 ✓
-- Estoque (113) = 46.786.497,61 ✓
-- **Liquidez Corrente = 1,11** (não mais 0,9)
-- **Liquidez Seca** = (75.575.226,58 − 46.786.497,61) / 68.372.775,30 = **0,42**
-- **Liquidez Imediata** = 492.194,16 / 68.372.775,30 = **0,007**
-- **Liquidez Geral** = (75.575.226,58 + 2.741.435,72 + 2.537.106,02) / (68.372.775,30 + 338.639.419,32) ≈ **0,20**
-- Ativo Total ≈ Passivo Total + PL (com tolerância ±1%)
-- Endividamento, Atividade (PMR/PMP/IME × 360), Margens, ROE, EBITDA recalculados a partir da nova base
-
-## Risco
-
-Mudança afeta TODAS as métricas exibidas. Por isso o painel "Mapeamento por Grupo" entra junto — você consegue auditar visualmente em qualquer balancete novo se o classificador acertou.
-
-**Sem backfill** das auditorias antigas (como você definiu antes). Quando abrir a auditoria Giannini de novo, a edge function reprocessa e grava os números corretos.
-
-## Próximo passo
-
-Aprove para eu executar as 5 mudanças em uma única rodada. Em seguida você reabre a auditoria Giannini e validamos os números acima ao vivo.
+Aprove para eu executar as 6 mudanças. Depois você reabre a auditoria Giannini e validamos os números ao vivo.

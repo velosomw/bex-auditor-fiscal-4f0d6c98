@@ -160,11 +160,35 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   divida_total: null,
   outras_obrigacoes: null,
   outras_nao_operacionais: null,
-  hasReceita: null, hasBalanco: null, errors: null,
+  hasReceita: null, hasBalanco: null, errors: null, grupos: null,
 };
 
 
 // ─── Tipos ───────────────────────────────────────────────
+
+/** Status do semáforo trifásico para mapeamento por grupo. */
+export type GroupMappingStatus = "ok" | "atencao" | "erro" | "sem_total";
+
+/** Trilha de classificação por grupo (2 dígitos) — usada na UI explicável. */
+export interface GroupMappingEntry {
+  /** Código do grupo (ex.: "11", "21", "4") */
+  grupo: string;
+  /** Rótulo amigável (Ativo Circulante, Passivo Circulante, etc.) */
+  rotulo: string;
+  /** Valor declarado pela linha totalizadora (Camada A). Undefined se ausente. */
+  declarado?: number;
+  /** Soma das folhas (drill-down, Camada B) coletadas para o grupo. */
+  calculado: number;
+  /** Divergência percentual entre declarado e calculado (0..1). */
+  desvioPct: number;
+  /** Camada usada para alimentar o agregado: A=GT, B=drill-down, C=regex fallback. */
+  camada: "A" | "B" | "C";
+  /** Status do semáforo (1%/3%/>3%). */
+  status: GroupMappingStatus;
+  /** Campo do BSDadosRow alimentado (ativo_circulante, passivo_circulante, etc.). */
+  campo: keyof BSDadosRow;
+}
+
 export interface BSDadosRow {
   mes: string;            // "Março 2024"
   mesKey: string;         // "2024-03"
@@ -200,6 +224,35 @@ export interface BSDadosRow {
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
+  /** Trilha de auditoria explicável — mapeamento por grupo (2 dígitos). */
+  grupos?: GroupMappingEntry[];
+}
+
+/** Rótulo humano para cada código de grupo (2 dígitos). */
+export const GROUP_LABELS: Record<string, { rotulo: string; campo: keyof BSDadosRow }> = {
+  "11": { rotulo: "Ativo Circulante",            campo: "ativo_circulante" },
+  "12": { rotulo: "Ativo Não Circulante (RLP)",  campo: "ativo_nao_circulante" },
+  "13": { rotulo: "Ativo Permanente",            campo: "ativo_nao_circulante" },
+  "21": { rotulo: "Passivo Circulante",          campo: "passivo_circulante" },
+  "22": { rotulo: "Passivo Não Circulante",      campo: "passivo_nao_circulante" },
+  "23": { rotulo: "Patrimônio Líquido",          campo: "patrimonio_liquido" },
+  "31": { rotulo: "Receita Bruta",               campo: "receita_liquida" },
+  "32": { rotulo: "Deduções da Receita",         campo: "receita_liquida" },
+  "33": { rotulo: "Impostos sobre Vendas",       campo: "receita_liquida" },
+  "4":  { rotulo: "CMV / Custo de Serviços",     campo: "cmv" },
+  "5":  { rotulo: "Custo Industrial",            campo: "cmv" },
+  "6":  { rotulo: "Despesas Operacionais",       campo: "despesas" },
+  "7":  { rotulo: "Despesas/Receitas Financeiras", campo: "despesas_financeiras" },
+  "8":  { rotulo: "Não Operacionais",            campo: "outras_nao_operacionais" },
+};
+
+/** Classifica desvio em status trifásico (1%/3%/>3%). */
+export function classifyDeviation(desvio: number, declaradoAusente: boolean): GroupMappingStatus {
+  if (declaradoAusente) return "sem_total";
+  const abs = Math.abs(desvio);
+  if (abs <= 0.01) return "ok";
+  if (abs <= 0.03) return "atencao";
+  return "erro";
 }
 
 export interface BalanceteEntry {
@@ -298,6 +351,12 @@ type ComponentBuckets = {
   groupTotalsPresent: Set<string>;
   /** Diagnóstico — valor declarado pelo GT por campo principal */
   declared: Partial<Record<keyof BSDadosRow, number>>;
+  /** Diagnóstico — valor declarado pelo GT por código de grupo (2 dígitos) */
+  declaredByGroup: Record<string, number>;
+  /** Diagnóstico — soma das folhas (drill-down) por código de grupo */
+  calculatedByGroup: Record<string, number>;
+  /** Camada usada para alimentar cada grupo (A=GT, B=drill-down, C=regex) */
+  layerByGroup: Record<string, "A" | "B" | "C">;
 };
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
@@ -455,6 +514,43 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
       }
     }
   }
+
+  // ── Trilha de auditoria explicável (Mapeamento por Grupo) ──
+  if (buckets) {
+    const grupos: GroupMappingEntry[] = [];
+    const allGroupCodes = new Set<string>([
+      ...Object.keys(buckets.declaredByGroup),
+      ...Object.keys(buckets.calculatedByGroup),
+    ]);
+    for (const grupo of Array.from(allGroupCodes).sort()) {
+      const meta = GROUP_LABELS[grupo];
+      if (!meta) continue;
+      const declarado = buckets.declaredByGroup[grupo];
+      const calculado = buckets.calculatedByGroup[grupo] || 0;
+      const camada = buckets.layerByGroup[grupo] || (declarado != null ? "A" : "C");
+      const declaradoAusente = declarado == null;
+      const base = Math.max(Math.abs(declarado ?? 0), Math.abs(calculado), 1);
+      const desvioPct = declaradoAusente ? 0 : (declarado! - calculado) / base;
+      grupos.push({
+        grupo,
+        rotulo: meta.rotulo,
+        declarado,
+        calculado,
+        desvioPct,
+        camada,
+        status: classifyDeviation(desvioPct, declaradoAusente),
+        campo: meta.campo,
+      });
+    }
+    row.grupos = grupos;
+    // Promove erros >3% para a lista de erros
+    for (const g of grupos) {
+      if (g.status === "erro") {
+        row.errors.push(`Grupo ${g.grupo} (${g.rotulo}) — divergência ${(g.desvioPct * 100).toFixed(1)}% entre subtotal declarado e soma das folhas`);
+      }
+    }
+  }
+
   return row;
 }
 
@@ -507,6 +603,9 @@ export function buildBSDados(
       sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false,
       groupTotalsPresent: new Set<string>(),
       declared: {},
+      declaredByGroup: {},
+      calculatedByGroup: {},
+      layerByGroup: {},
     });
     if (dupSet.has(k)) {
       const r = rowsByMes.get(k)!;
@@ -566,14 +665,21 @@ export function buildBSDados(
     }
   }
 
-  const hasParentGT = (conta: string, mesKey: string): boolean => {
+  const findParentGT = (conta: string, mesKey: string): string | null => {
     const gts = gtPresentByMes.get(mesKey);
-    if (!gts) return false;
+    if (!gts) return null;
+    // Prefere o GT mais longo (mais específico) — ex.: "21" antes de "2"
+    let best: string | null = null;
     for (const gt of gts) {
-      if (conta !== gt && conta.startsWith(gt)) return true;
+      if (conta !== gt && conta.startsWith(gt)) {
+        if (!best || gt.length > best.length) best = gt;
+      }
     }
-    return false;
+    return best;
   };
+
+  const hasParentGT = (conta: string, mesKey: string): boolean =>
+    findParentGT(conta, mesKey) !== null;
 
   // ── 2ª passada: roteia valores ──
   for (const row of leafRows) {
@@ -606,6 +712,28 @@ export function buildBSDados(
         if (!target || !buckets) continue;
         const parentGT = !isGroupTotal && hasParentGT(conta, mesKey);
         applyValue(target, key, Number(value) || 0, ref1, buckets, isGroupTotal, parentGT);
+
+        // ── Trilha por grupo (2 dígitos) — alimenta painel "Mapeamento por Grupo" ──
+        const v = Math.abs(Number(value) || 0);
+        if (isGroupTotal) {
+          buckets.declaredByGroup[conta] = (buckets.declaredByGroup[conta] || 0) + v;
+          buckets.layerByGroup[conta] = "A";
+        } else {
+          const parent = findParentGT(conta, mesKey);
+          if (parent) {
+            buckets.calculatedByGroup[parent] = (buckets.calculatedByGroup[parent] || 0) + v;
+            if (!buckets.layerByGroup[parent]) buckets.layerByGroup[parent] = "A"; // GT já estará "A"
+          } else {
+            // Folha sem GT pai — Camada C (fallback regex/ref1)
+            // Inferimos o grupo pelo 1-2 dígito do código quando possível
+            const inferred = GROUP_TOTAL_CODES.has(conta.slice(0, 2)) ? conta.slice(0, 2)
+                            : GROUP_TOTAL_CODES.has(conta.slice(0, 1)) ? conta.slice(0, 1) : null;
+            if (inferred) {
+              buckets.calculatedByGroup[inferred] = (buckets.calculatedByGroup[inferred] || 0) + v;
+              if (!buckets.layerByGroup[inferred]) buckets.layerByGroup[inferred] = "C";
+            }
+          }
+        }
       }
     }
   }
@@ -685,6 +813,56 @@ export function computeBSIndicators(r: BSDadosRow) {
     liquidez_seca: safeDiv(r.ativo_circulante - r.estoques, r.passivo_circulante),
     liquidez_imediata: safeDiv(r.disponivel, r.passivo_circulante),
   };
+}
+
+/** Memória de cálculo explicável para cada indicador (numerador, denominador, fórmula, origem). */
+export interface IndicatorMemory {
+  indicador: string;
+  formula: string;
+  numerador: { rotulo: string; valor: number; origem: string };
+  denominador: { rotulo: string; valor: number; origem: string };
+  resultado: number | null;
+  classificacao?: string;
+}
+
+const origemGrupo = (r: BSDadosRow, grupoCodigo: string, fallback: string): string => {
+  const g = r.grupos?.find(x => x.grupo === grupoCodigo);
+  if (!g) return fallback;
+  const camadaLabel = g.camada === "A" ? "subtotal declarado" : g.camada === "B" ? "drill-down" : "fallback regex";
+  return `linha "${g.grupo} ${g.rotulo}" (Camada ${g.camada} — ${camadaLabel})`;
+};
+
+const classifyLC = (v: number | null): string =>
+  v == null ? "—" : v >= 1.5 ? "Saudável (≥ 1,5)" : v >= 1.0 ? "Adequada (1,0–1,5)" : "Insuficiente (< 1,0)";
+
+export function buildIndicatorMemory(r: BSDadosRow): IndicatorMemory[] {
+  const lc = safeDiv(r.ativo_circulante, r.passivo_circulante);
+  const ls = safeDiv(r.ativo_circulante - r.estoques, r.passivo_circulante);
+  const li = safeDiv(r.disponivel, r.passivo_circulante);
+  return [
+    {
+      indicador: "Liquidez Corrente",
+      formula: "AC / PC",
+      numerador: { rotulo: "Ativo Circulante", valor: r.ativo_circulante, origem: origemGrupo(r, "11", "AC (agregado)") },
+      denominador: { rotulo: "Passivo Circulante", valor: r.passivo_circulante, origem: origemGrupo(r, "21", "PC (agregado, abs aplicado)") },
+      resultado: lc,
+      classificacao: classifyLC(lc),
+    },
+    {
+      indicador: "Liquidez Seca",
+      formula: "(AC − Estoques) / PC",
+      numerador: { rotulo: "AC − Estoques", valor: r.ativo_circulante - r.estoques, origem: `${origemGrupo(r, "11", "AC")} − Estoques (R$ ${r.estoques.toLocaleString("pt-BR")})` },
+      denominador: { rotulo: "Passivo Circulante", valor: r.passivo_circulante, origem: origemGrupo(r, "21", "PC") },
+      resultado: ls,
+    },
+    {
+      indicador: "Liquidez Imediata",
+      formula: "Disponível / PC",
+      numerador: { rotulo: "Disponível", valor: r.disponivel, origem: "Drill-down 111 (Caixa/Bancos/Aplicações)" },
+      denominador: { rotulo: "Passivo Circulante", valor: r.passivo_circulante, origem: origemGrupo(r, "21", "PC") },
+      resultado: li,
+    },
+  ];
 }
 
 // ─── EXPORT XLSX (CSV simples — sem dependência) ─────────
