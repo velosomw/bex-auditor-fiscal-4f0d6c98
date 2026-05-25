@@ -1467,7 +1467,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
                   <TableRow>
                     <TableHead className="text-[10px]">Índice</TableHead>
                     <TableHead className="text-[10px]">Fórmula</TableHead>
-                    {years.map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
+                    {years.map(y => <TableHead key={y} className="text-right text-[10px]">{/^\d{4}-\d{1,2}$/.test(y) ? mesKeyToLabel(y) : y}</TableHead>)}
                     <TableHead className="text-right text-[10px]">Benchmark</TableHead>
                   </TableRow>
                 </TableHeader>
