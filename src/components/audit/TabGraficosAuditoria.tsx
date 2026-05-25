@@ -5,7 +5,8 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Activity, DollarSign, Gauge } from "lucide-react";
+import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Activity, DollarSign, Gauge, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   resolveBalanceteCharts,
   type BalanceteChartsResult,
@@ -60,6 +61,8 @@ const EmptyState = ({ icon: Icon, title }: { icon: any; title: string }) => (
 const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
   const [data, setData] = useState<BalanceteChartsResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showDiagnostico, setShowDiagnostico] = useState(false);
+  const [showIndicadores, setShowIndicadores] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,65 +276,101 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
         </CardHeader>
       </Card>
 
-      {/* DIAGNÓSTICO DE EXTRAÇÃO — sempre visível para orientar o usuário */}
+      {/* DIAGNÓSTICO DE EXTRAÇÃO — colapsável */}
       <Card className="border-[hsl(34,95%,55%)]/30 bg-[hsl(34,95%,55%)]/5">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-[hsl(34,95%,55%)]" />
-            Diagnóstico da Extração de Dados
-          </CardTitle>
-          <CardDescription className="text-[11px]">
-            Resumo do que a IA conseguiu extrair do(s) arquivo(s) — ajuda a entender a completude da auditoria.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 text-xs">
-          <div className="grid sm:grid-cols-2 gap-2">
-            <div className={`flex items-center gap-2 p-2 rounded border ${hasBalanco ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-[hsl(0,75%,55%)]/40 bg-[hsl(0,75%,55%)]/10"}`}>
-              {hasBalanco ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <AlertTriangle className="w-3.5 h-3.5 text-[hsl(0,75%,55%)]" />}
-              <span><strong>Balanço Patrimonial:</strong> {hasBalanco ? `${parsedData!.balanco.length} contas` : "ausente"}</span>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[hsl(34,95%,55%)]" />
+                Diagnóstico da Extração de Dados
+              </CardTitle>
+              <CardDescription className="text-[11px]">
+                Resumo do que a IA conseguiu extrair do(s) arquivo(s) — ajuda a entender a completude da auditoria.
+              </CardDescription>
             </div>
-            <div className={`flex items-center gap-2 p-2 rounded border ${hasDRE ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-[hsl(0,75%,55%)]/40 bg-[hsl(0,75%,55%)]/10"}`}>
-              {hasDRE ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <AlertTriangle className="w-3.5 h-3.5 text-[hsl(0,75%,55%)]" />}
-              <span><strong>DRE:</strong> {hasDRE ? `${parsedData!.dre.length} linhas` : "ausente — envie a DRE para liberar Kanitz e KPIs"}</span>
-            </div>
-            <div className={`flex items-center gap-2 p-2 rounded border ${hasTemplateSheets ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-muted bg-muted/30"}`}>
-              {hasTemplateSheets ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <Activity className="w-3.5 h-3.5 text-muted-foreground" />}
-              <span><strong>Template BEX (.xlsm):</strong> {hasTemplateSheets ? "detectado" : "não detectado — apenas balancete contábil"}</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded border border-[hsl(217,91%,50%)]/30 bg-[hsl(217,91%,50%)]/5">
-              <Activity className="w-3.5 h-3.5 text-[hsl(217,91%,50%)]" />
-              <span><strong>Períodos detectados:</strong> {parsedData?.years?.length ?? 0}</span>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDiagnostico(v => !v)}
+              className="shrink-0 h-8 gap-1.5"
+              aria-expanded={showDiagnostico}
+              aria-label={showDiagnostico ? "Ocultar diagnóstico" : "Mostrar diagnóstico"}
+            >
+              {showDiagnostico ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="text-xs">{showDiagnostico ? "Ocultar" : "Mostrar"}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDiagnostico ? "rotate-180" : ""}`} />
+            </Button>
           </div>
-          {missingHints.length > 0 && (
-            <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground list-disc pl-5">
-              {missingHints.map((h, i) => <li key={i}>{h}</li>)}
-            </ul>
-          )}
-          <p className="text-[10px] text-muted-foreground mt-2 italic">
-            ℹ️ Datas como Nov/2026 ou Dez/2026 que apareçam sem contexto provavelmente vinham de
-            códigos contábeis interpretados como ano — corrigido nesta versão (heurística estrita
-            de detecção de período).
-          </p>
-        </CardContent>
+        </CardHeader>
+        {showDiagnostico && (
+          <CardContent className="space-y-2 text-xs">
+            <div className="grid sm:grid-cols-2 gap-2">
+              <div className={`flex items-center gap-2 p-2 rounded border ${hasBalanco ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-[hsl(0,75%,55%)]/40 bg-[hsl(0,75%,55%)]/10"}`}>
+                {hasBalanco ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <AlertTriangle className="w-3.5 h-3.5 text-[hsl(0,75%,55%)]" />}
+                <span><strong>Balanço Patrimonial:</strong> {hasBalanco ? `${parsedData!.balanco.length} contas` : "ausente"}</span>
+              </div>
+              <div className={`flex items-center gap-2 p-2 rounded border ${hasDRE ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-[hsl(0,75%,55%)]/40 bg-[hsl(0,75%,55%)]/10"}`}>
+                {hasDRE ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <AlertTriangle className="w-3.5 h-3.5 text-[hsl(0,75%,55%)]" />}
+                <span><strong>DRE:</strong> {hasDRE ? `${parsedData!.dre.length} linhas` : "ausente — envie a DRE para liberar Kanitz e KPIs"}</span>
+              </div>
+              <div className={`flex items-center gap-2 p-2 rounded border ${hasTemplateSheets ? "border-[hsl(150,70%,42%)]/40 bg-[hsl(150,70%,42%)]/10" : "border-muted bg-muted/30"}`}>
+                {hasTemplateSheets ? <CheckCircle2 className="w-3.5 h-3.5 text-[hsl(150,70%,42%)]" /> : <Activity className="w-3.5 h-3.5 text-muted-foreground" />}
+                <span><strong>Template BEX (.xlsm):</strong> {hasTemplateSheets ? "detectado" : "não detectado — apenas balancete contábil"}</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 rounded border border-[hsl(217,91%,50%)]/30 bg-[hsl(217,91%,50%)]/5">
+                <Activity className="w-3.5 h-3.5 text-[hsl(217,91%,50%)]" />
+                <span><strong>Períodos detectados:</strong> {parsedData?.years?.length ?? 0}</span>
+              </div>
+            </div>
+            {missingHints.length > 0 && (
+              <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground list-disc pl-5">
+                {missingHints.map((h, i) => <li key={i}>{h}</li>)}
+              </ul>
+            )}
+            <p className="text-[10px] text-muted-foreground mt-2 italic">
+              ℹ️ Datas como Nov/2026 ou Dez/2026 que apareçam sem contexto provavelmente vinham de
+              códigos contábeis interpretados como ano — corrigido nesta versão (heurística estrita
+              de detecção de período).
+            </p>
+          </CardContent>
+        )}
       </Card>
 
 
-      {/* ── 6 GRÁFICOS DO RELATÓRIO BEX/KANITZ — base única mensal ── */}
+      {/* ── 6 GRÁFICOS DO RELATÓRIO BEX/KANITZ — colapsável ── */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-[hsl(217,91%,50%)]" />
-            Indicadores Operacionais e Estruturais (mensal)
-          </CardTitle>
-          <CardDescription className="text-xs">
-            CMV/RL · CMV+Despesa/RL · Resultado/RL · EBITDA · Liquidez · Endividamento — calculados a
-            partir do dataset mensal padronizado (mesma base usada no relatório final).
-          </CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-[hsl(217,91%,50%)]" />
+                Indicadores Operacionais e Estruturais (mensal)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                CMV/RL · CMV+Despesa/RL · Resultado/RL · EBITDA · Liquidez · Endividamento — calculados a
+                partir do dataset mensal padronizado (mesma base usada no relatório final).
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowIndicadores(v => !v)}
+              className="shrink-0 h-8 gap-1.5"
+              aria-expanded={showIndicadores}
+              aria-label={showIndicadores ? "Ocultar indicadores" : "Mostrar indicadores"}
+            >
+              {showIndicadores ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="text-xs">{showIndicadores ? "Ocultar" : "Mostrar"}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showIndicadores ? "rotate-180" : ""}`} />
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
-          <AuditCharts parsedData={parsedData} entries={entries} />
-        </CardContent>
+        {showIndicadores && (
+          <CardContent>
+            <AuditCharts parsedData={parsedData} entries={entries} />
+          </CardContent>
+        )}
       </Card>
 
       {/* RESUMO EXECUTIVO + KANITZ + ALERTAS — derivados da DRE/Balanço */}
