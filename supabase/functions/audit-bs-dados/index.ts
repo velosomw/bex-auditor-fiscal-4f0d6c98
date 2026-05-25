@@ -399,9 +399,11 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
 }
 
 function finalize(r: BSDadosRow): BSDadosRow {
-  r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
-  // Resultado derivado da DRE (cmv/despesas já negativos).
-  r.resultado = r.receita_liquida + r.cmv + r.despesas;
+  // Recalcula divida_total ANTES do cap, considerando outras_obrigacoes.
+  r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
+                   r.fornecedores + r.credores_rj + r.outras_obrigacoes;
+  // Resultado alinhado com client: inclui despesas financeiras (CPC 47 — separação operacional/financeiro).
+  r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras;
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
   r.hasReceita = r.receita_liquida > 0;
@@ -409,21 +411,23 @@ function finalize(r: BSDadosRow): BSDadosRow {
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
   if (r.cmv > 0)     r.errors.push("CMV positivo (deveria ser negativo)");
 
-  // FIX #1 — Sanity guard ESTOQUES (cap agressivo 85% → 65%) + log.
+  // Cap ESTOQUES — preserva valor bruto p/ UI mostrar antes/depois.
   if (r.estoques > 0 && r.ativo_circulante > 0 && r.estoques / r.ativo_circulante > 0.85) {
     const before = r.estoques;
     const pct = (before / r.ativo_circulante) * 100;
+    r.estoques_bruto = before;
     r.estoques = r.ativo_circulante * 0.65;
-    r.errors.push(`Estoques inflados (${pct.toFixed(1)}% do AC) — cap aplicado a 65%`);
+    r.errors.push(`Estoques inflados (${pct.toFixed(1)}% do AC) — cap aplicado: ${before.toFixed(0)} → ${r.estoques.toFixed(0)}`);
     console.log(`[finalize] CAP_ESTOQUES mes=${r.mesKey} before=${before.toFixed(0)} pct=${pct.toFixed(1)}% after=${r.estoques.toFixed(0)}`);
   }
 
-  // FIX #1 — Sanity guard DÍVIDA TOTAL.
+  // Cap DÍVIDA TOTAL — preserva valor bruto.
   const passivoEstimado = r.passivo_total > 0 ? r.passivo_total : r.passivo_circulante;
   if (passivoEstimado > 0 && r.divida_total > passivoEstimado * 1.1) {
     const before = r.divida_total;
+    r.divida_total_bruto = before;
     r.divida_total = passivoEstimado;
-    r.errors.push(`Dívida total excedia Passivo Total (${before.toFixed(0)} vs ${passivoEstimado.toFixed(0)}) — ajustada`);
+    r.errors.push(`Dívida total excedia Passivo Total — cap aplicado: ${before.toFixed(0)} → ${passivoEstimado.toFixed(0)}`);
     console.log(`[finalize] CAP_DIVIDA mes=${r.mesKey} before=${before.toFixed(0)} after=${passivoEstimado.toFixed(0)}`);
   }
 
