@@ -514,6 +514,43 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
       }
     }
   }
+
+  // ── Trilha de auditoria explicável (Mapeamento por Grupo) ──
+  if (buckets) {
+    const grupos: GroupMappingEntry[] = [];
+    const allGroupCodes = new Set<string>([
+      ...Object.keys(buckets.declaredByGroup),
+      ...Object.keys(buckets.calculatedByGroup),
+    ]);
+    for (const grupo of Array.from(allGroupCodes).sort()) {
+      const meta = GROUP_LABELS[grupo];
+      if (!meta) continue;
+      const declarado = buckets.declaredByGroup[grupo];
+      const calculado = buckets.calculatedByGroup[grupo] || 0;
+      const camada = buckets.layerByGroup[grupo] || (declarado != null ? "A" : "C");
+      const declaradoAusente = declarado == null;
+      const base = Math.max(Math.abs(declarado ?? 0), Math.abs(calculado), 1);
+      const desvioPct = declaradoAusente ? 0 : (declarado! - calculado) / base;
+      grupos.push({
+        grupo,
+        rotulo: meta.rotulo,
+        declarado,
+        calculado,
+        desvioPct,
+        camada,
+        status: classifyDeviation(desvioPct, declaradoAusente),
+        campo: meta.campo,
+      });
+    }
+    row.grupos = grupos;
+    // Promove erros >3% para a lista de erros
+    for (const g of grupos) {
+      if (g.status === "erro") {
+        row.errors.push(`Grupo ${g.grupo} (${g.rotulo}) — divergência ${(g.desvioPct * 100).toFixed(1)}% entre subtotal declarado e soma das folhas`);
+      }
+    }
+  }
+
   return row;
 }
 
