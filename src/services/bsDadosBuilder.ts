@@ -267,12 +267,37 @@ const PL_REFS = new Set(["GG1","HH1"]);
 const CONTAS_RECEBER_REFS = new Set(["C"]);
 const IMOBILIZADO_REFS = new Set(["C1","D1"]);
 
+// ─── GRUPO-FIRST ────────────────────────────────────────
+// Códigos de TOTALIZADORES DE GRUPO no plano contábil brasileiro padrão.
+// Quando essas linhas existem no balancete, são AUTORITATIVAS para o
+// campo principal (AC/PC/ANC/PNC/PL e DRE). Folhas descendentes só
+// alimentam sub-componentes (disponivel, estoques, fornecedores, etc.).
+export const GROUP_TOTAL_CODES = new Set([
+  "11","12","13",   // AC, ANC, Permanente
+  "21","22","23",   // PC, PNC, PL
+  "31","32","33",   // Receita bruta, Devoluções, Impostos sobre vendas
+  "4","5","6","7","8", // CMV, Custo Industrial, Despesas Op, Desp.Fin, Não Op
+]);
+
+// Chaves que representam AGREGADOS PRINCIPAIS — folhas só devem alimentar
+// estes campos quando o totalizador de grupo NÃO está presente para o mês.
+const MAIN_AGG_KEYS = new Set<keyof BSDadosRow>([
+  "ativo_circulante","ativo_nao_circulante",
+  "passivo_circulante","passivo_nao_circulante",
+  "patrimonio_liquido",
+  "receita_liquida","cmv","despesas","despesas_financeiras","outras_nao_operacionais",
+]);
+
 // Buckets internos por mês para somar componentes (acumulador derivado).
 type ComponentBuckets = {
   ac: number; pc: number;
   anc: number; pnc: number; pl: number;
   sawACTotal: boolean; sawPCTotal: boolean;
   sawANCTotal: boolean; sawPNCTotal: boolean; sawPLTotal: boolean;
+  /** Conjunto de códigos GT presentes neste período (ex.: {"11","21","4","6","7"}) */
+  groupTotalsPresent: Set<string>;
+  /** Diagnóstico — valor declarado pelo GT por campo principal */
+  declared: Partial<Record<keyof BSDadosRow, number>>;
 };
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
@@ -290,69 +315,92 @@ function resolveKey(row: RowLike): keyof BSDadosRow | null {
   return null;
 }
 
+/**
+ * applyValue — Grupo-First.
+ *
+ * @param isGroupTotal  conta é EXATAMENTE um código de totalizador de grupo (11/21/4/…)
+ * @param parentGTPresent  existe totalizador de grupo PAI desta folha no mesmo período
+ *
+ * Regra-chave: quando há GT-pai presente E a chave é um agregado principal
+ * (AC/PC/CMV/Receita/...), NÃO escrevemos no campo principal — apenas
+ * atualizamos buckets/sub-componentes. Elimina dupla contagem entre
+ * totalizador e folhas (raiz do bug de Liquidez Corrente em planos como Giannini).
+ */
 function applyValue(
   target: BSDadosRow,
   key: keyof BSDadosRow,
   value: number,
   ref1: string | null | undefined,
   buckets: ComponentBuckets,
+  isGroupTotal: boolean = false,
+  parentGTPresent: boolean = false,
 ) {
   const v = Number(value);
   if (!Number.isFinite(v)) return;
-  switch (key) {
-    case "receita_liquida":
-      (target as any)[key] = (target[key] as number) + (toUpperNoAccent(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v)); break;
-    case "cmv":
-    case "despesas":
-    case "despesas_financeiras":
-    case "depreciacao":
-    case "amortizacao":
-      (target as any)[key] = (target[key] as number) - Math.abs(v); break;
-    case "resultado":
-      (target as any)[key] = (target[key] as number) + v; break;
-    case "patrimonio_liquido":
-      // PL preserva sinal — pode ser negativo (prejuízo acumulado)
-      target.patrimonio_liquido += v;
-      buckets.sawPLTotal = true; break;
-    case "ativo_circulante":
-      target.ativo_circulante += Math.abs(v);
-      buckets.sawACTotal = true; break;
-    case "ativo_nao_circulante":
-      target.ativo_nao_circulante += Math.abs(v);
-      buckets.sawANCTotal = true; break;
-    case "passivo_circulante":
-      target.passivo_circulante += Math.abs(v);
-      buckets.sawPCTotal = true; break;
-    case "passivo_nao_circulante":
-      target.passivo_nao_circulante += Math.abs(v);
-      buckets.sawPNCTotal = true; break;
-    case "estoques":
-    case "disponivel":
-    case "contas_receber":
-    case "imobilizado":
-    case "divida_tributaria":
-    case "divida_trabalhista":
-    case "divida_financeira":
-    case "fornecedores":
-    case "credores_rj":
-    case "outras_obrigacoes":
-      (target as any)[key] = (target[key] as number) + Math.abs(v); break;
-    case "outras_nao_operacionais":
-      // grupo 8 — preserva sinal (pode ser receita ou despesa não operacional)
-      target.outras_nao_operacionais += v; break;
-    default: break;
+
+  const isMainAgg = MAIN_AGG_KEYS.has(key);
+  const skipMain = isMainAgg && parentGTPresent && !isGroupTotal;
+
+  if (!skipMain) {
+    switch (key) {
+      case "receita_liquida":
+        (target as any)[key] = (target[key] as number) + (toUpperNoAccent(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v)); break;
+      case "cmv":
+      case "despesas":
+      case "despesas_financeiras":
+      case "depreciacao":
+      case "amortizacao":
+        (target as any)[key] = (target[key] as number) - Math.abs(v); break;
+      case "resultado":
+        (target as any)[key] = (target[key] as number) + v; break;
+      case "patrimonio_liquido":
+        target.patrimonio_liquido += v;
+        if (isGroupTotal) buckets.sawPLTotal = true; break;
+      case "ativo_circulante":
+        target.ativo_circulante += Math.abs(v);
+        if (isGroupTotal) buckets.sawACTotal = true; break;
+      case "ativo_nao_circulante":
+        target.ativo_nao_circulante += Math.abs(v);
+        if (isGroupTotal) buckets.sawANCTotal = true; break;
+      case "passivo_circulante":
+        target.passivo_circulante += Math.abs(v);
+        if (isGroupTotal) buckets.sawPCTotal = true; break;
+      case "passivo_nao_circulante":
+        target.passivo_nao_circulante += Math.abs(v);
+        if (isGroupTotal) buckets.sawPNCTotal = true; break;
+      case "estoques":
+      case "disponivel":
+      case "contas_receber":
+      case "imobilizado":
+      case "divida_tributaria":
+      case "divida_trabalhista":
+      case "divida_financeira":
+      case "fornecedores":
+      case "credores_rj":
+      case "outras_obrigacoes":
+        (target as any)[key] = (target[key] as number) + Math.abs(v); break;
+      case "outras_nao_operacionais":
+        target.outras_nao_operacionais += v; break;
+      default: break;
+    }
   }
-  // Acumuladores por Ref Capital + readouts ortogonais
+
+  // Acumuladores por Ref Capital + readouts ortogonais — SEMPRE atualizados
   const refUp = ref1 ? toUpperNoAccent(ref1) : "";
   if (refUp) {
     if (AC_REFS.has(refUp)) buckets.ac += Math.abs(v);
     else if (ANC_REFS.has(refUp)) buckets.anc += Math.abs(v);
     else if (PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
     else if (PNC_REFS.has(refUp)) buckets.pnc += Math.abs(v);
-    else if (PL_REFS.has(refUp)) buckets.pl += v;  // preserva sinal
-    // Readouts ortogonais (não-exclusivos do roteamento primário)
+    else if (PL_REFS.has(refUp)) buckets.pl += v;
     if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") target.contas_receber += Math.abs(v);
     if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") target.imobilizado += Math.abs(v);
+  }
+
+  // Diagnóstico — valor declarado pelo GT por campo principal
+  if (isGroupTotal && isMainAgg) {
+    const cur = buckets.declared[key] ?? 0;
+    buckets.declared[key] = cur + (key === "patrimonio_liquido" || key === "outras_nao_operacionais" || key === "resultado" ? v : Math.abs(v));
   }
 }
 
