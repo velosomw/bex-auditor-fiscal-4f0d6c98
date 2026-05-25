@@ -5,7 +5,8 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Activity, DollarSign, Gauge } from "lucide-react";
+import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Activity, DollarSign, Gauge, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   resolveBalanceteCharts,
   type BalanceteChartsResult,
