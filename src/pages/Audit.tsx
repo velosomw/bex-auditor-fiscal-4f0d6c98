@@ -35,7 +35,7 @@ import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import TabBSDados from "@/components/audit/TabBSDados";
 import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { buildBSDados, exportBSDadosToCSV, type BalanceteEntry } from "@/services/bsDadosBuilder";
+import { buildBSDados, exportBSDadosToCSV, mesKeyToLabel, type BalanceteEntry } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
@@ -1467,7 +1467,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
                   <TableRow>
                     <TableHead className="text-[10px]">Índice</TableHead>
                     <TableHead className="text-[10px]">Fórmula</TableHead>
-                    {years.map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
+                    {years.map(y => <TableHead key={y} className="text-right text-[10px]">{/^\d{4}-\d{1,2}$/.test(y) ? mesKeyToLabel(y) : y}</TableHead>)}
                     <TableHead className="text-right text-[10px]">Benchmark</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1521,7 +1521,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
                 const ebitda = (d._resOp || 0) + (d._despFin || 0);
                 return (
                   <div key={y} className="p-4 rounded-lg bg-muted/30 text-center">
-                    <p className="text-xs text-muted-foreground">{y}</p>
+                    <p className="text-xs text-muted-foreground">{/^\d{4}-\d{1,2}$/.test(y) ? mesKeyToLabel(y) : y}</p>
                     <p className="text-lg font-bold font-mono text-foreground">{fmt(ebitda)}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Desp. Financeiras</p>
                   </div>

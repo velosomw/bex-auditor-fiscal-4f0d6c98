@@ -210,7 +210,19 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
     if (useUser) for (const mk of userMesKeys) mesSet.add(mk);
 
     const meses = Array.from(mesSet).sort();
-    const linhas = Array.from(map.values()).sort((a, b) => String(a.conta).localeCompare(String(b.conta)));
+    const linhasRaw = Array.from(map.values()).sort((a, b) => String(a.conta).localeCompare(String(b.conta)));
+    // Atribui código sequencial para linhas sem código numérico válido
+    let seq = 0;
+    const pad = String(linhasRaw.length).length;
+    const linhas = linhasRaw.map(l => {
+      const conta = String(l.conta || "").trim();
+      const hasNumericMarker = /\d/.test(conta);
+      if (!hasNumericMarker) {
+        seq += 1;
+        return { ...l, conta: `L${String(seq).padStart(pad, "0")}`, _autoCode: true };
+      }
+      return l;
+    });
     const refs = Array.from(new Set(linhas.map(l => l.ref1).filter(Boolean) as string[])).sort();
     const codigos = linhas.map(l => l.conta as string);
     return { meses, linhas, refs, codigos };
@@ -264,7 +276,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
               Pivot — Balancete Consolidado (linha-a-linha)
             </CardTitle>
             <CardDescription className="text-xs">
-              Filtros combinados (AND): <strong>Mês</strong> × <strong>Ref Capital</strong> × <strong>Código</strong> + busca livre.
+              Filtros combinados (AND): <strong>Mês</strong> × <strong>Código</strong> + busca livre.
             </CardDescription>
             <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
               ℹ️ Esta visualização exibe <strong>todas as contas extraídas</strong> do balancete — incluindo
@@ -343,7 +355,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             <TableRow className="bg-muted/30">
               <TableHead className="font-bold whitespace-nowrap">Código</TableHead>
               <TableHead className="font-bold">Descrição</TableHead>
-              <TableHead className="font-bold">Ref</TableHead>
               {visibleMeses.map(m => (
                 <TableHead key={m} className="text-right whitespace-nowrap">{mesKeyToLabel(m)}</TableHead>
               ))}
@@ -354,11 +365,6 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
               <TableRow key={l.conta}>
                 <TableCell className="font-mono text-[10px]">{l.conta}</TableCell>
                 <TableCell className="max-w-[280px] truncate">{l.descricao}</TableCell>
-                <TableCell>
-                  {l.ref1 ? (
-                    <Badge variant="outline" className="text-[10px] font-mono">{l.ref1}</Badge>
-                  ) : <span className="text-muted-foreground">—</span>}
-                </TableCell>
                 {visibleMeses.map(m => (
                   <TableCell key={m} className="text-right tabular-nums">{fmt(l.byMes[m] || 0)}</TableCell>
                 ))}
@@ -366,7 +372,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3 + visibleMeses.length} className="text-center text-muted-foreground py-8 text-xs">
+                <TableCell colSpan={2 + visibleMeses.length} className="text-center text-muted-foreground py-8 text-xs">
                   Nenhuma linha corresponde aos filtros selecionados.
                 </TableCell>
               </TableRow>
