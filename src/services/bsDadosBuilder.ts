@@ -64,7 +64,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "GG": "passivo_circulante",
   "HH": "passivo_circulante",
   "II": "credores_rj",
-  "JJ": "passivo_circulante",
+  "JJ": "outras_obrigacoes",  // resíduo do PC sub-classificado
   "KK": "passivo_circulante",
   "LL": "credores_rj",
   "MM": "passivo_circulante",
