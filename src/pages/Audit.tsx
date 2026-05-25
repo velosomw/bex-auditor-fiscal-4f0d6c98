@@ -1041,6 +1041,10 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                 variant: "destructive",
               });
             } else {
+              const ytdByMes = new Map<string, boolean>();
+              for (const e of (balanceteEntries || [])) {
+                if (e.isYtd && e.mesReferencia && validKey(e.mesReferencia)) ytdByMes.set(e.mesReferencia, true);
+              }
               const balancetes = meses.map(mes => {
                 const linhas = allRows.map(r => {
                   const matchKey = Object.keys(r.values || {}).find(k => k === mes || k.startsWith(`${mes}-`));
@@ -1051,8 +1055,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                     ref1: (r as any).ref1 ?? (r as any).refCapital ?? inferRefByCode(r.conta),
                     saldo: Number(v) || 0,
                   };
-                }).filter(l => Number.isFinite(l.saldo) && l.saldo !== 0); // descarta linhas zeradas no mês
-                return { mes, linhas };
+                }).filter(l => Number.isFinite(l.saldo) && l.saldo !== 0);
+                return { mes, linhas, is_ytd: ytdByMes.get(mes) || false };
               }).filter(b => b.linhas.length > 0);
               if (balancetes.length > 0 && balancetes.some(b => b.linhas.length > 0)) {
                 const persistResp = await consolidateBSDadosOnServer(balancetes, {
