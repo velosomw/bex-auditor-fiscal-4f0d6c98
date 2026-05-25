@@ -149,10 +149,10 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
                     <TableCell className="text-right tabular-nums">{fmt(r.disponivel)}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(r.divida_total)}</TableCell>
                     <TableCell className="text-right tabular-nums font-bold text-accent">
-                      {ind.liquidez_corrente == null ? "—" : ind.liquidez_corrente.toFixed(2)}
+                      <MemoryCell row={r} indicador="Liquidez Corrente" value={ind.liquidez_corrente} />
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-bold text-accent">
-                      {ind.liquidez_seca == null ? "—" : ind.liquidez_seca.toFixed(2)}
+                      <MemoryCell row={r} indicador="Liquidez Seca" value={ind.liquidez_seca} />
                     </TableCell>
                   </TableRow>
                 );
