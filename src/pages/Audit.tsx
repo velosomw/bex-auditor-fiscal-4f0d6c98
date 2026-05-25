@@ -740,6 +740,15 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                         </div>
                       );
                     })()}
+                    <label className="mt-2 flex items-center gap-2 text-[11px] text-foreground cursor-pointer select-none px-1">
+                      <input
+                        type="checkbox"
+                        checked={!!fileIsYtd[f.id]}
+                        onChange={(e) => setFileIsYtd(prev => ({ ...prev, [f.id]: e.target.checked }))}
+                        className="h-3.5 w-3.5 accent-emerald-600"
+                      />
+                      <span><strong>Balancete YTD</strong> (saldos acumulados desde Janeiro). Marque em 2+ meses consecutivos para reconstrução exata por subtração.</span>
+                    </label>
                   </div>
                 );
               })}
