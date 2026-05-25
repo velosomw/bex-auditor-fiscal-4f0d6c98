@@ -275,7 +275,7 @@ type ComponentBuckets = {
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
-  const ref1 = row.ref1 ?? inferRefByCode(row.conta || "");
+  const ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
   if (ref1) {
     const k = REF1_MAP[toUpperNoAccent(ref1)];
     if (k) return k;
