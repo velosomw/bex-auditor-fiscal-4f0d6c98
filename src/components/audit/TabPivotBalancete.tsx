@@ -210,7 +210,19 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
     if (useUser) for (const mk of userMesKeys) mesSet.add(mk);
 
     const meses = Array.from(mesSet).sort();
-    const linhas = Array.from(map.values()).sort((a, b) => String(a.conta).localeCompare(String(b.conta)));
+    const linhasRaw = Array.from(map.values()).sort((a, b) => String(a.conta).localeCompare(String(b.conta)));
+    // Atribui código sequencial para linhas sem código numérico válido
+    let seq = 0;
+    const pad = String(linhasRaw.length).length;
+    const linhas = linhasRaw.map(l => {
+      const conta = String(l.conta || "").trim();
+      const hasNumericMarker = /\d/.test(conta);
+      if (!hasNumericMarker) {
+        seq += 1;
+        return { ...l, conta: `L${String(seq).padStart(pad, "0")}`, _autoCode: true };
+      }
+      return l;
+    });
     const refs = Array.from(new Set(linhas.map(l => l.ref1).filter(Boolean) as string[])).sort();
     const codigos = linhas.map(l => l.conta as string);
     return { meses, linhas, refs, codigos };
