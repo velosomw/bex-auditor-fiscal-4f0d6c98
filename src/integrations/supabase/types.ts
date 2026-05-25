@@ -762,69 +762,108 @@ export type Database = {
       }
       bs_dados: {
         Row: {
+          amortizacao: number
           ativo_circulante: number
+          ativo_nao_circulante: number
+          ativo_total: number
           audit_id: string
           cmv: number
+          contas_receber: number
           created_at: string
           credores_rj: number
+          depreciacao: number
           despesas: number
+          despesas_financeiras: number
           disponivel: number
           divida_financeira: number
           divida_total: number
+          divida_total_bruto: number | null
           divida_trabalhista: number
           divida_tributaria: number
           errors: Json | null
           estoques: number
+          estoques_bruto: number | null
           fornecedores: number
           id: string
+          imobilizado: number
           mes: string
+          outras_obrigacoes: number
           passivo_circulante: number
+          passivo_nao_circulante: number
+          passivo_total: number
+          patrimonio_liquido: number
           receita_liquida: number
           resultado: number
           updated_at: string
           ytd_flags: Json | null
         }
         Insert: {
+          amortizacao?: number
           ativo_circulante?: number
+          ativo_nao_circulante?: number
+          ativo_total?: number
           audit_id: string
           cmv?: number
+          contas_receber?: number
           created_at?: string
           credores_rj?: number
+          depreciacao?: number
           despesas?: number
+          despesas_financeiras?: number
           disponivel?: number
           divida_financeira?: number
           divida_total?: number
+          divida_total_bruto?: number | null
           divida_trabalhista?: number
           divida_tributaria?: number
           errors?: Json | null
           estoques?: number
+          estoques_bruto?: number | null
           fornecedores?: number
           id?: string
+          imobilizado?: number
           mes: string
+          outras_obrigacoes?: number
           passivo_circulante?: number
+          passivo_nao_circulante?: number
+          passivo_total?: number
+          patrimonio_liquido?: number
           receita_liquida?: number
           resultado?: number
           updated_at?: string
           ytd_flags?: Json | null
         }
         Update: {
+          amortizacao?: number
           ativo_circulante?: number
+          ativo_nao_circulante?: number
+          ativo_total?: number
           audit_id?: string
           cmv?: number
+          contas_receber?: number
           created_at?: string
           credores_rj?: number
+          depreciacao?: number
           despesas?: number
+          despesas_financeiras?: number
           disponivel?: number
           divida_financeira?: number
           divida_total?: number
+          divida_total_bruto?: number | null
           divida_trabalhista?: number
           divida_tributaria?: number
           errors?: Json | null
           estoques?: number
+          estoques_bruto?: number | null
           fornecedores?: number
           id?: string
+          imobilizado?: number
           mes?: string
+          outras_obrigacoes?: number
           passivo_circulante?: number
+          passivo_nao_circulante?: number
+          passivo_total?: number
+          patrimonio_liquido?: number
           receita_liquida?: number
           resultado?: number
           updated_at?: string

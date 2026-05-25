@@ -50,33 +50,40 @@ interface BSDadosRow {
   mesKey: string;
   receita_liquida: number;
   cmv: number;
-  despesas: number;
+  despesas: number;                 // grupo 6 — operacionais
+  despesas_financeiras: number;     // grupo 7 — separado (alinhado com client)
+  depreciacao: number;
+  amortizacao: number;
   resultado: number;
   ativo_circulante: number;
   passivo_circulante: number;
-  ativo_nao_circulante: number;     // FIX #3
-  passivo_nao_circulante: number;   // FIX #3
-  patrimonio_liquido: number;       // FIX #3
-  ativo_total: number;              // FIX #3
-  passivo_total: number;            // FIX #3
+  ativo_nao_circulante: number;
+  passivo_nao_circulante: number;
+  patrimonio_liquido: number;
+  ativo_total: number;
+  passivo_total: number;
   estoques: number;
+  estoques_bruto?: number;          // pré-cap (apenas se cap foi aplicado)
   disponivel: number;
+  contas_receber: number;
+  imobilizado: number;
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
   fornecedores: number;
   credores_rj: number;
+  outras_obrigacoes: number;
   divida_total: number;
+  divida_total_bruto?: number;      // pré-cap
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
   ytd_desacumulado?: boolean;
-  /** Flags YTD consolidadas (também persistidas em bs_dados.ytd_flags). */
   ytd_flags?: {
-    is_ytd_input?: boolean;       // usuário marcou no upload
-    ytd_desacumulado?: boolean;   // reconstrução exata por subtração YTD-YTD aplicada
-    ytd_outlier_flag?: boolean;   // detecção automática isolada (sem normalização)
-    ytd_source_count?: number;    // qtd de balancetes YTD consecutivos usados na subtração
+    is_ytd_input?: boolean;
+    ytd_desacumulado?: boolean;
+    ytd_outlier_flag?: boolean;     // mês marcado p/ excluir de gráficos mensais
+    ytd_source_count?: number;
   };
 }
 
@@ -109,26 +116,49 @@ interface KanitzRow {
 const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const REF1_MAP: Record<string, keyof BSDadosRow> = {
-  "A": "disponivel", "B": "disponivel", "C": "ativo_circulante", "D": "estoques",
+  "A": "disponivel", "B": "disponivel", "C": "contas_receber", "D": "estoques",
   "E": "ativo_circulante", "F": "ativo_circulante", "G": "ativo_circulante", "H": "ativo_circulante",
   "I": "ativo_circulante", "J": "ativo_circulante", "K": "ativo_circulante", "L": "ativo_circulante",
   "M": "ativo_circulante", "N": "ativo_circulante", "O": "ativo_circulante",
+  // ANC (P..J1) — roteiam direto para ativo_nao_circulante; C1/D1 também alimentam imobilizado
+  "P": "ativo_nao_circulante", "Q": "ativo_nao_circulante", "R": "ativo_nao_circulante",
+  "S": "ativo_nao_circulante", "T": "ativo_nao_circulante", "U": "ativo_nao_circulante",
+  "V": "ativo_nao_circulante", "W": "ativo_nao_circulante", "X": "ativo_nao_circulante",
+  "Y": "ativo_nao_circulante", "Z": "ativo_nao_circulante", "A1": "ativo_nao_circulante",
+  "B1": "ativo_nao_circulante", "C1": "imobilizado", "D1": "imobilizado",
+  "E1": "ativo_nao_circulante", "F1": "ativo_nao_circulante", "G1": "ativo_nao_circulante",
+  "H1": "ativo_nao_circulante", "I1": "ativo_nao_circulante", "J1": "ativo_nao_circulante",
+  // PC
   "AA": "divida_financeira", "BB": "fornecedores", "CC": "divida_trabalhista",
   "DD": "divida_tributaria", "II": "credores_rj", "LL": "credores_rj",
   "EE": "passivo_circulante", "FF": "passivo_circulante", "GG": "passivo_circulante", "HH": "passivo_circulante",
-  "JJ": "passivo_circulante", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
+  "JJ": "outras_obrigacoes", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
   "OO": "passivo_circulante", "II1": "divida_tributaria",
-  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria", "SS": "divida_tributaria", "TT": "divida_financeira", "CC1": "credores_rj",
-  "DD1": "passivo_nao_circulante",
-  // Totalizadores (linhas de autoridade)
+  // PNC (PP..FF1) — completar gap vs cliente
+  "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria",
+  "SS": "divida_tributaria", "TT": "divida_financeira",
+  "UU": "passivo_nao_circulante", "VV": "passivo_nao_circulante", "WW": "passivo_nao_circulante",
+  "XX": "passivo_nao_circulante", "YY": "passivo_nao_circulante", "ZZ": "passivo_nao_circulante",
+  "AA1": "passivo_nao_circulante", "BB1": "passivo_nao_circulante",
+  "CC1": "credores_rj",
+  "DD1": "passivo_nao_circulante", "EE1": "passivo_nao_circulante", "FF1": "passivo_nao_circulante",
+  // PL
+  "GG1": "patrimonio_liquido", "HH1": "patrimonio_liquido",
+  // Totalizadores
   "AC_TOTAL": "ativo_circulante", "PC_TOTAL": "passivo_circulante",
   "ANC_TOTAL": "ativo_nao_circulante", "PNC_TOTAL": "passivo_nao_circulante", "PL_TOTAL": "patrimonio_liquido",
-  // GG1/HH1 (PL: Capital/Lucros Acumulados) NÃO mapeados para "resultado" — resultado vem da DRE.
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
-  "DESPESAS_FIN": "despesas", "DESPESAS_NOP": "despesas",
+  "DESPESAS_FIN": "despesas_financeiras",   // antes fundia em "despesas" — agora separado
+  "DESPESAS_NOP": "despesas",                // não operacionais ainda em despesas (sinal próprio)
+  "DESPESAS FINANCEIRAS": "despesas_financeiras",
+  "DEPRECIACAO": "depreciacao", "DEPRECIAÇÃO": "depreciacao",
+  "AMORTIZACAO": "amortizacao", "AMORTIZAÇÃO": "amortizacao",
   "ATIVO CIRCULANTE": "ativo_circulante", "PASSIVO CIRCULANTE": "passivo_circulante",
+  "ATIVO NAO CIRCULANTE": "ativo_nao_circulante", "ATIVO NÃO CIRCULANTE": "ativo_nao_circulante",
+  "PASSIVO NAO CIRCULANTE": "passivo_nao_circulante", "PASSIVO NÃO CIRCULANTE": "passivo_nao_circulante",
+  "PATRIMONIO LIQUIDO": "patrimonio_liquido", "PATRIMÔNIO LÍQUIDO": "patrimonio_liquido",
   "ESTOQUES": "estoques", "ESTOQUE": "estoques", "DISPONIVEL": "disponivel", "DISPONÍVEL": "disponivel",
   "PASSIVO TRIBUTARIO": "divida_tributaria", "PASSIVO TRIBUTÁRIO": "divida_tributaria",
   "PASSIVO TRABALHISTA": "divida_trabalhista",
@@ -281,13 +311,14 @@ function mesKeyToLabel(k: string): string {
 function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
-    receita_liquida: 0, cmv: 0, despesas: 0, resultado: 0,
+    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0,
+    depreciacao: 0, amortizacao: 0, resultado: 0,
     ativo_circulante: 0, passivo_circulante: 0,
     ativo_nao_circulante: 0, passivo_nao_circulante: 0,
     patrimonio_liquido: 0, ativo_total: 0, passivo_total: 0,
-    estoques: 0, disponivel: 0,
+    estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
-    fornecedores: 0, credores_rj: 0, divida_total: 0,
+    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0,
     hasReceita: false, hasBalanco: false, errors: [],
   };
 }
@@ -327,6 +358,9 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
     case "receita_liquida": row.receita_liquida += refUp === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v); break;
     case "cmv":             row.cmv -= Math.abs(v); break;
     case "despesas":        row.despesas -= Math.abs(v); break;
+    case "despesas_financeiras": row.despesas_financeiras -= Math.abs(v); break;
+    case "depreciacao":     row.depreciacao -= Math.abs(v); break;
+    case "amortizacao":     row.amortizacao -= Math.abs(v); break;
     case "resultado":       row.resultado += v; break;
     case "ativo_circulante":
       if (isTotal) { row.ativo_circulante = Math.max(row.ativo_circulante, Math.abs(v)); b.sawACTotal = true; }
@@ -345,6 +379,9 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
     case "patrimonio_liquido":
       row.patrimonio_liquido = isTotal ? (Math.abs(row.patrimonio_liquido) >= Math.abs(v) ? row.patrimonio_liquido : v) : row.patrimonio_liquido + v;
       break;
+    case "contas_receber":
+    case "imobilizado":
+    case "outras_obrigacoes":
     case "estoques":
     case "disponivel":
     case "divida_tributaria":
@@ -362,9 +399,11 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
 }
 
 function finalize(r: BSDadosRow): BSDadosRow {
-  r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira + r.fornecedores + r.credores_rj;
-  // Resultado derivado da DRE (cmv/despesas já negativos).
-  r.resultado = r.receita_liquida + r.cmv + r.despesas;
+  // Recalcula divida_total ANTES do cap, considerando outras_obrigacoes.
+  r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
+                   r.fornecedores + r.credores_rj + r.outras_obrigacoes;
+  // Resultado alinhado com client: inclui despesas financeiras (CPC 47 — separação operacional/financeiro).
+  r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras;
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
   r.hasReceita = r.receita_liquida > 0;
@@ -372,21 +411,23 @@ function finalize(r: BSDadosRow): BSDadosRow {
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
   if (r.cmv > 0)     r.errors.push("CMV positivo (deveria ser negativo)");
 
-  // FIX #1 — Sanity guard ESTOQUES (cap agressivo 85% → 65%) + log.
+  // Cap ESTOQUES — preserva valor bruto p/ UI mostrar antes/depois.
   if (r.estoques > 0 && r.ativo_circulante > 0 && r.estoques / r.ativo_circulante > 0.85) {
     const before = r.estoques;
     const pct = (before / r.ativo_circulante) * 100;
+    r.estoques_bruto = before;
     r.estoques = r.ativo_circulante * 0.65;
-    r.errors.push(`Estoques inflados (${pct.toFixed(1)}% do AC) — cap aplicado a 65%`);
+    r.errors.push(`Estoques inflados (${pct.toFixed(1)}% do AC) — cap aplicado: ${before.toFixed(0)} → ${r.estoques.toFixed(0)}`);
     console.log(`[finalize] CAP_ESTOQUES mes=${r.mesKey} before=${before.toFixed(0)} pct=${pct.toFixed(1)}% after=${r.estoques.toFixed(0)}`);
   }
 
-  // FIX #1 — Sanity guard DÍVIDA TOTAL.
+  // Cap DÍVIDA TOTAL — preserva valor bruto.
   const passivoEstimado = r.passivo_total > 0 ? r.passivo_total : r.passivo_circulante;
   if (passivoEstimado > 0 && r.divida_total > passivoEstimado * 1.1) {
     const before = r.divida_total;
+    r.divida_total_bruto = before;
     r.divida_total = passivoEstimado;
-    r.errors.push(`Dívida total excedia Passivo Total (${before.toFixed(0)} vs ${passivoEstimado.toFixed(0)}) — ajustada`);
+    r.errors.push(`Dívida total excedia Passivo Total — cap aplicado: ${before.toFixed(0)} → ${passivoEstimado.toFixed(0)}`);
     console.log(`[finalize] CAP_DIVIDA mes=${r.mesKey} before=${before.toFixed(0)} after=${passivoEstimado.toFixed(0)}`);
   }
 
@@ -493,7 +534,7 @@ function desacumularDRE(
 ): BSDadosRow[] {
   if (rows.length < 2) return rows;
   const sorted = [...rows].sort((a, b) => a.mesKey.localeCompare(b.mesKey));
-  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas"> = ["receita_liquida", "cmv", "despesas"];
+  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras"> = ["receita_liquida", "cmv", "despesas", "despesas_financeiras"];
   const byYear = new Map<string, BSDadosRow[]>();
   for (const r of sorted) {
     const y = r.mesKey.slice(0, 4);
@@ -543,7 +584,7 @@ function desacumularDRE(
       }
     }
     for (const r of group) {
-      r.resultado = r.receita_liquida + r.cmv + r.despesas;
+      r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras;
     }
   }
   return sorted;
@@ -950,17 +991,30 @@ Deno.serve(async (req) => {
             receita_liquida: r.receita_liquida,
             cmv: r.cmv,
             despesas: r.despesas,
+            despesas_financeiras: r.despesas_financeiras,
+            depreciacao: r.depreciacao,
+            amortizacao: r.amortizacao,
             resultado: r.resultado,
             ativo_circulante: r.ativo_circulante,
+            ativo_nao_circulante: r.ativo_nao_circulante,
             passivo_circulante: r.passivo_circulante,
+            passivo_nao_circulante: r.passivo_nao_circulante,
+            patrimonio_liquido: r.patrimonio_liquido,
+            ativo_total: r.ativo_total,
+            passivo_total: r.passivo_total,
             estoques: r.estoques,
+            estoques_bruto: r.estoques_bruto ?? null,
             disponivel: r.disponivel,
+            contas_receber: r.contas_receber,
+            imobilizado: r.imobilizado,
             divida_tributaria: r.divida_tributaria,
             divida_trabalhista: r.divida_trabalhista,
             divida_financeira: r.divida_financeira,
             fornecedores: r.fornecedores,
             credores_rj: r.credores_rj,
+            outras_obrigacoes: r.outras_obrigacoes,
             divida_total: r.divida_total,
+            divida_total_bruto: r.divida_total_bruto ?? null,
             errors: r.errors,
             ytd_flags: r.ytd_flags ?? null,
           }));
