@@ -41,14 +41,17 @@ export interface IndicatorRow {
   liquidezGeral: number;
   // Endividamento
   endividamentoGeral: number;
-  composicaoEndividamento: number;
+  composicaoEndividamento: number;       // PC / PT (CECP)
+  composicaoEndividamentoLP: number;     // PNC / PT (CELP) — NOVO
   imobilizacaoPL: number;
   coberturaJuros: number;
-  // Atividade
+  // Atividade (anualizado ×360 conforme planilha BEX)
   giroAtivo: number;
-  pmr: number;
-  pmp: number;
-  idadeMediaEstoque: number;
+  pmr: number;                           // PMC — Período Médio de Cobrança
+  pmp: number;                           // Período Médio de Pagamento
+  idadeMediaEstoque: number;             // IME
+  cicloOperacional: number;              // CO = IME + PMC — NOVO
+  cicloCaixa: number;                    // CC = CO − PMP — NOVO
   // Rentabilidade
   margemLiquida: number;
   margemOperacional: number;
