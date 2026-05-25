@@ -109,9 +109,10 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   // LAJIR (proxy): resultado + despesas financeiras (somando juros de volta)
   const lajir = resultado + despFinAbs;
 
-  const pmr = div(contasReceber * 360, receita);
-  const pmp = div(r.fornecedores * 360, cmvAbs);
-  const ime = div(estoque * 360, cmvAbs);
+  // Prazos em DIAS sobre base mensal (×30) — bate com planilha BEX p/ meses isolados e séries
+  const pmr = div(contasReceber * 30, receita);
+  const pmp = div(r.fornecedores * 30, cmvAbs);
+  const ime = div(estoque * 30, cmvAbs);
   return {
     mesKey: r.mesKey,
     mes: r.mes,
