@@ -447,7 +447,7 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     const desc = String(row[cols.descricao] ?? "").trim();
     if (!conta && !desc) continue;
     if (!isLeaf(conta)) continue; // pula totalizadores para evitar dupla contagem
-    const ref1 = inferRefByCode(conta);
+    const ref1 = inferRefByCode(conta, desc);
 
     if (useMultiMonth) {
       // Emite uma entrada por mês detectado nas colunas
