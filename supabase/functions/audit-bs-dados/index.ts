@@ -843,7 +843,7 @@ Deno.serve(async (req) => {
                   balancete_id: balId,
                   conta: String(l.conta || "").trim() || "—",
                   descricao: l.descricao ? String(l.descricao).slice(0, 500) : null,
-                  ref1: l.ref1 ?? inferRefByCode(l.conta) ?? null,
+                  ref1: l.ref1 ?? inferRefByCode(l.conta, l.descricao) ?? null,
                   saldo,
                 });
               }
