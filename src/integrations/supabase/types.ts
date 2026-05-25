@@ -782,6 +782,7 @@ export type Database = {
           receita_liquida: number
           resultado: number
           updated_at: string
+          ytd_flags: Json | null
         }
         Insert: {
           ativo_circulante?: number
@@ -804,6 +805,7 @@ export type Database = {
           receita_liquida?: number
           resultado?: number
           updated_at?: string
+          ytd_flags?: Json | null
         }
         Update: {
           ativo_circulante?: number
@@ -826,6 +828,7 @@ export type Database = {
           receita_liquida?: number
           resultado?: number
           updated_at?: string
+          ytd_flags?: Json | null
         }
         Relationships: [
           {
