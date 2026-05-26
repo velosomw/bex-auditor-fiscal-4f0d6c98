@@ -653,10 +653,14 @@ export function buildBSDados(
   });
 
   // ── 1ª passada: detecta GTs presentes por mesKey ──
+  // GT = conta cujo código está em GROUP_TOTAL_CODES OU cujo ref1 termina em "_TOTAL"
+  // (ref1 textual vem do dicionário canônico em planos não-padrão).
   const gtPresentByMes = new Map<string, Set<string>>();
   for (const row of leafRows) {
     const c = normCode(row.conta);
-    if (!GROUP_TOTAL_CODES.has(c)) continue;
+    const r1 = String(row.ref1 ?? row.refCapital ?? "").toUpperCase();
+    const isGT = GROUP_TOTAL_CODES.has(c) || TOTAL_REFS.has(r1);
+    if (!isGT) continue;
     const valuesObj = row.values || {};
     for (const period of Object.keys(valuesObj)) {
       const v = Number(valuesObj[period]);
@@ -668,9 +672,11 @@ export function buildBSDados(
         mesKey = periodToMesKey(period);
       }
       if (!gtPresentByMes.has(mesKey)) gtPresentByMes.set(mesKey, new Set());
-      gtPresentByMes.get(mesKey)!.add(c);
+      // Indexa pelo código quando disponível; senão pelo ref1 (chave estável).
+      const gtKey = c || r1;
+      gtPresentByMes.get(mesKey)!.add(gtKey);
       const buckets = bucketsByMes.get(mesKey);
-      if (buckets) buckets.groupTotalsPresent.add(c);
+      if (buckets) buckets.groupTotalsPresent.add(gtKey);
     }
   }
 
