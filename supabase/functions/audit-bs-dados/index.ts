@@ -258,6 +258,8 @@ function inferRefByCode(code?: string, descricao?: string): string | null {
     if (pattern.test(c)) {
       if (ref === "PC_COMPONENT") return classifyPCByDescription(descricao || "");
       if (ref === "PNC_COMPONENT") return classifyPNCByDescription(descricao || "");
+      if (ref === "FIN_GROUP") return classifyFinByDescription(descricao || "");
+      if (ref === "RECEITA_OR_DEDUCAO") return isDeducaoByDescription(descricao || "") ? "DEDUCOES_RECEITA" : "RECEITA";
       return ref;
     }
   }
