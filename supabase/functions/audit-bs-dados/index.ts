@@ -702,13 +702,20 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     }
   }
 
-  for (const [mesKey, row] of rowsByMes) {
-    const b = bucketsByMes.get(mesKey)!;
-    if (!b.sawACTotal && b.ac > 0) row.ativo_circulante = b.ac;
-    if (!b.sawPCTotal && b.pc > 0) row.passivo_circulante = b.pc;
-    row.ativo_nao_circulante = b.anc;
-    row.passivo_nao_circulante = b.pnc;
-    row.patrimonio_liquido = b.pl;
+  // ⚠️ FIX dupla contagem (Causa #2 do diagnóstico):
+  // applyValue já acumulou os valores nas chaves corretas via REF1_MAP.
+  // Os buckets b.ac/pc/anc/pnc/pl agora são vazios (telemetria), então NÃO
+  // sobrescrevemos as rows. finalize() ainda dá preferência a GT (totalizador)
+  // quando existir, evitando soma de folhas+total.
+  // Mantemos compatibilidade: se row está zerada E bucket tem valor (planos
+  // contábeis exóticos onde REF1_MAP não pegou), aplica como fallback.
+  for (const [, row] of rowsByMes) {
+    const b = bucketsByMes.get(row.mesKey)!;
+    if (row.ativo_circulante === 0 && !b.sawACTotal && b.ac > 0) row.ativo_circulante = b.ac;
+    if (row.passivo_circulante === 0 && !b.sawPCTotal && b.pc > 0) row.passivo_circulante = b.pc;
+    if (row.ativo_nao_circulante === 0 && !b.sawANCTotal && b.anc > 0) row.ativo_nao_circulante = b.anc;
+    if (row.passivo_nao_circulante === 0 && !b.sawPNCTotal && b.pnc > 0) row.passivo_nao_circulante = b.pnc;
+    if (row.patrimonio_liquido === 0 && !b.sawPLTotal && b.pl !== 0) row.patrimonio_liquido = b.pl;
   }
 
   const finalized = Array.from(rowsByMes.values()).map(r => finalize(r, bucketsByMes.get(r.mesKey)))
