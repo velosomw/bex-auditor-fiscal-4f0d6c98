@@ -14,8 +14,9 @@
  *   Liquidez Corrente   = AC / PC
  *   Liquidez Seca       = (AC − Estoques) / PC
  *   Liquidez Imediata   = Disponível / PC
- *   Liquidez Geral      = (AC + ANC) / (PC + PNC)   [usa ANC total como proxy de RLP]
+ *   Liquidez Geral      = (AC + RLP) / (PC + PNC)   [planilha Kanitz — RLP, não ANC inteiro; fallback ANC]
  *   Endividamento Geral = (PC + PNC) / (AC + ANC)   [ETA — Endividamento Total sobre Ativos]
+ *   Grau Endiv. PL      = (PC + PNC) / PL           [Kanitz X5; N/A se PL ≤ 0]
  *   Composição Endiv.   = PC / (PC + PNC)
  *   Imobilização do PL  = Imobilizado / PL          [N/A se PL ≤ 0]
  *   Cobertura de Juros  = (Resultado + |DespFin|) / |DespFin|
