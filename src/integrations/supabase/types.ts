@@ -792,6 +792,7 @@ export type Database = {
           passivo_nao_circulante: number
           passivo_total: number
           patrimonio_liquido: number
+          patrimonio_liquido_bruto: number | null
           receita_liquida: number
           receitas_financeiras: number
           resultado: number
@@ -829,6 +830,7 @@ export type Database = {
           passivo_nao_circulante?: number
           passivo_total?: number
           patrimonio_liquido?: number
+          patrimonio_liquido_bruto?: number | null
           receita_liquida?: number
           receitas_financeiras?: number
           resultado?: number
@@ -866,6 +868,7 @@ export type Database = {
           passivo_nao_circulante?: number
           passivo_total?: number
           patrimonio_liquido?: number
+          patrimonio_liquido_bruto?: number | null
           receita_liquida?: number
           receitas_financeiras?: number
           resultado?: number
@@ -1528,6 +1531,7 @@ export type Database = {
           file_name: string
           file_type: string
           id: string
+          parser_version: string | null
           progress: string | null
           status: string
           storage_path: string | null
@@ -1542,6 +1546,7 @@ export type Database = {
           file_name: string
           file_type?: string
           id?: string
+          parser_version?: string | null
           progress?: string | null
           status?: string
           storage_path?: string | null
@@ -1556,6 +1561,7 @@ export type Database = {
           file_name?: string
           file_type?: string
           id?: string
+          parser_version?: string | null
           progress?: string | null
           status?: string
           storage_path?: string | null
