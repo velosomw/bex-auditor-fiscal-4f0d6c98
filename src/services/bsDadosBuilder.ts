@@ -377,10 +377,32 @@ type ComponentBuckets = {
   layerByGroup: Record<string, "A" | "B" | "C">;
 };
 
+/** Resolve refs DRE em formato dot-decimal (10.A, 20.B, 30.C, 40.J, 50.B) → ref canônica. */
+function resolveDotDRERef(ref: string): string | null {
+  const m = /^(\d{1,2})\.([A-Z]\d?)$/i.exec(ref.trim());
+  if (!m) return null;
+  const [_, prefix, suffix] = m;
+  // Casos especiais (sub-itens financeiros dentro de grupos operacionais)
+  if (prefix === "40" && suffix.toUpperCase() === "J") return "DESPESAS_FIN";
+  if (prefix === "50" && suffix.toUpperCase() === "B") return "RECEITAS_FIN";
+  // Mapeamento por prefixo
+  switch (prefix) {
+    case "10": return "RECEITA";
+    case "20": return "DEDUCOES_RECEITA";
+    case "30": return "CMV";
+    case "40": return "DESPESAS";
+    case "50": return "RECEITA"; // Outras receitas → soma em receita líquida
+    default: return null;
+  }
+}
+
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
-  const ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
+  let ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
   if (ref1) {
+    // Normaliza refs DRE dot-decimal (formato planilha XPT: "10.A", "40.J", "50.B")
+    const dotResolved = resolveDotDRERef(String(ref1));
+    if (dotResolved) ref1 = dotResolved;
     const k = REF1_MAP[toUpperNoAccent(ref1)];
     if (k) return k;
   }
