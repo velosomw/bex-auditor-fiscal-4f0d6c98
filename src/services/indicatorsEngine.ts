@@ -159,7 +159,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
     _fornecedores: r.fornecedores || 0, _receita: receita, _cmv: cmvAbs,
-    _despFin: despFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
+    _despFin: despFinAbs, _recFin: recFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
     _resultado: resultado,
     naROE: pl <= 0,
     naImobilizacao: pl <= 0,
