@@ -356,7 +356,7 @@ const MAIN_AGG_KEYS = new Set<keyof BSDadosRow>([
   "ativo_circulante","ativo_nao_circulante",
   "passivo_circulante","passivo_nao_circulante",
   "patrimonio_liquido",
-  "receita_liquida","cmv","despesas","despesas_financeiras","outras_nao_operacionais",
+  "receita_liquida","cmv","despesas","despesas_financeiras","receitas_financeiras","outras_nao_operacionais",
 ]);
 
 // Buckets internos por mês para somar componentes (acumulador derivado).
