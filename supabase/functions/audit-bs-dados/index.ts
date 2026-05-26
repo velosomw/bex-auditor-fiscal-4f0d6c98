@@ -627,7 +627,7 @@ function desacumularDRE(
       }
     }
     for (const r of group) {
-      r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras;
+      r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras;
     }
   }
   return sorted;
