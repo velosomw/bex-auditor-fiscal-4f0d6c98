@@ -577,7 +577,7 @@ function desacumularDRE(
 ): BSDadosRow[] {
   if (rows.length < 2) return rows;
   const sorted = [...rows].sort((a, b) => a.mesKey.localeCompare(b.mesKey));
-  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras"> = ["receita_liquida", "cmv", "despesas", "despesas_financeiras"];
+  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras" | "receitas_financeiras"> = ["receita_liquida", "cmv", "despesas", "despesas_financeiras", "receitas_financeiras"];
   const byYear = new Map<string, BSDadosRow[]>();
   for (const r of sorted) {
     const y = r.mesKey.slice(0, 4);
