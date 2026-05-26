@@ -793,6 +793,7 @@ export type Database = {
           passivo_total: number
           patrimonio_liquido: number
           receita_liquida: number
+          receitas_financeiras: number
           resultado: number
           updated_at: string
           ytd_flags: Json | null
@@ -829,6 +830,7 @@ export type Database = {
           passivo_total?: number
           patrimonio_liquido?: number
           receita_liquida?: number
+          receitas_financeiras?: number
           resultado?: number
           updated_at?: string
           ytd_flags?: Json | null
@@ -865,6 +867,7 @@ export type Database = {
           passivo_total?: number
           patrimonio_liquido?: number
           receita_liquida?: number
+          receitas_financeiras?: number
           resultado?: number
           updated_at?: string
           ytd_flags?: Json | null

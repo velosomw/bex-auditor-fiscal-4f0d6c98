@@ -1,0 +1,1 @@
+ALTER TABLE public.bs_dados ADD COLUMN IF NOT EXISTS receitas_financeiras numeric NOT NULL DEFAULT 0;
