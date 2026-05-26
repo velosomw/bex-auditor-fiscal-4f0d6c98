@@ -816,7 +816,9 @@ export function buildBSDados(
       const currentYear = current.mesKey.split("-")[0];
       const previousYear = previous.mesKey.split("-")[0];
       if (currentYear !== previousYear) continue;
-      current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
+      // Sem clamp em zero — variação negativa pode ser legítima (ex.: estorno),
+      // preservar permite que Margem Bruta/ROA reflitam a realidade do mês.
+      current.receita_liquida = current.receita_liquida - previous.receita_liquida;
       current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
       current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
       current.despesas_financeiras = -(Math.abs(current.despesas_financeiras) - Math.abs(previous.despesas_financeiras));
