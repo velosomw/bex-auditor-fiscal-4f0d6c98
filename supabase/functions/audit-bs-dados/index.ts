@@ -553,15 +553,41 @@ function pruneParents(linhas: InputLinha[]): InputLinha[] {
     }
   }
   const before = linhas.length;
+  // FIX #3 — Detecção estrutural: se valor(pai) ≈ Σ valor(filhas diretas),
+  // remove o pai (é totalizador real e a soma das folhas é fiel ao saldo).
+  const valByCode = new Map<string, number>();
+  for (const l of linhas) {
+    const c = normCode(l.conta);
+    if (c) valByCode.set(c, (valByCode.get(c) || 0) + (Number(l.saldo) || 0));
+  }
+  const structuralParents = new Set<string>();
+  for (const c of parents) {
+    const parentVal = valByCode.get(c) || 0;
+    if (Math.abs(parentVal) < 1) continue;
+    let childSum = 0;
+    for (const other of sorted) {
+      if (other === c || !other.startsWith(c)) continue;
+      // só filhas imediatas (1 nível abaixo)
+      const suffix = other.slice(c.length).replace(/^\.+/, "");
+      if (suffix && !suffix.includes(".") && /^\d+$/.test(suffix)) {
+        childSum += valByCode.get(other) || 0;
+      }
+    }
+    if (childSum !== 0 && Math.abs(parentVal - childSum) / Math.max(Math.abs(parentVal), 1) < 0.02) {
+      structuralParents.add(c);
+    }
+  }
   const filtered = linhas.filter(l => {
     const c = normCode(l.conta);
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
-    return !parents.has(c);
+    if (parents.has(c)) return false;
+    if (structuralParents.has(c)) return false;
+    return true;
   });
   const removed = before - filtered.length;
   if (removed > 0) {
-    console.log(`[pruneParents] removidas ${removed}/${before} linhas (pais sintéticos)`);
+    console.log(`[pruneParents] removidas ${removed}/${before} linhas (pais sintéticos+estruturais=${structuralParents.size})`);
   }
   return filtered;
 }
