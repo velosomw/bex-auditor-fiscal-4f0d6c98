@@ -289,7 +289,7 @@ function emptyRow(mesKey: string): BSDadosRow {
     receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0,
     outras_nao_operacionais: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
-    ativo_circulante: 0, ativo_nao_circulante: 0,
+    ativo_circulante: 0, ativo_nao_circulante: 0, realizavel_longo_prazo: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
