@@ -779,19 +779,15 @@ export function buildBSDados(
     .map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
 
-  // ── AJUSTE DE ACUMULADO (Mês vs Acumulado Ano) ──
-  // Contas de resultado (DRE) zeram no fim do ano. Se mês N e N-1 são do mesmo ano,
-  // valor mensal = Saldo(N) − Saldo(N-1). Heurística: receita monotonicamente crescente
-  // dentro do mesmo ano → balancete é YTD acumulado.
-  let isAccumulated = false;
-  if (sortedRows.length > 1) {
-    let consistentIncrease = 0;
-    for (let i = 1; i < sortedRows.length; i++) {
-      const sameYear = sortedRows[i].mesKey.split("-")[0] === sortedRows[i-1].mesKey.split("-")[0];
-      if (sameYear && sortedRows[i].receita_liquida >= sortedRows[i-1].receita_liquida) consistentIncrease++;
-    }
-    if (consistentIncrease >= (sortedRows.length - 1) * 0.75) isAccumulated = true;
-  }
+  // ── DRE POR VARIAÇÃO (regra padrão para balancetes brasileiros) ──
+  // Contas dos grupos 3-8 são reportadas como saldo YTD acumulado dentro
+  // do ano fiscal. Para obter o valor MENSAL aplicamos sempre
+  //   valorMes(N) = saldo(N) − saldo(N-1)   (quando mesmo ano fiscal)
+  // Esta é regra contábil determinística (não mais heurística baseada em
+  // monotonicidade): qualquer balancete com ≥2 meses do mesmo ano sofre
+  // desacumulação automática. Casos raros (DRE já mensalizada) são
+  // protegidos pelo Math.max(0, …) que evita receitas negativas espúrias.
+  const isAccumulated = sortedRows.length > 1;
 
   if (isAccumulated) {
     for (let i = sortedRows.length - 1; i > 0; i--) {
