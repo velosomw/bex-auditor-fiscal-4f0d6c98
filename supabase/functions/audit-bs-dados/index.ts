@@ -52,6 +52,7 @@ interface BSDadosRow {
   cmv: number;
   despesas: number;                 // grupo 6 — operacionais
   despesas_financeiras: number;     // grupo 7 — separado (alinhado com client)
+  receitas_financeiras: number;     // grupo 7+ / juros ativos / rendimentos — usado em EBITDA (subtrai)
   depreciacao: number;
   amortizacao: number;
   resultado: number;
@@ -151,8 +152,10 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
   "DESPESAS_FIN": "despesas_financeiras",   // antes fundia em "despesas" — agora separado
+  "RECEITAS_FIN": "receitas_financeiras",   // juros ativos / rendimentos de aplicação
   "DESPESAS_NOP": "despesas",                // não operacionais ainda em despesas (sinal próprio)
   "DESPESAS FINANCEIRAS": "despesas_financeiras",
+  "RECEITAS FINANCEIRAS": "receitas_financeiras",
   "DEPRECIACAO": "depreciacao", "DEPRECIAÇÃO": "depreciacao",
   "AMORTIZACAO": "amortizacao", "AMORTIZAÇÃO": "amortizacao",
   "ATIVO CIRCULANTE": "ativo_circulante", "PASSIVO CIRCULANTE": "passivo_circulante",
@@ -202,15 +205,30 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^23/,    "PL_TOTAL"],
   [/^24/,    "GG1"],
   // ── DRE ───
-  [/^31/,    "RECEITA"],
+  [/^31/,    "RECEITA_OR_DEDUCAO"],  // 31x pode ser bruta OU dedução — classifica por descrição
   [/^32/,    "DEDUCOES_RECEITA"],
   [/^33/,    "DEDUCOES_RECEITA"],
   [/^4/,     "CMV"],
   [/^5/,     "CMV"],          // Custo Industrial → CMV
   [/^6/,     "DESPESAS"],     // Despesas Operacionais
-  [/^7/,     "DESPESAS_FIN"], // Despesas/Receitas FINANCEIRAS
+  [/^7/,     "FIN_GROUP"],    // Financeiro — receita OU despesa via descrição
   [/^8/,     "DESPESAS_NOP"], // Despesas/Receitas NÃO Operacionais
 ];
+
+/** Classifica grupo 7 (financeiro) em receita vs despesa pela descrição. */
+function classifyFinByDescription(desc: string): "DESPESAS_FIN" | "RECEITAS_FIN" {
+  const d = stripAccents(desc);
+  if (/juros?\s+(?:ativ|recebid|aufer)|rendiment|receita.*financ|aplica[cç][aã]o\s+financ|desconto\s+obtid|varia[cç][aã]o\s+monet[aá]ria\s+ativ/.test(d)) {
+    return "RECEITAS_FIN";
+  }
+  return "DESPESAS_FIN";
+}
+
+/** Detecta se uma conta com prefixo 31x é dedução de receita (impostos, devoluções, abatimentos). */
+function isDeducaoByDescription(desc: string): boolean {
+  const d = stripAccents(desc);
+  return /dedu[cç][aã]o|devolu[cç][aã]o|cancelament|abatiment|imposto.*(?:vend|receit|fatur)|icms.*vend|iss.*servi|pis.*receit|cofins.*receit|simples.*nacional|substitui[cç][aã]o\s+tribut/.test(d);
+}
 
 const stripAccents = (s: string) =>
   (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -240,6 +258,8 @@ function inferRefByCode(code?: string, descricao?: string): string | null {
     if (pattern.test(c)) {
       if (ref === "PC_COMPONENT") return classifyPCByDescription(descricao || "");
       if (ref === "PNC_COMPONENT") return classifyPNCByDescription(descricao || "");
+      if (ref === "FIN_GROUP") return classifyFinByDescription(descricao || "");
+      if (ref === "RECEITA_OR_DEDUCAO") return isDeducaoByDescription(descricao || "") ? "DEDUCOES_RECEITA" : "RECEITA";
       return ref;
     }
   }
@@ -250,6 +270,8 @@ const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
   receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
   cmv: /\bc(?:mv|sv|pv)\b|\bcusto\s+(?:das?\s+)?(?:mercadoria|servi[cç]o|produto|venda)/i,
   despesas: /\bdespesa|gasto\s+oper/i,
+  despesas_financeiras: /\b(?:despesas?\s+financeir|juros\s+(?:passivo|pagos?|sobre)|encargos\s+financeir|varia[cç][oõ]es\s+monet[aá]rias?\s+passiv)/i,
+  receitas_financeiras: /\b(?:receitas?\s+financeir|juros\s+(?:ativo|recebidos?|aufer)|rendimentos?\s+de\s+aplica|desconto\s+obtid)/i,
   resultado: /\b(?:lucro|preju[ií]zo|resultado)\s+(?:l[ií]quid|do\s+exerc|do\s+per[ií]odo)/i,
   ativo_circulante: /\bativo\s+circulante\b/i,
   passivo_circulante: /\bpassivo\s+circulante\b/i,
@@ -311,7 +333,7 @@ function mesKeyToLabel(k: string): string {
 function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
-    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0,
+    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0, receitas_financeiras: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
     ativo_circulante: 0, passivo_circulante: 0,
     ativo_nao_circulante: 0, passivo_nao_circulante: 0,
@@ -341,6 +363,9 @@ interface Buckets {
   ac: number; pc: number;
   anc: number; pnc: number; pl: number;
   sawACTotal: boolean; sawPCTotal: boolean;
+  sawANCTotal: boolean; sawPNCTotal: boolean; sawPLTotal: boolean;
+  // Valores declarados pelo GT (totalizador), para preferi-los às folhas em finalize
+  gtAC: number; gtPC: number; gtANC: number; gtPNC: number; gtPL: number;
 }
 
 // ANC = P..J1 (15 refs do MD §2.2)
@@ -359,25 +384,29 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
     case "cmv":             row.cmv -= Math.abs(v); break;
     case "despesas":        row.despesas -= Math.abs(v); break;
     case "despesas_financeiras": row.despesas_financeiras -= Math.abs(v); break;
+    case "receitas_financeiras": row.receitas_financeiras += Math.abs(v); break;
     case "depreciacao":     row.depreciacao -= Math.abs(v); break;
     case "amortizacao":     row.amortizacao -= Math.abs(v); break;
     case "resultado":       row.resultado += v; break;
     case "ativo_circulante":
-      if (isTotal) { row.ativo_circulante = Math.max(row.ativo_circulante, Math.abs(v)); b.sawACTotal = true; }
+      if (isTotal) { b.sawACTotal = true; b.gtAC = Math.max(b.gtAC, Math.abs(v)); }
       else { row.ativo_circulante += Math.abs(v); }
       break;
     case "passivo_circulante":
-      if (isTotal) { row.passivo_circulante = Math.max(row.passivo_circulante, Math.abs(v)); b.sawPCTotal = true; }
+      if (isTotal) { b.sawPCTotal = true; b.gtPC = Math.max(b.gtPC, Math.abs(v)); }
       else { row.passivo_circulante += Math.abs(v); }
       break;
     case "ativo_nao_circulante":
-      row.ativo_nao_circulante = isTotal ? Math.max(row.ativo_nao_circulante, Math.abs(v)) : row.ativo_nao_circulante + Math.abs(v);
+      if (isTotal) { b.sawANCTotal = true; b.gtANC = Math.max(b.gtANC, Math.abs(v)); }
+      else { row.ativo_nao_circulante += Math.abs(v); }
       break;
     case "passivo_nao_circulante":
-      row.passivo_nao_circulante = isTotal ? Math.max(row.passivo_nao_circulante, Math.abs(v)) : row.passivo_nao_circulante + Math.abs(v);
+      if (isTotal) { b.sawPNCTotal = true; b.gtPNC = Math.max(b.gtPNC, Math.abs(v)); }
+      else { row.passivo_nao_circulante += Math.abs(v); }
       break;
     case "patrimonio_liquido":
-      row.patrimonio_liquido = isTotal ? (Math.abs(row.patrimonio_liquido) >= Math.abs(v) ? row.patrimonio_liquido : v) : row.patrimonio_liquido + v;
+      if (isTotal) { b.sawPLTotal = true; b.gtPL = Math.abs(v) > Math.abs(b.gtPL) ? v : b.gtPL; }
+      else { row.patrimonio_liquido += v; }
       break;
     case "contas_receber":
     case "imobilizado":
@@ -398,12 +427,26 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
   else if (refUp && PL_REFS.has(refUp)) b.pl += v; // PL preserva sinal
 }
 
-function finalize(r: BSDadosRow): BSDadosRow {
-  // Recalcula divida_total ANTES do cap, considerando outras_obrigacoes.
+function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
+  // FIX: se GT presente, ele é a fonte da verdade — evita dupla contagem de folhas+total.
+  if (b) {
+    if (b.sawACTotal  && b.gtAC  > 0) r.ativo_circulante       = b.gtAC;
+    if (b.sawPCTotal  && b.gtPC  > 0) r.passivo_circulante     = b.gtPC;
+    if (b.sawANCTotal && b.gtANC > 0) r.ativo_nao_circulante   = b.gtANC;
+    if (b.sawPNCTotal && b.gtPNC > 0) r.passivo_nao_circulante = b.gtPNC;
+    if (b.sawPLTotal  && b.gtPL !== 0) r.patrimonio_liquido    = b.gtPL;
+  }
+  // Resíduo do PC vai para outras_obrigacoes (componentes não classificados)
+  const componentesPC = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
+                        r.fornecedores + r.credores_rj + r.outras_obrigacoes;
+  if (r.passivo_circulante > componentesPC) {
+    r.outras_obrigacoes += r.passivo_circulante - componentesPC;
+  }
+  // Recalcula divida_total
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
                    r.fornecedores + r.credores_rj + r.outras_obrigacoes;
-  // Resultado alinhado com client: inclui despesas financeiras (CPC 47 — separação operacional/financeiro).
-  r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras;
+  // Resultado alinhado: inclui despesas e receitas financeiras (CPC 47).
+  r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras;
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
   r.hasReceita = r.receita_liquida > 0;
@@ -534,7 +577,7 @@ function desacumularDRE(
 ): BSDadosRow[] {
   if (rows.length < 2) return rows;
   const sorted = [...rows].sort((a, b) => a.mesKey.localeCompare(b.mesKey));
-  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras"> = ["receita_liquida", "cmv", "despesas", "despesas_financeiras"];
+  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras" | "receitas_financeiras"> = ["receita_liquida", "cmv", "despesas", "despesas_financeiras", "receitas_financeiras"];
   const byYear = new Map<string, BSDadosRow[]>();
   for (const r of sorted) {
     const y = r.mesKey.slice(0, 4);
@@ -584,7 +627,7 @@ function desacumularDRE(
       }
     }
     for (const r of group) {
-      r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras;
+      r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras;
     }
   }
   return sorted;
@@ -638,7 +681,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     const mesKey = periodToMesKey(b.mes);
     if (!rowsByMes.has(mesKey)) {
       rowsByMes.set(mesKey, emptyRow(mesKey));
-      bucketsByMes.set(mesKey, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false });
+      bucketsByMes.set(mesKey, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false, gtAC: 0, gtPC: 0, gtANC: 0, gtPNC: 0, gtPL: 0 });
     }
     if (dup[mesKey] > 1) {
       const r = rowsByMes.get(mesKey)!;
@@ -667,7 +710,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     row.patrimonio_liquido = b.pl;
   }
 
-  const finalized = Array.from(rowsByMes.values()).map(finalize)
+  const finalized = Array.from(rowsByMes.values()).map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
   const desacumulated = desacumularDRE(finalized, userYtdByMesKey);
   return detectYtdOutliers(desacumulated);
@@ -992,6 +1035,7 @@ Deno.serve(async (req) => {
             cmv: r.cmv,
             despesas: r.despesas,
             despesas_financeiras: r.despesas_financeiras,
+            receitas_financeiras: r.receitas_financeiras,
             depreciacao: r.depreciacao,
             amortizacao: r.amortizacao,
             resultado: r.resultado,
