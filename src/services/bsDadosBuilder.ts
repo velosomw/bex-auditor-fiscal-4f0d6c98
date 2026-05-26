@@ -323,6 +323,9 @@ const PL_REFS = new Set(["GG1","HH1"]);
 // Refs para readouts ortogonais (não-exclusivos)
 const CONTAS_RECEBER_REFS = new Set(["C"]);
 const IMOBILIZADO_REFS = new Set(["C1","D1"]);
+// RLP = subset inicial do ANC (antes de Investimentos/Imobilizado/Intangível).
+// Refs P..Z conforme plano BEX — usado em Liquidez Geral conforme planilha Kanitz Giannini.
+const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
 
 // ─── GRUPO-FIRST ────────────────────────────────────────
 // Códigos de TOTALIZADORES DE GRUPO no plano contábil brasileiro padrão.
