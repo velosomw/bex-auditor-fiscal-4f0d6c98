@@ -472,6 +472,7 @@ function applyValue(
     else if (PL_REFS.has(refUp)) buckets.pl += v;
     if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") target.contas_receber += Math.abs(v);
     if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") target.imobilizado += Math.abs(v);
+    if (RLP_REFS.has(refUp)) target.realizavel_longo_prazo += Math.abs(v);
   }
 
   // Diagnóstico — valor declarado pelo GT por campo principal
