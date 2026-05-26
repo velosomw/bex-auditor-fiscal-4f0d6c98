@@ -146,7 +146,8 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   disponivel: /\b(?:caixa|disponibilidade|disponivel|bancos?|aplica[cç][aã]o\s+financ|equivalente)/i,
   contas_receber: /\b(?:contas?\s+a\s+receber|duplicatas?\s+a\s+receber|clientes)\b/i,
   imobilizado: /\b(?:imobilizado|intang[ií]vel)\b/i,
-  ativo_nao_circulante: /\bativo\s+n[aã]o[\s-]?circulante|realiz[aá]vel\s+a\s+longo\s+prazo|ativo\s+permanente/i,
+  ativo_nao_circulante: /\bativo\s+n[aã]o[\s-]?circulante|ativo\s+permanente/i,
+  realizavel_longo_prazo: /\brealiz[aá]vel\s+a?\s*longo\s+prazo\b/i,
   ativo_circulante: /\bativo\s+circulante\b/i,
   // BALANÇO — Passivos & PL
   divida_tributaria: /\b(?:tribut|impostos?\s+a\s+(?:pagar|recolher)|icms|iss|pis|cofins|irpj|csll)/i,
@@ -204,6 +205,7 @@ export interface BSDadosRow {
   // BALANÇO — Ativos
   ativo_circulante: number;
   ativo_nao_circulante: number;
+  realizavel_longo_prazo: number; // RLP (Refs P..Z) — subset de ANC, usado em Liquidez Geral
   estoques: number;
   disponivel: number;
   contas_receber: number;       // Ref C (orth.)
@@ -287,7 +289,7 @@ function emptyRow(mesKey: string): BSDadosRow {
     receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0,
     outras_nao_operacionais: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
-    ativo_circulante: 0, ativo_nao_circulante: 0,
+    ativo_circulante: 0, ativo_nao_circulante: 0, realizavel_longo_prazo: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
@@ -321,6 +323,9 @@ const PL_REFS = new Set(["GG1","HH1"]);
 // Refs para readouts ortogonais (não-exclusivos)
 const CONTAS_RECEBER_REFS = new Set(["C"]);
 const IMOBILIZADO_REFS = new Set(["C1","D1"]);
+// RLP = subset inicial do ANC (antes de Investimentos/Imobilizado/Intangível).
+// Refs P..Z conforme plano BEX — usado em Liquidez Geral conforme planilha Kanitz Giannini.
+const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
 
 // ─── GRUPO-FIRST ────────────────────────────────────────
 // Códigos de TOTALIZADORES DE GRUPO no plano contábil brasileiro padrão.
@@ -411,8 +416,12 @@ function applyValue(
 
   if (!skipMain) {
     switch (key) {
-      case "receita_liquida":
-        (target as any)[key] = (target[key] as number) + (toUpperNoAccent(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v)); break;
+      case "receita_liquida": {
+        const refU = toUpperNoAccent(ref1 || "");
+        const isDeducao = refU === "DEDUCOES_RECEITA";
+        (target as any)[key] = (target[key] as number) + (isDeducao ? -Math.abs(v) : Math.abs(v));
+        break;
+      }
       case "cmv":
       case "despesas":
       case "despesas_financeiras":
@@ -463,6 +472,7 @@ function applyValue(
     else if (PL_REFS.has(refUp)) buckets.pl += v;
     if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") target.contas_receber += Math.abs(v);
     if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") target.imobilizado += Math.abs(v);
+    if (RLP_REFS.has(refUp)) target.realizavel_longo_prazo += Math.abs(v);
   }
 
   // Diagnóstico — valor declarado pelo GT por campo principal
@@ -696,10 +706,20 @@ export function buildBSDados(
   const hasParentGT = (conta: string, mesKey: string): boolean =>
     findParentGT(conta, mesKey) !== null;
 
+  // Mapeamento ref1 sintético para Group Totals que vieram sem ref1 explícito
+  // (garante que "32"/"33" → DEDUCOES_RECEITA, "11" → AC_TOTAL etc., preservando
+  // sinais corretos em applyValue — fix do bug Receita Líquida inflada).
+  const GT_REF1: Record<string, string> = {
+    "11":"AC_TOTAL","12":"ANC_TOTAL","21":"PC_TOTAL","22":"PNC_TOTAL","23":"PL_TOTAL",
+    "32":"DEDUCOES_RECEITA","33":"DEDUCOES_RECEITA",
+  };
+
   // ── 2ª passada: roteia valores ──
   for (const row of leafRows) {
-    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? null;
-    const conta = normCode(row.conta);
+    const contaPre = normCode(row.conta);
+    const inferredRef1 = GROUP_TOTAL_CODES.has(contaPre) ? (GT_REF1[contaPre] ?? null) : null;
+    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? inferredRef1 ?? null;
+    const conta = contaPre;
     const ref1Up = String(ref1 ?? "").toUpperCase();
     const isGroupTotal = GROUP_TOTAL_CODES.has(conta) || TOTAL_REFS.has(ref1Up);
     const valuesObj = row.values || {};
@@ -796,7 +816,9 @@ export function buildBSDados(
       const currentYear = current.mesKey.split("-")[0];
       const previousYear = previous.mesKey.split("-")[0];
       if (currentYear !== previousYear) continue;
-      current.receita_liquida = Math.max(0, current.receita_liquida - previous.receita_liquida);
+      // Sem clamp em zero — variação negativa pode ser legítima (ex.: estorno),
+      // preservar permite que Margem Bruta/ROA reflitam a realidade do mês.
+      current.receita_liquida = current.receita_liquida - previous.receita_liquida;
       current.cmv = -(Math.abs(current.cmv) - Math.abs(previous.cmv));
       current.despesas = -(Math.abs(current.despesas) - Math.abs(previous.despesas));
       current.despesas_financeiras = -(Math.abs(current.despesas_financeiras) - Math.abs(previous.despesas_financeiras));

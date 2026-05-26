@@ -14,8 +14,9 @@
  *   Liquidez Corrente   = AC / PC
  *   Liquidez Seca       = (AC − Estoques) / PC
  *   Liquidez Imediata   = Disponível / PC
- *   Liquidez Geral      = (AC + ANC) / (PC + PNC)   [usa ANC total como proxy de RLP]
+ *   Liquidez Geral      = (AC + RLP) / (PC + PNC)   [planilha Kanitz — RLP, não ANC inteiro; fallback ANC]
  *   Endividamento Geral = (PC + PNC) / (AC + ANC)   [ETA — Endividamento Total sobre Ativos]
+ *   Grau Endiv. PL      = (PC + PNC) / PL           [Kanitz X5; N/A se PL ≤ 0]
  *   Composição Endiv.   = PC / (PC + PNC)
  *   Imobilização do PL  = Imobilizado / PL          [N/A se PL ≤ 0]
  *   Cobertura de Juros  = (Resultado + |DespFin|) / |DespFin|
@@ -41,6 +42,7 @@ export interface IndicatorRow {
   liquidezGeral: number;
   // Endividamento
   endividamentoGeral: number;
+  grauEndividamentoPL: number;           // GE = (PC + PNC) / PL — Kanitz X5 (N/A se PL ≤ 0)
   composicaoEndividamento: number;       // PC / PT (CECP)
   composicaoEndividamentoLP: number;     // PNC / PT (CELP) — NOVO
   imobilizacaoPL: number;
@@ -90,6 +92,7 @@ const div = (n: number, d: number): number =>
 export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const ac = r.ativo_circulante || 0;
   const anc = r.ativo_nao_circulante || 0;
+  const rlp = r.realizavel_longo_prazo || 0;
   const at = ac + anc;
   const pc = r.passivo_circulante || 0;
   const pnc = r.passivo_nao_circulante || 0;
@@ -113,6 +116,12 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const pmr = div(contasReceber * 30, receita);
   const pmp = div(r.fornecedores * 30, cmvAbs);
   const ime = div(estoque * 30, cmvAbs);
+
+  // Liquidez Geral — fórmula planilha Kanitz: (AC + RLP) / (PC + PNC).
+  // RLP é subset de ANC: quando ausente (parser não populou), fallback para ANC
+  // mantém compatibilidade — mas o ideal é ter RLP discriminado via Refs P..Z.
+  const rlpEff = rlp > 0 ? rlp : anc;
+
   return {
     mesKey: r.mesKey,
     mes: r.mes,
@@ -120,9 +129,10 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     liquidezCorrente: div(ac, pc),
     liquidezSeca: div(ac - estoque, pc),
     liquidezImediata: div(caixa, pc),
-    liquidezGeral: div(ac + anc, pc + pnc),
+    liquidezGeral: div(ac + rlpEff, pc + pnc),
     // Endividamento
     endividamentoGeral: div(pt, at),
+    grauEndividamentoPL: pl > 0 ? div(pt, pl) : 0,
     composicaoEndividamento: div(pc, pt),
     composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
