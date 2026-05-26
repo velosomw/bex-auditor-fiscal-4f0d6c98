@@ -41,6 +41,7 @@ export interface IndicatorRow {
   liquidezGeral: number;
   // Endividamento
   endividamentoGeral: number;
+  grauEndividamentoPL: number;           // GE = (PC + PNC) / PL — Kanitz X5 (N/A se PL ≤ 0)
   composicaoEndividamento: number;       // PC / PT (CECP)
   composicaoEndividamentoLP: number;     // PNC / PT (CELP) — NOVO
   imobilizacaoPL: number;
