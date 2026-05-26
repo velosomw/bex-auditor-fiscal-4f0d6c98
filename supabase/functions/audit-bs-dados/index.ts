@@ -498,7 +498,7 @@ function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
 const SYNTHETIC_DESC_PATTERNS: RegExp[] = [
   /^ativo$/i, /^ativo\s+(circulante|n[aã]o\s+circulante|total|realiz[aá]vel)/i,
   /^passivo$/i, /^passivo\s+(circulante|n[aã]o\s+circulante|total|exig[ií]vel)/i,
-  /^patrim[oô]nio\s+l[ií]quido$/i,
+  /^patrim[oô]nio\s+l[ií]quido\s*(?:\(.*\))?$/i,            // FIX #3 — PL puro
   /^total\s+do?\s+(ativo|passivo|patrim[oô]nio|circulante|n[aã]o\s+circulante)/i,
   /^total\s+geral/i, /^subtotal/i, /^totaliza/i,
   /^demonstra[çc][aã]o\s+de?\s+resultado/i, /^demonstrativo\s+de?\s+resultado/i, /^dre$/i,
@@ -510,6 +510,10 @@ const SYNTHETIC_DESC_PATTERNS: RegExp[] = [
   /\(=\)/, /\(\+\)/, /\(\-\)/, // marcadores de subtotal
   /^\s*total\b/i, // qualquer "total ..." que não tenha sido pego acima
   /^soma\s+(do|dos|das)/i,
+  // FIX #3 — totalizadores hierárquicos comuns em planos brasileiros
+  /^(grupo|conta)\s+sint[eé]tic/i,
+  /^capital\s+(social\s+)?(integralizado|total)$/i,
+  /^reservas?\s+(de\s+)?(capital|lucros?|total)$/i,
 ];
 function isSyntheticDesc(desc?: string): boolean {
   const d = String(desc || "").trim();
