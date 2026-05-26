@@ -681,7 +681,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     const mesKey = periodToMesKey(b.mes);
     if (!rowsByMes.has(mesKey)) {
       rowsByMes.set(mesKey, emptyRow(mesKey));
-      bucketsByMes.set(mesKey, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false });
+      bucketsByMes.set(mesKey, { ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0, sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false, gtAC: 0, gtPC: 0, gtANC: 0, gtPNC: 0, gtPL: 0 });
     }
     if (dup[mesKey] > 1) {
       const r = rowsByMes.get(mesKey)!;
