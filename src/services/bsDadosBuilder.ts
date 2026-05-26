@@ -204,6 +204,7 @@ export interface BSDadosRow {
   // BALANÇO — Ativos
   ativo_circulante: number;
   ativo_nao_circulante: number;
+  realizavel_longo_prazo: number; // RLP (Refs P..Z) — subset de ANC, usado em Liquidez Geral
   estoques: number;
   disponivel: number;
   contas_receber: number;       // Ref C (orth.)
