@@ -65,6 +65,7 @@ interface BSDadosRow {
   passivo_total: number;
   estoques: number;
   estoques_bruto?: number;          // pré-cap (apenas se cap foi aplicado)
+  patrimonio_liquido_bruto?: number; // PL original (pré-rebalanço por equação contábil)
   disponivel: number;
   contas_receber: number;
   imobilizado: number;
