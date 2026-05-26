@@ -205,15 +205,30 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^23/,    "PL_TOTAL"],
   [/^24/,    "GG1"],
   // ── DRE ───
-  [/^31/,    "RECEITA"],
+  [/^31/,    "RECEITA_OR_DEDUCAO"],  // 31x pode ser bruta OU dedução — classifica por descrição
   [/^32/,    "DEDUCOES_RECEITA"],
   [/^33/,    "DEDUCOES_RECEITA"],
   [/^4/,     "CMV"],
   [/^5/,     "CMV"],          // Custo Industrial → CMV
   [/^6/,     "DESPESAS"],     // Despesas Operacionais
-  [/^7/,     "DESPESAS_FIN"], // Despesas/Receitas FINANCEIRAS
+  [/^7/,     "FIN_GROUP"],    // Financeiro — receita OU despesa via descrição
   [/^8/,     "DESPESAS_NOP"], // Despesas/Receitas NÃO Operacionais
 ];
+
+/** Classifica grupo 7 (financeiro) em receita vs despesa pela descrição. */
+function classifyFinByDescription(desc: string): "DESPESAS_FIN" | "RECEITAS_FIN" {
+  const d = stripAccents(desc);
+  if (/juros?\s+(?:ativ|recebid|aufer)|rendiment|receita.*financ|aplica[cç][aã]o\s+financ|desconto\s+obtid|varia[cç][aã]o\s+monet[aá]ria\s+ativ/.test(d)) {
+    return "RECEITAS_FIN";
+  }
+  return "DESPESAS_FIN";
+}
+
+/** Detecta se uma conta com prefixo 31x é dedução de receita (impostos, devoluções, abatimentos). */
+function isDeducaoByDescription(desc: string): boolean {
+  const d = stripAccents(desc);
+  return /dedu[cç][aã]o|devolu[cç][aã]o|cancelament|abatiment|imposto.*(?:vend|receit|fatur)|icms.*vend|iss.*servi|pis.*receit|cofins.*receit|simples.*nacional|substitui[cç][aã]o\s+tribut/.test(d);
+}
 
 const stripAccents = (s: string) =>
   (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
