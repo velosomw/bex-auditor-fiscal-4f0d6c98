@@ -1365,8 +1365,9 @@ serve(async (req) => {
         document_id: documentId,
         req_id: reqId,
         dedup_hit: dedupHit,
+        parser_version: PARSER_VERSION,
         message: dedupHit
-          ? "Documento já processado anteriormente — reaproveitando resultado (dedup por SHA-256)."
+          ? "Documento já processado anteriormente — reaproveitando resultado (dedup por SHA-256). Use force_reprocess=true para reprocessar."
           : "Documento enfileirado para processamento em background. Faça polling em pipeline_documents.status até 'completed' ou 'failed'.",
       }),
       { status: dedupHit ? 200 : 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
