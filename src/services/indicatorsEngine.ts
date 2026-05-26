@@ -77,6 +77,7 @@ export interface IndicatorRow {
   _receita: number;
   _cmv: number;
   _despFin: number;
+  _recFin: number;
   _depreciacao: number;
   _amortizacao: number;
   _resultado: number;
@@ -105,12 +106,14 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const receita = r.receita_liquida || 0;
   const cmvAbs = Math.abs(r.cmv || 0);
   const despFinAbs = Math.abs(r.despesas_financeiras || 0);
+  const recFinAbs = Math.abs(r.receitas_financeiras || 0);
   const depAbs = Math.abs(r.depreciacao || 0);
   const amortAbs = Math.abs(r.amortizacao || 0);
   const resultado = r.resultado || 0;
 
-  // LAJIR (proxy): resultado + despesas financeiras (somando juros de volta)
-  const lajir = resultado + despFinAbs;
+  // LAJIR (proxy): resultado + despesas financeiras − receitas financeiras
+  // Reconcilia com a planilha BEX/Kanitz que isola o resultado financeiro líquido.
+  const lajir = resultado + despFinAbs - recFinAbs;
 
   // Prazos em DIAS sobre base mensal (×30) — bate com planilha BEX p/ meses isolados e séries
   const pmr = div(contasReceber * 30, receita);
@@ -156,7 +159,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
     _fornecedores: r.fornecedores || 0, _receita: receita, _cmv: cmvAbs,
-    _despFin: despFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
+    _despFin: despFinAbs, _recFin: recFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
     _resultado: resultado,
     naROE: pl <= 0,
     naImobilizacao: pl <= 0,

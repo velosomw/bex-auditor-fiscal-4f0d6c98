@@ -94,6 +94,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "PL_TOTAL":  "patrimonio_liquido",
   // ── DRE — categorias separadas ──
   "DESPESAS_FIN": "despesas_financeiras", // grupo 7
+  "RECEITAS_FIN": "receitas_financeiras", // DRE 50.B
   "DESPESAS_NOP": "outras_nao_operacionais", // grupo 8
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
@@ -104,6 +105,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "DESPESAS": "despesas",
   "DESPESA": "despesas",
   "DESPESAS FINANCEIRAS": "despesas_financeiras",
+  "RECEITAS FINANCEIRAS": "receitas_financeiras",
   "ATIVO CIRCULANTE": "ativo_circulante",
   "ATIVO NAO CIRCULANTE": "ativo_nao_circulante",
   "ATIVO NÃO CIRCULANTE": "ativo_nao_circulante",
@@ -135,6 +137,7 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   mes: null, mesKey: null,
   // DRE — mais específicos primeiro
   despesas_financeiras: /\b(?:despesas?\s+financeir|juros\s+(?:passivo|pagos?|sobre)|encargos\s+financeir|varia[cç][oõ]es\s+monet[aá]rias?\s+passiv)/i,
+  receitas_financeiras: /\b(?:receitas?\s+financeir|juros\s+(?:ativo|recebidos?|aufer)|rendimentos?\s+de\s+aplica)/i,
   depreciacao: /\bdeprecia[cç][aã]o\b/i,
   amortizacao: /\bamortiza[cç][aã]o\b/i,
   cmv: /\bc(?:mv|sv|pv)\b|\bcusto\s+(?:das?\s+)?(?:mercadoria|servi[cç]o|produto|venda)/i,
@@ -198,6 +201,7 @@ export interface BSDadosRow {
   cmv: number;
   despesas: number;             // despesas operacionais (administrativas, comerciais)
   despesas_financeiras: number; // grupo 7 — separado das operacionais
+  receitas_financeiras: number; // grupo 7+ / DRE 50.B — usado em EBITDA (subtrai)
   outras_nao_operacionais: number; // grupo 8 — não operacionais (signed)
   depreciacao: number;
   amortizacao: number;
@@ -287,7 +291,7 @@ function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
     receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0,
-    outras_nao_operacionais: 0,
+    receitas_financeiras: 0, outras_nao_operacionais: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
     ativo_circulante: 0, ativo_nao_circulante: 0, realizavel_longo_prazo: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
@@ -352,7 +356,7 @@ const MAIN_AGG_KEYS = new Set<keyof BSDadosRow>([
   "ativo_circulante","ativo_nao_circulante",
   "passivo_circulante","passivo_nao_circulante",
   "patrimonio_liquido",
-  "receita_liquida","cmv","despesas","despesas_financeiras","outras_nao_operacionais",
+  "receita_liquida","cmv","despesas","despesas_financeiras","receitas_financeiras","outras_nao_operacionais",
 ]);
 
 // Buckets internos por mês para somar componentes (acumulador derivado).
@@ -373,10 +377,32 @@ type ComponentBuckets = {
   layerByGroup: Record<string, "A" | "B" | "C">;
 };
 
+/** Resolve refs DRE em formato dot-decimal (10.A, 20.B, 30.C, 40.J, 50.B) → ref canônica. */
+function resolveDotDRERef(ref: string): string | null {
+  const m = /^(\d{1,2})\.([A-Z]\d?)$/i.exec(ref.trim());
+  if (!m) return null;
+  const [_, prefix, suffix] = m;
+  // Casos especiais (sub-itens financeiros dentro de grupos operacionais)
+  if (prefix === "40" && suffix.toUpperCase() === "J") return "DESPESAS_FIN";
+  if (prefix === "50" && suffix.toUpperCase() === "B") return "RECEITAS_FIN";
+  // Mapeamento por prefixo
+  switch (prefix) {
+    case "10": return "RECEITA";
+    case "20": return "DEDUCOES_RECEITA";
+    case "30": return "CMV";
+    case "40": return "DESPESAS";
+    case "50": return "RECEITA"; // Outras receitas → soma em receita líquida
+    default: return null;
+  }
+}
+
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
-  const ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
+  let ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
   if (ref1) {
+    // Normaliza refs DRE dot-decimal (formato planilha XPT: "10.A", "40.J", "50.B")
+    const dotResolved = resolveDotDRERef(String(ref1));
+    if (dotResolved) ref1 = dotResolved;
     const k = REF1_MAP[toUpperNoAccent(ref1)];
     if (k) return k;
   }
@@ -428,6 +454,8 @@ function applyValue(
       case "depreciacao":
       case "amortizacao":
         (target as any)[key] = (target[key] as number) - Math.abs(v); break;
+      case "receitas_financeiras":
+        (target as any)[key] = (target[key] as number) + Math.abs(v); break;
       case "resultado":
         (target as any)[key] = (target[key] as number) + v; break;
       case "patrimonio_liquido":

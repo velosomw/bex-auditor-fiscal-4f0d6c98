@@ -12,11 +12,12 @@ import type { MonthlyDatum } from "@/services/auditDatasetBuilder";
 export function bsDadosToMonthlyDataset(rows: BSDadosRow[]): MonthlyDatum[] {
   return rows.map(r => {
     // EBITDA = LAJIR + Depreciação + Amortização
-    // LAJIR ≈ Resultado + |Despesas Financeiras|
+    // LAJIR ≈ Resultado + |Despesas Financeiras| − |Receitas Financeiras|
     const despFinAbs = Math.abs(r.despesas_financeiras || 0);
+    const recFinAbs = Math.abs(r.receitas_financeiras || 0);
     const depAbs = Math.abs(r.depreciacao || 0);
     const amortAbs = Math.abs(r.amortizacao || 0);
-    const lajir = (r.resultado || 0) + despFinAbs;
+    const lajir = (r.resultado || 0) + despFinAbs - recFinAbs;
     const ebitda = lajir + depAbs + amortAbs;
 
     return {
