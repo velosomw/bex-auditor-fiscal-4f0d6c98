@@ -69,7 +69,16 @@ interface PipelineRequest {
     balanco?: DedupOptions;
     dre?: DedupOptions;
   };
+  /** Força reprocessamento ignorando dedup hit (UI: botão "Forçar reprocessamento"). */
+  force_reprocess?: boolean;
 }
+
+/**
+ * Versão do parser/finalize em audit-bs-dados.
+ * BUMP a cada mudança que afete os números calculados:
+ * invalida automaticamente o cache de dedup por content_hash.
+ */
+const PARSER_VERSION = "2026.05.27.01";
 
 /* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
 async function sha256Hex(input: string): Promise<string> {
