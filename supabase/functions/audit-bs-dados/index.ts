@@ -152,8 +152,10 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
   "DESPESAS_FIN": "despesas_financeiras",   // antes fundia em "despesas" — agora separado
+  "RECEITAS_FIN": "receitas_financeiras",   // juros ativos / rendimentos de aplicação
   "DESPESAS_NOP": "despesas",                // não operacionais ainda em despesas (sinal próprio)
   "DESPESAS FINANCEIRAS": "despesas_financeiras",
+  "RECEITAS FINANCEIRAS": "receitas_financeiras",
   "DEPRECIACAO": "depreciacao", "DEPRECIAÇÃO": "depreciacao",
   "AMORTIZACAO": "amortizacao", "AMORTIZAÇÃO": "amortizacao",
   "ATIVO CIRCULANTE": "ativo_circulante", "PASSIVO CIRCULANTE": "passivo_circulante",
