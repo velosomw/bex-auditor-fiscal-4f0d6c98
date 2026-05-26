@@ -1035,6 +1035,7 @@ Deno.serve(async (req) => {
             cmv: r.cmv,
             despesas: r.despesas,
             despesas_financeiras: r.despesas_financeiras,
+            receitas_financeiras: r.receitas_financeiras,
             depreciacao: r.depreciacao,
             amortizacao: r.amortizacao,
             resultado: r.resultado,
