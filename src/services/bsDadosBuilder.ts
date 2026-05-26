@@ -705,10 +705,20 @@ export function buildBSDados(
   const hasParentGT = (conta: string, mesKey: string): boolean =>
     findParentGT(conta, mesKey) !== null;
 
+  // Mapeamento ref1 sintético para Group Totals que vieram sem ref1 explícito
+  // (garante que "32"/"33" → DEDUCOES_RECEITA, "11" → AC_TOTAL etc., preservando
+  // sinais corretos em applyValue — fix do bug Receita Líquida inflada).
+  const GT_REF1: Record<string, string> = {
+    "11":"AC_TOTAL","12":"ANC_TOTAL","21":"PC_TOTAL","22":"PNC_TOTAL","23":"PL_TOTAL",
+    "32":"DEDUCOES_RECEITA","33":"DEDUCOES_RECEITA",
+  };
+
   // ── 2ª passada: roteia valores ──
   for (const row of leafRows) {
-    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? null;
-    const conta = normCode(row.conta);
+    const contaPre = normCode(row.conta);
+    const inferredRef1 = GROUP_TOTAL_CODES.has(contaPre) ? (GT_REF1[contaPre] ?? null) : null;
+    const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? inferredRef1 ?? null;
+    const conta = contaPre;
     const ref1Up = String(ref1 ?? "").toUpperCase();
     const isGroupTotal = GROUP_TOTAL_CODES.has(conta) || TOTAL_REFS.has(ref1Up);
     const valuesObj = row.values || {};
