@@ -91,6 +91,7 @@ function buildContentHashSource(body: PipelineRequest): string {
   const norm = (rows: BalanceteRow[] = []) =>
     rows.map((r) => `${r.conta || ""}|${r.descricao || ""}|${Number(r.valor) || 0}`).sort().join("\n");
   return [
+    `parser:${PARSER_VERSION}`,        // FIX #1 — invalida cache em qualquer evolução do parser
     body.company_id || "",
     body.documentInfo?.periodo || "",
     norm(body.balanco),
