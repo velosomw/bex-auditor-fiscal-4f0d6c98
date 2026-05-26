@@ -454,6 +454,8 @@ function applyValue(
       case "depreciacao":
       case "amortizacao":
         (target as any)[key] = (target[key] as number) - Math.abs(v); break;
+      case "receitas_financeiras":
+        (target as any)[key] = (target[key] as number) + Math.abs(v); break;
       case "resultado":
         (target as any)[key] = (target[key] as number) + v; break;
       case "patrimonio_liquido":
