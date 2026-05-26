@@ -146,7 +146,8 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   disponivel: /\b(?:caixa|disponibilidade|disponivel|bancos?|aplica[cç][aã]o\s+financ|equivalente)/i,
   contas_receber: /\b(?:contas?\s+a\s+receber|duplicatas?\s+a\s+receber|clientes)\b/i,
   imobilizado: /\b(?:imobilizado|intang[ií]vel)\b/i,
-  ativo_nao_circulante: /\bativo\s+n[aã]o[\s-]?circulante|realiz[aá]vel\s+a\s+longo\s+prazo|ativo\s+permanente/i,
+  ativo_nao_circulante: /\bativo\s+n[aã]o[\s-]?circulante|ativo\s+permanente/i,
+  realizavel_longo_prazo: /\brealiz[aá]vel\s+a?\s*longo\s+prazo\b/i,
   ativo_circulante: /\bativo\s+circulante\b/i,
   // BALANÇO — Passivos & PL
   divida_tributaria: /\b(?:tribut|impostos?\s+a\s+(?:pagar|recolher)|icms|iss|pis|cofins|irpj|csll)/i,
