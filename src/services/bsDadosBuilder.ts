@@ -700,7 +700,8 @@ export function buildBSDados(
   for (const row of leafRows) {
     const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? null;
     const conta = normCode(row.conta);
-    const isGroupTotal = GROUP_TOTAL_CODES.has(conta);
+    const ref1Up = String(ref1 ?? "").toUpperCase();
+    const isGroupTotal = GROUP_TOTAL_CODES.has(conta) || TOTAL_REFS.has(ref1Up);
     const valuesObj = row.values || {};
     const periodKeys = Object.keys(valuesObj);
 
