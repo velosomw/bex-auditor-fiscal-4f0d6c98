@@ -77,6 +77,7 @@ export interface IndicatorRow {
   _receita: number;
   _cmv: number;
   _despFin: number;
+  _recFin: number;
   _depreciacao: number;
   _amortizacao: number;
   _resultado: number;
