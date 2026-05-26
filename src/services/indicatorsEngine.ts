@@ -106,12 +106,14 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const receita = r.receita_liquida || 0;
   const cmvAbs = Math.abs(r.cmv || 0);
   const despFinAbs = Math.abs(r.despesas_financeiras || 0);
+  const recFinAbs = Math.abs(r.receitas_financeiras || 0);
   const depAbs = Math.abs(r.depreciacao || 0);
   const amortAbs = Math.abs(r.amortizacao || 0);
   const resultado = r.resultado || 0;
 
-  // LAJIR (proxy): resultado + despesas financeiras (somando juros de volta)
-  const lajir = resultado + despFinAbs;
+  // LAJIR (proxy): resultado + despesas financeiras − receitas financeiras
+  // Reconcilia com a planilha BEX/Kanitz que isola o resultado financeiro líquido.
+  const lajir = resultado + despFinAbs - recFinAbs;
 
   // Prazos em DIAS sobre base mensal (×30) — bate com planilha BEX p/ meses isolados e séries
   const pmr = div(contasReceber * 30, receita);
