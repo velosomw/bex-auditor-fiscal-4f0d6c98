@@ -65,6 +65,7 @@ interface BSDadosRow {
   passivo_total: number;
   estoques: number;
   estoques_bruto?: number;          // pré-cap (apenas se cap foi aplicado)
+  patrimonio_liquido_bruto?: number; // PL original (pré-rebalanço por equação contábil)
   disponivel: number;
   contas_receber: number;
   imobilizado: number;
@@ -420,11 +421,11 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
     case "credores_rj":
       (row as any)[key] += Math.abs(v); break;
   }
-  if (refUp && AC_REFS.has(refUp)) b.ac += Math.abs(v);
-  else if (refUp && PC_REFS.has(refUp)) b.pc += Math.abs(v);
-  else if (refUp && ANC_REFS.has(refUp)) b.anc += Math.abs(v);
-  else if (refUp && PNC_REFS.has(refUp)) b.pnc += Math.abs(v);
-  else if (refUp && PL_REFS.has(refUp)) b.pl += v; // PL preserva sinal
+  // ⚠️ FIX dupla contagem: o bucket por prefixo só serve como FALLBACK
+  // para linhas que NÃO caíram em nenhum case do switch acima (key === null
+  // não chega aqui pois retorna em resolveKey). Para linhas que JÁ foram
+  // aplicadas via switch, NÃO acumulamos novamente nos buckets ac/pc/anc/pnc/pl.
+  // Mantemos buckets apenas para telemetria de cobertura.
 }
 
 function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
@@ -481,8 +482,18 @@ function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
     const tol = r.ativo_total * 0.01;
     if (diff > tol) {
       const desvio = (diff / r.ativo_total) * 100;
-      r.errors.push(`Equação contábil rompida: Ativo=${r.ativo_total.toFixed(0)} ≠ Passivo+PL=${ladoDireito.toFixed(0)} (desvio ${desvio.toFixed(2)}%)`);
-      console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}%`);
+      // FIX #4 — Auto-rebalanço quando PL > Ativo Total (sinal de dupla contagem).
+      if (r.patrimonio_liquido > r.ativo_total) {
+        const plOriginal = r.patrimonio_liquido;
+        const plDerivado = r.ativo_total - r.passivo_total;
+        r.patrimonio_liquido_bruto = plOriginal;
+        r.patrimonio_liquido = plDerivado;
+        r.errors.push(`PL recalculado por equação contábil — original ${plOriginal.toFixed(0)} excedia Ativo Total ${r.ativo_total.toFixed(0)}; derivado A−P = ${plDerivado.toFixed(0)}`);
+        console.log(`[finalize] PL_REBALANCE mes=${r.mesKey} original=${plOriginal.toFixed(0)} derivado=${plDerivado.toFixed(0)} ativo=${r.ativo_total.toFixed(0)}`);
+      } else {
+        r.errors.push(`Equação contábil rompida: Ativo=${r.ativo_total.toFixed(0)} ≠ Passivo+PL=${ladoDireito.toFixed(0)} (desvio ${desvio.toFixed(2)}%)`);
+        console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}% PC=${r.passivo_circulante.toFixed(0)} PNC=${r.passivo_nao_circulante.toFixed(0)} PL=${r.patrimonio_liquido.toFixed(0)}`);
+      }
     }
   }
   return r;
@@ -497,7 +508,7 @@ function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
 const SYNTHETIC_DESC_PATTERNS: RegExp[] = [
   /^ativo$/i, /^ativo\s+(circulante|n[aã]o\s+circulante|total|realiz[aá]vel)/i,
   /^passivo$/i, /^passivo\s+(circulante|n[aã]o\s+circulante|total|exig[ií]vel)/i,
-  /^patrim[oô]nio\s+l[ií]quido$/i,
+  /^patrim[oô]nio\s+l[ií]quido\s*(?:\(.*\))?$/i,            // FIX #3 — PL puro
   /^total\s+do?\s+(ativo|passivo|patrim[oô]nio|circulante|n[aã]o\s+circulante)/i,
   /^total\s+geral/i, /^subtotal/i, /^totaliza/i,
   /^demonstra[çc][aã]o\s+de?\s+resultado/i, /^demonstrativo\s+de?\s+resultado/i, /^dre$/i,
@@ -509,6 +520,10 @@ const SYNTHETIC_DESC_PATTERNS: RegExp[] = [
   /\(=\)/, /\(\+\)/, /\(\-\)/, // marcadores de subtotal
   /^\s*total\b/i, // qualquer "total ..." que não tenha sido pego acima
   /^soma\s+(do|dos|das)/i,
+  // FIX #3 — totalizadores hierárquicos comuns em planos brasileiros
+  /^(grupo|conta)\s+sint[eé]tic/i,
+  /^capital\s+(social\s+)?(integralizado|total)$/i,
+  /^reservas?\s+(de\s+)?(capital|lucros?|total)$/i,
 ];
 function isSyntheticDesc(desc?: string): boolean {
   const d = String(desc || "").trim();
@@ -548,15 +563,41 @@ function pruneParents(linhas: InputLinha[]): InputLinha[] {
     }
   }
   const before = linhas.length;
+  // FIX #3 — Detecção estrutural: se valor(pai) ≈ Σ valor(filhas diretas),
+  // remove o pai (é totalizador real e a soma das folhas é fiel ao saldo).
+  const valByCode = new Map<string, number>();
+  for (const l of linhas) {
+    const c = normCode(l.conta);
+    if (c) valByCode.set(c, (valByCode.get(c) || 0) + (Number(l.saldo) || 0));
+  }
+  const structuralParents = new Set<string>();
+  for (const c of parents) {
+    const parentVal = valByCode.get(c) || 0;
+    if (Math.abs(parentVal) < 1) continue;
+    let childSum = 0;
+    for (const other of sorted) {
+      if (other === c || !other.startsWith(c)) continue;
+      // só filhas imediatas (1 nível abaixo)
+      const suffix = other.slice(c.length).replace(/^\.+/, "");
+      if (suffix && !suffix.includes(".") && /^\d+$/.test(suffix)) {
+        childSum += valByCode.get(other) || 0;
+      }
+    }
+    if (childSum !== 0 && Math.abs(parentVal - childSum) / Math.max(Math.abs(parentVal), 1) < 0.02) {
+      structuralParents.add(c);
+    }
+  }
   const filtered = linhas.filter(l => {
     const c = normCode(l.conta);
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
-    return !parents.has(c);
+    if (parents.has(c)) return false;
+    if (structuralParents.has(c)) return false;
+    return true;
   });
   const removed = before - filtered.length;
   if (removed > 0) {
-    console.log(`[pruneParents] removidas ${removed}/${before} linhas (pais sintéticos)`);
+    console.log(`[pruneParents] removidas ${removed}/${before} linhas (pais sintéticos+estruturais=${structuralParents.size})`);
   }
   return filtered;
 }
@@ -701,13 +742,20 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     }
   }
 
-  for (const [mesKey, row] of rowsByMes) {
-    const b = bucketsByMes.get(mesKey)!;
-    if (!b.sawACTotal && b.ac > 0) row.ativo_circulante = b.ac;
-    if (!b.sawPCTotal && b.pc > 0) row.passivo_circulante = b.pc;
-    row.ativo_nao_circulante = b.anc;
-    row.passivo_nao_circulante = b.pnc;
-    row.patrimonio_liquido = b.pl;
+  // ⚠️ FIX dupla contagem (Causa #2 do diagnóstico):
+  // applyValue já acumulou os valores nas chaves corretas via REF1_MAP.
+  // Os buckets b.ac/pc/anc/pnc/pl agora são vazios (telemetria), então NÃO
+  // sobrescrevemos as rows. finalize() ainda dá preferência a GT (totalizador)
+  // quando existir, evitando soma de folhas+total.
+  // Mantemos compatibilidade: se row está zerada E bucket tem valor (planos
+  // contábeis exóticos onde REF1_MAP não pegou), aplica como fallback.
+  for (const [, row] of rowsByMes) {
+    const b = bucketsByMes.get(row.mesKey)!;
+    if (row.ativo_circulante === 0 && !b.sawACTotal && b.ac > 0) row.ativo_circulante = b.ac;
+    if (row.passivo_circulante === 0 && !b.sawPCTotal && b.pc > 0) row.passivo_circulante = b.pc;
+    if (row.ativo_nao_circulante === 0 && !b.sawANCTotal && b.anc > 0) row.ativo_nao_circulante = b.anc;
+    if (row.passivo_nao_circulante === 0 && !b.sawPNCTotal && b.pnc > 0) row.passivo_nao_circulante = b.pnc;
+    if (row.patrimonio_liquido === 0 && !b.sawPLTotal && b.pl !== 0) row.patrimonio_liquido = b.pl;
   }
 
   const finalized = Array.from(rowsByMes.values()).map(r => finalize(r, bucketsByMes.get(r.mesKey)))
@@ -1044,6 +1092,7 @@ Deno.serve(async (req) => {
             passivo_circulante: r.passivo_circulante,
             passivo_nao_circulante: r.passivo_nao_circulante,
             patrimonio_liquido: r.patrimonio_liquido,
+            patrimonio_liquido_bruto: r.patrimonio_liquido_bruto ?? null,
             ativo_total: r.ativo_total,
             passivo_total: r.passivo_total,
             estoques: r.estoques,

@@ -742,6 +742,7 @@ export async function runAuditPipeline(
   existingDocumentId?: string,
   dedup?: DedupConfig,
   onProgress?: (ev: PipelineProgressEvent) => void,
+  forceReprocess?: boolean,
 ): Promise<PipelineResult | null> {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const { supabase } = await import("@/integrations/supabase/client");
@@ -765,6 +766,7 @@ export async function runAuditPipeline(
         documentInfo: parsedData.documentInfo,
         ocr_score: parsedData.ocrScore,
         ...(dedup ? { dedup } : {}),
+        ...(forceReprocess ? { force_reprocess: true } : {}),
       }),
     });
     if (!response.ok) {

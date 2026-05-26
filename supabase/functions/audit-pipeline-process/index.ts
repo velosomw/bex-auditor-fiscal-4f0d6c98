@@ -69,7 +69,16 @@ interface PipelineRequest {
     balanco?: DedupOptions;
     dre?: DedupOptions;
   };
+  /** Força reprocessamento ignorando dedup hit (UI: botão "Forçar reprocessamento"). */
+  force_reprocess?: boolean;
 }
+
+/**
+ * Versão do parser/finalize em audit-bs-dados.
+ * BUMP a cada mudança que afete os números calculados:
+ * invalida automaticamente o cache de dedup por content_hash.
+ */
+const PARSER_VERSION = "2026.05.27.01";
 
 /* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
 async function sha256Hex(input: string): Promise<string> {
@@ -82,6 +91,7 @@ function buildContentHashSource(body: PipelineRequest): string {
   const norm = (rows: BalanceteRow[] = []) =>
     rows.map((r) => `${r.conta || ""}|${r.descricao || ""}|${Number(r.valor) || 0}`).sort().join("\n");
   return [
+    `parser:${PARSER_VERSION}`,        // FIX #1 — invalida cache em qualquer evolução do parser
     body.company_id || "",
     body.documentInfo?.periodo || "",
     norm(body.balanco),
@@ -1290,12 +1300,13 @@ serve(async (req) => {
       if (!existingDoc) throw new Error(`document_id ${body.document_id} não encontrado`);
       // deno-lint-ignore no-explicit-any
       documentId = (existingDoc as any).id;
-      const updatePayload: Record<string, unknown> = { status: "normalizing", content_hash: contentHash };
+      const updatePayload: Record<string, unknown> = { status: "normalizing", content_hash: contentHash, parser_version: PARSER_VERSION };
       if (body.company_id) updatePayload.company_id = body.company_id;
       await supabase.from("pipeline_documents").update(updatePayload).eq("id", documentId);
     } else {
-      // Tenta reaproveitar documento já processado com mesmo content_hash + created_by + status=completed
-      const { data: dup } = await supabase
+      // Tenta reaproveitar documento já processado com mesmo content_hash + created_by + status=completed.
+      // FIX #1 — force_reprocess pula o dedup (UI: botão "Forçar reprocessamento").
+      const dup = body.force_reprocess ? null : (await supabase
         .from("pipeline_documents")
         .select("id, status")
         .eq("content_hash", contentHash)
@@ -1303,13 +1314,16 @@ serve(async (req) => {
         .eq("status", "completed")
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle()).data;
 
       if (dup?.id) {
         documentId = (dup as { id: string }).id;
         dedupHit = true;
-        stageLog(reqId, "document.dedup_hit", { document_id: documentId, content_hash: contentHash });
+        stageLog(reqId, "document.dedup_hit", { document_id: documentId, content_hash: contentHash, parser_version: PARSER_VERSION });
       } else {
+        if (body.force_reprocess) {
+          stageLog(reqId, "document.force_reprocess", { content_hash: contentHash, parser_version: PARSER_VERSION });
+        }
         const { data: doc, error: docErr } = await supabase
           .from("pipeline_documents")
           .insert({
@@ -1319,6 +1333,7 @@ serve(async (req) => {
             status: "normalizing",
             created_by: userId,
             content_hash: contentHash,
+            parser_version: PARSER_VERSION,
           })
           .select()
           .single();
@@ -1327,7 +1342,7 @@ serve(async (req) => {
         documentId = (doc as any).id;
       }
     }
-    stageLog(reqId, "document.ready", { document_id: documentId, dedup_hit: dedupHit });
+    stageLog(reqId, "document.ready", { document_id: documentId, dedup_hit: dedupHit, parser_version: PARSER_VERSION });
 
     // 2. Dispara worker em background (não bloqueia a resposta — sem idle timeout)
     //    Item 4: se for dedup hit, pula o worker — documento já processado.
@@ -1350,8 +1365,9 @@ serve(async (req) => {
         document_id: documentId,
         req_id: reqId,
         dedup_hit: dedupHit,
+        parser_version: PARSER_VERSION,
         message: dedupHit
-          ? "Documento já processado anteriormente — reaproveitando resultado (dedup por SHA-256)."
+          ? "Documento já processado anteriormente — reaproveitando resultado (dedup por SHA-256). Use force_reprocess=true para reprocessar."
           : "Documento enfileirado para processamento em background. Faça polling em pipeline_documents.status até 'completed' ou 'failed'.",
       }),
       { status: dedupHit ? 200 : 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },

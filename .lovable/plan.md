@@ -1,103 +1,130 @@
-## Problema identificado no balancete Giannini
 
-Analisei `Balancetes 08.2025 a 01.2026.xlsx` e confirmei os bugs:
+## Diagnóstico das causas-raiz (não suposições)
 
-| # | Linha | Código | Descrição | Saldo Ago/25 |
-|---|---|---|---|---|
-| 1 | 3 | `11` | Ativo Circulante (TOTAL) | 75.575.226,58 |
-| 2 | 120 | `12` | Ativo Não Circulante (TOTAL) | 2.741.435,72 |
-| 3 | 158 | `21` | Passivo Circulante (TOTAL) | -68.372.775,30 |
-| 4 | 969 | `22` | Não Circulante Longo Prazo | -338.639.419,32 |
-| 5 | 979 | `23` | Patrimônio Líquido (TOTAL) | +301.909.389,98 |
-| 6 | n/a | `13` | **NÃO EXISTE** neste plano | — |
+Análise do código + logs confirmou **3 bugs estruturais** que precisam de fix definitivo, não bypass.
 
-**Causa raiz dos erros** (encontrei no código):
+### Causa #1 — Dedup cega bloqueia evolução do parser
+`supabase/functions/audit-pipeline-process/index.ts:81-91` calcula `content_hash = SHA-256(company + período + linhas)`. Não inclui versão da lógica de parsing. Resultado: qualquer ajuste em `audit-bs-dados` é **silenciosamente ignorado** para arquivos já processados. Foi exatamente o que aconteceu — `document.dedup_hit: true` matou a re-execução.
 
-1. `auditAIService.ts:449` faz `if (!isLeaf(conta)) continue;` — **descarta todas as linhas totalizadoras** na origem do parser. Só sobrevivem contas analíticas de 10 dígitos.
-2. `bsDadosBuilder.ts` tenta reconstruir os totais somando as folhas via `REF1_MAP` (mapeamento por código fixo `11xxx`, `21xxx`…). Quando o plano de contas tem códigos não-padrão (ex. `22` da Giannini cobre PNC + classes que não batem o template BEX), a soma diverge do total declarado.
-3. `GROUP_LABELS` lista `"13": Ativo Permanente` — esse grupo não existe na Giannini, gera ruído.
-4. Receita Líquida hoje pega grupo `3` inteiro (inclui devoluções, impostos, custos), deveria ser só `31` Receita Bruta menos `32`/`33`.
-5. Grupos `3–8` (DRE) são **YTD acumulado**; já existe heurística (`isAccumulated`), mas só aciona se receita for monotonicamente crescente. Para meses com receita oscilante ela falha.
-6. Grupos `6` e `8` somem porque sub-classificação textual não cobre todas as variações de descrição.
+### Causa #2 — Dupla contagem do PL (motivo real do `A − (P+PL) = −550M`)
+`supabase/functions/audit-bs-dados/index.ts:704-711`:
+```ts
+for (const [mesKey, row] of rowsByMes) {
+  const b = bucketsByMes.get(mesKey)!;
+  ...
+  row.ativo_nao_circulante   = b.anc;   // OVERWRITE incondicional
+  row.passivo_nao_circulante = b.pnc;   // OVERWRITE incondicional
+  row.patrimonio_liquido     = b.pl;    // OVERWRITE incondicional
+}
+```
+Os buckets `b.anc/pnc/pl` foram acumulados em `applyValue` (linhas 423-427) somando **todas as linhas** cujo ref pertence ao conjunto — incluindo totalizadores (ex.: `AA1`, `BB1` em `PNC_REFS`; `GG1`, `HH1` em `PL_REFS`). Quando o `pruneParents` deixa passar uma linha sintética (totalizador 2.3 "PATRIMÔNIO LÍQUIDO" + filhas 2.3.1, 2.3.2, 2.3.3), o PL é contado 2× ou 3×. No caso Giannini: `PL = 301M` com `Ativo = 181M` — fisicamente impossível, prova matemática de duplicidade.
+
+Depois `finalize` (linha 437) **ainda sobrescreve** com `gtPL` se houver `sawPLTotal`, criando um terceiro caminho conflitante.
+
+### Causa #3 — Ausência de diagnóstico granular do PL
+Logs atuais só mostram `EQ_BREAK desvio=X%`, sem identificar quais contas/refs contribuíram para o PL inflado. Sem isso, cada arquivo novo com problema vira detective work manual.
 
 ---
 
-## Estratégia — Grupos de Resultado por TERMINOLOGIA
+## Plano de refatoração (5 fixes encadeados)
 
-Mudar o eixo de aprendizado de **código numérico** para **rótulo textual canônico** do plano de contas brasileiro.
-
-### Dicionário canônico (novo arquivo `src/services/grupoResultadoDictionary.ts`)
+### Fix 1 — Versionar parser e invalidar cache automaticamente
+**Arquivo**: `supabase/functions/audit-pipeline-process/index.ts`
 
 ```ts
-export const GRUPOS_RESULTADO = {
-  ATIVO_CIRCULANTE:     ["ativo circulante"],
-  ATIVO_NAO_CIRCULANTE: ["ativo nao circulante", "ativo não circulante",
-                         "realizavel a longo prazo", "ativo permanente",
-                         "imobilizado", "intangivel", "investimentos"],
-  PASSIVO_CIRCULANTE:   ["passivo circulante"],
-  PASSIVO_NAO_CIRCULANTE:["passivo nao circulante", "passivo não circulante",
-                         "exigivel a longo prazo", "nao circulante - longo prazo",
-                         "não circulante longo prazo"],
-  PATRIMONIO_LIQUIDO:   ["patrimonio liquido", "patrimônio líquido"],
-  RECEITA_BRUTA:        ["receita bruta", "receita operacional bruta", "vendas brutas"],
-  DEDUCOES_RECEITA:     ["devolucoes", "deduções da receita", "abatimentos", "impostos sobre vendas"],
-  CUSTO:                ["custo das mercadorias", "custo dos produtos", "custo dos servicos",
-                         "cmv", "csv", "cpv", "custo industrial"],
-  DESPESAS_OPERACIONAIS:["despesas operacionais", "despesas administrativas",
-                         "despesas comerciais", "despesas com pessoal", "despesas gerais"],
-  DESPESAS_FINANCEIRAS: ["despesas financeiras", "receitas financeiras",
-                         "resultado financeiro", "encargos financeiros"],
-  NAO_OPERACIONAL:      ["nao operacional", "não operacional", "receitas nao operacionais",
-                         "despesas nao operacionais", "outras receitas", "outras despesas"],
+const PARSER_VERSION = "2026.05.27.01"; // bump a cada mudança em audit-bs-dados
+
+function buildContentHashSource(body: PipelineRequest): string {
+  return [
+    PARSER_VERSION,                  // ← NOVO: invalida cache em qualquer evolução
+    body.company_id || "",
+    body.documentInfo?.periodo || "",
+    norm(body.balanco),
+    "::dre::",
+    norm(body.dre),
+  ].join("\n");
 }
 ```
 
-### Detecção de "Grupo de Resultado Principal" no parser
+Também aceitar `body.force_reprocess: boolean` que ignora dedup mesmo se hash bater. Persistir `parser_version` em `pipeline_documents` para rastreabilidade.
 
-Em vez de filtrar pelo número de dígitos do código, identificar linhas onde a **descrição** bate com algum sinônimo do dicionário **E** o saldo é não-zero **E** existem contas-filhas abaixo com prefixo de código compatível. Essas linhas viram **linhas-autoridade** (saldo declarado do grupo).
+### Fix 2 — Eliminar dupla contagem (refatorar prioridade GT > soma de folhas)
+**Arquivo**: `supabase/functions/audit-bs-dados/index.ts`
 
-Sub-grupos (ex. "Fornecedores", "Salários e Encargos Sociais", "Tributos a Recolher") são detectados pelo mesmo dicionário e usados para sub-classificar componentes de dívida — independente de prefixos numéricos.
+Substituir o bloco 704-711 por hierarquia explícita **GT → row (folhas via REF1_MAP) → bucket-by-prefix**, nessa ordem de prioridade, sem fallback acumulativo:
 
-### Mudanças concretas
+```ts
+for (const [mesKey, row] of rowsByMes) {
+  const b = bucketsByMes.get(mesKey)!;
+  // ANC: prefere GT, depois row (já acumulado em applyValue), depois bucket
+  if (!b.sawANCTotal && row.ativo_nao_circulante === 0) row.ativo_nao_circulante = b.anc;
+  if (!b.sawPNCTotal && row.passivo_nao_circulante === 0) row.passivo_nao_circulante = b.pnc;
+  if (!b.sawPLTotal && row.patrimonio_liquido === 0) row.patrimonio_liquido = b.pl;
+}
+```
 
-**Parser** (`src/services/auditAIService.ts`)
-- Remover filtro `if (!isLeaf(conta)) continue;`. Em vez disso, **marcar** cada linha: `tipo: "TOTAL_GRUPO" | "SUBTOTAL" | "ANALITICA"` usando o dicionário textual + análise de hierarquia de código (não somente comprimento).
+E **remover o segundo branch** em `applyValue` (linhas 423-427) que duplica em `b.pnc/b.pl` quando o switch já populou a row — substituir por contador de telemetria apenas.
 
-**Builder** (`src/services/bsDadosBuilder.ts`)
-- Reescrever roteamento: quando existe linha `TOTAL_GRUPO`, ela é **autoritária** (Camada A); folhas filhas alimentam apenas componentes (disponível, estoques, fornecedores, etc.), nunca o agregado pai.
-- Receita Líquida = `Σ(RECEITA_BRUTA) − |Σ(DEDUCOES_RECEITA)|` (não `Σ(Grupo 3)`).
-- Remover entrada `"13": Ativo Permanente` de `GROUP_LABELS` (deixar só `11/12/21/22/23` + DRE textual).
-- **DRE por variação obrigatória**: para grupos `RECEITA_BRUTA`, `DEDUCOES`, `CUSTO`, `DESPESAS_*`, `NAO_OPERACIONAL`, sempre aplicar `valorMes(N) = saldo(N) − saldo(N−1)` quando há ≥2 meses do mesmo ano. Eliminar a heurística "consistentIncrease ≥ 75%" — passa a ser regra fixa.
+`finalize` mantém preferência por GT (já correta nas linhas 432-438), agora sem conflito.
 
-**Indicadores** (`src/services/indicatorsEngine.ts`)
-- Reconfirmar Liquidez Seca = `(AC − Estoques) / PC` e Endividamento Geral = `(PC + PNC) / AT` usando os novos agregados — os números atuais estavam errados porque AC/PC/PNC/PL vinham errados, não a fórmula.
+### Fix 3 — Hardening do pruneParents para totalizadores do PL
+**Arquivo**: `supabase/functions/audit-bs-dados/index.ts:497-560` (SYNTHETIC_DESC_PATTERNS)
 
-### Telemetria de aprendizado
+Adicionar padrões específicos que estavam escapando:
+```ts
+/^patrim[oô]nio\s+l[ií]quido\s*(?:\(.*\))?$/i,   // "PATRIMÔNIO LÍQUIDO" puro
+/^2\.?3\s/,                                       // código 2.3 ou "2.3 ..."
+/^total\s+(do\s+)?(patrim|pl|passivo|ativo)/i,
+/^lucros?\s+(acumulados?|.*exerc[ií]cios?)\s+anteriores?$/i, // se for totalizador acumulado
+```
 
-Adicionar log no builder: para cada Grupo de Resultado detectado, registrar `{rotulo_encontrado, codigo_observado, fonte: "dicionario_textual"|"prefixo_codigo", desvio_declarado_vs_calculado}`. Persistir em `ai_usage_logs` para alimentar futura calibração.
+E adicionar regra estrutural: se uma linha com código `X.Y` (2 níveis) tem `saldo === soma(filhas X.Y.Z)`, marca como pai sintético independente da descrição.
+
+### Fix 4 — Auto-rebalanço com diagnóstico antes de persistir
+**Arquivo**: `supabase/functions/audit-bs-dados/index.ts:430-489` (`finalize`)
+
+Se após GT/folha o desvio `|A − (P+PL)| > 1%`:
+1. Log estruturado com **composição do PL**: top 5 (ref, descrição, valor).
+2. Se `PL > Ativo_Total`, sinal claro de duplicidade — aplicar **fallback contábil**: `PL_derivado = Ativo − Passivo` e marcar `errors: "PL recalculado por equação contábil — original X, derivado Y"`. Preserva original em `patrimonio_liquido_bruto` (nova coluna).
+3. Se `PL ≤ Ativo` mas equação ainda quebra, log de diferença e **bloqueia persistência** sinalizando `status: 'needs_review'` em vez de gravar dados inconsistentes.
+
+### Fix 5 — UI: botão "Reprocessar (forçar)" + indicação de versão
+**Arquivos**: `src/pages/Audit.tsx` (ou onde está Fase 2 / Reabrir) e o serviço client que chama `audit-pipeline-process`.
+
+- Botão secundário "Forçar reprocessamento" que envia `force_reprocess: true`.
+- Exibir badge `parser_version` no documento processado para auditoria.
 
 ---
 
-## Entregáveis
+## Banco — migration mínima
 
-1. `src/services/grupoResultadoDictionary.ts` (novo)
-2. Refatoração de `src/services/auditAIService.ts` (classificação de linhas)
-3. Refatoração de `src/services/bsDadosBuilder.ts` (Grupo-First puro textual, DRE por variação, remoção `"13"`)
-4. Espelhamento das mesmas regras em `supabase/functions/audit-bs-dados/index.ts` (mesma lógica server-side)
-5. Mock de teste com o balancete Giannini validando: AC=75.575.226 ; PC=68.372.775 ; PNC=338.639.419 ; PL=−301.909.389 ; Receita Líquida ago/25 = `variação` correta.
+```sql
+ALTER TABLE public.pipeline_documents
+  ADD COLUMN IF NOT EXISTS parser_version text;
 
----
-
-## O que **não** muda
-
-- Liquidez Corrente e Imediata (já corretas).
-- Layout do relatório técnico A4, gráficos, persistência MD MASTER.
-- Modelo Kanitz e fórmulas BEX-RJ.
+ALTER TABLE public.bs_dados
+  ADD COLUMN IF NOT EXISTS patrimonio_liquido_bruto numeric;
+```
 
 ---
 
-## Decisões pendentes
+## Aprendizado para casos futuros (escalabilidade)
 
-1. **Reabrir auditoria Giannini automaticamente após o deploy?** (re-processar os 6 meses e gerar novo relatório). Posso disparar via `audit-bs-dados` direto ao final.
-2. **Quando o plano de contas não traz linha-total (cenário raro)**, devo cair para soma das folhas (Camada B) ou marcar o grupo como `SEM_TOTAL` e bloquear o cálculo? Recomendo Camada B com flag de atenção.
-3. **Validação cruzada**: anexar resultado dos 6 meses Giannini no próximo relatório técnico (formato Word) para o auditor sênior conferir antes de fechar o ciclo?
+Esses 3 fixes criam um **contrato testável**:
+- Cada mudança no parser ⇒ bump `PARSER_VERSION` ⇒ reprocessamento automático (sem ação manual do operador).
+- Validação `A = P + PL` é **bloqueante** (não só warning), evitando que dados inconsistentes virem report.
+- Log estruturado de composição do PL permite que casos novos sejam diagnosticados em segundos, não horas.
+- A coluna `patrimonio_liquido_bruto` guarda o valor original quando há rebalanço — base de dados para treinar/calibrar regex de `pruneParents` em planos contábeis menos comuns.
+
+---
+
+## Sequência de execução
+
+1. Migration (colunas novas).
+2. Edge function `audit-bs-dados`: aplicar Fix 2 + 3 + 4 e bumpar nada (essa não tem version).
+3. Edge function `audit-pipeline-process`: aplicar Fix 1 (`PARSER_VERSION = "2026.05.27.01"` + `force_reprocess`).
+4. Deploy automático das 2 functions.
+5. UI: Fix 5 (botão + badge).
+6. Usuário clica "Forçar reprocessamento" em Giannini e XPT → validação da equação contábil em ambas.
+
+Após sua aprovação, executo na ordem acima.
