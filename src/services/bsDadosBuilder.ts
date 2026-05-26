@@ -231,8 +231,10 @@ export interface BSDadosRow {
 /** Rótulo humano para cada código de grupo (2 dígitos). */
 export const GROUP_LABELS: Record<string, { rotulo: string; campo: keyof BSDadosRow }> = {
   "11": { rotulo: "Ativo Circulante",            campo: "ativo_circulante" },
-  "12": { rotulo: "Ativo Não Circulante (RLP)",  campo: "ativo_nao_circulante" },
-  "13": { rotulo: "Ativo Permanente",            campo: "ativo_nao_circulante" },
+  "12": { rotulo: "Ativo Não Circulante",        campo: "ativo_nao_circulante" },
+  // "13" REMOVIDO — Ativo Permanente não é universal (Giannini e muitos
+  // planos não-padrão não o utilizam). Quando presente, é capturado via
+  // ref1=ANC_TOTAL pelo dicionário textual.
   "21": { rotulo: "Passivo Circulante",          campo: "passivo_circulante" },
   "22": { rotulo: "Passivo Não Circulante",      campo: "passivo_nao_circulante" },
   "23": { rotulo: "Patrimônio Líquido",          campo: "patrimonio_liquido" },
@@ -325,12 +327,19 @@ const IMOBILIZADO_REFS = new Set(["C1","D1"]);
 // Quando essas linhas existem no balancete, são AUTORITATIVAS para o
 // campo principal (AC/PC/ANC/PNC/PL e DRE). Folhas descendentes só
 // alimentam sub-componentes (disponivel, estoques, fornecedores, etc.).
+// Nota: "13" (Ativo Permanente) intencionalmente fora — plano não-padrão
+// pode emitir essa linha como sintética agregadora dentro de "12", o que
+// gera dupla contagem. Quando presente como grupo de fato, é capturado
+// via ref1=ANC_TOTAL pelo dicionário textual.
 export const GROUP_TOTAL_CODES = new Set([
-  "11","12","13",   // AC, ANC, Permanente
-  "21","22","23",   // PC, PNC, PL
-  "31","32","33",   // Receita bruta, Devoluções, Impostos sobre vendas
+  "11","12",         // AC, ANC
+  "21","22","23",    // PC, PNC, PL
+  "31","32","33",    // Receita bruta, Devoluções, Impostos sobre vendas
   "4","5","6","7","8", // CMV, Custo Industrial, Despesas Op, Desp.Fin, Não Op
 ]);
+
+/** Refs1 textuais que indicam a linha é um totalizador de grupo declarado. */
+const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL"]);
 
 // Chaves que representam AGREGADOS PRINCIPAIS — folhas só devem alimentar
 // estes campos quando o totalizador de grupo NÃO está presente para o mês.
@@ -644,10 +653,14 @@ export function buildBSDados(
   });
 
   // ── 1ª passada: detecta GTs presentes por mesKey ──
+  // GT = conta cujo código está em GROUP_TOTAL_CODES OU cujo ref1 termina em "_TOTAL"
+  // (ref1 textual vem do dicionário canônico em planos não-padrão).
   const gtPresentByMes = new Map<string, Set<string>>();
   for (const row of leafRows) {
     const c = normCode(row.conta);
-    if (!GROUP_TOTAL_CODES.has(c)) continue;
+    const r1 = String(row.ref1 ?? row.refCapital ?? "").toUpperCase();
+    const isGT = GROUP_TOTAL_CODES.has(c) || TOTAL_REFS.has(r1);
+    if (!isGT) continue;
     const valuesObj = row.values || {};
     for (const period of Object.keys(valuesObj)) {
       const v = Number(valuesObj[period]);
@@ -659,9 +672,11 @@ export function buildBSDados(
         mesKey = periodToMesKey(period);
       }
       if (!gtPresentByMes.has(mesKey)) gtPresentByMes.set(mesKey, new Set());
-      gtPresentByMes.get(mesKey)!.add(c);
+      // Indexa pelo código quando disponível; senão pelo ref1 (chave estável).
+      const gtKey = c || r1;
+      gtPresentByMes.get(mesKey)!.add(gtKey);
       const buckets = bucketsByMes.get(mesKey);
-      if (buckets) buckets.groupTotalsPresent.add(c);
+      if (buckets) buckets.groupTotalsPresent.add(gtKey);
     }
   }
 
@@ -685,7 +700,8 @@ export function buildBSDados(
   for (const row of leafRows) {
     const ref1 = (row.ref1 as string | undefined) ?? (row.refCapital as string | undefined) ?? inferRefByCode(row.conta, row.descricao) ?? null;
     const conta = normCode(row.conta);
-    const isGroupTotal = GROUP_TOTAL_CODES.has(conta);
+    const ref1Up = String(ref1 ?? "").toUpperCase();
+    const isGroupTotal = GROUP_TOTAL_CODES.has(conta) || TOTAL_REFS.has(ref1Up);
     const valuesObj = row.values || {};
     const periodKeys = Object.keys(valuesObj);
 
@@ -763,19 +779,15 @@ export function buildBSDados(
     .map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
 
-  // ── AJUSTE DE ACUMULADO (Mês vs Acumulado Ano) ──
-  // Contas de resultado (DRE) zeram no fim do ano. Se mês N e N-1 são do mesmo ano,
-  // valor mensal = Saldo(N) − Saldo(N-1). Heurística: receita monotonicamente crescente
-  // dentro do mesmo ano → balancete é YTD acumulado.
-  let isAccumulated = false;
-  if (sortedRows.length > 1) {
-    let consistentIncrease = 0;
-    for (let i = 1; i < sortedRows.length; i++) {
-      const sameYear = sortedRows[i].mesKey.split("-")[0] === sortedRows[i-1].mesKey.split("-")[0];
-      if (sameYear && sortedRows[i].receita_liquida >= sortedRows[i-1].receita_liquida) consistentIncrease++;
-    }
-    if (consistentIncrease >= (sortedRows.length - 1) * 0.75) isAccumulated = true;
-  }
+  // ── DRE POR VARIAÇÃO (regra padrão para balancetes brasileiros) ──
+  // Contas dos grupos 3-8 são reportadas como saldo YTD acumulado dentro
+  // do ano fiscal. Para obter o valor MENSAL aplicamos sempre
+  //   valorMes(N) = saldo(N) − saldo(N-1)   (quando mesmo ano fiscal)
+  // Esta é regra contábil determinística (não mais heurística baseada em
+  // monotonicidade): qualquer balancete com ≥2 meses do mesmo ano sofre
+  // desacumulação automática. Casos raros (DRE já mensalizada) são
+  // protegidos pelo Math.max(0, …) que evita receitas negativas espúrias.
+  const isAccumulated = sortedRows.length > 1;
 
   if (isAccumulated) {
     for (let i = sortedRows.length - 1; i > 0; i--) {

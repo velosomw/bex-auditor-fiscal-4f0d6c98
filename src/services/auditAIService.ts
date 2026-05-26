@@ -1,5 +1,6 @@
 import { readWorkbook } from "@/lib/excelReader";
 import { extractColumnMonths, detectMonthFromYearLabel, detectMonthFromFilename, detectMonthRangeFromFilename, reconcileMonthsWithFilename } from "@/services/auditMonthDetector";
+import { matchGrupoCanonico } from "@/services/grupoResultadoDictionary";
 
 export interface ParsedFinancialData {
   balanco: Array<{ conta: string; descricao: string; values: Record<string, number>; ref1?: string; refCapital?: string }>;
@@ -446,8 +447,13 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     const conta = String(row[cols.conta] ?? "").trim();
     const desc = String(row[cols.descricao] ?? "").trim();
     if (!conta && !desc) continue;
-    if (!isLeaf(conta)) continue; // pula totalizadores para evitar dupla contagem
-    const ref1 = inferRefByCode(conta, desc);
+    // GRUPO-FIRST TEXTUAL: preserva linhas-totalizadoras de Grupo de Resultado
+    // (Ativo Circulante, Passivo Circulante, Receita Bruta…) mesmo quando não
+    // são folhas. Sub-totais sem rótulo canônico continuam pulados para evitar
+    // dupla contagem. Cobre planos não-padrão (Giannini, etc.).
+    const grupoCanonico = matchGrupoCanonico(desc);
+    if (!isLeaf(conta) && !grupoCanonico) continue;
+    const ref1 = grupoCanonico ?? inferRefByCode(conta, desc);
 
     if (useMultiMonth) {
       // Emite uma entrada por mês detectado nas colunas

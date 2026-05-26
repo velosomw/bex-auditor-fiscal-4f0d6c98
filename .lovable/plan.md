@@ -1,133 +1,103 @@
-## Objetivo
+## Problema identificado no balancete Giannini
 
-Chegar em **Liquidez Corrente Ago/2025 = 1,11** (= 75.575.226,58 / 68.372.775,30) com **auditoria explicável**: para cada número exibido, conseguimos mostrar (a) **origem** (quais linhas do balancete entraram), (b) **composição** (folhas vs subtotal de grupo), (c) **trilha da fórmula** (numerador, denominador, faixa, classificação).
+Analisei `Balancetes 08.2025 a 01.2026.xlsx` e confirmei os bugs:
 
-## Por que hoje dá ~0,9 (e não 1,11)
+| # | Linha | Código | Descrição | Saldo Ago/25 |
+|---|---|---|---|---|
+| 1 | 3 | `11` | Ativo Circulante (TOTAL) | 75.575.226,58 |
+| 2 | 120 | `12` | Ativo Não Circulante (TOTAL) | 2.741.435,72 |
+| 3 | 158 | `21` | Passivo Circulante (TOTAL) | -68.372.775,30 |
+| 4 | 969 | `22` | Não Circulante Longo Prazo | -338.639.419,32 |
+| 5 | 979 | `23` | Patrimônio Líquido (TOTAL) | +301.909.389,98 |
+| 6 | n/a | `13` | **NÃO EXISTE** neste plano | — |
 
-Causas-raiz, em ordem de impacto:
+**Causa raiz dos erros** (encontrei no código):
 
-1. **Dupla contagem AC/PC** — `bsDadosBuilder` soma tanto a linha sintética do grupo (cód 11, 21) quanto as analíticas filhas (111, 112, 211...). Já mitigado parcialmente pela lógica Grupo-First, mas falta **registrar e expor** quais folhas foram "consumidas".
-2. **Sinal do Passivo** — Giannini traz PC com saldo credor negativo. Algumas linhas escapam do `abs()` quando o ref1 é resolvido por regex em vez do código de grupo.
-3. **Mapeamento por nome de conta no Giannini** — código 211 = Fornecedores (não Empréstimos como no padrão BEX). O `REF1_MAP` por letras (AA/BB/CC) não se aplica; o roteador por código de grupo é quem decide.
-4. **Falta de trilha** — nenhuma UI mostra qual camada (A=total declarado, B=drill-down 3 dígitos, C=regex) classificou cada linha. Sem isso, divergências passam invisíveis.
+1. `auditAIService.ts:449` faz `if (!isLeaf(conta)) continue;` — **descarta todas as linhas totalizadoras** na origem do parser. Só sobrevivem contas analíticas de 10 dígitos.
+2. `bsDadosBuilder.ts` tenta reconstruir os totais somando as folhas via `REF1_MAP` (mapeamento por código fixo `11xxx`, `21xxx`…). Quando o plano de contas tem códigos não-padrão (ex. `22` da Giannini cobre PNC + classes que não batem o template BEX), a soma diverge do total declarado.
+3. `GROUP_LABELS` lista `"13": Ativo Permanente` — esse grupo não existe na Giannini, gera ruído.
+4. Receita Líquida hoje pega grupo `3` inteiro (inclui devoluções, impostos, custos), deveria ser só `31` Receita Bruta menos `32`/`33`.
+5. Grupos `3–8` (DRE) são **YTD acumulado**; já existe heurística (`isAccumulated`), mas só aciona se receita for monotonicamente crescente. Para meses com receita oscilante ela falha.
+6. Grupos `6` e `8` somem porque sub-classificação textual não cobre todas as variações de descrição.
 
-## Estratégia: Auditoria Explicável em 3 camadas
+---
 
-### Camada 1 — Classificador determinístico (Grupo-First com trilha)
+## Estratégia — Grupos de Resultado por TERMINOLOGIA
 
-Em `bsDadosBuilder.ts` e na edge function `audit-bs-dados`:
+Mudar o eixo de aprendizado de **código numérico** para **rótulo textual canônico** do plano de contas brasileiro.
 
-```text
-Para cada linha do balancete:
-  ├── Camada A: código tem 1-2 dígitos E é GROUP_TOTAL_CODE?
-  │     → usa valor declarado (com abs() se grupo 2X)
-  │     → marca todas as filhas como "consumidas-por-pai"
-  │     → registra trilha: { camada: "A", origem: "subtotal declarado grupo XX" }
-  │
-  ├── Camada B: código tem 3+ dígitos E pai (2 dígitos) está presente?
-  │     → NÃO soma no agregado (pai já contou)
-  │     → alimenta apenas drill-down (disponivel, estoques, fornecedores...)
-  │     → registra trilha: { camada: "B", origem: "drill-down de grupo XX" }
-  │
-  └── Camada C: nenhum totalizador de grupo encontrado
-        → fallback regex por nome canônico (Fornecedores, Empréstimos...)
-        → soma no agregado
-        → registra trilha: { camada: "C", origem: "regex sobre descrição" }
+### Dicionário canônico (novo arquivo `src/services/grupoResultadoDictionary.ts`)
+
+```ts
+export const GRUPOS_RESULTADO = {
+  ATIVO_CIRCULANTE:     ["ativo circulante"],
+  ATIVO_NAO_CIRCULANTE: ["ativo nao circulante", "ativo não circulante",
+                         "realizavel a longo prazo", "ativo permanente",
+                         "imobilizado", "intangivel", "investimentos"],
+  PASSIVO_CIRCULANTE:   ["passivo circulante"],
+  PASSIVO_NAO_CIRCULANTE:["passivo nao circulante", "passivo não circulante",
+                         "exigivel a longo prazo", "nao circulante - longo prazo",
+                         "não circulante longo prazo"],
+  PATRIMONIO_LIQUIDO:   ["patrimonio liquido", "patrimônio líquido"],
+  RECEITA_BRUTA:        ["receita bruta", "receita operacional bruta", "vendas brutas"],
+  DEDUCOES_RECEITA:     ["devolucoes", "deduções da receita", "abatimentos", "impostos sobre vendas"],
+  CUSTO:                ["custo das mercadorias", "custo dos produtos", "custo dos servicos",
+                         "cmv", "csv", "cpv", "custo industrial"],
+  DESPESAS_OPERACIONAIS:["despesas operacionais", "despesas administrativas",
+                         "despesas comerciais", "despesas com pessoal", "despesas gerais"],
+  DESPESAS_FINANCEIRAS: ["despesas financeiras", "receitas financeiras",
+                         "resultado financeiro", "encargos financeiros"],
+  NAO_OPERACIONAL:      ["nao operacional", "não operacional", "receitas nao operacionais",
+                         "despesas nao operacionais", "outras receitas", "outras despesas"],
+}
 ```
 
-**Regras de sinal (não mudam, mas ficam explícitas na trilha):**
-- Ativo: preserva sinal nativo (redutoras negativas reduzem o agregado)
-- Passivo + PL: `abs()` aplicado no **agregado final do grupo**, nunca por linha (evita inflar quando há contas redutoras de passivo)
-- Receita (grupo 3): `abs()` no agregado
-- CMV/Despesas (4,5,6): `-abs()`
-- Resultado: preserva sinal nativo
+### Detecção de "Grupo de Resultado Principal" no parser
 
-### Camada 2 — Validação trifásica com semáforo
+Em vez de filtrar pelo número de dígitos do código, identificar linhas onde a **descrição** bate com algum sinônimo do dicionário **E** o saldo é não-zero **E** existem contas-filhas abaixo com prefixo de código compatível. Essas linhas viram **linhas-autoridade** (saldo declarado do grupo).
 
-Substitui tolerância fixa de 1%. Para cada grupo de 2 dígitos:
+Sub-grupos (ex. "Fornecedores", "Salários e Encargos Sociais", "Tributos a Recolher") são detectados pelo mesmo dicionário e usados para sub-classificar componentes de dívida — independente de prefixos numéricos.
 
-| Faixa | Cor | Ação |
-|---|---|---|
-| desvio ≤ 1% | verde | OK — soma das folhas ≈ subtotal declarado |
-| 1% < desvio ≤ 3% | amarelo | Alerta — divergência de arredondamento ou conta órfã |
-| desvio > 3% | vermelho | Erro de extração — bloqueia geração de indicadores até revisão |
+### Mudanças concretas
 
-Equação contábil (Ativo = Passivo + PL) usa as mesmas 3 faixas.
+**Parser** (`src/services/auditAIService.ts`)
+- Remover filtro `if (!isLeaf(conta)) continue;`. Em vez disso, **marcar** cada linha: `tipo: "TOTAL_GRUPO" | "SUBTOTAL" | "ANALITICA"` usando o dicionário textual + análise de hierarquia de código (não somente comprimento).
 
-### Camada 3 — Trilha visível na UI
+**Builder** (`src/services/bsDadosBuilder.ts`)
+- Reescrever roteamento: quando existe linha `TOTAL_GRUPO`, ela é **autoritária** (Camada A); folhas filhas alimentam apenas componentes (disponível, estoques, fornecedores, etc.), nunca o agregado pai.
+- Receita Líquida = `Σ(RECEITA_BRUTA) − |Σ(DEDUCOES_RECEITA)|` (não `Σ(Grupo 3)`).
+- Remover entrada `"13": Ativo Permanente` de `GROUP_LABELS` (deixar só `11/12/21/22/23` + DRE textual).
+- **DRE por variação obrigatória**: para grupos `RECEITA_BRUTA`, `DEDUCOES`, `CUSTO`, `DESPESAS_*`, `NAO_OPERACIONAL`, sempre aplicar `valorMes(N) = saldo(N) − saldo(N−1)` quando há ≥2 meses do mesmo ano. Eliminar a heurística "consistentIncrease ≥ 75%" — passa a ser regra fixa.
 
-Novo painel **"Mapeamento por Grupo"** em `SanityDiagnostico.tsx`, expandindo o diagnóstico atual:
+**Indicadores** (`src/services/indicatorsEngine.ts`)
+- Reconfirmar Liquidez Seca = `(AC − Estoques) / PC` e Endividamento Geral = `(PC + PNC) / AT` usando os novos agregados — os números atuais estavam errados porque AC/PC/PNC/PL vinham errados, não a fórmula.
 
-```text
-┌─ Ago/2025 ────────────────────────────────────────────────┐
-│ Grupo 11 Ativo Circulante                                 │
-│   Declarado (linha 11):     R$ 75.575.226,58              │
-│   Soma das folhas (111+112+113+...): R$ 75.575.226,58     │
-│   Divergência: 0,00% ✅                                    │
-│   Camada usada: A (subtotal autoritativo)                  │
-│   Drill-down ativo: 111→Disponível, 112→Clientes, 113→... │
-│                                                            │
-│ Grupo 21 Passivo Circulante                               │
-│   Declarado (linha 21): R$ 68.372.775,30 (módulo)         │
-│   Soma das folhas:      R$ 68.372.775,30                  │
-│   Divergência: 0,00% ✅                                    │
-│   Camada: A                                                │
-│                                                            │
-│ Equação: AT (80,8M) ≈ PT+PL (80,8M) ✅                    │
-└────────────────────────────────────────────────────────────┘
-```
+### Telemetria de aprendizado
 
-E em cada indicador (card Liquidez Corrente):
+Adicionar log no builder: para cada Grupo de Resultado detectado, registrar `{rotulo_encontrado, codigo_observado, fonte: "dicionario_textual"|"prefixo_codigo", desvio_declarado_vs_calculado}`. Persistir em `ai_usage_logs` para alimentar futura calibração.
 
-```text
-Liquidez Corrente = 1,11
-  ├── Numerador: AC = R$ 75.575.226,58
-  │     └── origem: linha "11 ATIVO CIRCULANTE" (Camada A)
-  ├── Denominador: PC = R$ 68.372.775,30
-  │     └── origem: linha "21 PASSIVO CIRCULANTE" (Camada A, abs aplicado)
-  ├── Fórmula: AC / PC
-  └── Classificação: > 1,0 = Saudável
-```
+---
 
-## O que muda em código
+## Entregáveis
 
-| Arquivo | Mudança |
-|---|---|
-| `src/services/bsDadosBuilder.ts` | Adicionar `trilha: ClassificationTrail[]` em `BSDadosRow`; finalizar Grupo-First com `parentGTPresent`; expor `classifyByGroup()` para uso externo |
-| `src/services/auditAIService.ts` | Trocar `REF_BY_PREFIX` por `classifyByGroup()`; cada linha passa a carregar `{camada, motivo}` |
-| `src/services/indicatorsEngine.ts` | Adicionar `_origem` em cada indicador (qual campo BS Dados alimentou); incluir grupo 5 no CMV; separar grupo 7 (DespFin) de grupo 6 (DespOp) |
-| `supabase/functions/audit-bs-dados/index.ts` | Replicar Grupo-First server-side; gravar trilha em `bs_dados.metadata` |
-| `src/components/audit/SanityDiagnostico.tsx` | Novo painel "Mapeamento por Grupo" com semáforo 1%/3%/>3% por grupo e por mês |
-| `src/components/audit/TabBSDados.tsx` (ou onde indicadores são exibidos) | Tooltip "Memória de cálculo" com numerador, denominador, origem e fórmula |
+1. `src/services/grupoResultadoDictionary.ts` (novo)
+2. Refatoração de `src/services/auditAIService.ts` (classificação de linhas)
+3. Refatoração de `src/services/bsDadosBuilder.ts` (Grupo-First puro textual, DRE por variação, remoção `"13"`)
+4. Espelhamento das mesmas regras em `supabase/functions/audit-bs-dados/index.ts` (mesma lógica server-side)
+5. Mock de teste com o balancete Giannini validando: AC=75.575.226 ; PC=68.372.775 ; PNC=338.639.419 ; PL=−301.909.389 ; Receita Líquida ago/25 = `variação` correta.
 
-## Critério de aceite (balancete Giannini Ago/2025)
+---
 
-| Item | Esperado |
-|---|---|
-| AC (grupo 11) | 75.575.226,58 |
-| PC (grupo 21) | 68.372.775,30 |
-| Disponível (111) | 492.194,16 |
-| Clientes (112) | 20.604.366,18 |
-| Estoque (113) | 46.786.497,61 |
-| **Liquidez Corrente** | **1,11** |
-| Liquidez Seca | 0,42 |
-| Liquidez Imediata | 0,007 |
-| Liquidez Geral | ~0,20 |
-| Equação AT ≈ PT+PL | desvio < 1% |
-| Trilha visível para cada indicador | sim (camada A/B/C + origem) |
+## O que **não** muda
 
-## Risco e mitigação
+- Liquidez Corrente e Imediata (já corretas).
+- Layout do relatório técnico A4, gráficos, persistência MD MASTER.
+- Modelo Kanitz e fórmulas BEX-RJ.
 
-- **Risco:** mudança de classificador altera TODOS os indicadores. **Mitigação:** painel "Mapeamento por Grupo" entra na mesma release — qualquer divergência fica visível antes de virar relatório.
-- **Sem backfill** das auditorias antigas. Reabrir a auditoria Giannini reprocessa via edge function.
+---
 
-## Execução (1 rodada)
+## Decisões pendentes
 
-1. `bsDadosBuilder.ts` — fechar Grupo-First + trilha
-2. `audit-bs-dados/index.ts` — replicar server-side + gravar trilha
-3. `indicatorsEngine.ts` — adicionar `_origem` por indicador
-4. `auditAIService.ts` — usar `classifyByGroup()`
-5. `SanityDiagnostico.tsx` — painel "Mapeamento por Grupo" com semáforo trifásico
-6. Tooltip "Memória de cálculo" nos cards de indicadores
-
-Aprove para eu executar as 6 mudanças. Depois você reabre a auditoria Giannini e validamos os números ao vivo.
+1. **Reabrir auditoria Giannini automaticamente após o deploy?** (re-processar os 6 meses e gerar novo relatório). Posso disparar via `audit-bs-dados` direto ao final.
+2. **Quando o plano de contas não traz linha-total (cenário raro)**, devo cair para soma das folhas (Camada B) ou marcar o grupo como `SEM_TOTAL` e bloquear o cálculo? Recomendo Camada B com flag de atenção.
+3. **Validação cruzada**: anexar resultado dos 6 meses Giannini no próximo relatório técnico (formato Word) para o auditor sênior conferir antes de fechar o ciclo?
