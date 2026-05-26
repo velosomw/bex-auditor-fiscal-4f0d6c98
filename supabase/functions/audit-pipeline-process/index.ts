@@ -1300,12 +1300,13 @@ serve(async (req) => {
       if (!existingDoc) throw new Error(`document_id ${body.document_id} não encontrado`);
       // deno-lint-ignore no-explicit-any
       documentId = (existingDoc as any).id;
-      const updatePayload: Record<string, unknown> = { status: "normalizing", content_hash: contentHash };
+      const updatePayload: Record<string, unknown> = { status: "normalizing", content_hash: contentHash, parser_version: PARSER_VERSION };
       if (body.company_id) updatePayload.company_id = body.company_id;
       await supabase.from("pipeline_documents").update(updatePayload).eq("id", documentId);
     } else {
-      // Tenta reaproveitar documento já processado com mesmo content_hash + created_by + status=completed
-      const { data: dup } = await supabase
+      // Tenta reaproveitar documento já processado com mesmo content_hash + created_by + status=completed.
+      // FIX #1 — force_reprocess pula o dedup (UI: botão "Forçar reprocessamento").
+      const dup = body.force_reprocess ? null : (await supabase
         .from("pipeline_documents")
         .select("id, status")
         .eq("content_hash", contentHash)
@@ -1313,13 +1314,16 @@ serve(async (req) => {
         .eq("status", "completed")
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle()).data;
 
       if (dup?.id) {
         documentId = (dup as { id: string }).id;
         dedupHit = true;
-        stageLog(reqId, "document.dedup_hit", { document_id: documentId, content_hash: contentHash });
+        stageLog(reqId, "document.dedup_hit", { document_id: documentId, content_hash: contentHash, parser_version: PARSER_VERSION });
       } else {
+        if (body.force_reprocess) {
+          stageLog(reqId, "document.force_reprocess", { content_hash: contentHash, parser_version: PARSER_VERSION });
+        }
         const { data: doc, error: docErr } = await supabase
           .from("pipeline_documents")
           .insert({
@@ -1329,6 +1333,7 @@ serve(async (req) => {
             status: "normalizing",
             created_by: userId,
             content_hash: contentHash,
+            parser_version: PARSER_VERSION,
           })
           .select()
           .single();
@@ -1337,7 +1342,7 @@ serve(async (req) => {
         documentId = (doc as any).id;
       }
     }
-    stageLog(reqId, "document.ready", { document_id: documentId, dedup_hit: dedupHit });
+    stageLog(reqId, "document.ready", { document_id: documentId, dedup_hit: dedupHit, parser_version: PARSER_VERSION });
 
     // 2. Dispara worker em background (não bloqueia a resposta — sem idle timeout)
     //    Item 4: se for dedup hit, pula o worker — documento já processado.
