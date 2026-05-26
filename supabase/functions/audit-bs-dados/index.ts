@@ -421,11 +421,11 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
     case "credores_rj":
       (row as any)[key] += Math.abs(v); break;
   }
-  if (refUp && AC_REFS.has(refUp)) b.ac += Math.abs(v);
-  else if (refUp && PC_REFS.has(refUp)) b.pc += Math.abs(v);
-  else if (refUp && ANC_REFS.has(refUp)) b.anc += Math.abs(v);
-  else if (refUp && PNC_REFS.has(refUp)) b.pnc += Math.abs(v);
-  else if (refUp && PL_REFS.has(refUp)) b.pl += v; // PL preserva sinal
+  // ⚠️ FIX dupla contagem: o bucket por prefixo só serve como FALLBACK
+  // para linhas que NÃO caíram em nenhum case do switch acima (key === null
+  // não chega aqui pois retorna em resolveKey). Para linhas que JÁ foram
+  // aplicadas via switch, NÃO acumulamos novamente nos buckets ac/pc/anc/pnc/pl.
+  // Mantemos buckets apenas para telemetria de cobertura.
 }
 
 function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
