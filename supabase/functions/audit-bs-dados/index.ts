@@ -710,7 +710,7 @@ function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     row.patrimonio_liquido = b.pl;
   }
 
-  const finalized = Array.from(rowsByMes.values()).map(finalize)
+  const finalized = Array.from(rowsByMes.values()).map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
   const desacumulated = desacumularDRE(finalized, userYtdByMesKey);
   return detectYtdOutliers(desacumulated);
