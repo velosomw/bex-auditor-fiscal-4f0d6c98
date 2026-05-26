@@ -231,8 +231,10 @@ export interface BSDadosRow {
 /** Rótulo humano para cada código de grupo (2 dígitos). */
 export const GROUP_LABELS: Record<string, { rotulo: string; campo: keyof BSDadosRow }> = {
   "11": { rotulo: "Ativo Circulante",            campo: "ativo_circulante" },
-  "12": { rotulo: "Ativo Não Circulante (RLP)",  campo: "ativo_nao_circulante" },
-  "13": { rotulo: "Ativo Permanente",            campo: "ativo_nao_circulante" },
+  "12": { rotulo: "Ativo Não Circulante",        campo: "ativo_nao_circulante" },
+  // "13" REMOVIDO — Ativo Permanente não é universal (Giannini e muitos
+  // planos não-padrão não o utilizam). Quando presente, é capturado via
+  // ref1=ANC_TOTAL pelo dicionário textual.
   "21": { rotulo: "Passivo Circulante",          campo: "passivo_circulante" },
   "22": { rotulo: "Passivo Não Circulante",      campo: "passivo_nao_circulante" },
   "23": { rotulo: "Patrimônio Líquido",          campo: "patrimonio_liquido" },
