@@ -132,7 +132,8 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     liquidezGeral: div(ac + rlpEff, pc + pnc),
     // Endividamento
     endividamentoGeral: div(pt, at),
-    grauEndividamentoPL: pl > 0 ? div(pt, pl) : 0,
+    // Kanitz X5: exibe sinal negativo quando PL é negativo (passivo a descoberto)
+    grauEndividamentoPL: pl !== 0 ? pt / pl : 0,
     composicaoEndividamento: div(pc, pt),
     composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
