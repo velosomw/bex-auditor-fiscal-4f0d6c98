@@ -52,6 +52,7 @@ interface BSDadosRow {
   cmv: number;
   despesas: number;                 // grupo 6 — operacionais
   despesas_financeiras: number;     // grupo 7 — separado (alinhado com client)
+  receitas_financeiras: number;     // grupo 7+ / juros ativos / rendimentos — usado em EBITDA (subtrai)
   depreciacao: number;
   amortizacao: number;
   resultado: number;
