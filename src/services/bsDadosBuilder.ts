@@ -416,8 +416,12 @@ function applyValue(
 
   if (!skipMain) {
     switch (key) {
-      case "receita_liquida":
-        (target as any)[key] = (target[key] as number) + (toUpperNoAccent(ref1 || "") === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v)); break;
+      case "receita_liquida": {
+        const refU = toUpperNoAccent(ref1 || "");
+        const isDeducao = refU === "DEDUCOES_RECEITA";
+        (target as any)[key] = (target[key] as number) + (isDeducao ? -Math.abs(v) : Math.abs(v));
+        break;
+      }
       case "cmv":
       case "despesas":
       case "despesas_financeiras":
