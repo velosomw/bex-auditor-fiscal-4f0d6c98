@@ -1092,6 +1092,7 @@ Deno.serve(async (req) => {
             passivo_circulante: r.passivo_circulante,
             passivo_nao_circulante: r.passivo_nao_circulante,
             patrimonio_liquido: r.patrimonio_liquido,
+            patrimonio_liquido_bruto: r.patrimonio_liquido_bruto ?? null,
             ativo_total: r.ativo_total,
             passivo_total: r.passivo_total,
             estoques: r.estoques,
