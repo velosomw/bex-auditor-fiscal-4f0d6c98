@@ -482,8 +482,18 @@ function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
     const tol = r.ativo_total * 0.01;
     if (diff > tol) {
       const desvio = (diff / r.ativo_total) * 100;
-      r.errors.push(`Equação contábil rompida: Ativo=${r.ativo_total.toFixed(0)} ≠ Passivo+PL=${ladoDireito.toFixed(0)} (desvio ${desvio.toFixed(2)}%)`);
-      console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}%`);
+      // FIX #4 — Auto-rebalanço quando PL > Ativo Total (sinal de dupla contagem).
+      if (r.patrimonio_liquido > r.ativo_total) {
+        const plOriginal = r.patrimonio_liquido;
+        const plDerivado = r.ativo_total - r.passivo_total;
+        r.patrimonio_liquido_bruto = plOriginal;
+        r.patrimonio_liquido = plDerivado;
+        r.errors.push(`PL recalculado por equação contábil — original ${plOriginal.toFixed(0)} excedia Ativo Total ${r.ativo_total.toFixed(0)}; derivado A−P = ${plDerivado.toFixed(0)}`);
+        console.log(`[finalize] PL_REBALANCE mes=${r.mesKey} original=${plOriginal.toFixed(0)} derivado=${plDerivado.toFixed(0)} ativo=${r.ativo_total.toFixed(0)}`);
+      } else {
+        r.errors.push(`Equação contábil rompida: Ativo=${r.ativo_total.toFixed(0)} ≠ Passivo+PL=${ladoDireito.toFixed(0)} (desvio ${desvio.toFixed(2)}%)`);
+        console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}% PC=${r.passivo_circulante.toFixed(0)} PNC=${r.passivo_nao_circulante.toFixed(0)} PL=${r.patrimonio_liquido.toFixed(0)}`);
+      }
     }
   }
   return r;
