@@ -94,6 +94,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "PL_TOTAL":  "patrimonio_liquido",
   // ── DRE — categorias separadas ──
   "DESPESAS_FIN": "despesas_financeiras", // grupo 7
+  "RECEITAS_FIN": "receitas_financeiras", // DRE 50.B
   "DESPESAS_NOP": "outras_nao_operacionais", // grupo 8
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
@@ -104,6 +105,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "DESPESAS": "despesas",
   "DESPESA": "despesas",
   "DESPESAS FINANCEIRAS": "despesas_financeiras",
+  "RECEITAS FINANCEIRAS": "receitas_financeiras",
   "ATIVO CIRCULANTE": "ativo_circulante",
   "ATIVO NAO CIRCULANTE": "ativo_nao_circulante",
   "ATIVO NÃO CIRCULANTE": "ativo_nao_circulante",
