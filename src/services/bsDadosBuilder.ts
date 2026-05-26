@@ -198,6 +198,7 @@ export interface BSDadosRow {
   cmv: number;
   despesas: number;             // despesas operacionais (administrativas, comerciais)
   despesas_financeiras: number; // grupo 7 — separado das operacionais
+  receitas_financeiras: number; // grupo 7+ / DRE 50.B — usado em EBITDA (subtrai)
   outras_nao_operacionais: number; // grupo 8 — não operacionais (signed)
   depreciacao: number;
   amortizacao: number;
