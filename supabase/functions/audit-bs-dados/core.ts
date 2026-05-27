@@ -220,7 +220,7 @@ const stripAccents = (s: string) =>
 function classifyPCByDescription(desc: string): string {
   const d = stripAccents(desc);
   if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "II";
-  if (/fornecedor/.test(d)) return "BB";
+  // FIX (B): fornecedores só via 211; NÃO casamos por descrição aqui.
   if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "AA";
   if (/sal[aá]ri|f[eé]rias|13[ºo°]|d[eé]cimo\s+terceiro|inss|fgts|trabalhi|encargos\s+soci|provis[aã]o.*f[eé]ria/.test(d)) return "CC";
   if (/tribut|imposto|icms|iss|pis|cofins|irpj|csll|simples|parcelament|refis/.test(d)) return "DD";
@@ -230,7 +230,7 @@ function classifyPCByDescription(desc: string): string {
 function classifyPNCByDescription(desc: string): string {
   const d = stripAccents(desc);
   if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "CC1";
-  if (/fornecedor/.test(d)) return "PP";
+  // FIX (B): Fornecedores LP só via 221.
   if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "QQ";
   if (/tribut|imposto|parcelament|refis/.test(d)) return "RR";
   return "DD1";
@@ -244,6 +244,8 @@ export function inferRefByCode(code?: string, descricao?: string): string | null
       if (ref === "PNC_COMPONENT") return classifyPNCByDescription(descricao || "");
       if (ref === "FIN_GROUP") return classifyFinByDescription(descricao || "");
       if (ref === "RECEITA_OR_DEDUCAO") return isDeducaoByDescription(descricao || "") ? "DEDUCOES_RECEITA" : "RECEITA";
+      // FIX (A): raiz DRE bare ("3".."8") — sinaliza para resolveKey ignorar.
+      if (ref === "DRE_ROOT_IGNORE") return "__IGNORE__";
       return ref;
     }
   }
