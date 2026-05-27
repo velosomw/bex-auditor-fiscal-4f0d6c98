@@ -32,6 +32,7 @@ import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
+import TabGraficosParecer from "@/components/audit/TabGraficosParecer";
 import TabBSDados from "@/components/audit/TabBSDados";
 import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -4460,7 +4461,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   // Quando o relatório final é gerado (ou ao abrir um relatório salvo), todas as abas ficam visíveis.
   const tabOrder = useMemo(() => [
     "diagnostico", "analise-tecnica", "indicadores", "endividamento", "patrimonial",
-    "bs-dados", "pivot", "graficos-auditoria", "risco-rj", "kanitz", "relatorio-final"
+    "bs-dados", "pivot", "graficos-auditoria", "graficos-parecer", "risco-rj", "kanitz", "relatorio-final"
   ], []);
   const currentIdx = Math.max(0, tabOrder.indexOf(activeTab));
   const [maxUnlocked, setMaxUnlocked] = useState<number>(
@@ -4705,6 +4706,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             { value: "bs-dados", icon: Database, label: "BS & Dados" },
             { value: "pivot", icon: Layers, label: "Pivot" },
             { value: "graficos-auditoria", icon: BarChart3, label: "Gráficos de Auditoria" },
+            { value: "graficos-parecer", icon: BarChart3, label: "Gráficos Parecer Contábil" },
             { value: "risco-rj", icon: AlertOctagon, label: "Risco RJ" },
             { value: "kanitz", icon: Scale, label: "Kanitz" },
             { value: "relatorio-final", icon: BookOpen, label: "Relatório Final" },
@@ -4728,6 +4730,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria" id="tab-graficos-container" className="bg-background">
           <TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} />
+        </TabsContent>
+        <TabsContent value="graficos-parecer" id="tab-graficos-parecer-container" className="bg-background">
+          <TabGraficosParecer parsedData={parsedData} entries={balanceteEntries} />
         </TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} balanceteEntries={balanceteEntries} /></TabsContent>
