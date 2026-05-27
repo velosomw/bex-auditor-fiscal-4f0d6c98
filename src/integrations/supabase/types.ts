@@ -771,6 +771,7 @@ export type Database = {
           ativo_total: number
           audit_id: string
           cmv: number
+          confidence_by_group: Json | null
           contas_receber: number
           created_at: string
           credores_rj: number
@@ -789,6 +790,8 @@ export type Database = {
           fornecedores: number
           id: string
           imobilizado: number
+          intangivel: number
+          investimentos: number
           mes: string
           outras_nao_operacionais: number
           outras_obrigacoes: number
@@ -797,10 +800,13 @@ export type Database = {
           passivo_total: number
           patrimonio_liquido: number
           patrimonio_liquido_bruto: number | null
+          realizavel_longo_prazo: number
           receita_liquida: number
           receitas_financeiras: number
           resultado: number
           updated_at: string
+          validation_diagnostics: Json | null
+          validation_status: string
           ytd_flags: Json | null
         }
         Insert: {
@@ -810,6 +816,7 @@ export type Database = {
           ativo_total?: number
           audit_id: string
           cmv?: number
+          confidence_by_group?: Json | null
           contas_receber?: number
           created_at?: string
           credores_rj?: number
@@ -828,6 +835,8 @@ export type Database = {
           fornecedores?: number
           id?: string
           imobilizado?: number
+          intangivel?: number
+          investimentos?: number
           mes: string
           outras_nao_operacionais?: number
           outras_obrigacoes?: number
@@ -836,10 +845,13 @@ export type Database = {
           passivo_total?: number
           patrimonio_liquido?: number
           patrimonio_liquido_bruto?: number | null
+          realizavel_longo_prazo?: number
           receita_liquida?: number
           receitas_financeiras?: number
           resultado?: number
           updated_at?: string
+          validation_diagnostics?: Json | null
+          validation_status?: string
           ytd_flags?: Json | null
         }
         Update: {
@@ -849,6 +861,7 @@ export type Database = {
           ativo_total?: number
           audit_id?: string
           cmv?: number
+          confidence_by_group?: Json | null
           contas_receber?: number
           created_at?: string
           credores_rj?: number
@@ -867,6 +880,8 @@ export type Database = {
           fornecedores?: number
           id?: string
           imobilizado?: number
+          intangivel?: number
+          investimentos?: number
           mes?: string
           outras_nao_operacionais?: number
           outras_obrigacoes?: number
@@ -875,10 +890,13 @@ export type Database = {
           passivo_total?: number
           patrimonio_liquido?: number
           patrimonio_liquido_bruto?: number | null
+          realizavel_longo_prazo?: number
           receita_liquida?: number
           receitas_financeiras?: number
           resultado?: number
           updated_at?: string
+          validation_diagnostics?: Json | null
+          validation_status?: string
           ytd_flags?: Json | null
         }
         Relationships: [
