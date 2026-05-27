@@ -339,9 +339,19 @@ export function emptyRow(mesKey: string): BSDadosRow {
 }
 
 export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
-  const ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
+  let ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
   // FIX (A): raízes DRE bare descartadas — não cair em fallback regex.
   if (ref1 === "__IGNORE__") return null;
+  // FIX Giannini: ref1 "PP" vem da planilha como rótulo genérico do PNC em
+  // alguns planos (ex.: 221/221010 "Impostos e Contribuições" marcadas como PP).
+  // Só aceitamos PP quando a descrição explicita "fornecedor"; caso contrário
+  // reclassificamos pelo conteúdo para não inflar fornecedores LP.
+  if (ref1 && upper(ref1) === "PP") {
+    const d = stripAccents(linha.descricao || "");
+    if (!/\bfornecedor/.test(d)) {
+      ref1 = classifyPNCByDescription(linha.descricao || "");
+    }
+  }
   if (ref1) {
     const k = REF1_MAP[upper(ref1)];
     if (k) return k;
@@ -654,7 +664,22 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
       if (inferred) r1 = upper(inferred);
     }
     if (!r1 || r1.endsWith("_TOTAL")) continue;
+    // FIX Giannini: ref1 "PP" como rótulo genérico do PNC — só promove a
+    // mappedParent quando a descrição é explicitamente Fornecedores. Caso
+    // contrário reclassifica por descrição; se cair em DD1 (catch-all sem
+    // sinal específico), NÃO adiciona como mappedParent para que as filhas
+    // específicas (RR=tributário, CC1=credores RJ) permaneçam na linha e o
+    // pai genérico seja removido como structuralParent.
+    if (r1 === "PP") {
+      const d = stripAccents(l.descricao || "");
+      if (!/\bfornecedor/.test(d)) {
+        const re = upper(classifyPNCByDescription(l.descricao || ""));
+        if (re === "DD1") continue;
+        r1 = re;
+      }
+    }
     if (REF1_MAP[r1]) mappedParents.add(c);
+
   }
   const isChildOfMappedParent = (c: string) => {
     for (const p of mappedParents) {
