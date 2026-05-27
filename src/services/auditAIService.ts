@@ -293,9 +293,9 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^21[2-9]/, "PC_COMPONENT"],
   [/^21/,    "PC_TOTAL"],
   // ── PASSIVO NÃO CIRCULANTE ───────────────────
-  // PNC: 221 = Fornecedores LP (espelho de 211); demais 22X resolvem por descrição.
-  [/^221/,   "PP"],
-  [/^22[2-9]/, "PNC_COMPONENT"],
+  // FIX (Giannini): 221 NÃO é universalmente Fornecedores LP — em vários planos
+  // (ex. Giannini) é o agrupador inteiro do PNC. Resolvemos por descrição.
+  [/^22[1-9]/, "PNC_COMPONENT"],
   [/^22/,    "PNC_TOTAL"],
   // ── PATRIMÔNIO LÍQUIDO ───────────────────────
   [/^231/,   "GG1"], [/^232/, "HH1"], [/^233/, "HH1"], [/^234/, "HH1"],
