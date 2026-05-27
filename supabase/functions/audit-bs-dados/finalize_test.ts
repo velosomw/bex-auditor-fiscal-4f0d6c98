@@ -72,4 +72,3 @@ Deno.test("PL ausente — derivado da equação", () => {
 // Nota: smoke test de integração buildBSDados removido — depende de fixtures
 // REF1 mais ricos (com totalizadores GT) que excedem o escopo dos testes unitários.
 // A integração completa é validada via re-upload manual da auditoria Giannini.
-});
