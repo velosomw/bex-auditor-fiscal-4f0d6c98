@@ -285,6 +285,78 @@ const upper = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]
 const norm  = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 const pad2  = (n: number | string) => String(n).padStart(2, "0");
 
+/**
+ * TAXONOMIA POR NOME DO GRUPO DE RESULTADO
+ * --------------------------------------------------------
+ * Diferentes balancetes usam linhas/códigos distintos para o MESMO grupo
+ * (ex.: "Ativo Permanente" e "Imobilizado Custo Corrigido" são equivalentes
+ *  e NÃO devem ser somados — usa-se a PRIMEIRA ocorrência como referência).
+ *
+ * A classificação se baseia no NOME/TEXTO do Grupo de Resultado, NUNCA na
+ * posição da linha no arquivo. Quando dois grupos sinônimos aparecem no
+ * mesmo balancete, mantemos o primeiro encontrado (e suas descendentes) e
+ * descartamos os duplicados — evita dupla contagem entre planos de contas
+ * distintos.
+ */
+const GROUP_SYNONYMS: Array<{ canonical: string; patterns: RegExp[] }> = [
+  {
+    canonical: "imobilizado_permanente",
+    patterns: [
+      /^ativo\s+permanente$/,
+      /^imobilizado\s+custo\s+corrigido$/,
+      /^imobilizado\s*\(?\s*custo\s+corrigido\s*\)?$/,
+    ],
+  },
+];
+
+/** Devolve a chave canônica de um grupo sinônimo, ou null. */
+function getCanonicalGroupName(desc?: string): string | null {
+  const d = norm(desc || "");
+  if (!d) return null;
+  for (const { canonical, patterns } of GROUP_SYNONYMS) {
+    if (patterns.some(p => p.test(d))) return canonical;
+  }
+  return null;
+}
+
+/**
+ * Remove grupos sinônimos duplicados de um balancete. Para cada chave
+ * canônica encontrada mais de uma vez, mantém o PRIMEIRO nó (ordem de
+ * aparição) e elimina os duplicados + todas as suas descendentes por código.
+ * Taxonomia baseada em nome — não em linha/código.
+ */
+function dedupeSynonymGroups(linhas: InputLinha[]): InputLinha[] {
+  const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
+  const seen = new Map<string, string>(); // canonical → código do PRIMEIRO match
+  const dropCodes = new Set<string>();
+  for (const l of linhas) {
+    const canon = getCanonicalGroupName(l.descricao);
+    if (!canon) continue;
+    const code = normCode(l.conta);
+    if (!seen.has(canon)) {
+      seen.set(canon, code);
+    } else if (code && code !== seen.get(canon)) {
+      dropCodes.add(code);
+    }
+  }
+  if (!dropCodes.size) return linhas;
+  const out = linhas.filter(l => {
+    const c = normCode(l.conta);
+    if (!c) return true;
+    for (const dc of dropCodes) {
+      if (!dc) continue;
+      if (c === dc) return false;
+      if (c.startsWith(dc)) {
+        const suffix = c.slice(dc.length).replace(/^\.+/, "");
+        if (!suffix || /^\d/.test(suffix)) return false;
+      }
+    }
+    return true;
+  });
+  console.log(`[dedupeSynonymGroups] removidos ${linhas.length - out.length} nó(s) (grupos sinônimos duplicados — primeira ocorrência preservada: ${Array.from(dropCodes).join(", ")})`);
+  return out;
+}
+
 const MES_ABREV: Record<string, number> = { jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12 };
 const MES_LONG:  Record<string, number> = { janeiro:1,fevereiro:2,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12 };
 
