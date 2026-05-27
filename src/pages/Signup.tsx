@@ -18,6 +18,7 @@ const Signup = () => {
   const loginHref = `/login?redirect=${encodeURIComponent(redirectAfter)}`;
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +51,7 @@ const Signup = () => {
         data: {
           full_name: fullName,
           company_name: companyName,
+          cnpj: cnpj,
           signup_source: "public",
         },
       },
@@ -157,6 +159,12 @@ const Signup = () => {
                   <Label className="text-[hsl(220,15%,40%)] text-sm">Escritório / Contabilidade</Label>
                   <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} required
                     placeholder="Razão social do escritório"
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">CNPJ</Label>
+                  <Input value={cnpj} onChange={(e) => setCnpj(e.target.value)}
+                    placeholder="00.000.000/0000-00"
                     className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
                 </div>
                 <div className="space-y-2">

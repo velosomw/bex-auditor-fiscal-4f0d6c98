@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp, Trash2, ChevronsRight, Building2, Crown, Rocket } from "lucide-react";
+import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp, Trash2, ChevronsRight, Building2, Crown, Rocket, User as UserIcon, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 } from "@/services/auditHistoryService";
 import { listCompanies, type Company } from "@/services/companiesService";
 import { useUser } from "@/contexts/UserContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusConfig = {
   completed: { label: "Concluída", className: "bg-[hsl(142,76%,36%)]/20 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30" },
@@ -90,12 +91,13 @@ const DocCard = ({
 
 const UserDashboard = () => {
   const navigate = useNavigate();
-  const { isReadOnly } = useUser();
+  const { isReadOnly, supabaseUser } = useUser();
   const [history, setHistory] = useState<AuditHistoryEntry[]>([]);
   const [reports, setReports] = useState<GeneratedReportEntry[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
+  const [profilePending, setProfilePending] = useState(false);
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
@@ -104,6 +106,19 @@ const UserDashboard = () => {
     });
     listCompanies({ ownedOnly: true }).then(setCompanies).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!supabaseUser) return;
+    supabase
+      .from("profiles")
+      .select("profile_required, profile_completed_at")
+      .eq("user_id", supabaseUser.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const d = data as any;
+        if (d && d.profile_required && !d.profile_completed_at) setProfilePending(true);
+      });
+  }, [supabaseUser]);
 
   const handleStartNewAudit = (company: Company) => {
     navigate(`/audit?company=${company.id}`);
@@ -192,6 +207,20 @@ const UserDashboard = () => {
   return (
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-6 space-y-6">
+        {profilePending && (
+          <div className="flex items-center justify-between gap-3 flex-wrap p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+            <div className="flex items-start gap-2 text-sm">
+              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-amber-800">Finalize seu cadastro</p>
+                <p className="text-amber-700 text-xs">Complete os dados da empresa em Perfil para liberar todos os recursos da plataforma.</p>
+              </div>
+            </div>
+            <Button size="sm" onClick={() => navigate("/perfil")} className="bg-amber-600 hover:bg-amber-700 text-white">
+              Atualizar
+            </Button>
+          </div>
+        )}
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
@@ -223,6 +252,9 @@ const UserDashboard = () => {
 
         {/* Inline ações rápidas */}
         <div className="flex flex-wrap items-center gap-2 -mt-2">
+          <Button variant="outline" size="sm" onClick={() => navigate("/perfil")} className="gap-1.5">
+            <UserIcon className="w-4 h-4" /> Perfil
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/user/empresas")} className="gap-1.5">
             <Building2 className="w-4 h-4" /> Visualizar Empresas
           </Button>
