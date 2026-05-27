@@ -434,19 +434,25 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
 
-  // FIX #7 — Reclassificação CP/LP quando o parser jogou tudo em PNC.
-  // Cenário típico: balancete sem totalizadores PC/PNC; componentes (fornecedores,
-  // dívida tributária/trabalhista/financeira/outras) são identificados mas PC=0,
-  // o que zera todos os indicadores de liquidez por divisão por zero.
-  // Heurística conservadora: se PC == 0 e há componentes > 0, assume soma como PC
-  // e reduz PNC pelo mesmo valor (preserva passivo_total → preserva equação A=P+PL).
-  if (r.passivo_circulante === 0 && componentesPC > 0 && r.passivo_nao_circulante >= componentesPC) {
+  // FIX #7 + FIX (a) — Reclassificação CP/LP só dispara quando o parser
+  // claramente NÃO trouxe PC nem PNC totalizadores. Se já temos PNC (b.sawPNCTotal
+  // ou r.passivo_nao_circulante>0 a partir de buckets PNC explícitos como RR/CC1/
+  // QQ/PP/UU…), reclassificar componentes em PC produz dupla contagem (PC infla
+  // com tributário/credores LP que já estão consolidados nos buckets).
+  // Só aplica heurística quando: PC=0 E PNC=0 (nada estruturado) — assume tudo PC.
+  const semTotalizadorPassivo = !b?.sawPCTotal && !b?.sawPNCTotal;
+  if (
+    semTotalizadorPassivo &&
+    r.passivo_circulante === 0 &&
+    r.passivo_nao_circulante === 0 &&
+    componentesPC > 0
+  ) {
     r.passivo_circulante = componentesPC;
-    r.passivo_nao_circulante = r.passivo_nao_circulante - componentesPC;
     r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
-    r.errors.push(`Passivo Circulante reclassificado a partir de componentes (PC=${componentesPC.toFixed(0)}) — balancete não trouxe totalizador PC/PNC explícito`);
+    r.errors.push(`Passivo Circulante reclassificado a partir de componentes (PC=${componentesPC.toFixed(0)}) — balancete não trouxe totalizadores PC/PNC`);
     console.log(`[finalize] RECLASS_PC mes=${r.mesKey} PC=${r.passivo_circulante.toFixed(0)} PNC=${r.passivo_nao_circulante.toFixed(0)}`);
   }
+
   r.hasReceita = r.receita_liquida > 0;
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
