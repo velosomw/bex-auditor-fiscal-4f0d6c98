@@ -28,7 +28,7 @@ export const InviteEmail = ({ siteUrl, confirmationUrl }: InviteEmailProps) => (
           <Text style={styles.text}>
             Um administrador da{' '}
             <Link href={siteUrl} style={styles.link}><strong>BEx Auditoria</strong></Link>{' '}
-            convidou você para acessar a plataforma de auditoria inteligente.
+            convidou você para acessar a plataforma auditoria inteligente.
           </Text>
           <Text style={styles.text}>
             Aceite o convite, defina sua senha e comece a usar os relatórios Kanitz, BEx Solvência
