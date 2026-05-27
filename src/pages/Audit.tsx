@@ -4960,6 +4960,7 @@ const AuditContent = () => {
             dedupConfig={dedupConfig}
             companyId={company?.id ?? null}
             balanceteEntries={balanceteEntries}
+            forceReprocess={forceReprocess}
           />
         )}
         {phase === "results" && (
