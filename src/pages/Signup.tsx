@@ -18,6 +18,7 @@ const Signup = () => {
   const loginHref = `/login?redirect=${encodeURIComponent(redirectAfter)}`;
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [cnpj, setCnpj] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +51,7 @@ const Signup = () => {
         data: {
           full_name: fullName,
           company_name: companyName,
+          cnpj: cnpj,
           signup_source: "public",
         },
       },
