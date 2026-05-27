@@ -148,7 +148,9 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   estoques: /\bestoqu/i,
   disponivel: /\b(?:caixa|disponibilidade|disponivel|bancos?|aplica[cç][aã]o\s+financ|equivalente)/i,
   contas_receber: /\b(?:contas?\s+a\s+receber|duplicatas?\s+a\s+receber|clientes)\b/i,
-  imobilizado: /\b(?:imobilizado|intang[ií]vel)\b/i,
+  imobilizado: /\b(?:imobilizado|m[aá]quina|equipamento|ve[ií]culo|edifica[cç][oõ]es|terreno)\b/i,
+  intangivel: /\bintang[ií]vel|marca\s+e\s+patent|software\b/i,
+  investimentos: /\b(?:investiment[oa]s?\s+em|participa[cç][oõ]es?\s+societ|coligad|controlad)/i,
   ativo_nao_circulante: /\bativo\s+n[aã]o[\s-]?circulante|ativo\s+permanente/i,
   realizavel_longo_prazo: /\brealiz[aá]vel\s+a?\s*longo\s+prazo\b/i,
   ativo_circulante: /\bativo\s+circulante\b/i,
@@ -209,11 +211,13 @@ export interface BSDadosRow {
   // BALANÇO — Ativos
   ativo_circulante: number;
   ativo_nao_circulante: number;
-  realizavel_longo_prazo: number; // RLP (Refs P..Z) — subset de ANC, usado em Liquidez Geral
+  realizavel_longo_prazo: number; // RLP (Refs P..T) — subset de ANC, usado em Liquidez Geral
+  investimentos: number;          // Ref B1 — subgrupo ANC (Onda 2)
+  intangivel: number;             // Ref D1 — subgrupo ANC (Onda 2, separado do imobilizado)
   estoques: number;
   disponivel: number;
-  contas_receber: number;       // Ref C (orth.)
-  imobilizado: number;          // Refs C1+D1 (orth.)
+  contas_receber: number;
+  imobilizado: number;            // Ref C1
   // BALANÇO — Passivos & PL
   passivo_circulante: number;
   passivo_nao_circulante: number;
@@ -294,6 +298,7 @@ function emptyRow(mesKey: string): BSDadosRow {
     receitas_financeiras: 0, outras_nao_operacionais: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
     ativo_circulante: 0, ativo_nao_circulante: 0, realizavel_longo_prazo: 0,
+    investimentos: 0, intangivel: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,

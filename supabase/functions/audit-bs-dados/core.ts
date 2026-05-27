@@ -16,10 +16,10 @@ export interface BSDadosRow {
   mesKey: string;
   receita_liquida: number;
   cmv: number;
-  despesas: number;                 // grupo 6 — operacionais
-  despesas_financeiras: number;     // grupo 7 — separado (alinhado com client)
-  receitas_financeiras: number;     // grupo 7+ / juros ativos / rendimentos — usado em EBITDA (subtrai)
-  outras_nao_operacionais: number;  // grupo 8 — não operacionais (signed: receita+, despesa-)
+  despesas: number;
+  despesas_financeiras: number;
+  receitas_financeiras: number;
+  outras_nao_operacionais: number;
   depreciacao: number;
   amortizacao: number;
   resultado: number;
@@ -31,11 +31,15 @@ export interface BSDadosRow {
   ativo_total: number;
   passivo_total: number;
   estoques: number;
-  estoques_bruto?: number;          // pré-cap (apenas se cap foi aplicado)
-  patrimonio_liquido_bruto?: number; // PL original (pré-rebalanço por equação contábil)
+  estoques_bruto?: number;
+  patrimonio_liquido_bruto?: number;
   disponivel: number;
   contas_receber: number;
   imobilizado: number;
+  // ── ANC subgroups (Onda 2 — corrige Liquidez Geral e Kanitz) ──
+  realizavel_longo_prazo: number;   // refs P, Q, R, S, T (12.1)
+  investimentos: number;            // ref B1 (12.2)
+  intangivel: number;               // ref D1 (12.4) — separado do imobilizado
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
@@ -43,7 +47,7 @@ export interface BSDadosRow {
   credores_rj: number;
   outras_obrigacoes: number;
   divida_total: number;
-  divida_total_bruto?: number;      // pré-cap
+  divida_total_bruto?: number;
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
@@ -51,9 +55,19 @@ export interface BSDadosRow {
   ytd_flags?: {
     is_ytd_input?: boolean;
     ytd_desacumulado?: boolean;
-    ytd_outlier_flag?: boolean;     // mês marcado p/ excluir de gráficos mensais
+    ytd_outlier_flag?: boolean;
     ytd_source_count?: number;
   };
+  // ── Governança contábil (Ondas 6 + 8) ──
+  validation_status?: "ok" | "warn" | "needs_review";
+  validation_diagnostics?: {
+    desvio_pct?: number;
+    ativo_total?: number;
+    passivo_mais_pl?: number;
+    causa?: string;
+    contribuintes_top?: Array<{ campo: string; valor: number }>;
+  };
+  confidence_by_group?: { AC: number; ANC: number; PC: number; PNC: number; PL: number };
 }
 
 export interface BSIndicators {
@@ -89,12 +103,19 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "E": "ativo_circulante", "F": "ativo_circulante", "G": "ativo_circulante", "H": "ativo_circulante",
   "I": "ativo_circulante", "J": "ativo_circulante", "K": "ativo_circulante", "L": "ativo_circulante",
   "M": "ativo_circulante", "N": "ativo_circulante", "O": "ativo_circulante",
-  // ANC (P..J1) — roteiam direto para ativo_nao_circulante; C1/D1 também alimentam imobilizado
-  "P": "ativo_nao_circulante", "Q": "ativo_nao_circulante", "R": "ativo_nao_circulante",
-  "S": "ativo_nao_circulante", "T": "ativo_nao_circulante", "U": "ativo_nao_circulante",
-  "V": "ativo_nao_circulante", "W": "ativo_nao_circulante", "X": "ativo_nao_circulante",
-  "Y": "ativo_nao_circulante", "Z": "ativo_nao_circulante", "A1": "ativo_nao_circulante",
-  "B1": "ativo_nao_circulante", "C1": "imobilizado", "D1": "imobilizado",
+  // ── ANC — Onda 2: separa Realizável LP / Investimentos / Imobilizado / Intangível ──
+  // RLP (P..T): Contas a receber LP, Depósitos judiciais LP, Impostos a recuperar LP,
+  // Partes relacionadas ANC, Empréstimos LP — tudo conversível em caixa no LP.
+  "P": "realizavel_longo_prazo", "Q": "realizavel_longo_prazo",
+  "R": "realizavel_longo_prazo", "S": "realizavel_longo_prazo",
+  "T": "realizavel_longo_prazo",
+  // Demais ANC genéricos (U..A1) continuam no bucket geral ANC.
+  "U": "ativo_nao_circulante", "V": "ativo_nao_circulante", "W": "ativo_nao_circulante",
+  "X": "ativo_nao_circulante", "Y": "ativo_nao_circulante", "Z": "ativo_nao_circulante",
+  "A1": "ativo_nao_circulante",
+  "B1": "investimentos",          // 12.2 — Investimentos (subsidiárias, coligadas)
+  "C1": "imobilizado",            // 12.3 — Imobilizado Líquido
+  "D1": "intangivel",             // 12.4 — Intangível (separado do imobilizado)
   "E1": "ativo_nao_circulante", "F1": "ativo_nao_circulante", "G1": "ativo_nao_circulante",
   "H1": "ativo_nao_circulante", "I1": "ativo_nao_circulante", "J1": "ativo_nao_circulante",
   // PC
@@ -103,7 +124,7 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "EE": "passivo_circulante", "FF": "passivo_circulante", "GG": "passivo_circulante", "HH": "passivo_circulante",
   "JJ": "outras_obrigacoes", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
   "OO": "passivo_circulante", "II1": "divida_tributaria",
-  // PNC (PP..FF1) — completar gap vs cliente
+  // PNC (PP..FF1)
   "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria",
   "SS": "divida_tributaria", "TT": "divida_financeira",
   "UU": "passivo_nao_circulante", "VV": "passivo_nao_circulante", "WW": "passivo_nao_circulante",
@@ -119,9 +140,9 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
-  "DESPESAS_FIN": "despesas_financeiras",   // antes fundia em "despesas" — agora separado
-  "RECEITAS_FIN": "receitas_financeiras",   // juros ativos / rendimentos de aplicação
-  "DESPESAS_NOP": "outras_nao_operacionais", // grupo 8 — não operacionais em campo dedicado (Fix C)
+  "DESPESAS_FIN": "despesas_financeiras",
+  "RECEITAS_FIN": "receitas_financeiras",
+  "DESPESAS_NOP": "outras_nao_operacionais",
   "DESPESAS FINANCEIRAS": "despesas_financeiras",
   "RECEITAS FINANCEIRAS": "receitas_financeiras",
   "DEPRECIACAO": "depreciacao", "DEPRECIAÇÃO": "depreciacao",
@@ -353,9 +374,11 @@ export function emptyRow(mesKey: string): BSDadosRow {
     ativo_nao_circulante: 0, passivo_nao_circulante: 0,
     patrimonio_liquido: 0, ativo_total: 0, passivo_total: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
+    realizavel_longo_prazo: 0, investimentos: 0, intangivel: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0,
     hasReceita: false, hasBalanco: false, errors: [],
+    validation_status: "ok",
   };
 }
 
@@ -460,11 +483,20 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
       if (isTotal) { b.sawPLTotal = true; b.gtPL += v; }
       else { row.patrimonio_liquido += v; }
       break;
-    // Imobilizado preserva SINAL NATURAL: depreciação acumulada vem com saldo
-    // negativo (contra-ativo) e deve SUBTRAIR do Imobilizado bruto para
-    // produzir o líquido equivalente ao "Ativo Permanente".
+    // Imobilizado/Intangível/Investimentos/RLP preservam SINAL NATURAL:
+    // depreciação/amortização acumulada vêm com saldo negativo (contra-ativo)
+    // e devem SUBTRAIR do bruto para produzir o líquido contábil.
+    // ATENÇÃO: estes 4 buckets também compõem ANC (somados ao ativo_nao_circulante
+    // no finalize quando não há GT ANC) — evita perda de saldo em planos
+    // contábeis sem totalizador ANC explícito.
     case "imobilizado":
       row.imobilizado += v; break;
+    case "realizavel_longo_prazo":
+      row.realizavel_longo_prazo += v; break;
+    case "investimentos":
+      row.investimentos += v; break;
+    case "intangivel":
+      row.intangivel += v; break;
     case "contas_receber":
     case "outras_obrigacoes":
     case "estoques":
@@ -492,6 +524,13 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
     if (b.sawPNCTotal && b.gtPNC > 0) r.passivo_nao_circulante = b.gtPNC;
     if (b.sawPLTotal  && b.gtPL !== 0) r.patrimonio_liquido    = b.gtPL;
   }
+  // Onda 2 — somar subgrupos ANC ao ativo_nao_circulante quando NÃO houver GT ANC.
+  // RLP + Investimentos + Imobilizado + Intangível agora vão para buckets dedicados;
+  // sem este somatório o ANC ficaria zerado quando o balancete não traz totalizador.
+  if (!b?.sawANCTotal) {
+    const subANC = r.realizavel_longo_prazo + r.investimentos + r.imobilizado + r.intangivel;
+    if (subANC !== 0) r.ativo_nao_circulante += subANC;
+  }
   // Resíduo do PC vai para outras_obrigacoes (componentes não classificados)
   const componentesPC = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
                         r.fornecedores + r.credores_rj + r.outras_obrigacoes;
@@ -501,10 +540,6 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   // Recalcula divida_total
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
                    r.fornecedores + r.credores_rj + r.outras_obrigacoes;
-  // FIX (user): Resultado do Mês = código 3 INTEIRO (linha 990 de referência
-  // no Relatório Técnico), acumulado em r.resultado durante o loop de
-  // buildBSDados a partir das folhas com conta iniciando em "3". Não
-  // sobrescrevemos aqui — preserva o valor já agregado (com sinal natural).
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
 
@@ -592,6 +627,60 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   if (r.patrimonio_liquido < 0) {
     console.log(`[finalize] PASSIVO_A_DESCOBERTO mes=${r.mesKey} PL=${r.patrimonio_liquido.toFixed(0)}`);
   }
+
+  // ─── Onda 6 — validation_status (semáforo da equação contábil) ───
+  if (r.ativo_total > 0) {
+    const ladoDireito = r.passivo_total + r.patrimonio_liquido;
+    const diffPct = Math.abs(r.ativo_total - ladoDireito) / r.ativo_total * 100;
+    const status: "ok" | "warn" | "needs_review" =
+      diffPct <= 0.5 ? "ok" : diffPct <= 2 ? "warn" : "needs_review";
+    r.validation_status = status;
+    if (status !== "ok") {
+      // top 5 buckets de maior valor absoluto — candidatos a causa do desvio
+      const buckets: Array<{ campo: string; valor: number }> = [
+        { campo: "ativo_circulante", valor: r.ativo_circulante },
+        { campo: "ativo_nao_circulante", valor: r.ativo_nao_circulante },
+        { campo: "passivo_circulante", valor: r.passivo_circulante },
+        { campo: "passivo_nao_circulante", valor: r.passivo_nao_circulante },
+        { campo: "patrimonio_liquido", valor: r.patrimonio_liquido },
+        { campo: "imobilizado", valor: r.imobilizado },
+        { campo: "realizavel_longo_prazo", valor: r.realizavel_longo_prazo },
+      ].sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor)).slice(0, 5);
+      r.validation_diagnostics = {
+        desvio_pct: Number(diffPct.toFixed(2)),
+        ativo_total: r.ativo_total,
+        passivo_mais_pl: ladoDireito,
+        causa: r.patrimonio_liquido_bruto != null
+          ? "PL rebalanceado por equação contábil"
+          : (r.passivo_circulante === 0 && r.passivo_nao_circulante === 0)
+            ? "Passivo não capturado (faltam totalizadores PC/PNC)"
+            : "Equação contábil quebrada — revisar classificação por Grupo de Resultado",
+        contribuintes_top: buckets,
+      };
+    }
+  }
+
+  // ─── Onda 8 — confidence_by_group (score por grupo) ───
+  // Heurística: presença de GT explícito = 100%; sem GT mas com componentes = 75%;
+  // GT zerado ou componentes ausentes = 40%. PL rebalanceado por equação = 50%.
+  if (b) {
+    const scoreFor = (sawGT: boolean, gt: number, valor: number, defaultFloor = 40): number => {
+      if (sawGT && gt !== 0) return 100;
+      if (valor !== 0) return 75;
+      return defaultFloor;
+    };
+    const plScore = r.patrimonio_liquido_bruto != null
+      ? 50
+      : scoreFor(b.sawPLTotal, b.gtPL, r.patrimonio_liquido);
+    r.confidence_by_group = {
+      AC: scoreFor(b.sawACTotal, b.gtAC, r.ativo_circulante),
+      ANC: scoreFor(b.sawANCTotal, b.gtANC, r.ativo_nao_circulante),
+      PC: scoreFor(b.sawPCTotal, b.gtPC, r.passivo_circulante),
+      PNC: scoreFor(b.sawPNCTotal, b.gtPNC, r.passivo_nao_circulante),
+      PL: plScore,
+    };
+  }
+
   return r;
 }
 

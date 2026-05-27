@@ -232,6 +232,9 @@ Deno.serve(async (req) => {
             disponivel: r.disponivel,
             contas_receber: r.contas_receber,
             imobilizado: r.imobilizado,
+            realizavel_longo_prazo: r.realizavel_longo_prazo,
+            investimentos: r.investimentos,
+            intangivel: r.intangivel,
             divida_tributaria: r.divida_tributaria,
             divida_trabalhista: r.divida_trabalhista,
             divida_financeira: r.divida_financeira,
@@ -242,6 +245,9 @@ Deno.serve(async (req) => {
             divida_total_bruto: r.divida_total_bruto ?? null,
             errors: r.errors,
             ytd_flags: r.ytd_flags ?? null,
+            validation_status: r.validation_status ?? "ok",
+            validation_diagnostics: r.validation_diagnostics ?? null,
+            confidence_by_group: r.confidence_by_group ?? null,
           }));
           const indRows = indicadores.map((i, idx) => ({
             audit_id: auditId,
