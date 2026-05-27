@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp, Trash2, ChevronsRight, Building2, Crown, Rocket } from "lucide-react";
+import { FileText, CheckCircle2, Clock, AlertTriangle, Plus, Eye, TrendingUp, Trash2, ChevronsRight, Building2, Crown, Rocket, User as UserIcon, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 } from "@/services/auditHistoryService";
 import { listCompanies, type Company } from "@/services/companiesService";
 import { useUser } from "@/contexts/UserContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusConfig = {
   completed: { label: "Concluída", className: "bg-[hsl(142,76%,36%)]/20 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30" },
@@ -96,6 +97,8 @@ const UserDashboard = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
+  const [profilePending, setProfilePending] = useState(false);
+  const { supabaseUser } = useUser();
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
@@ -104,6 +107,19 @@ const UserDashboard = () => {
     });
     listCompanies({ ownedOnly: true }).then(setCompanies).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!supabaseUser) return;
+    supabase
+      .from("profiles")
+      .select("profile_required, profile_completed_at")
+      .eq("user_id", supabaseUser.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const d = data as any;
+        if (d && d.profile_required && !d.profile_completed_at) setProfilePending(true);
+      });
+  }, [supabaseUser]);
 
   const handleStartNewAudit = (company: Company) => {
     navigate(`/audit?company=${company.id}`);
