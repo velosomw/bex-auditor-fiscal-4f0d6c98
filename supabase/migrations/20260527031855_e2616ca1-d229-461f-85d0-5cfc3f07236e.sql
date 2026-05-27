@@ -1,0 +1,1 @@
+ALTER TABLE public.bs_dados ADD COLUMN IF NOT EXISTS outras_nao_operacionais NUMERIC NOT NULL DEFAULT 0;
