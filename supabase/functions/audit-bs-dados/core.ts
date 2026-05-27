@@ -447,8 +447,12 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
       if (isTotal) { b.sawPLTotal = true; b.gtPL += v; }
       else { row.patrimonio_liquido += v; }
       break;
-    case "contas_receber":
+    // Imobilizado preserva SINAL NATURAL: depreciação acumulada vem com saldo
+    // negativo (contra-ativo) e deve SUBTRAIR do Imobilizado bruto para
+    // produzir o líquido equivalente ao "Ativo Permanente".
     case "imobilizado":
+      row.imobilizado += v; break;
+    case "contas_receber":
     case "outras_obrigacoes":
     case "estoques":
     case "disponivel":
