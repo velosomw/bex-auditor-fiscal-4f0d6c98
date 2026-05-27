@@ -158,9 +158,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setAuthenticated(false);
     setSupabaseUser(null);
     setViewAsRoleState(null);
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("authenticated");
-    localStorage.removeItem("viewAsRole");
+    clearUserScopedStorage();
+    localStorage.removeItem(LAST_USER_KEY);
   }, []);
 
   const setViewAsRole = useCallback((r: UserRole | null) => {
