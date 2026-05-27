@@ -7,8 +7,8 @@
 //      negativo sem tratar como erro
 //
 // Roda com: deno test --allow-net --allow-env supabase/functions/audit-bs-dados/finalize_test.ts
-import { assert, assertEquals, assertAlmostEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { finalize, emptyRow, emptyBuckets, buildBSDados } from "./core.ts";
+import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { finalize, emptyRow, emptyBuckets} from "./core.ts";
 
 Deno.test("PL positivo correto — equação fecha sem rebalanço", () => {
   const r = emptyRow("2026-01");
