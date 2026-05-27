@@ -157,9 +157,16 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^116/,   "G"], [/^117/, "G"], [/^118/, "G"], [/^119/, "G"],
   [/^11/,    "AC_TOTAL"],
   // ── ATIVO NÃO CIRCULANTE ───
+  // FIX (d): 12X/13X imobilizado & intangível roteiam para a coluna dedicada
+  // `imobilizado` (REF C1/D1) em vez do bucket ANC genérico, para que a tabela
+  // de Endividamento exiba "Imobilizado e Intangível" granular (≈2,3M no
+  // Parecer Giannini) em vez de despejar todo o ANC (16,7M).
   [/^121/,   "P"], [/^122/, "Q"], [/^123/, "R"], [/^124/, "S"],
+  [/^125/,   "C1"], [/^126/, "C1"],            // Imobilizado (planos 12.5/12.6)
+  [/^127/,   "D1"], [/^128/, "D1"],            // Intangível
   [/^12/,    "ANC_TOTAL"],
-  [/^131/,   "R"], [/^132/, "S"],
+  [/^131/,   "C1"], [/^132/, "D1"],            // Permanente: Imob/Intang
+  [/^133/,   "C1"], [/^134/, "D1"],
   [/^13/,    "ANC_TOTAL"],
   // ── PASSIVO CIRCULANTE — sub-classificação via descrição ───
   [/^21[1-9]/, "PC_COMPONENT"],
@@ -249,7 +256,9 @@ const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
   divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasing|arrendamento)/i,
   fornecedores: /\bfornecedor/i,
   credores_rj: /\b(?:credores?\s+(?:rj|recupera[cç][aã]o)|recupera[cç][aã]o\s+judic)/i,
+  imobilizado: /\b(?:imobilizado|intang[ií]vel|m[aá]quina|equipamento|ve[ií]culo|edifica[cç][oõ]es|terreno|m[oó]vel\s+e?\s*utens[ií]li|software|marca\s+e\s+patent)/i,
 };
+
 
 // ─── Helpers ─────────────────────────────────────────────
 const upper = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
@@ -425,19 +434,25 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
 
-  // FIX #7 — Reclassificação CP/LP quando o parser jogou tudo em PNC.
-  // Cenário típico: balancete sem totalizadores PC/PNC; componentes (fornecedores,
-  // dívida tributária/trabalhista/financeira/outras) são identificados mas PC=0,
-  // o que zera todos os indicadores de liquidez por divisão por zero.
-  // Heurística conservadora: se PC == 0 e há componentes > 0, assume soma como PC
-  // e reduz PNC pelo mesmo valor (preserva passivo_total → preserva equação A=P+PL).
-  if (r.passivo_circulante === 0 && componentesPC > 0 && r.passivo_nao_circulante >= componentesPC) {
+  // FIX #7 + FIX (a) — Reclassificação CP/LP só dispara quando o parser
+  // claramente NÃO trouxe PC nem PNC totalizadores. Se já temos PNC (b.sawPNCTotal
+  // ou r.passivo_nao_circulante>0 a partir de buckets PNC explícitos como RR/CC1/
+  // QQ/PP/UU…), reclassificar componentes em PC produz dupla contagem (PC infla
+  // com tributário/credores LP que já estão consolidados nos buckets).
+  // Só aplica heurística quando: PC=0 E PNC=0 (nada estruturado) — assume tudo PC.
+  const semTotalizadorPassivo = !b?.sawPCTotal && !b?.sawPNCTotal;
+  if (
+    semTotalizadorPassivo &&
+    r.passivo_circulante === 0 &&
+    r.passivo_nao_circulante === 0 &&
+    componentesPC > 0
+  ) {
     r.passivo_circulante = componentesPC;
-    r.passivo_nao_circulante = r.passivo_nao_circulante - componentesPC;
     r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
-    r.errors.push(`Passivo Circulante reclassificado a partir de componentes (PC=${componentesPC.toFixed(0)}) — balancete não trouxe totalizador PC/PNC explícito`);
+    r.errors.push(`Passivo Circulante reclassificado a partir de componentes (PC=${componentesPC.toFixed(0)}) — balancete não trouxe totalizadores PC/PNC`);
     console.log(`[finalize] RECLASS_PC mes=${r.mesKey} PC=${r.passivo_circulante.toFixed(0)} PNC=${r.passivo_nao_circulante.toFixed(0)}`);
   }
+
   r.hasReceita = r.receita_liquida > 0;
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
@@ -605,7 +620,15 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     const c = normCode(l.conta);
     if (!c) continue;
     if (!(parents.has(c) || structuralParents.has(c))) continue;
-    const r1 = typeof l.ref1 === "string" ? upper(l.ref1.trim()) : "";
+    // FIX (b): se o pai não tem ref1 explícito, inferimos pelo código+descrição
+    // para detectar agrupadores PNC (CC1=Credores RJ, RR=Tributário Parcelado,
+    // JJ=Outras) que o parser não marcou. Sem isso, o pai fica órfão e o saldo
+    // oficial do balancete não chega aos buckets `credores_rj`, `divida_tributaria`.
+    let r1 = typeof l.ref1 === "string" ? upper(l.ref1.trim()) : "";
+    if (!r1) {
+      const inferred = inferRefByCode(l.conta, l.descricao);
+      if (inferred) r1 = upper(inferred);
+    }
     if (!r1 || r1.endsWith("_TOTAL")) continue;
     if (REF1_MAP[r1]) mappedParents.add(c);
   }
