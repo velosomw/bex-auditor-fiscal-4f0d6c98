@@ -54,6 +54,11 @@ export function classifyKanitz(score: number): KanitzRating {
 export function calcKanitzScore(input: {
   resultado: number; pl: number; ac: number; anc: number; pc: number; pnc: number;
   estoques: number; dividaTotal: number;
+  /** Onda 2 — RLP discriminado (Refs P..T). Quando ausente, derivamos do ANC. */
+  rlp?: number;
+  imobilizado?: number;
+  intangivel?: number;
+  investimentos?: number;
 }): { K: number; RL: number; LG: number; LS: number; LC: number; GE: number } {
   const pl = input.pl;
   const pc = input.pc || 1;
@@ -62,9 +67,19 @@ export function calcKanitzScore(input: {
 
   // RL = Rentabilidade do PL = Lucro / PL  (N/A se PL ≤ 0)
   const RL = pl > 0 ? input.resultado / pl : 0;
-  // LG = Liquidez Geral = (AC + ANC_realizável) / (PC + PNC).
-  // Sem RLP discriminado, usamos ANC total como proxy de ativos realizáveis a longo prazo.
-  const LG = pt > 0 ? (input.ac + input.anc) / pt : (input.ac / (input.dividaTotal || 1));
+
+  // LG = (AC + RLP) / (PC + PNC) — Onda 2.
+  // Prioridade: (1) RLP explícito → (2) ANC − Imob − Intang − Invest → (3) ANC total.
+  const rlpExplicit = input.rlp ?? 0;
+  const rlpResidual = (input.anc || 0)
+    - (input.imobilizado ?? 0)
+    - (input.intangivel ?? 0)
+    - (input.investimentos ?? 0);
+  const rlpEff = rlpExplicit > 0
+    ? rlpExplicit
+    : (rlpResidual > 0 ? rlpResidual : (input.anc || 0));
+  const LG = pt > 0 ? (input.ac + rlpEff) / pt : (input.ac / (input.dividaTotal || 1));
+
   const LS = (input.ac - input.estoques) / pc;
   const LC = input.ac / pc;
   // GE = Grau de Endividamento = (PC + PNC) / PL  (N/A se PL ≤ 0)
@@ -110,11 +125,17 @@ export function buildKanitzMonthlySeries(rows: BSDadosRow[] | null | undefined):
       : ativoTotal - (r.divida_total || 0);
     if (!plCaptured) warnings.push("PL não capturado — usando Ativo Total − Dívida Total (aproximação)");
 
-    // Liquidez (real, agora que ANC/PNC vêm do SSOT)
+    // Liquidez Corrente direta. Liquidez Geral usa RLP discriminado (Onda 2).
     const liquidezCorrente = r.passivo_circulante > 0 ? r.ativo_circulante / r.passivo_circulante : 0;
     const passivoTotal = (r.passivo_circulante || 0) + (r.passivo_nao_circulante || 0);
+    const rlpExplicit = (r as any).realizavel_longo_prazo ?? 0;
+    const rlpResidual = (r.ativo_nao_circulante || 0)
+      - ((r as any).imobilizado ?? 0)
+      - ((r as any).intangivel ?? 0)
+      - ((r as any).investimentos ?? 0);
+    const rlpEff = rlpExplicit > 0 ? rlpExplicit : (rlpResidual > 0 ? rlpResidual : (r.ativo_nao_circulante || 0));
     const liquidezGeral = passivoTotal > 0
-      ? ((r.ativo_circulante || 0) + (r.ativo_nao_circulante || 0)) / passivoTotal
+      ? ((r.ativo_circulante || 0) + rlpEff) / passivoTotal
       : liquidezCorrente;
 
     const { K, RL, LG, LS, LC, GE } = calcKanitzScore({
@@ -126,6 +147,10 @@ export function buildKanitzMonthlySeries(rows: BSDadosRow[] | null | undefined):
       pnc: r.passivo_nao_circulante || 0,
       estoques: r.estoques || 0,
       dividaTotal: r.divida_total || 0,
+      rlp: rlpExplicit,
+      imobilizado: (r as any).imobilizado ?? 0,
+      intangivel: (r as any).intangivel ?? 0,
+      investimentos: (r as any).investimentos ?? 0,
     });
 
     const rating = classifyKanitz(K);
