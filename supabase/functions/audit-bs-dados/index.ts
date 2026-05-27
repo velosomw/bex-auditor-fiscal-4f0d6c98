@@ -215,6 +215,7 @@ Deno.serve(async (req) => {
             despesas: r.despesas,
             despesas_financeiras: r.despesas_financeiras,
             receitas_financeiras: r.receitas_financeiras,
+            outras_nao_operacionais: r.outras_nao_operacionais,
             depreciacao: r.depreciacao,
             amortizacao: r.amortizacao,
             resultado: r.resultado,
