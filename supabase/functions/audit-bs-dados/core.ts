@@ -19,6 +19,7 @@ export interface BSDadosRow {
   despesas: number;                 // grupo 6 — operacionais
   despesas_financeiras: number;     // grupo 7 — separado (alinhado com client)
   receitas_financeiras: number;     // grupo 7+ / juros ativos / rendimentos — usado em EBITDA (subtrai)
+  outras_nao_operacionais: number;  // grupo 8 — não operacionais (signed: receita+, despesa-)
   depreciacao: number;
   amortizacao: number;
   resultado: number;
@@ -120,7 +121,7 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
   "DESPESAS_FIN": "despesas_financeiras",   // antes fundia em "despesas" — agora separado
   "RECEITAS_FIN": "receitas_financeiras",   // juros ativos / rendimentos de aplicação
-  "DESPESAS_NOP": "despesas",                // não operacionais ainda em despesas (sinal próprio)
+  "DESPESAS_NOP": "outras_nao_operacionais", // grupo 8 — não operacionais em campo dedicado (Fix C)
   "DESPESAS FINANCEIRAS": "despesas_financeiras",
   "RECEITAS FINANCEIRAS": "receitas_financeiras",
   "DEPRECIACAO": "depreciacao", "DEPRECIAÇÃO": "depreciacao",
@@ -321,7 +322,7 @@ function mesKeyToLabel(k: string): string {
 export function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
-    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0, receitas_financeiras: 0,
+    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0, receitas_financeiras: 0, outras_nao_operacionais: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
     ativo_circulante: 0, passivo_circulante: 0,
     ativo_nao_circulante: 0, passivo_nao_circulante: 0,
@@ -383,6 +384,7 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
     case "despesas":        row.despesas -= Math.abs(v); break;
     case "despesas_financeiras": row.despesas_financeiras -= Math.abs(v); break;
     case "receitas_financeiras": row.receitas_financeiras += Math.abs(v); break;
+    case "outras_nao_operacionais": row.outras_nao_operacionais += v; break; // signed (grupo 8)
     case "depreciacao":     row.depreciacao -= Math.abs(v); break;
     case "amortizacao":     row.amortizacao -= Math.abs(v); break;
     case "resultado":       row.resultado += v; break;
@@ -443,8 +445,8 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   // Recalcula divida_total
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
                    r.fornecedores + r.credores_rj + r.outras_obrigacoes;
-  // Resultado alinhado: inclui despesas e receitas financeiras (CPC 47).
-  r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras;
+  // Resultado alinhado: 6 grupos DRE (3+4+5+6+7+8) — Fix C.
+  r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras + r.outras_nao_operacionais;
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
 
@@ -694,7 +696,7 @@ function desacumularDRE(
 ): BSDadosRow[] {
   if (rows.length < 2) return rows;
   const sorted = [...rows].sort((a, b) => a.mesKey.localeCompare(b.mesKey));
-  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras" | "receitas_financeiras"> = ["receita_liquida", "cmv", "despesas", "despesas_financeiras", "receitas_financeiras"];
+  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras" | "receitas_financeiras" | "outras_nao_operacionais"> = ["receita_liquida", "cmv", "despesas", "despesas_financeiras", "receitas_financeiras", "outras_nao_operacionais"];
   const byYear = new Map<string, BSDadosRow[]>();
   for (const r of sorted) {
     const y = r.mesKey.slice(0, 4);
@@ -744,7 +746,7 @@ function desacumularDRE(
       }
     }
     for (const r of group) {
-      r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras;
+      r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras + r.outras_nao_operacionais;
     }
   }
   return sorted;

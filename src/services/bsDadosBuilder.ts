@@ -856,7 +856,7 @@ export function buildBSDados(
       current.depreciacao = -(Math.abs(current.depreciacao) - Math.abs(previous.depreciacao));
       current.amortizacao = -(Math.abs(current.amortizacao) - Math.abs(previous.amortizacao));
       // Resultado re-derivado pós-ajuste
-      current.resultado = current.receita_liquida + current.cmv + current.despesas + current.despesas_financeiras;
+      current.resultado = current.receita_liquida + current.cmv + current.despesas + current.despesas_financeiras + current.receitas_financeiras + current.outras_nao_operacionais;
     }
   }
 
