@@ -66,37 +66,36 @@ const SolicitarCadastro = () => {
   };
 
   const handleSubmit = async () => {
-    // Empresas são opcionais nesta etapa (pode ter 0 cadastros — o contador adiciona depois logado)
     const validCompanies = companies.filter(c => c.name.trim());
     setSaving(true);
     try {
-      // 1. Persiste a contabilidade (anônima — status pendente)
-      await submitAccountingFirmRegistration({
-        name: firm.name,
-        cnpj: firm.cnpj,
-        crc: firm.crc,
-        phone: firm.phone,
-        email: firm.email,
-        address: firm.address,
-        address_number: firm.address_number,
-        zip: firm.zip,
-      });
-
-      // 2. Empresas-cliente ficam guardadas localmente para serem importadas após
-      //    o contador ativar a conta. Como o vínculo accounting_firm_id depende
-      //    do registro autenticado, salvamos no localStorage atrelado ao CNPJ.
-      if (validCompanies.length > 0) {
-        try {
-          const key = "bex_pending_client_companies";
-          const existing = JSON.parse(localStorage.getItem(key) || "{}");
-          existing[firm.cnpj] = validCompanies;
-          localStorage.setItem(key, JSON.stringify(existing));
-        } catch {}
-      }
+      // 1) Persiste a contabilidade (anônima — status pendente) já com as empresas
+      //    pendentes embutidas em metadata.pending_companies. Quando o admin aprovar,
+      //    a Edge Function cria essas empresas vinculadas ao usuário recém-criado.
+      const { supabase } = await import("@/integrations/supabase/client");
+      const payload: any = {
+        name: firm.name.trim(),
+        cnpj: firm.cnpj.trim(),
+        crc: firm.crc.trim(),
+        phone: firm.phone.trim(),
+        email: firm.email.trim().toLowerCase(),
+        address: firm.address?.trim() || null,
+        address_number: firm.address_number?.trim() || null,
+        zip: firm.zip?.trim() || null,
+        status: "pendente",
+        source: "site",
+        user_id: null,
+        metadata: validCompanies.length > 0 ? { pending_companies: validCompanies } : null,
+      };
+      const { error } = await supabase.from("accounting_firms" as any).insert(payload);
+      if (error) throw error;
 
       setStep("sucesso");
     } catch (err: any) {
-      const msg = err?.message?.includes("duplicate")
+      const isDup =
+        err?.code === "23505" ||
+        /duplicate|already exists|unique/i.test(err?.message || "");
+      const msg = isDup
         ? "Já existe uma contabilidade cadastrada com este CNPJ."
         : err?.message || "Erro ao enviar cadastro";
       toast({ title: "Erro ao enviar cadastro", description: msg, variant: "destructive" });
@@ -104,6 +103,7 @@ const SolicitarCadastro = () => {
       setSaving(false);
     }
   };
+
 
   // ============================ SUCESSO ============================
   if (step === "sucesso") {
