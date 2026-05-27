@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Lock, Unlock, Trash2, ChevronDown, ChevronRight, Calculator } from "lucide-react";
+import { Building2, Lock, Unlock, Trash2, ChevronDown, ChevronRight, Calculator, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Firm = {
@@ -28,6 +28,8 @@ const FirmsCompaniesPanel = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [approving, setApproving] = useState<string | null>(null);
+
 
   const load = async () => {
     setLoading(true);
@@ -51,6 +53,30 @@ const FirmsCompaniesPanel = () => {
     toast.success(next === "bloqueada" ? "Perfil bloqueado" : "Perfil desbloqueado");
     setFirms((prev) => prev.map((x) => (x.id === firm.id ? { ...x, status: next } : x)));
   };
+
+  const approveFirm = async (firm: Firm) => {
+    if (!confirm(`Aprovar "${firm.name}" e enviar e-mail de definição de senha para ${firm.email}?`)) return;
+    setApproving(firm.id);
+    try {
+      const redirect = `${window.location.origin}/reset-password`;
+      const { data, error } = await supabase.functions.invoke("provision-accounting-firm", {
+        body: { firm_id: firm.id, redirect_to: redirect },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const created = (data as any)?.companies_created ?? 0;
+      const sent = (data as any)?.invite_sent;
+      toast.success(
+        `Conta criada${created ? ` · ${created} empresa(s) importada(s)` : ""}${sent ? " · e-mail enviado" : " · falha ao enviar e-mail"}`,
+      );
+      await load();
+    } catch (e: any) {
+      toast.error("Falha ao aprovar: " + (e?.message || "erro desconhecido"));
+    } finally {
+      setApproving(null);
+    }
+  };
+
 
   const deleteCompany = async (company: Company) => {
     if (!confirm(`Excluir definitivamente a empresa "${company.name}"?`)) return;
@@ -101,10 +127,23 @@ const FirmsCompaniesPanel = () => {
                   <Badge variant={blocked ? "destructive" : "outline"} className="text-[10px]">
                     {blocked ? "Bloqueada" : firm.status}
                   </Badge>
+                  {firm.status === "pendente" && (
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1.5 text-xs bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] text-white"
+                      disabled={approving === firm.id}
+                      onClick={() => approveFirm(firm)}
+                    >
+                      {approving === firm.id
+                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Aprovando…</>
+                        : <><CheckCircle2 className="w-3.5 h-3.5" /> Aprovar e enviar credenciais</>}
+                    </Button>
+                  )}
                   <Button size="sm" variant={blocked ? "default" : "outline"} className="h-8 gap-1.5 text-xs" onClick={() => toggleBlock(firm)}>
                     {blocked ? <><Unlock className="w-3.5 h-3.5" /> Desbloquear</> : <><Lock className="w-3.5 h-3.5" /> Bloquear</>}
                   </Button>
                 </div>
+
               </div>
 
               {open && (
