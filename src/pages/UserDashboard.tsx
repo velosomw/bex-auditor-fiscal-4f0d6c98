@@ -417,26 +417,46 @@ const UserDashboard = () => {
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle className="text-base">Resumo de Conformidade</CardTitle>
-              <CardDescription>Índice médio das suas auditorias</CardDescription>
+              <CardDescription>
+                Índice composto pela interpretação IA do balancete e geração dos relatórios BEx / Kanitz
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center mb-4">
                 <p className="text-4xl font-bold text-[hsl(217,91%,50%)]">{avgConformidade}%</p>
-                <p className="text-xs text-muted-foreground mt-1">Conformidade Geral</p>
+                <p className="text-xs text-muted-foreground mt-1">Conformidade IA (Balancete → Relatório)</p>
                 <Progress value={avgConformidade} className="h-2 mt-3" />
               </div>
-              <div className="border-t border-border/50 pt-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Concluídas</span>
+              <div className="border-t border-border/50 pt-4 space-y-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">Extração IA do Balancete</span>
+                    <span className="font-medium text-foreground">{extracaoBalancete}%</span>
+                  </div>
+                  <Progress value={extracaoBalancete} className="h-1.5" />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {docsAnalisados.length} balancete(s) interpretado(s) pela IA
+                  </p>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">Tratamento IA → Relatório BEx/Kanitz</span>
+                    <span className="font-medium text-foreground">{tratamentoRelatorio}%</span>
+                  </div>
+                  <Progress value={tratamentoRelatorio} className="h-1.5" />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {relatoriosIA.length} relatório(s) gerado(s) com extração validada
+                  </p>
+                </div>
+              </div>
+              <div className="border-t border-border/50 pt-3 mt-4 space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Auditorias Concluídas</span>
                   <span className="font-medium text-[hsl(142,76%,36%)]">{completed}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Em Andamento</span>
                   <span className="font-medium text-[hsl(38,92%,50%)]">{inProgress}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Pendentes</span>
-                  <span className="font-medium text-muted-foreground">{pending}</span>
                 </div>
               </div>
             </CardContent>
@@ -449,7 +469,7 @@ const UserDashboard = () => {
                 <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
                 <CardTitle className="text-base">Conformidade por Documento</CardTitle>
               </div>
-              <CardDescription>Percentual de conformidade individual de cada documento analisado</CardDescription>
+              <CardDescription>Conformidade de extração IA por balancete analisado na plataforma</CardDescription>
             </CardHeader>
             <CardContent>
               {history.length === 0 ? (
