@@ -162,6 +162,12 @@ const Signup = () => {
                     className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
                 </div>
                 <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">CNPJ</Label>
+                  <Input value={cnpj} onChange={(e) => setCnpj(e.target.value)}
+                    placeholder="00.000.000/0000-00"
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
+                </div>
+                <div className="space-y-2">
                   <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
                   <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                     placeholder="voce@email.com"
