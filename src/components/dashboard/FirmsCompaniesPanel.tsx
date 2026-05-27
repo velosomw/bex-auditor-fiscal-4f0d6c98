@@ -54,6 +54,30 @@ const FirmsCompaniesPanel = () => {
     setFirms((prev) => prev.map((x) => (x.id === firm.id ? { ...x, status: next } : x)));
   };
 
+  const approveFirm = async (firm: Firm) => {
+    if (!confirm(`Aprovar "${firm.name}" e enviar e-mail de definição de senha para ${firm.email}?`)) return;
+    setApproving(firm.id);
+    try {
+      const redirect = `${window.location.origin}/reset-password`;
+      const { data, error } = await supabase.functions.invoke("provision-accounting-firm", {
+        body: { firm_id: firm.id, redirect_to: redirect },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const created = (data as any)?.companies_created ?? 0;
+      const sent = (data as any)?.invite_sent;
+      toast.success(
+        `Conta criada${created ? ` · ${created} empresa(s) importada(s)` : ""}${sent ? " · e-mail enviado" : " · falha ao enviar e-mail"}`,
+      );
+      await load();
+    } catch (e: any) {
+      toast.error("Falha ao aprovar: " + (e?.message || "erro desconhecido"));
+    } finally {
+      setApproving(null);
+    }
+  };
+
+
   const deleteCompany = async (company: Company) => {
     if (!confirm(`Excluir definitivamente a empresa "${company.name}"?`)) return;
     const { error } = await supabase.from("companies").delete().eq("id", company.id);
