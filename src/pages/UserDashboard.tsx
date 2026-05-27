@@ -207,6 +207,20 @@ const UserDashboard = () => {
   return (
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-6 space-y-6">
+        {profilePending && (
+          <div className="flex items-center justify-between gap-3 flex-wrap p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+            <div className="flex items-start gap-2 text-sm">
+              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-amber-800">Finalize seu cadastro</p>
+                <p className="text-amber-700 text-xs">Complete os dados da empresa em Perfil para liberar todos os recursos da plataforma.</p>
+              </div>
+            </div>
+            <Button size="sm" onClick={() => navigate("/perfil")} className="bg-amber-600 hover:bg-amber-700 text-white">
+              Atualizar
+            </Button>
+          </div>
+        )}
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
@@ -238,6 +252,9 @@ const UserDashboard = () => {
 
         {/* Inline ações rápidas */}
         <div className="flex flex-wrap items-center gap-2 -mt-2">
+          <Button variant="outline" size="sm" onClick={() => navigate("/perfil")} className="gap-1.5">
+            <UserIcon className="w-4 h-4" /> Perfil
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/user/empresas")} className="gap-1.5">
             <Building2 className="w-4 h-4" /> Visualizar Empresas
           </Button>
