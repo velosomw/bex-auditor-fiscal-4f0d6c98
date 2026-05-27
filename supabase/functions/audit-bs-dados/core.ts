@@ -363,6 +363,19 @@ export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   let ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
   // FIX (A): raízes DRE bare descartadas — não cair em fallback regex.
   if (ref1 === "__IGNORE__") return null;
+  // FIX (imobilizado por nome): se a descrição menciona Imobilizado /
+  // Depreciação Acumulada / Intangível / Ativo Permanente, OU o código
+  // pertence ao grupo 13x (Permanente), forçamos C1/D1 mesmo que o parser
+  // tenha gravado ref1 errado (ex.: "R" = Depósitos Judiciais LP). Caso
+  // contrário, depreciações somam em ANC como positivo (Math.abs) e o
+  // bucket imobilizado nunca recebe o líquido bruto-depreciação.
+  const desc = stripAccents(linha.descricao || "");
+  const codigoStr = String(linha.conta || "").replace(/\s+/g, "");
+  const isImobByName = /\b(imobilizad|deprecia[cç][aã]o\s+acumulad|ativo\s+permanent)\b/.test(desc);
+  const isIntangByName = /\bintang[ií]vel|amortiza[cç][aã]o\s+acumulad/.test(desc);
+  if (isImobByName || /^131/.test(codigoStr)) ref1 = "C1";
+  else if (isIntangByName || /^132/.test(codigoStr)) ref1 = "D1";
+
   // FIX Giannini: ref1 "PP" vem da planilha como rótulo genérico do PNC em
   // alguns planos (ex.: 221/221010 "Impostos e Contribuições" marcadas como PP).
   // Só aceitamos PP quando a descrição explicita "fornecedor"; caso contrário
