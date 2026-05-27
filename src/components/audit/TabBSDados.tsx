@@ -94,16 +94,47 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {rows.length > 0 && <EquilibrioBadge row={rows[rows.length - 1]} />}
+              {(() => {
+                // Onda 8 — surface validation_status & confidence do último mês
+                const last: any = rows[rows.length - 1];
+                const vs = last?.validation_status as "ok" | "warn" | "needs_review" | undefined;
+                const conf = last?.confidence_by_group as Record<string, number> | undefined;
+                if (!vs || vs === "ok") return null;
+                const tone = vs === "warn"
+                  ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
+                  : "bg-red-500/15 text-red-700 border-red-500/30";
+                const label = vs === "warn" ? "Validação: atenção" : "Validação: revisar";
+                return (
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge className={`border ${tone} cursor-help`}>
+                          <AlertTriangle className="w-3 h-3 mr-1" /> {label}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-sm text-xs space-y-1">
+                        <p className="font-semibold">Equação contábil (Ativo = Passivo + PL)</p>
+                        {last?.validation_diagnostics?.desvio_pct != null && (
+                          <p>Desvio: {last.validation_diagnostics.desvio_pct}%</p>
+                        )}
+                        {last?.validation_diagnostics?.causa && (
+                          <p className="text-muted-foreground">{last.validation_diagnostics.causa}</p>
+                        )}
+                        {conf && (
+                          <p className="text-[10px] text-muted-foreground pt-1 border-t">
+                            Confiança: AC {conf.AC}% · ANC {conf.ANC}% · PC {conf.PC}% · PNC {conf.PNC}% · PL {conf.PL}%
+                          </p>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })()}
               {totalErrors === 0 ? (
                 <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                   <CheckCircle2 className="w-3 h-3 mr-1" /> Validado
                 </Badge>
-              ) : (
-                <Badge className="bg-amber-500/15 text-amber-700 border border-amber-500/30">
-                  <AlertTriangle className="w-3 h-3 mr-1" /> {totalErrors} alerta(s)
-                </Badge>
-              )}
-              <WindowSelector value={windowSize} onChange={setWindowSize} available={allRows.length} />
+
               <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
                 <Download className="w-3.5 h-3.5" /> Exportar CSV
               </Button>
