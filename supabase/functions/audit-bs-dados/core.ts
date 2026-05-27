@@ -612,7 +612,15 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     const c = normCode(l.conta);
     if (!c) continue;
     if (!(parents.has(c) || structuralParents.has(c))) continue;
-    const r1 = typeof l.ref1 === "string" ? upper(l.ref1.trim()) : "";
+    // FIX (b): se o pai não tem ref1 explícito, inferimos pelo código+descrição
+    // para detectar agrupadores PNC (CC1=Credores RJ, RR=Tributário Parcelado,
+    // JJ=Outras) que o parser não marcou. Sem isso, o pai fica órfão e o saldo
+    // oficial do balancete não chega aos buckets `credores_rj`, `divida_tributaria`.
+    let r1 = typeof l.ref1 === "string" ? upper(l.ref1.trim()) : "";
+    if (!r1) {
+      const inferred = inferRefByCode(l.conta, l.descricao);
+      if (inferred) r1 = upper(inferred);
+    }
     if (!r1 || r1.endsWith("_TOTAL")) continue;
     if (REF1_MAP[r1]) mappedParents.add(c);
   }
