@@ -198,7 +198,10 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^4/,     "CMV"],
   [/^5/,     "CMV"],          // Custo Industrial → CMV
   [/^6/,     "DESPESAS"],     // Despesas Operacionais
-  [/^7/,     "FIN_GROUP"],    // Financeiro — receita OU despesa via descrição
+  // FIX (user): grupo 7 INTEIRO entra como Despesas Financeiras (módulo)
+  // conforme visibilidade do Grupo de Resultado (linha 1137 do balancete
+  // de referência). NÃO mais split por descrição em receita vs despesa.
+  [/^7/,     "DESPESAS_FIN"],
   [/^8/,     "DESPESAS_NOP"], // Despesas/Receitas NÃO Operacionais
 ];
 
@@ -463,8 +466,10 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   // Recalcula divida_total
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
                    r.fornecedores + r.credores_rj + r.outras_obrigacoes;
-  // Resultado alinhado: 6 grupos DRE (3+4+5+6+7+8) — Fix C.
-  r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras + r.outras_nao_operacionais;
+  // FIX (user): Resultado do Mês = código 3 INTEIRO (linha 990 de referência
+  // no Relatório Técnico), acumulado em r.resultado durante o loop de
+  // buildBSDados a partir das folhas com conta iniciando em "3". Não
+  // sobrescrevemos aqui — preserva o valor já agregado (com sinal natural).
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
 
@@ -780,9 +785,8 @@ function desacumularDRE(
         console.log(`[desacumularDRE] aplicado: chave=${k} ano=${group[0].mesKey.slice(0,4)} fonte=${userForceExact ? "user" : "heurística"} pares=${monotonicPairs}/${totalPairs}`);
       }
     }
-    for (const r of group) {
-      r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras + r.outras_nao_operacionais;
-    }
+    // FIX (user): resultado já é desacumulado como parte de dreKeys; NÃO
+    // recalcular como soma dos 6 buckets — mantemos o delta do grupo 3.
   }
   return sorted;
 }
@@ -849,9 +853,18 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     const buckets = bucketsByMes.get(mesKey)!;
     const linhasLeaf = pruneParents(b.linhas || []);
     for (const linha of linhasLeaf) {
+      const saldo = Number(linha.saldo) || 0;
+      // FIX (user): Resultado do Mês = código 3 todo (linha 990 de
+      // referência). Acumulamos o sinal natural das folhas iniciadas em "3"
+      // — é o único feed do bucket `resultado`. Demais grupos (4..8) NÃO
+      // entram aqui; eles são lidos via receita_liquida/cmv/despesas/etc.
+      const conta = String(linha.conta || "").replace(/\s+/g, "");
+      if (/^3(\d|$)/.test(conta)) {
+        row.resultado += saldo;
+      }
       const key = resolveKey(linha);
       if (!key) continue;
-      applyValue(row, key, Number(linha.saldo) || 0, linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao), buckets);
+      applyValue(row, key, saldo, linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao), buckets);
     }
   }
 
