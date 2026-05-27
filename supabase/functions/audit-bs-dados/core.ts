@@ -923,7 +923,10 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
       row.ytd_flags = { ...(row.ytd_flags || {}), is_ytd_input: true };
     }
     const buckets = bucketsByMes.get(mesKey)!;
-    const linhasLeaf = pruneParents(b.linhas || []);
+    // Taxonomia por nome: deduplica grupos sinônimos (ex.: "Ativo Permanente"
+    // = "Imobilizado Custo Corrigido") antes da poda hierárquica.
+    const linhasDeduped = dedupeSynonymGroups(b.linhas || []);
+    const linhasLeaf = pruneParents(linhasDeduped);
     for (const linha of linhasLeaf) {
       const saldo = Number(linha.saldo) || 0;
       // FIX (user): Resultado do Mês = código 3 todo (linha 990 de
