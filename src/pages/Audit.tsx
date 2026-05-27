@@ -1758,39 +1758,58 @@ const TabPatrimonial = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; 
           <CardTitle className="text-base flex items-center gap-2"><Layers className="w-4 h-4 text-accent" /> Balancete de Verificação Consolidado — Visão Analítica</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[10px]">Conta</TableHead>
-                <TableHead className="text-[10px]">Descrição</TableHead>
-                {years.map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
-                {prevYear && <TableHead className="text-right text-[10px]">AH {lastYear}/{prevYear}</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row: any, idx: number) => {
-                const vPrev = prevYear ? (row.values[prevYear] || 0) : 0;
-                const vLast = row.values[lastYear] || 0;
-                const ah = vPrev !== 0 ? ((vLast - vPrev) / Math.abs(vPrev)) : 0;
-                const isAlert = Math.abs(ah) > 0.25;
-                const isTotal = row.conta.toLowerCase().includes("total") || row.descricao.toLowerCase().includes("total");
-                return (
-                  <TableRow key={`${row.conta}-${idx}`} className={(row as any).hasRisk ? "bg-orange-500/5" : ""}>
-                    <TableCell className="text-[10px] font-mono text-muted-foreground">{row.conta}</TableCell>
-                    <TableCell className={`text-xs ${isTotal ? "font-semibold" : ""}`}>{row.descricao}</TableCell>
-                    {years.map(y => (
-                      <TableCell key={y} className="text-right text-xs font-mono">{fmt(row.values[y] || 0)}</TableCell>
-                    ))}
-                    {prevYear && (
-                      <TableCell className={`text-right text-xs font-mono ${isAlert ? "text-orange-500 font-bold" : ""}`}>
-                        {ah > 0 ? "+" : ""}{fmtPct(ah)}
-                      </TableCell>
-                    )}
+          {(() => {
+            // Mostrar apenas Grupos (1 dígito) e Subgrupos (2 dígitos) — oculta contas analíticas.
+            // Mantém também linhas que sejam totalizadores explícitos.
+            const groupedRows = rows.filter((row: any) => {
+              const code = String(row.conta || "").replace(/\D/g, "");
+              const desc = String(row.descricao || "").toLowerCase();
+              const isTotal = desc.includes("total") || desc.includes("grupo");
+              return (code.length > 0 && code.length <= 2) || isTotal;
+            });
+            return (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px]">Descrição</TableHead>
+                    {years.map(y => <TableHead key={y} className="text-right text-[10px]">{y}</TableHead>)}
+                    {prevYear && <TableHead className="text-right text-[10px]">AH {lastYear}/{prevYear}</TableHead>}
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {groupedRows.map((row: any, idx: number) => {
+                    const vPrev = prevYear ? (row.values[prevYear] || 0) : 0;
+                    const vLast = row.values[lastYear] || 0;
+                    const ah = vPrev !== 0 ? ((vLast - vPrev) / Math.abs(vPrev)) : 0;
+                    const isAlert = Math.abs(ah) > 0.25;
+                    const code = String(row.conta || "").replace(/\D/g, "");
+                    const isGroup = code.length === 1;
+                    const isSubgroup = code.length === 2;
+                    const indent = isGroup ? "pl-0" : isSubgroup ? "pl-4" : "pl-8";
+                    const weight = isGroup
+                      ? "font-bold text-foreground uppercase tracking-wide"
+                      : isSubgroup
+                      ? "font-semibold text-foreground"
+                      : "text-muted-foreground";
+                    const bg = isGroup ? "bg-accent/10" : isSubgroup ? "bg-muted/40" : "";
+                    return (
+                      <TableRow key={`${row.conta}-${idx}`} className={`${bg} ${(row as any).hasRisk ? "bg-orange-500/5" : ""}`}>
+                        <TableCell className={`text-xs ${indent} ${weight}`}>{row.descricao}</TableCell>
+                        {years.map(y => (
+                          <TableCell key={y} className={`text-right text-xs font-mono ${isGroup ? "font-bold" : isSubgroup ? "font-semibold" : ""}`}>{fmt(row.values[y] || 0)}</TableCell>
+                        ))}
+                        {prevYear && (
+                          <TableCell className={`text-right text-xs font-mono ${isAlert ? "text-orange-500 font-bold" : ""}`}>
+                            {ah > 0 ? "+" : ""}{fmtPct(ah)}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            );
+          })()}
         </CardContent>
       </Card>
 
