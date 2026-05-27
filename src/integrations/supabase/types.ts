@@ -1623,28 +1623,52 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          cnpj: string | null
+          company_name: string | null
           created_at: string
           full_name: string
           id: string
           phone: string | null
+          phone_fixed: string | null
+          profile_completed_at: string | null
+          profile_required: boolean
+          razao_social: string | null
           updated_at: string
           user_id: string
+          whatsapp: string | null
         }
         Insert: {
+          address?: string | null
+          cnpj?: string | null
+          company_name?: string | null
           created_at?: string
           full_name?: string
           id?: string
           phone?: string | null
+          phone_fixed?: string | null
+          profile_completed_at?: string | null
+          profile_required?: boolean
+          razao_social?: string | null
           updated_at?: string
           user_id: string
+          whatsapp?: string | null
         }
         Update: {
+          address?: string | null
+          cnpj?: string | null
+          company_name?: string | null
           created_at?: string
           full_name?: string
           id?: string
           phone?: string | null
+          phone_fixed?: string | null
+          profile_completed_at?: string | null
+          profile_required?: boolean
+          razao_social?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
