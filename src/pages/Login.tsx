@@ -105,7 +105,8 @@ const Login = () => {
 
       if (roles?.role) {
         const role = roles.role as string;
-        setRole(role as any);
+        // O role no UserContext é atualizado via onAuthStateChange.
+        // Aqui usamos apenas para decidir o redirect imediato.
         toast.success("Login realizado com sucesso!");
         navigate(getRedirectPath(role), { replace: true });
       } else {
