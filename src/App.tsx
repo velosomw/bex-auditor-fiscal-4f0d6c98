@@ -73,7 +73,7 @@ const App = () => (
               <Route path="/planos" element={<Layout><Planos /></Layout>} />
               <Route path="/solicitar-cadastro" element={<Layout><SolicitarCadastro /></Layout>} />
 
-              {/* Plataforma de Auditoria */}
+              {/* Plataforma Auditoria */}
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
