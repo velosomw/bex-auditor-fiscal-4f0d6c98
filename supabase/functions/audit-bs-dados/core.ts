@@ -339,9 +339,19 @@ export function emptyRow(mesKey: string): BSDadosRow {
 }
 
 export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
-  const ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
+  let ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
   // FIX (A): raízes DRE bare descartadas — não cair em fallback regex.
   if (ref1 === "__IGNORE__") return null;
+  // FIX Giannini: ref1 "PP" vem da planilha como rótulo genérico do PNC em
+  // alguns planos (ex.: 221/221010 "Impostos e Contribuições" marcadas como PP).
+  // Só aceitamos PP quando a descrição explicita "fornecedor"; caso contrário
+  // reclassificamos pelo conteúdo para não inflar fornecedores LP.
+  if (ref1 && upper(ref1) === "PP") {
+    const d = stripAccents(linha.descricao || "");
+    if (!/\bfornecedor/.test(d)) {
+      ref1 = classifyPNCByDescription(linha.descricao || "");
+    }
+  }
   if (ref1) {
     const k = REF1_MAP[upper(ref1)];
     if (k) return k;
