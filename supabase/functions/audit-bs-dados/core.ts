@@ -66,8 +66,15 @@ export interface BSDadosRow {
     passivo_mais_pl?: number;
     causa?: string;
     contribuintes_top?: Array<{ campo: string; valor: number }>;
+    // ── Sentinela DRE (Onda 9 — Check RL − C&D − Resultado ≈ 0) ──
+    dre_check_desvio_pct?: number;
+    dre_check_valor?: number;
+    // ── Flag YTD-revertido em Janeiro (Onda 9) ──
+    ytd_january_flag?: boolean;
+    ytd_january_motivo?: string;
   };
   confidence_by_group?: { AC: number; ANC: number; PC: number; PNC: number; PL: number };
+
 }
 
 export interface BSIndicators {
