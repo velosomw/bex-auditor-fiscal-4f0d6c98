@@ -43,19 +43,29 @@ async function fetchUserRole(userId: string): Promise<UserRole | null> {
   return null;
 }
 
+/** Chaves de localStorage escopadas ao usuário logado. Devem ser limpas
+ *  quando trocar de conta para evitar que dados de A vazem para B. */
+const USER_SCOPED_KEYS = [
+  "userRole",
+  "viewAsRole",
+  "authenticated",
+  "bex_audit_history",
+  "bex_generated_reports",
+];
+const LAST_USER_KEY = "bex_last_user_id";
+
+function clearUserScopedStorage() {
+  for (const k of USER_SCOPED_KEYS) localStorage.removeItem(k);
+}
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRoleState] = useState<UserRole | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [supabaseUser, setSupabaseUser] = useState<SupaUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [viewAsRole, setViewAsRoleState] = useState<UserRole | null>(() => {
-    const v = localStorage.getItem("viewAsRole");
-    return (v as UserRole) || null;
-  });
+  const [viewAsRole, setViewAsRoleState] = useState<UserRole | null>(null);
 
   useEffect(() => {
-    // Dedup: evita refetch da role para o mesmo usuário (onAuthStateChange dispara várias vezes:
-    // INITIAL_SESSION, TOKEN_REFRESHED, USER_UPDATED, etc.)
     let lastAppliedUserId: string | null = null;
     let cancelled = false;
 
@@ -68,27 +78,41 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         setAuthenticated(false);
         setRoleState(null);
         setViewAsRoleState(null);
-        localStorage.removeItem("authenticated");
-        localStorage.removeItem("userRole");
-        localStorage.removeItem("viewAsRole");
+        clearUserScopedStorage();
+        localStorage.removeItem(LAST_USER_KEY);
         setLoading(false);
         return;
       }
 
-      // Mesmo usuário já processado → não refaz fetch
       if (lastAppliedUserId === sessionUser.id) {
         setLoading(false);
         return;
       }
+
+      // Trocou de usuário (B logou após A) → invalida QUALQUER cache do anterior
+      // antes de aplicar dados. Evita vazamento de role, viewAs, histórico de
+      // auditoria e relatórios entre contas no mesmo navegador.
+      const previousUserId = localStorage.getItem(LAST_USER_KEY);
+      const isDifferentUser = !!previousUserId && previousUserId !== sessionUser.id;
+      if (isDifferentUser) {
+        clearUserScopedStorage();
+        setRoleState(null);
+        setViewAsRoleState(null);
+      }
+      localStorage.setItem(LAST_USER_KEY, sessionUser.id);
       lastAppliedUserId = sessionUser.id;
 
       setSupabaseUser(sessionUser);
       setAuthenticated(true);
       localStorage.setItem("authenticated", "true");
 
-      // Fast-path: usa role em cache (localStorage) enquanto faz fetch em background
-      const cached = localStorage.getItem("userRole") as UserRole | null;
+      // Fast-path: só reidrata cache se for o MESMO usuário do localStorage.
+      const cached = !isDifferentUser ? (localStorage.getItem("userRole") as UserRole | null) : null;
       if (cached) setRoleState(cached);
+      if (!isDifferentUser) {
+        const va = localStorage.getItem("viewAsRole") as UserRole | null;
+        if (va) setViewAsRoleState(va);
+      }
       setLoading(false);
 
       const userRole = await fetchUserRole(sessionUser.id);
@@ -97,8 +121,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (userRole) localStorage.setItem("userRole", userRole);
       else localStorage.removeItem("userRole");
 
-      // Prefetch idle das rotas mais usadas por perfil — chunks ficam em cache
-      // antes do clique, eliminando o "Carregando…" na navegação.
       const r = userRole || cached;
       if (r === "usuario" || r === "empresa" || r === "contabilidade") prefetchUserRoutes();
       else if (r === "auditor_chefe" || r === "coordenadora") prefetchStaffRoutes();
@@ -109,15 +131,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       void applySession(session?.user ?? null);
     });
 
-    // Backstop: se INITIAL_SESSION não disparar (storage corrompido, race condition),
-    // buscamos a sessão manualmente para evitar "Carregando…" infinito.
     supabase.auth.getSession().then(({ data }) => {
       void applySession(data.session?.user ?? null);
     }).catch(() => {
       if (!cancelled) setLoading(false);
     });
 
-    // Hard timeout: garante que a UI nunca fica travada em loading mais de 4s.
     const timeoutId = window.setTimeout(() => {
       if (!cancelled) setLoading(false);
     }, 4000);
@@ -139,9 +158,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setAuthenticated(false);
     setSupabaseUser(null);
     setViewAsRoleState(null);
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("authenticated");
-    localStorage.removeItem("viewAsRole");
+    clearUserScopedStorage();
+    localStorage.removeItem(LAST_USER_KEY);
   }, []);
 
   const setViewAsRole = useCallback((r: UserRole | null) => {
