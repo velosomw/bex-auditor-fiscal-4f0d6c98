@@ -78,7 +78,7 @@ interface PipelineRequest {
  * BUMP a cada mudança que afete os números calculados:
  * invalida automaticamente o cache de dedup por content_hash.
  */
-const PARSER_VERSION = "2026.05.27.05"; // bump: pruneParents preserva pais com ref1 mapeado (RR/CC1/JJ) e poda filhas
+const PARSER_VERSION = "2026.05.27.06"; // bump: 4 fixes — imobilizado granular (131/132→C1/D1), pruneParents infere ref1, reclass PC só sem totalizadores, fallback imobilizado
 
 /* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
 async function sha256Hex(input: string): Promise<string> {
