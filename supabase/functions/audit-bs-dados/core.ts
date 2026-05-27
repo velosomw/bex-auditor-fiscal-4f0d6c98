@@ -664,7 +664,22 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
       if (inferred) r1 = upper(inferred);
     }
     if (!r1 || r1.endsWith("_TOTAL")) continue;
+    // FIX Giannini: ref1 "PP" como rótulo genérico do PNC — só promove a
+    // mappedParent quando a descrição é explicitamente Fornecedores. Caso
+    // contrário reclassifica por descrição; se cair em DD1 (catch-all sem
+    // sinal específico), NÃO adiciona como mappedParent para que as filhas
+    // específicas (RR=tributário, CC1=credores RJ) permaneçam na linha e o
+    // pai genérico seja removido como structuralParent.
+    if (r1 === "PP") {
+      const d = stripAccents(l.descricao || "");
+      if (!/\bfornecedor/.test(d)) {
+        const re = upper(classifyPNCByDescription(l.descricao || ""));
+        if (re === "DD1") continue;
+        r1 = re;
+      }
+    }
     if (REF1_MAP[r1]) mappedParents.add(c);
+
   }
   const isChildOfMappedParent = (c: string) => {
     for (const p of mappedParents) {
