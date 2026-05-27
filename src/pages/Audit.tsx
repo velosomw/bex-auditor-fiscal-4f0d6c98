@@ -434,7 +434,7 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
-const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDedupChange, onDepthChange }: { onProcess: () => void; onFilesReady: (files: File[]) => void; onMesesReady?: (entries: BalanceteEntry[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void }) => {
+const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDedupChange, onDepthChange, onForceReprocess }: { onProcess: () => void; onFilesReady: (files: File[]) => void; onMesesReady?: (entries: BalanceteEntry[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void; onForceReprocess?: (force: boolean) => void }) => {
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
@@ -846,10 +846,21 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
             Atribua o mês de referência em {missingMeses.length} documento(s) destacado(s) em vermelho.
           </p>
         )}
-        <Button onClick={handleContinue} disabled={!canContinue}
+        <Button onClick={() => { onForceReprocess?.(false); handleContinue(); }} disabled={!canContinue}
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
           Fazer Auditoria <ArrowRight className="w-5 h-5" />
         </Button>
+        {onForceReprocess && (
+          <button
+            type="button"
+            onClick={() => { onForceReprocess(true); handleContinue(); }}
+            disabled={!canContinue}
+            title="Ignora o cache de dedup e reprocessa os balancetes com a versão mais recente do parser."
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 disabled:opacity-50 disabled:no-underline"
+          >
+            Forçar reprocessamento (ignorar cache do parser)
+          </button>
+        )}
       </div>
     </div>
   );
@@ -871,7 +882,7 @@ const processingSteps = [
   { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
-const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed, companyId, balanceteEntries }: { 
+const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed, companyId, balanceteEntries, forceReprocess }: { 
   onComplete: () => void; 
   files: File[];
   onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
@@ -879,6 +890,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
   preParsed?: MultiMonthParsed | null;
   companyId?: string | null;
   balanceteEntries?: BalanceteEntry[];
+  forceReprocess?: boolean;
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -994,6 +1006,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                 if (ev.progress) setPipelineProgress(ev.progress);
                 else if (ev.status) setPipelineProgress(`Status: ${ev.status}`);
               },
+              forceReprocess,
             );
             if (pipelineResult) {
               setPipelineProgress(null);
@@ -4807,6 +4820,7 @@ const AuditContent = () => {
   const [filteredMonths, setFilteredMonths] = useState<string[]>([]);
   const [preParsing, setPreParsing] = useState(false);
   const [balanceteEntries, setBalanceteEntries] = useState<BalanceteEntry[]>([]);
+  const [forceReprocess, setForceReprocess] = useState(false);
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
@@ -4928,6 +4942,7 @@ const AuditContent = () => {
             dedupConfig={dedupConfig}
             onDedupChange={setDedupConfig}
             onDepthChange={setSelectedDepth}
+            onForceReprocess={setForceReprocess}
           />
         )}
         <MonthsConfirmDialog
@@ -4945,6 +4960,7 @@ const AuditContent = () => {
             dedupConfig={dedupConfig}
             companyId={company?.id ?? null}
             balanceteEntries={balanceteEntries}
+            forceReprocess={forceReprocess}
           />
         )}
         {phase === "results" && (
