@@ -1032,14 +1032,30 @@ async function runPipeline(
       if (bdErr) console.warn("balancete_data insert warn:", bdErr.message);
     }
 
-    // 6. Validação
-    const validation = validateBalanco(normalizedRows);
+    // 6. Validação — motor canônico (pai 1/11/12/21/22) com fallback p/ LLM
+    const canonical = canonicalBalanceFromParents(body.balanco || [], lastYear);
+    const validationLLM = validateBalanco(normalizedRows);
+    const validation = canonical
+      ? {
+          valid: canonical.valid,
+          ativo: canonical.ativo,
+          passivo: canonical.passivo,
+          pl: canonical.pl,
+          diff: canonical.diff,
+          alertas: canonical.alertas,
+          source: "canonical_parents" as const,
+        }
+      : { ...validationLLM, source: "llm_fallback" as const };
     stageLog(reqId, "validation.done", {
+      source: validation.source,
       ativo: validation.ativo,
       passivo: validation.passivo,
       pl: validation.pl,
       diff: validation.diff,
       valid: validation.valid,
+      llm_ativo: validationLLM.ativo,
+      llm_passivo: validationLLM.passivo,
+      llm_pl: validationLLM.pl,
     });
 
     // 7. Scores — Calibração v5 (meta ≥95% acurácia)
@@ -1064,15 +1080,16 @@ async function runPipeline(
     // Pesos: OCR 35% (extração) · Mapping 65% (classificação é o trabalho real do motor).
     const qualityScore = ocrScore * 0.35 + mappingScore * 0.65;
 
-    // 7.1 Indicadores financeiros derivados
+    // 7.1 Indicadores financeiros derivados — preferem totais canônicos (mesma fonte da validação)
     const sumByCat = (cat: string) =>
       normalizedRows
         .filter((r) => r.categoria === cat)
         .reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
-    const ativoCirc = sumByCat("ativo_circulante");
-    const ativoNaoCirc = sumByCat("ativo_nao_circulante");
-    const passivoCirc = sumByCat("passivo_circulante");
-    const passivoNaoCirc = sumByCat("passivo_nao_circulante");
+    const ativoCirc = canonical?.ativoCirc ?? sumByCat("ativo_circulante");
+    const ativoNaoCirc = canonical?.ativoNaoCirc ?? sumByCat("ativo_nao_circulante");
+    const passivoCirc = canonical?.passivoCirc ?? sumByCat("passivo_circulante");
+    const passivoNaoCirc = canonical?.passivoNaoCirc ?? sumByCat("passivo_nao_circulante");
+
     const receita = normalizedRows
       .filter((r) => r.tipo === "receita")
       .reduce((a, b) => a + Math.abs(Number(b.valor) || 0), 0);
