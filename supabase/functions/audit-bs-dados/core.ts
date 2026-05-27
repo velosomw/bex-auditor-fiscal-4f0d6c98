@@ -483,11 +483,20 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
       if (isTotal) { b.sawPLTotal = true; b.gtPL += v; }
       else { row.patrimonio_liquido += v; }
       break;
-    // Imobilizado preserva SINAL NATURAL: depreciação acumulada vem com saldo
-    // negativo (contra-ativo) e deve SUBTRAIR do Imobilizado bruto para
-    // produzir o líquido equivalente ao "Ativo Permanente".
+    // Imobilizado/Intangível/Investimentos/RLP preservam SINAL NATURAL:
+    // depreciação/amortização acumulada vêm com saldo negativo (contra-ativo)
+    // e devem SUBTRAIR do bruto para produzir o líquido contábil.
+    // ATENÇÃO: estes 4 buckets também compõem ANC (somados ao ativo_nao_circulante
+    // no finalize quando não há GT ANC) — evita perda de saldo em planos
+    // contábeis sem totalizador ANC explícito.
     case "imobilizado":
       row.imobilizado += v; break;
+    case "realizavel_longo_prazo":
+      row.realizavel_longo_prazo += v; break;
+    case "investimentos":
+      row.investimentos += v; break;
+    case "intangivel":
+      row.intangivel += v; break;
     case "contas_receber":
     case "outras_obrigacoes":
     case "estoques":
