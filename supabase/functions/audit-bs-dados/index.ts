@@ -331,7 +331,7 @@ function mesKeyToLabel(k: string): string {
   return idx>=0 && idx<12 ? `${MES_FULL[idx]} ${m[1]}` : k;
 }
 
-function emptyRow(mesKey: string): BSDadosRow {
+export function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
     receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0, receitas_financeiras: 0,
@@ -346,7 +346,7 @@ function emptyRow(mesKey: string): BSDadosRow {
   };
 }
 
-function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
+export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   const ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
   if (ref1) {
     const k = REF1_MAP[upper(ref1)];
@@ -376,7 +376,7 @@ const PNC_REFS = new Set(["PP","QQ","RR","SS","TT","UU","VV","WW","XX","YY","ZZ"
 // PL = GG1, HH1 + "Resultado" (§2.5)
 const PL_REFS = new Set(["GG1","HH1","RESULTADO_EXERCICIO"]);
 
-function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: string | null | undefined, b: Buckets) {
+export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: string | null | undefined, b: Buckets) {
   if (!Number.isFinite(v)) return;
   const refUp = ref1 ? upper(ref1) : "";
   const isTotal = refUp.endsWith("_TOTAL"); // AC_TOTAL, PC_TOTAL, ANC_TOTAL, PNC_TOTAL, PL_TOTAL
@@ -428,7 +428,7 @@ function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, ref1: str
   // Mantemos buckets apenas para telemetria de cobertura.
 }
 
-function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
+export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   // FIX: se GT presente, ele é a fonte da verdade — evita dupla contagem de folhas+total.
   if (b) {
     if (b.sawACTotal  && b.gtAC  > 0) r.ativo_circulante       = b.gtAC;
@@ -557,7 +557,7 @@ function isSyntheticDesc(desc?: string): boolean {
  * Remove também: códigos com profundidade < máx do grupo, descrições sintéticas,
  * e linhas cujo saldo é exatamente igual à soma de linhas-filho (auto-detecção).
  */
-function pruneParents(linhas: InputLinha[]): InputLinha[] {
+export function pruneParents(linhas: InputLinha[]): InputLinha[] {
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
   const codeSet = new Set<string>();
   for (const l of linhas) {
@@ -725,7 +725,7 @@ function detectYtdOutliers(rows: BSDadosRow[]): BSDadosRow[] {
   return rows;
 }
 
-function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
+export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, Buckets>();
   const userYtdByMesKey = new Map<string, boolean>();
