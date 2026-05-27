@@ -374,9 +374,11 @@ export function emptyRow(mesKey: string): BSDadosRow {
     ativo_nao_circulante: 0, passivo_nao_circulante: 0,
     patrimonio_liquido: 0, ativo_total: 0, passivo_total: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
+    realizavel_longo_prazo: 0, investimentos: 0, intangivel: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0,
     hasReceita: false, hasBalanco: false, errors: [],
+    validation_status: "ok",
   };
 }
 
