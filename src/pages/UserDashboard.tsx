@@ -91,14 +91,13 @@ const DocCard = ({
 
 const UserDashboard = () => {
   const navigate = useNavigate();
-  const { isReadOnly } = useUser();
+  const { isReadOnly, supabaseUser } = useUser();
   const [history, setHistory] = useState<AuditHistoryEntry[]>([]);
   const [reports, setReports] = useState<GeneratedReportEntry[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
   const [profilePending, setProfilePending] = useState(false);
-  const { supabaseUser } = useUser();
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
