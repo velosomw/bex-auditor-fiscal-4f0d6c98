@@ -1,17 +1,17 @@
 // ─── Tipos ───────────────────────────────────────────────
-interface InputLinha {
+export interface InputLinha {
   conta?: string;
   descricao?: string;
   ref1?: string | null;
   saldo: number;
 }
-interface InputBalancete {
+export interface InputBalancete {
   mes: string;
   linhas: InputLinha[];
   /** Usuário marcou este balancete como YTD (saldo acumulado desde Jan). */
   is_ytd?: boolean;
 }
-interface BSDadosRow {
+export interface BSDadosRow {
   mes: string;
   mesKey: string;
   receita_liquida: number;
@@ -55,7 +55,7 @@ interface BSDadosRow {
   };
 }
 
-interface BSIndicators {
+export interface BSIndicators {
   mes: string;
   cmvPercent: number | null;
   despesaPercent: number | null;
@@ -65,7 +65,7 @@ interface BSIndicators {
   liquidezSeca: number | null;
   liquidezImediata: number | null;
 }
-interface KanitzRow {
+export interface KanitzRow {
   mesKey: string;
   ativo_total: number;
   passivo_total: number;
@@ -219,7 +219,7 @@ function classifyPNCByDescription(desc: string): string {
   return "DD1";
 }
 
-function inferRefByCode(code?: string, descricao?: string): string | null {
+export function inferRefByCode(code?: string, descricao?: string): string | null {
   const c = String(code || "").replace(/\s+/g, "");
   for (const [pattern, ref] of REF_BY_PREFIX) {
     if (pattern.test(c)) {
@@ -272,7 +272,7 @@ function buildKey(y: number, mm: number): string | null {
 }
 
 /** Normaliza qualquer rótulo de período → "YYYY-MM" (ou devolve a entrada se falhar). */
-function periodToMesKey(p: string): string {
+export function periodToMesKey(p: string): string {
   if (!p) return p;
   const raw = String(p).trim();
   const direct = raw.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
@@ -763,7 +763,7 @@ const safePct = (a: number, b: number): number | null =>
 const safeDiv = (a: number, b: number): number | null =>
   !b || !Number.isFinite(b) ? null : Number((a / b).toFixed(4));
 
-function enrich(rows: BSDadosRow[]): BSIndicators[] {
+export function enrich(rows: BSDadosRow[]): BSIndicators[] {
   return rows.map(r => ({
     mes: r.mes,
     cmvPercent: safePct(Math.abs(r.cmv), r.receita_liquida),
@@ -780,7 +780,7 @@ function enrich(rows: BSDadosRow[]): BSIndicators[] {
 // Validado contra "Planilha Utilizar no Projeto Kanitz Giannini" + "Modelo Termômetro de Kanitz".
 // LG agora usa RLP real (aproximado por ANC quando não há breakout de Imobilizado/Intangível).
 // ISG é calculado em todos os meses e promovido a indicador preferencial quando PL < 0.
-function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
+export function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
   return rows.map(r => {
     const AC = r.ativo_circulante;
     const ANC = r.ativo_nao_circulante;
@@ -841,7 +841,7 @@ function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
 // ─── FIX #3: Insights determinísticos compactos ─────────
 // FIX #6 — Também devolve risk_level e conformidade calculados a partir
 // dos fatos (sem depender do output da IA, evita os "critico/35" travados).
-function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
+export function computeInsights(rows: BSDadosRow[], kanitz: KanitzRow[]): {
   diagnostico: string; problemas: any[]; riscos: any[]; recomendacoes: any[]; positivos: any[];
   tendencia: string; risk_level: "baixo"|"moderado"|"elevado"|"critico"; conformidade: number; risk_score: number;
 } {
