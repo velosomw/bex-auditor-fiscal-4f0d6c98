@@ -16,10 +16,10 @@ export interface BSDadosRow {
   mesKey: string;
   receita_liquida: number;
   cmv: number;
-  despesas: number;                 // grupo 6 — operacionais
-  despesas_financeiras: number;     // grupo 7 — separado (alinhado com client)
-  receitas_financeiras: number;     // grupo 7+ / juros ativos / rendimentos — usado em EBITDA (subtrai)
-  outras_nao_operacionais: number;  // grupo 8 — não operacionais (signed: receita+, despesa-)
+  despesas: number;
+  despesas_financeiras: number;
+  receitas_financeiras: number;
+  outras_nao_operacionais: number;
   depreciacao: number;
   amortizacao: number;
   resultado: number;
@@ -31,11 +31,15 @@ export interface BSDadosRow {
   ativo_total: number;
   passivo_total: number;
   estoques: number;
-  estoques_bruto?: number;          // pré-cap (apenas se cap foi aplicado)
-  patrimonio_liquido_bruto?: number; // PL original (pré-rebalanço por equação contábil)
+  estoques_bruto?: number;
+  patrimonio_liquido_bruto?: number;
   disponivel: number;
   contas_receber: number;
   imobilizado: number;
+  // ── ANC subgroups (Onda 2 — corrige Liquidez Geral e Kanitz) ──
+  realizavel_longo_prazo: number;   // refs P, Q, R, S, T (12.1)
+  investimentos: number;            // ref B1 (12.2)
+  intangivel: number;               // ref D1 (12.4) — separado do imobilizado
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
@@ -43,7 +47,7 @@ export interface BSDadosRow {
   credores_rj: number;
   outras_obrigacoes: number;
   divida_total: number;
-  divida_total_bruto?: number;      // pré-cap
+  divida_total_bruto?: number;
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
@@ -51,9 +55,19 @@ export interface BSDadosRow {
   ytd_flags?: {
     is_ytd_input?: boolean;
     ytd_desacumulado?: boolean;
-    ytd_outlier_flag?: boolean;     // mês marcado p/ excluir de gráficos mensais
+    ytd_outlier_flag?: boolean;
     ytd_source_count?: number;
   };
+  // ── Governança contábil (Ondas 6 + 8) ──
+  validation_status?: "ok" | "warn" | "needs_review";
+  validation_diagnostics?: {
+    desvio_pct?: number;
+    ativo_total?: number;
+    passivo_mais_pl?: number;
+    causa?: string;
+    contribuintes_top?: Array<{ campo: string; valor: number }>;
+  };
+  confidence_by_group?: { AC: number; ANC: number; PC: number; PNC: number; PL: number };
 }
 
 export interface BSIndicators {
