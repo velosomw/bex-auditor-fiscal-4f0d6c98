@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
 import {
@@ -418,45 +419,37 @@ const UserDashboard = () => {
             <CardHeader>
               <CardTitle className="text-base">Resumo de Conformidade</CardTitle>
               <CardDescription>
-                Índice composto pela interpretação IA do balancete e geração dos relatórios BEx / Kanitz
+                Conformidade IA consolidada da empresa (balancete → relatório BEx / Kanitz)
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center mb-4">
-                <p className="text-4xl font-bold text-[hsl(217,91%,50%)]">{avgConformidade}%</p>
-                <p className="text-xs text-muted-foreground mt-1">Conformidade IA (Balancete → Relatório)</p>
-                <Progress value={avgConformidade} className="h-2 mt-3" />
-              </div>
-              <div className="border-t border-border/50 pt-4 space-y-3">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Extração IA do Balancete</span>
-                    <span className="font-medium text-foreground">{extracaoBalancete}%</span>
-                  </div>
-                  <Progress value={extracaoBalancete} className="h-1.5" />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {docsAnalisados.length} balancete(s) interpretado(s) pela IA
-                  </p>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Tratamento IA → Relatório BEx/Kanitz</span>
-                    <span className="font-medium text-foreground">{tratamentoRelatorio}%</span>
-                  </div>
-                  <Progress value={tratamentoRelatorio} className="h-1.5" />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {relatoriosIA.length} relatório(s) gerado(s) com extração validada
-                  </p>
-                </div>
-              </div>
-              <div className="border-t border-border/50 pt-3 mt-4 space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Auditorias Concluídas</span>
-                  <span className="font-medium text-[hsl(142,76%,36%)]">{completed}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Em Andamento</span>
-                  <span className="font-medium text-[hsl(38,92%,50%)]">{inProgress}</span>
+              <div className="relative h-[220px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Conformidade IA", value: avgConformidade },
+                        { name: "Restante", value: Math.max(0, 100 - avgConformidade) },
+                      ]}
+                      dataKey="value"
+                      innerRadius={60}
+                      outerRadius={90}
+                      startAngle={90}
+                      endAngle={-270}
+                      stroke="none"
+                    >
+                      <Cell fill="hsl(217,91%,50%)" />
+                      <Cell fill="hsl(var(--muted))" />
+                    </Pie>
+                    <Tooltip
+                      formatter={(v: number, n: string) => [`${v}%`, n]}
+                      contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{avgConformidade}%</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Conformidade IA</p>
                 </div>
               </div>
             </CardContent>
@@ -469,7 +462,7 @@ const UserDashboard = () => {
                 <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
                 <CardTitle className="text-base">Conformidade por Documento</CardTitle>
               </div>
-              <CardDescription>Conformidade de extração IA por balancete analisado na plataforma</CardDescription>
+              <CardDescription>Mesmo índice, específico por auditoria de documento realizada</CardDescription>
             </CardHeader>
             <CardContent>
               {history.length === 0 ? (
@@ -478,29 +471,52 @@ const UserDashboard = () => {
                   <p className="text-sm text-muted-foreground">Nenhum documento analisado</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {history.slice(0, 5).map((d) => (
-                    <div key={d.id} className="p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center justify-between gap-4 mb-2 flex-wrap">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{d.fileName}</p>
-                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
-                            <span>{d.date}</span>
-                            <span className="flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> {d.riscos} pendências
-                            </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {history.slice(0, 6).map((d) => {
+                    const conf = d.conformidade ?? 0;
+                    return (
+                      <div key={d.id} className="p-3 rounded-lg bg-muted/30 flex flex-col items-center">
+                        <div className="relative w-[110px] h-[110px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { name: "Conformidade", value: conf },
+                                  { name: "Restante", value: Math.max(0, 100 - conf) },
+                                ]}
+                                dataKey="value"
+                                innerRadius={36}
+                                outerRadius={52}
+                                startAngle={90}
+                                endAngle={-270}
+                                stroke="none"
+                              >
+                                <Cell fill="hsl(258,90%,66%)" />
+                                <Cell fill="hsl(var(--muted))" />
+                              </Pie>
+                              <Tooltip
+                                formatter={(v: number, n: string) => [`${v}%`, n]}
+                                contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <p className="text-lg font-bold text-[hsl(258,90%,66%)]">{conf}%</p>
                           </div>
                         </div>
-                        <p className="text-2xl font-bold text-[hsl(217,91%,50%)] shrink-0">{d.conformidade}%</p>
+                        <p className="text-[11px] font-medium text-foreground truncate w-full text-center mt-2" title={d.fileName}>
+                          {d.fileName}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">{d.date}</p>
                       </div>
-                      <Progress value={d.conformidade} className="h-1.5" />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
+
       </div>
     </PlatformLayout>
   );
