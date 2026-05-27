@@ -175,8 +175,10 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^21[2-9]/, "PC_COMPONENT"],
   [/^21/,    "PC_TOTAL"],
   // ── PASSIVO NÃO CIRCULANTE ───
-  [/^221/,   "PP"],
-  [/^22[2-9]/, "PNC_COMPONENT"],
+  // FIX (Giannini): 221 NÃO é universalmente Fornecedores LP — em vários planos
+  // (ex. Giannini) é o agrupador inteiro do PNC (Impostos/RJ/Outros). Resolvemos
+  // por descrição para evitar despejar todo o PNC (~349M) em fornecedores.
+  [/^22[1-9]/, "PNC_COMPONENT"],
   [/^22/,    "PNC_TOTAL"],
   // ── PATRIMÔNIO LÍQUIDO ───
   [/^231/,   "GG1"], [/^232/, "HH1"], [/^233/, "HH1"], [/^234/, "HH1"],
@@ -231,9 +233,11 @@ function classifyPCByDescription(desc: string): string {
 function classifyPNCByDescription(desc: string): string {
   const d = stripAccents(desc);
   if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "CC1";
-  // FIX (B): Fornecedores LP só via 221.
   if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "QQ";
   if (/tribut|imposto|parcelament|refis/.test(d)) return "RR";
+  // Fornecedores LP só quando a descrição é EXPLÍCITA — evita falso match em
+  // planos onde 221 é o totalizador genérico do PNC.
+  if (/\bfornecedor/.test(d)) return "PP";
   return "DD1";
 }
 
