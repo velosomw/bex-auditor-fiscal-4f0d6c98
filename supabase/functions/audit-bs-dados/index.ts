@@ -360,13 +360,21 @@ export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
 }
 
 // FIX #3 — Buckets estendidos: trackeia ANC, PNC, PL via ref1 para Kanitz
-interface Buckets {
+export interface Buckets {
   ac: number; pc: number;
   anc: number; pnc: number; pl: number;
   sawACTotal: boolean; sawPCTotal: boolean;
   sawANCTotal: boolean; sawPNCTotal: boolean; sawPLTotal: boolean;
   // Valores declarados pelo GT (totalizador), para preferi-los às folhas em finalize
   gtAC: number; gtPC: number; gtANC: number; gtPNC: number; gtPL: number;
+}
+
+export function emptyBuckets(): Buckets {
+  return {
+    ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0,
+    sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false,
+    gtAC: 0, gtPC: 0, gtANC: 0, gtPNC: 0, gtPL: 0,
+  };
 }
 
 // ANC = P..J1 (15 refs do MD §2.2)
