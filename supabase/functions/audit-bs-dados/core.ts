@@ -66,8 +66,15 @@ export interface BSDadosRow {
     passivo_mais_pl?: number;
     causa?: string;
     contribuintes_top?: Array<{ campo: string; valor: number }>;
+    // ── Sentinela DRE (Onda 9 — Check RL − C&D − Resultado ≈ 0) ──
+    dre_check_desvio_pct?: number;
+    dre_check_valor?: number;
+    // ── Flag YTD-revertido em Janeiro (Onda 9) ──
+    ytd_january_flag?: boolean;
+    ytd_january_motivo?: string;
   };
   confidence_by_group?: { AC: number; ANC: number; PC: number; PNC: number; PL: number };
+
 }
 
 export interface BSIndicators {
@@ -659,6 +666,50 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
       };
     }
   }
+
+  // ─── Onda 9 — Sentinela DRE (Check RL − |CMV| − |Desp| − Resultado ≈ 0) ───
+  // Identidade contábil: Resultado = RL + CMV + Despesas (CMV/Desp já negativos).
+  // Tolerância: |check| > 0,5% da RL → eleva validation_status para needs_review.
+  if (r.hasReceita && r.receita_liquida > 0) {
+    const resultadoEsperado = r.receita_liquida + r.cmv + r.despesas;
+    const check = resultadoEsperado - r.resultado;
+    const checkPct = Math.abs(check) / r.receita_liquida * 100;
+    if (checkPct > 0.5) {
+      r.validation_diagnostics = {
+        ...(r.validation_diagnostics || {}),
+        dre_check_desvio_pct: Number(checkPct.toFixed(2)),
+        dre_check_valor: Number(check.toFixed(2)),
+      };
+      // Eleva severidade (mas não rebaixa um needs_review já existente)
+      if (r.validation_status === "ok") {
+        r.validation_status = checkPct > 2 ? "needs_review" : "warn";
+      }
+      console.log(`[finalize] DRE_CHECK mes=${r.mesKey} RL=${r.receita_liquida.toFixed(0)} CMV=${r.cmv.toFixed(0)} Desp=${r.despesas.toFixed(0)} Resultado=${r.resultado.toFixed(0)} check=${check.toFixed(0)} (${checkPct.toFixed(2)}%)`);
+    }
+  }
+
+  // ─── Onda 9 — Flag YTD-revertido em Janeiro ───
+  // Em planilhas YTD, janeiro pode trazer RL/(C+D) com sinal invertido refletindo
+  // encerramento do exercício anterior. A plataforma usa movimento mensal real do
+  // balancete, mas sinalizamos para o parecer explicar a divergência ao auditor.
+  if (/-01$/.test(r.mesKey)) {
+    const rlNeg = r.receita_liquida < 0;
+    const cdSoma = r.cmv + r.despesas; // ambos esperados negativos
+    const cdAtipico = cdSoma > 0; // soma positiva = sinal invertido (YTD revertido)
+    if (rlNeg || cdAtipico) {
+      const motivo = [
+        rlNeg ? `RL=${r.receita_liquida.toFixed(0)} (negativa)` : null,
+        cdAtipico ? `C+D=${cdSoma.toFixed(0)} (sinal invertido)` : null,
+      ].filter(Boolean).join("; ");
+      r.validation_diagnostics = {
+        ...(r.validation_diagnostics || {}),
+        ytd_january_flag: true,
+        ytd_january_motivo: `Janeiro com ${motivo} — provável encerramento YTD do exercício anterior; plataforma trata mês-a-mês via balancete.`,
+      };
+      console.log(`[finalize] YTD_JAN_FLAG mes=${r.mesKey} ${motivo}`);
+    }
+  }
+
 
   // ─── Onda 8 — confidence_by_group (score por grupo) ───
   // Heurística: presença de GT explícito = 100%; sem GT mas com componentes = 75%;
