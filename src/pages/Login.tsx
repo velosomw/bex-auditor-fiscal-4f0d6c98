@@ -19,7 +19,7 @@ const Login = () => {
   const [resendSuccess, setResendSuccess] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
   const navigate = useNavigate();
-  const { setRole, authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
+  const { authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
 
 
   useEffect(() => {
