@@ -4731,6 +4731,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="graficos-auditoria" id="tab-graficos-container" className="bg-background">
           <TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} />
         </TabsContent>
+        <TabsContent value="graficos-parecer" id="tab-graficos-parecer-container" className="bg-background">
+          <TabGraficosParecer parsedData={parsedData} entries={balanceteEntries} />
+        </TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} balanceteEntries={balanceteEntries} /></TabsContent>
         <TabsContent value="relatorio-final">
