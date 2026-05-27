@@ -424,6 +424,20 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   r.resultado = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras + r.receitas_financeiras;
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
+
+  // FIX #7 — Reclassificação CP/LP quando o parser jogou tudo em PNC.
+  // Cenário típico: balancete sem totalizadores PC/PNC; componentes (fornecedores,
+  // dívida tributária/trabalhista/financeira/outras) são identificados mas PC=0,
+  // o que zera todos os indicadores de liquidez por divisão por zero.
+  // Heurística conservadora: se PC == 0 e há componentes > 0, assume soma como PC
+  // e reduz PNC pelo mesmo valor (preserva passivo_total → preserva equação A=P+PL).
+  if (r.passivo_circulante === 0 && componentesPC > 0 && r.passivo_nao_circulante >= componentesPC) {
+    r.passivo_circulante = componentesPC;
+    r.passivo_nao_circulante = r.passivo_nao_circulante - componentesPC;
+    r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
+    r.errors.push(`Passivo Circulante reclassificado a partir de componentes (PC=${componentesPC.toFixed(0)}) — balancete não trouxe totalizador PC/PNC explícito`);
+    console.log(`[finalize] RECLASS_PC mes=${r.mesKey} PC=${r.passivo_circulante.toFixed(0)} PNC=${r.passivo_nao_circulante.toFixed(0)}`);
+  }
   r.hasReceita = r.receita_liquida > 0;
   r.hasBalanco = r.ativo_circulante > 0 || r.passivo_circulante > 0 || r.divida_total > 0;
   if (!r.hasReceita) r.errors.push("Receita líquida ausente ou zerada");
