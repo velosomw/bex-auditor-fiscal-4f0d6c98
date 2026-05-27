@@ -78,7 +78,7 @@ interface PipelineRequest {
  * BUMP a cada mudança que afete os números calculados:
  * invalida automaticamente o cache de dedup por content_hash.
  */
-const PARSER_VERSION = "2026.05.27.06"; // bump: 4 fixes — imobilizado granular (131/132→C1/D1), pruneParents infere ref1, reclass PC só sem totalizadores, fallback imobilizado
+const PARSER_VERSION = "2026.05.27.07"; // bump: canônico inclui conta 13 (Ativo Permanente) no ANC
 
 /* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
 async function sha256Hex(input: string): Promise<string> {
@@ -887,7 +887,11 @@ function canonicalBalanceFromParents(
     byCode.set(code, v);
   }
   const ac = byCode.has("11") ? Math.abs(byCode.get("11")!) : 0;
-  const anc = byCode.has("12") ? Math.abs(byCode.get("12")!) : 0;
+  // ANC = grupo 12 (Não Circulante) + grupo 13 (Ativo Permanente, quando o plano
+  // de contas separa Imobilizado em código próprio — ex.: Giannini).
+  const anc12 = byCode.has("12") ? Math.abs(byCode.get("12")!) : 0;
+  const anc13 = byCode.has("13") ? Math.abs(byCode.get("13")!) : 0;
+  const anc = anc12 + anc13;
   const pc = byCode.has("21") ? Math.abs(byCode.get("21")!) : 0;
   const pnc = byCode.has("22") ? Math.abs(byCode.get("22")!) : 0;
   const ativoFromParent = byCode.has("1") ? Math.abs(byCode.get("1")!) : 0;
