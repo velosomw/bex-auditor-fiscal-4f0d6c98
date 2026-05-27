@@ -669,10 +669,12 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (isTotalRef) return true;
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
-    // Preserva pais com ref1 mapeado (ex: RR, CC1, JJ) — são a fonte do bucket.
-    if (mappedParents.has(c)) return true;
-    // Remove filhas diretas de pais mapeados (já contabilizadas no pai).
+    // FIX dupla contagem fornecedores: descendentes de QUALQUER mappedParent
+    // são removidos PRIMEIRO. Sub-parents mapeados (ex: 211010 sob 211) eram
+    // preservados antes, inflando o bucket fornecedores em 20× (parent + sub-parents).
     if (isChildOfMappedParent(c)) return false;
+    // Preserva apenas o mappedParent topmost (ex: 211) — a fonte do bucket.
+    if (mappedParents.has(c)) return true;
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
     return true;
