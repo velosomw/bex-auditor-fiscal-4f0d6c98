@@ -627,6 +627,60 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   if (r.patrimonio_liquido < 0) {
     console.log(`[finalize] PASSIVO_A_DESCOBERTO mes=${r.mesKey} PL=${r.patrimonio_liquido.toFixed(0)}`);
   }
+
+  // ─── Onda 6 — validation_status (semáforo da equação contábil) ───
+  if (r.ativo_total > 0) {
+    const ladoDireito = r.passivo_total + r.patrimonio_liquido;
+    const diffPct = Math.abs(r.ativo_total - ladoDireito) / r.ativo_total * 100;
+    const status: "ok" | "warn" | "needs_review" =
+      diffPct <= 0.5 ? "ok" : diffPct <= 2 ? "warn" : "needs_review";
+    r.validation_status = status;
+    if (status !== "ok") {
+      // top 5 buckets de maior valor absoluto — candidatos a causa do desvio
+      const buckets: Array<{ campo: string; valor: number }> = [
+        { campo: "ativo_circulante", valor: r.ativo_circulante },
+        { campo: "ativo_nao_circulante", valor: r.ativo_nao_circulante },
+        { campo: "passivo_circulante", valor: r.passivo_circulante },
+        { campo: "passivo_nao_circulante", valor: r.passivo_nao_circulante },
+        { campo: "patrimonio_liquido", valor: r.patrimonio_liquido },
+        { campo: "imobilizado", valor: r.imobilizado },
+        { campo: "realizavel_longo_prazo", valor: r.realizavel_longo_prazo },
+      ].sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor)).slice(0, 5);
+      r.validation_diagnostics = {
+        desvio_pct: Number(diffPct.toFixed(2)),
+        ativo_total: r.ativo_total,
+        passivo_mais_pl: ladoDireito,
+        causa: r.patrimonio_liquido_bruto != null
+          ? "PL rebalanceado por equação contábil"
+          : (r.passivo_circulante === 0 && r.passivo_nao_circulante === 0)
+            ? "Passivo não capturado (faltam totalizadores PC/PNC)"
+            : "Equação contábil quebrada — revisar classificação por Grupo de Resultado",
+        contribuintes_top: buckets,
+      };
+    }
+  }
+
+  // ─── Onda 8 — confidence_by_group (score por grupo) ───
+  // Heurística: presença de GT explícito = 100%; sem GT mas com componentes = 75%;
+  // GT zerado ou componentes ausentes = 40%. PL rebalanceado por equação = 50%.
+  if (b) {
+    const scoreFor = (sawGT: boolean, gt: number, valor: number, defaultFloor = 40): number => {
+      if (sawGT && gt !== 0) return 100;
+      if (valor !== 0) return 75;
+      return defaultFloor;
+    };
+    const plScore = r.patrimonio_liquido_bruto != null
+      ? 50
+      : scoreFor(b.sawPLTotal, b.gtPL, r.patrimonio_liquido);
+    r.confidence_by_group = {
+      AC: scoreFor(b.sawACTotal, b.gtAC, r.ativo_circulante),
+      ANC: scoreFor(b.sawANCTotal, b.gtANC, r.ativo_nao_circulante),
+      PC: scoreFor(b.sawPCTotal, b.gtPC, r.passivo_circulante),
+      PNC: scoreFor(b.sawPNCTotal, b.gtPNC, r.passivo_nao_circulante),
+      PL: plScore,
+    };
+  }
+
   return r;
 }
 
