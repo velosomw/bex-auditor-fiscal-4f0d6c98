@@ -787,6 +787,7 @@ export type Database = {
           id: string
           imobilizado: number
           mes: string
+          outras_nao_operacionais: number
           outras_obrigacoes: number
           passivo_circulante: number
           passivo_nao_circulante: number
@@ -825,6 +826,7 @@ export type Database = {
           id?: string
           imobilizado?: number
           mes: string
+          outras_nao_operacionais?: number
           outras_obrigacoes?: number
           passivo_circulante?: number
           passivo_nao_circulante?: number
@@ -863,6 +865,7 @@ export type Database = {
           id?: string
           imobilizado?: number
           mes?: string
+          outras_nao_operacionais?: number
           outras_obrigacoes?: number
           passivo_circulante?: number
           passivo_nao_circulante?: number
