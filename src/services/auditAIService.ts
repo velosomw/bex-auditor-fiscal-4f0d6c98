@@ -287,16 +287,31 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^132/,   "S"],   // Intangível
   [/^13/,    "ANC_TOTAL"], // Permanente integra ANC
   // ── PASSIVO CIRCULANTE — sub-classificação via descrição ─
-  [/^21[1-9]/, "PC_COMPONENT"],
+  // FIX (B): 211 = Fornecedores EXPLÍCITO. Outros 21X resolvem por descrição,
+  // mas NUNCA podem cair em "BB" (fornecedores) — apenas 211 alimenta esse bucket.
+  [/^211/,   "BB"],
+  [/^21[2-9]/, "PC_COMPONENT"],
   [/^21/,    "PC_TOTAL"],
   // ── PASSIVO NÃO CIRCULANTE ───────────────────
-  [/^22[1-9]/, "PNC_COMPONENT"],
+  // PNC: 221 = Fornecedores LP (espelho de 211); demais 22X resolvem por descrição.
+  [/^221/,   "PP"],
+  [/^22[2-9]/, "PNC_COMPONENT"],
   [/^22/,    "PNC_TOTAL"],
   // ── PATRIMÔNIO LÍQUIDO ───────────────────────
   [/^231/,   "GG1"], [/^232/, "HH1"], [/^233/, "HH1"], [/^234/, "HH1"],
   [/^23/,    "PL_TOTAL"],
   [/^24/,    "GG1"],
   // ── DRE ──────────────────────────────────────
+  // FIX (A): Receita Líquida = 31 − 32 − 33 (NÃO grupo 3 agregado).
+  // Códigos DRE bare (1 dígito: "3"…"8") são totalizadores macro que
+  // duplicariam soma se aceitos. Marcamos como IGNORE para impedir o
+  // fallback regex de roteá-los a receita_liquida/cmv/despesas.
+  [/^3$/,    "DRE_ROOT_IGNORE"],
+  [/^4$/,    "DRE_ROOT_IGNORE"],
+  [/^5$/,    "DRE_ROOT_IGNORE"],
+  [/^6$/,    "DRE_ROOT_IGNORE"],
+  [/^7$/,    "DRE_ROOT_IGNORE"],
+  [/^8$/,    "DRE_ROOT_IGNORE"],
   [/^31/,    "RECEITA"],
   [/^32/,    "DEDUCOES_RECEITA"],
   [/^33/,    "DEDUCOES_RECEITA"],
