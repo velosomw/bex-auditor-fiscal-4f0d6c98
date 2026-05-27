@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Lock, Unlock, Trash2, ChevronDown, ChevronRight, Calculator } from "lucide-react";
+import { Building2, Lock, Unlock, Trash2, ChevronDown, ChevronRight, Calculator, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Firm = {
