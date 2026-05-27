@@ -1,0 +1,10 @@
+DELETE FROM public.bs_dados WHERE audit_id IN (SELECT id FROM public.audits WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7');
+DELETE FROM public.indicadores WHERE audit_id IN (SELECT id FROM public.audits WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7');
+DELETE FROM public.insights WHERE audit_id IN (SELECT id FROM public.audits WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7');
+DELETE FROM public.balancete_lines WHERE balancete_id IN (SELECT b.id FROM public.balancetes b JOIN public.audits a ON a.id=b.audit_id WHERE a.created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7');
+DELETE FROM public.balancete_consolidado WHERE audit_id IN (SELECT id FROM public.audits WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7');
+DELETE FROM public.balancetes WHERE audit_id IN (SELECT id FROM public.audits WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7');
+DELETE FROM public.audit_logs WHERE audit_id IN (SELECT id FROM public.audits WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7');
+DELETE FROM public.audits WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7';
+DELETE FROM public.audit_reports WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7';
+DELETE FROM public.audit_documents WHERE created_by='b99d8224-df9b-4294-9d1c-d27a744e41f7';
