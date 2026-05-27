@@ -209,11 +209,13 @@ export interface BSDadosRow {
   // BALANÇO — Ativos
   ativo_circulante: number;
   ativo_nao_circulante: number;
-  realizavel_longo_prazo: number; // RLP (Refs P..Z) — subset de ANC, usado em Liquidez Geral
+  realizavel_longo_prazo: number; // RLP (Refs P..T) — subset de ANC, usado em Liquidez Geral
+  investimentos: number;          // Ref B1 — subgrupo ANC (Onda 2)
+  intangivel: number;             // Ref D1 — subgrupo ANC (Onda 2, separado do imobilizado)
   estoques: number;
   disponivel: number;
-  contas_receber: number;       // Ref C (orth.)
-  imobilizado: number;          // Refs C1+D1 (orth.)
+  contas_receber: number;
+  imobilizado: number;            // Ref C1
   // BALANÇO — Passivos & PL
   passivo_circulante: number;
   passivo_nao_circulante: number;
