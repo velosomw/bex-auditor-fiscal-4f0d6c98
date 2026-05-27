@@ -846,10 +846,21 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
             Atribua o mês de referência em {missingMeses.length} documento(s) destacado(s) em vermelho.
           </p>
         )}
-        <Button onClick={handleContinue} disabled={!canContinue}
+        <Button onClick={() => { onForceReprocess?.(false); handleContinue(); }} disabled={!canContinue}
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
           Fazer Auditoria <ArrowRight className="w-5 h-5" />
         </Button>
+        {onForceReprocess && (
+          <button
+            type="button"
+            onClick={() => { onForceReprocess(true); handleContinue(); }}
+            disabled={!canContinue}
+            title="Ignora o cache de dedup e reprocessa os balancetes com a versão mais recente do parser."
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 disabled:opacity-50 disabled:no-underline"
+          >
+            Forçar reprocessamento (ignorar cache do parser)
+          </button>
+        )}
       </div>
     </div>
   );
