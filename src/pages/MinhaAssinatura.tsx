@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Crown, Check, Loader2, Copy, AlertCircle, Calendar, CreditCard, X } from "lucide-react";
+import { Crown, Check, Loader2, Copy, AlertCircle, Calendar, CreditCard, X, ArrowLeft } from "lucide-react";
 import PlatformLayout from "@/components/PlatformLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,15 @@ const MinhaAssinatura = () => {
   return (
     <PlatformLayout>
       <div className="max-w-5xl mx-auto p-6 space-y-6">
+        <button
+          onClick={() => navigate("/user")}
+          className="flex items-center gap-2 text-[hsl(217,91%,50%)] hover:text-[hsl(217,91%,40%)] transition-colors text-sm"
+        >
+          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[hsl(217,91%,50%)] text-white">
+            <ArrowLeft className="w-4 h-4" />
+          </span>
+          Voltar para Minha Área
+        </button>
         <div>
           <h1 className="text-2xl font-bold">Minha Assinatura</h1>
           <p className="text-muted-foreground">Gerencie seu plano, cobrança e histórico de faturas</p>
