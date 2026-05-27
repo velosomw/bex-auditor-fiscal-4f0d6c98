@@ -78,7 +78,7 @@ interface PipelineRequest {
  * BUMP a cada mudança que afete os números calculados:
  * invalida automaticamente o cache de dedup por content_hash.
  */
-const PARSER_VERSION = "2026.05.27.13"; // Pruning BUCKET-AWARE: preserva subgrupos (Imob/Intang/RLP) mesmo quando pai é totalizador ANC
+const PARSER_VERSION = "2026.05.27.14"; // Onda 9 — Sentinela DRE Check=0 + Flag YTD-Jan + variationMoM canônico
 
 /* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
 async function sha256Hex(input: string): Promise<string> {
