@@ -778,27 +778,32 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
   // as folhas (221010.01 ICMS Refis, etc.) raramente carregam ref1 e seu
   // texto nem sempre bate com FALLBACK_PATTERNS, ficando órfãs e zerando
   // os buckets divida_tributaria/credores_rj/outras_obrigacoes.
-  const mappedParents = new Set<string>();
-  for (const l of linhas) {
-    const c = normCode(l.conta);
-    if (!c) continue;
-    if (!(parents.has(c) || structuralParents.has(c))) continue;
-    // FIX (b): se o pai não tem ref1 explícito, inferimos pelo código+descrição
-    // para detectar agrupadores PNC (CC1=Credores RJ, RR=Tributário Parcelado,
-    // JJ=Outras) que o parser não marcou. Sem isso, o pai fica órfão e o saldo
-    // oficial do balancete não chega aos buckets `credores_rj`, `divida_tributaria`.
+  // mappedParents agora é Map: code → bucket alvo (REF1_MAP[ref]).
+  // Permite pruning BUCKET-AWARE: filha só é removida quando aponta para o
+  // MESMO bucket do pai (real dupla contagem). Buckets distintos (ex.: pai
+  // 13 → ANC_TOTAL; filha 131 → imobilizado) DEVEM coexistir para preencher
+  // sub-grupos como Imobilizado/Intangível/RLP separadamente do total ANC.
+  const mappedParents = new Map<string, string>();
+  const refOf = (l: InputLinha): string => {
     let r1 = typeof l.ref1 === "string" ? upper(l.ref1.trim()) : "";
     if (!r1) {
       const inferred = inferRefByCode(l.conta, l.descricao);
       if (inferred) r1 = upper(inferred);
     }
+    return r1;
+  };
+  const bucketOf = (ref: string): string | null => {
+    if (!ref || ref === "__IGNORE__") return null;
+    const k = REF1_MAP[ref];
+    return k ? String(k) : null;
+  };
+  for (const l of linhas) {
+    const c = normCode(l.conta);
+    if (!c) continue;
+    if (!(parents.has(c) || structuralParents.has(c))) continue;
+    let r1 = refOf(l);
     if (!r1 || r1.endsWith("_TOTAL")) continue;
-    // FIX Giannini: ref1 "PP" como rótulo genérico do PNC — só promove a
-    // mappedParent quando a descrição é explicitamente Fornecedores. Caso
-    // contrário reclassifica por descrição; se cair em DD1 (catch-all sem
-    // sinal específico), NÃO adiciona como mappedParent para que as filhas
-    // específicas (RR=tributário, CC1=credores RJ) permaneçam na linha e o
-    // pai genérico seja removido como structuralParent.
+    // FIX Giannini: PP genérico só promove se descrição é Fornecedores.
     if (r1 === "PP") {
       const d = stripAccents(l.descricao || "");
       if (!/\bfornecedor/.test(d)) {
@@ -807,31 +812,36 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
         r1 = re;
       }
     }
-    if (REF1_MAP[r1]) mappedParents.add(c);
-
+    const bucket = bucketOf(r1);
+    if (bucket) mappedParents.set(c, bucket);
   }
-  const isChildOfMappedParent = (c: string) => {
-    for (const p of mappedParents) {
+  // pré-computa o bucket de cada code (uma vez) para uso no filter.
+  const lineBucketByCode = new Map<string, string | null>();
+  for (const l of linhas) {
+    const c = normCode(l.conta);
+    if (!c || lineBucketByCode.has(c)) continue;
+    lineBucketByCode.set(c, bucketOf(refOf(l)));
+  }
+  const isChildOfMappedParent = (c: string): boolean => {
+    const childBucket = lineBucketByCode.get(c) ?? null;
+    for (const [p, parentBucket] of mappedParents) {
       if (c === p || !c.startsWith(p)) continue;
       const suffix = c.slice(p.length).replace(/^\.+/, "");
-      if (suffix && /^\d/.test(suffix)) return true;
+      if (!suffix || !/^\d/.test(suffix)) continue;
+      // BUCKET-AWARE: só prune se filha e pai compartilham bucket alvo.
+      // Sem bucket identificável → trata como mesmo (comportamento seguro
+      // anterior, evita órfãos sem classificação).
+      if (!childBucket || childBucket === parentBucket) return true;
     }
     return false;
   };
   const filtered = linhas.filter(l => {
     const c = normCode(l.conta);
-    // FIX — totalizadores oficiais do balancete (AC_TOTAL/PC_TOTAL/ANC_TOTAL/
-    // PNC_TOTAL/PL_TOTAL) NUNCA podem ser podados, mesmo que sejam prefixo de
-    // contas filhas. São a fonte da verdade para AC/PC/PNC/PL em finalize().
     const isTotalRef = typeof l.ref1 === "string" && /_TOTAL$/i.test(l.ref1.trim());
     if (isTotalRef) return true;
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
-    // FIX dupla contagem fornecedores: descendentes de QUALQUER mappedParent
-    // são removidos PRIMEIRO. Sub-parents mapeados (ex: 211010 sob 211) eram
-    // preservados antes, inflando o bucket fornecedores em 20× (parent + sub-parents).
     if (isChildOfMappedParent(c)) return false;
-    // Preserva apenas o mappedParent topmost (ex: 211) — a fonte do bucket.
     if (mappedParents.has(c)) return true;
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
