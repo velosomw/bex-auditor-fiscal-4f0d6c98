@@ -32,6 +32,7 @@ import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
+import TabGraficosParecer from "@/components/audit/TabGraficosParecer";
 import TabBSDados from "@/components/audit/TabBSDados";
 import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
