@@ -157,9 +157,16 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^116/,   "G"], [/^117/, "G"], [/^118/, "G"], [/^119/, "G"],
   [/^11/,    "AC_TOTAL"],
   // ── ATIVO NÃO CIRCULANTE ───
+  // FIX (d): 12X/13X imobilizado & intangível roteiam para a coluna dedicada
+  // `imobilizado` (REF C1/D1) em vez do bucket ANC genérico, para que a tabela
+  // de Endividamento exiba "Imobilizado e Intangível" granular (≈2,3M no
+  // Parecer Giannini) em vez de despejar todo o ANC (16,7M).
   [/^121/,   "P"], [/^122/, "Q"], [/^123/, "R"], [/^124/, "S"],
+  [/^125/,   "C1"], [/^126/, "C1"],            // Imobilizado (planos 12.5/12.6)
+  [/^127/,   "D1"], [/^128/, "D1"],            // Intangível
   [/^12/,    "ANC_TOTAL"],
-  [/^131/,   "R"], [/^132/, "S"],
+  [/^131/,   "C1"], [/^132/, "D1"],            // Permanente: Imob/Intang
+  [/^133/,   "C1"], [/^134/, "D1"],
   [/^13/,    "ANC_TOTAL"],
   // ── PASSIVO CIRCULANTE — sub-classificação via descrição ───
   [/^21[1-9]/, "PC_COMPONENT"],
