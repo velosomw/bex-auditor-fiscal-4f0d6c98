@@ -121,10 +121,13 @@ const SolicitarCadastro = () => {
                 <div className="w-20 h-20 mx-auto rounded-full bg-[hsl(142,76%,36%)]/10 flex items-center justify-center">
                   <CheckCircle2 className="w-10 h-10 text-[hsl(142,76%,36%)]" />
                 </div>
-                <h2 className="text-2xl font-display font-bold text-foreground">Cadastro efetuado com sucesso!</h2>
+                <h2 className="text-2xl font-display font-bold text-foreground">Solicitação recebida!</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Você receberá em seu <strong>e-mail</strong> a senha de acesso à plataforma <strong>Brasil Expert</strong>.
+                  Sua contabilidade foi cadastrada com status <strong>pendente de aprovação</strong>.
+                  Assim que nossa equipe aprovar, você receberá um <strong>e-mail</strong> com um link
+                  para <strong>definir sua senha</strong> de acesso à plataforma <strong>Brasil Expert</strong>.
                 </p>
+
                 <Button onClick={() => navigate("/")} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
                   Voltar ao início
                 </Button>
