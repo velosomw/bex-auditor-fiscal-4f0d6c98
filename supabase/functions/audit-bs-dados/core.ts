@@ -524,6 +524,13 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
     if (b.sawPNCTotal && b.gtPNC > 0) r.passivo_nao_circulante = b.gtPNC;
     if (b.sawPLTotal  && b.gtPL !== 0) r.patrimonio_liquido    = b.gtPL;
   }
+  // Onda 2 — somar subgrupos ANC ao ativo_nao_circulante quando NÃO houver GT ANC.
+  // RLP + Investimentos + Imobilizado + Intangível agora vão para buckets dedicados;
+  // sem este somatório o ANC ficaria zerado quando o balancete não traz totalizador.
+  if (!b?.sawANCTotal) {
+    const subANC = r.realizavel_longo_prazo + r.investimentos + r.imobilizado + r.intangivel;
+    if (subANC !== 0) r.ativo_nao_circulante += subANC;
+  }
   // Resíduo do PC vai para outras_obrigacoes (componentes não classificados)
   const componentesPC = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
                         r.fornecedores + r.credores_rj + r.outras_obrigacoes;
@@ -533,10 +540,6 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   // Recalcula divida_total
   r.divida_total = r.divida_tributaria + r.divida_trabalhista + r.divida_financeira +
                    r.fornecedores + r.credores_rj + r.outras_obrigacoes;
-  // FIX (user): Resultado do Mês = código 3 INTEIRO (linha 990 de referência
-  // no Relatório Técnico), acumulado em r.resultado durante o loop de
-  // buildBSDados a partir das folhas com conta iniciando em "3". Não
-  // sobrescrevemos aqui — preserva o valor já agregado (com sinal natural).
   r.ativo_total = r.ativo_circulante + r.ativo_nao_circulante;
   r.passivo_total = r.passivo_circulante + r.passivo_nao_circulante;
 
