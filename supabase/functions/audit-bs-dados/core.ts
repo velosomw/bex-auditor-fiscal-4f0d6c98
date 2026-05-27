@@ -103,12 +103,19 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "E": "ativo_circulante", "F": "ativo_circulante", "G": "ativo_circulante", "H": "ativo_circulante",
   "I": "ativo_circulante", "J": "ativo_circulante", "K": "ativo_circulante", "L": "ativo_circulante",
   "M": "ativo_circulante", "N": "ativo_circulante", "O": "ativo_circulante",
-  // ANC (P..J1) — roteiam direto para ativo_nao_circulante; C1/D1 também alimentam imobilizado
-  "P": "ativo_nao_circulante", "Q": "ativo_nao_circulante", "R": "ativo_nao_circulante",
-  "S": "ativo_nao_circulante", "T": "ativo_nao_circulante", "U": "ativo_nao_circulante",
-  "V": "ativo_nao_circulante", "W": "ativo_nao_circulante", "X": "ativo_nao_circulante",
-  "Y": "ativo_nao_circulante", "Z": "ativo_nao_circulante", "A1": "ativo_nao_circulante",
-  "B1": "ativo_nao_circulante", "C1": "imobilizado", "D1": "imobilizado",
+  // ── ANC — Onda 2: separa Realizável LP / Investimentos / Imobilizado / Intangível ──
+  // RLP (P..T): Contas a receber LP, Depósitos judiciais LP, Impostos a recuperar LP,
+  // Partes relacionadas ANC, Empréstimos LP — tudo conversível em caixa no LP.
+  "P": "realizavel_longo_prazo", "Q": "realizavel_longo_prazo",
+  "R": "realizavel_longo_prazo", "S": "realizavel_longo_prazo",
+  "T": "realizavel_longo_prazo",
+  // Demais ANC genéricos (U..A1) continuam no bucket geral ANC.
+  "U": "ativo_nao_circulante", "V": "ativo_nao_circulante", "W": "ativo_nao_circulante",
+  "X": "ativo_nao_circulante", "Y": "ativo_nao_circulante", "Z": "ativo_nao_circulante",
+  "A1": "ativo_nao_circulante",
+  "B1": "investimentos",          // 12.2 — Investimentos (subsidiárias, coligadas)
+  "C1": "imobilizado",            // 12.3 — Imobilizado Líquido
+  "D1": "intangivel",             // 12.4 — Intangível (separado do imobilizado)
   "E1": "ativo_nao_circulante", "F1": "ativo_nao_circulante", "G1": "ativo_nao_circulante",
   "H1": "ativo_nao_circulante", "I1": "ativo_nao_circulante", "J1": "ativo_nao_circulante",
   // PC
@@ -117,7 +124,7 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "EE": "passivo_circulante", "FF": "passivo_circulante", "GG": "passivo_circulante", "HH": "passivo_circulante",
   "JJ": "outras_obrigacoes", "KK": "passivo_circulante", "MM": "passivo_circulante", "NN": "divida_tributaria",
   "OO": "passivo_circulante", "II1": "divida_tributaria",
-  // PNC (PP..FF1) — completar gap vs cliente
+  // PNC (PP..FF1)
   "PP": "fornecedores", "QQ": "divida_financeira", "RR": "divida_tributaria",
   "SS": "divida_tributaria", "TT": "divida_financeira",
   "UU": "passivo_nao_circulante", "VV": "passivo_nao_circulante", "WW": "passivo_nao_circulante",
@@ -133,9 +140,9 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
   "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
-  "DESPESAS_FIN": "despesas_financeiras",   // antes fundia em "despesas" — agora separado
-  "RECEITAS_FIN": "receitas_financeiras",   // juros ativos / rendimentos de aplicação
-  "DESPESAS_NOP": "outras_nao_operacionais", // grupo 8 — não operacionais em campo dedicado (Fix C)
+  "DESPESAS_FIN": "despesas_financeiras",
+  "RECEITAS_FIN": "receitas_financeiras",
+  "DESPESAS_NOP": "outras_nao_operacionais",
   "DESPESAS FINANCEIRAS": "despesas_financeiras",
   "RECEITAS FINANCEIRAS": "receitas_financeiras",
   "DEPRECIACAO": "depreciacao", "DEPRECIAÇÃO": "depreciacao",
