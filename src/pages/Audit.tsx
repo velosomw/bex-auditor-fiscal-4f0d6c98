@@ -4706,6 +4706,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             { value: "bs-dados", icon: Database, label: "BS & Dados" },
             { value: "pivot", icon: Layers, label: "Pivot" },
             { value: "graficos-auditoria", icon: BarChart3, label: "Gráficos de Auditoria" },
+            { value: "graficos-parecer", icon: BarChart3, label: "Gráficos Parecer Contábil" },
             { value: "risco-rj", icon: AlertOctagon, label: "Risco RJ" },
             { value: "kanitz", icon: Scale, label: "Kanitz" },
             { value: "relatorio-final", icon: BookOpen, label: "Relatório Final" },
