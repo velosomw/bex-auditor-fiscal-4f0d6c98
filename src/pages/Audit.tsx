@@ -4942,6 +4942,7 @@ const AuditContent = () => {
             dedupConfig={dedupConfig}
             onDedupChange={setDedupConfig}
             onDepthChange={setSelectedDepth}
+            onForceReprocess={setForceReprocess}
           />
         )}
         <MonthsConfirmDialog
