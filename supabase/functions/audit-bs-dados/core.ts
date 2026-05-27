@@ -792,10 +792,11 @@ function desacumularDRE(
     const ytdMarked = group.filter(r => userYtdByMesKey.get(r.mesKey)).length;
     const userForceExact = ytdMarked >= 2;
 
-    // Detecta YTD por chave: (a) monotônico crescente em |valor| ou
-    // (b) primeiro mês outlier (>= 3× mediana dos demais — clássico YTD acumulado de meses anteriores).
-    const triggerKeys = new Set<string>();
-    const reasons: Record<string, string> = {};
+    // Para cada chave detecta o MODO de YTD:
+    //   "full"  → série inteira é YTD (monotônica crescente em |valor|) ⇒ delta em todos meses 2..N + 1º mês ÷ fiscal_month
+    //   "first" → apenas o 1º mês está YTD (outlier), demais já mensais ⇒ corrige só o 1º mês (÷ fiscal_month)
+    const firstMes = parseInt(group[0].mesKey.slice(5, 7), 10) || 1;
+    const modeByKey: Record<string, "full" | "first" | "none"> = {};
     for (const k of dreKeys) {
       let monotonicPairs = 0, totalPairs = 0;
       for (let i = 1; i < group.length; i++) {
@@ -804,40 +805,41 @@ function desacumularDRE(
         if (prev > 0) { totalPairs++; if (curr >= prev * 1.02) monotonicPairs++; }
       }
       const monoMatch = totalPairs >= 2 && monotonicPairs / totalPairs >= 0.8;
-      // outlier do primeiro mês
-      let outlierMatch = false;
+
+      let outlierFirst = false;
       if (group.length >= 3) {
         const first = Math.abs(group[0][k] as number);
         const others = group.slice(1).map(r => Math.abs(r[k] as number)).filter(v => v > 0).sort((a,b) => a-b);
         if (others.length >= 2 && first > 0) {
           const median = others[Math.floor(others.length / 2)];
-          if (median > 0 && first >= median * 3) outlierMatch = true;
+          if (median > 0 && first >= median * 3) outlierFirst = true;
         }
       }
-      if (monoMatch || outlierMatch) {
-        triggerKeys.add(k);
-        reasons[k] = monoMatch ? `monotônico ${monotonicPairs}/${totalPairs}` : "outlier-1ºmês";
-      }
+
+      if (monoMatch || userForceExact) modeByKey[k] = "full";
+      else if (outlierFirst) modeByKey[k] = "first";
+      else modeByKey[k] = "none";
     }
 
-    const shouldApply = userForceExact || triggerKeys.size > 0;
-    if (!shouldApply) continue;
-
-    // Aplica DELTA em TODAS as chaves DRE (regra Grupo de Resultado uniforme)
-    const firstMes = parseInt(group[0].mesKey.slice(5, 7), 10) || 1;
+    const touchedKeys: string[] = [];
     for (const k of dreKeys) {
+      const mode = modeByKey[k];
+      if (mode === "none") continue;
       const original = group.map(g => g[k] as number);
-      // meses 2..N: delta YTD-YTD
-      for (let i = group.length - 1; i >= 1; i--) {
-        (group[i] as any)[k] = original[i] - original[i - 1];
+      if (mode === "full") {
+        for (let i = group.length - 1; i >= 1; i--) {
+          (group[i] as any)[k] = original[i] - original[i - 1];
+        }
       }
-      // mês 1: estima mensal = YTD / fiscal_month_number
+      // Em ambos modos, o 1º mês é YTD ⇒ divide pelo nº fiscal do mês
       if (firstMes > 1 && original[0] !== 0) {
         (group[0] as any)[k] = original[0] / firstMes;
       }
+      touchedKeys.push(`${k}:${mode}`);
     }
-    const triggers = triggerKeys.size > 0 ? `[gatilho: ${[...triggerKeys].join(",")}]` : "[user-YTD]";
-    const tag = `DRE desacumulada por Grupo de Resultado ${triggers}`;
+
+    if (touchedKeys.length === 0) continue;
+    const tag = `DRE desacumulada por Grupo de Resultado [${touchedKeys.join(" | ")}] firstMes=${firstMes}`;
     for (const r of group) {
       if (!r.errors.includes(tag)) r.errors.push(tag);
       r.ytd_desacumulado = true;
@@ -848,7 +850,7 @@ function desacumularDRE(
         ytd_source_count: ytdMarked || group.length,
       };
     }
-    console.log(`[desacumularDRE] ano=${group[0].mesKey.slice(0,4)} aplicado a TODAS as chaves DRE; gatilhos=${JSON.stringify(reasons)} firstMes=${firstMes}`);
+    console.log(`[desacumularDRE] ano=${group[0].mesKey.slice(0,4)} modos=${JSON.stringify(modeByKey)} firstMes=${firstMes}`);
   }
   return sorted;
 }
