@@ -169,16 +169,26 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^133/,   "C1"], [/^134/, "D1"],
   [/^13/,    "ANC_TOTAL"],
   // ── PASSIVO CIRCULANTE — sub-classificação via descrição ───
-  [/^21[1-9]/, "PC_COMPONENT"],
+  // FIX (B): 211 = Fornecedores EXPLÍCITO. Outros 21X NUNCA caem em "BB".
+  [/^211/,   "BB"],
+  [/^21[2-9]/, "PC_COMPONENT"],
   [/^21/,    "PC_TOTAL"],
   // ── PASSIVO NÃO CIRCULANTE ───
-  [/^22[1-9]/, "PNC_COMPONENT"],
+  [/^221/,   "PP"],
+  [/^22[2-9]/, "PNC_COMPONENT"],
   [/^22/,    "PNC_TOTAL"],
   // ── PATRIMÔNIO LÍQUIDO ───
   [/^231/,   "GG1"], [/^232/, "HH1"], [/^233/, "HH1"], [/^234/, "HH1"],
   [/^23/,    "PL_TOTAL"],
   [/^24/,    "GG1"],
   // ── DRE ───
+  // FIX (A): Receita = 31 − 32 − 33. Bare "3".."8" são raízes — IGNORAR.
+  [/^3$/,    "DRE_ROOT_IGNORE"],
+  [/^4$/,    "DRE_ROOT_IGNORE"],
+  [/^5$/,    "DRE_ROOT_IGNORE"],
+  [/^6$/,    "DRE_ROOT_IGNORE"],
+  [/^7$/,    "DRE_ROOT_IGNORE"],
+  [/^8$/,    "DRE_ROOT_IGNORE"],
   [/^31/,    "RECEITA_OR_DEDUCAO"],  // 31x pode ser bruta OU dedução — classifica por descrição
   [/^32/,    "DEDUCOES_RECEITA"],
   [/^33/,    "DEDUCOES_RECEITA"],
@@ -210,7 +220,7 @@ const stripAccents = (s: string) =>
 function classifyPCByDescription(desc: string): string {
   const d = stripAccents(desc);
   if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "II";
-  if (/fornecedor/.test(d)) return "BB";
+  // FIX (B): fornecedores só via 211; NÃO casamos por descrição aqui.
   if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "AA";
   if (/sal[aá]ri|f[eé]rias|13[ºo°]|d[eé]cimo\s+terceiro|inss|fgts|trabalhi|encargos\s+soci|provis[aã]o.*f[eé]ria/.test(d)) return "CC";
   if (/tribut|imposto|icms|iss|pis|cofins|irpj|csll|simples|parcelament|refis/.test(d)) return "DD";
@@ -220,7 +230,7 @@ function classifyPCByDescription(desc: string): string {
 function classifyPNCByDescription(desc: string): string {
   const d = stripAccents(desc);
   if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "CC1";
-  if (/fornecedor/.test(d)) return "PP";
+  // FIX (B): Fornecedores LP só via 221.
   if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "QQ";
   if (/tribut|imposto|parcelament|refis/.test(d)) return "RR";
   return "DD1";
@@ -234,6 +244,8 @@ export function inferRefByCode(code?: string, descricao?: string): string | null
       if (ref === "PNC_COMPONENT") return classifyPNCByDescription(descricao || "");
       if (ref === "FIN_GROUP") return classifyFinByDescription(descricao || "");
       if (ref === "RECEITA_OR_DEDUCAO") return isDeducaoByDescription(descricao || "") ? "DEDUCOES_RECEITA" : "RECEITA";
+      // FIX (A): raiz DRE bare ("3".."8") — sinaliza para resolveKey ignorar.
+      if (ref === "DRE_ROOT_IGNORE") return "__IGNORE__";
       return ref;
     }
   }
@@ -323,6 +335,8 @@ export function emptyRow(mesKey: string): BSDadosRow {
 
 export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   const ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
+  // FIX (A): raízes DRE bare descartadas — não cair em fallback regex.
+  if (ref1 === "__IGNORE__") return null;
   if (ref1) {
     const k = REF1_MAP[upper(ref1)];
     if (k) return k;

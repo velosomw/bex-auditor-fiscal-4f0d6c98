@@ -287,16 +287,31 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^132/,   "S"],   // Intangível
   [/^13/,    "ANC_TOTAL"], // Permanente integra ANC
   // ── PASSIVO CIRCULANTE — sub-classificação via descrição ─
-  [/^21[1-9]/, "PC_COMPONENT"],
+  // FIX (B): 211 = Fornecedores EXPLÍCITO. Outros 21X resolvem por descrição,
+  // mas NUNCA podem cair em "BB" (fornecedores) — apenas 211 alimenta esse bucket.
+  [/^211/,   "BB"],
+  [/^21[2-9]/, "PC_COMPONENT"],
   [/^21/,    "PC_TOTAL"],
   // ── PASSIVO NÃO CIRCULANTE ───────────────────
-  [/^22[1-9]/, "PNC_COMPONENT"],
+  // PNC: 221 = Fornecedores LP (espelho de 211); demais 22X resolvem por descrição.
+  [/^221/,   "PP"],
+  [/^22[2-9]/, "PNC_COMPONENT"],
   [/^22/,    "PNC_TOTAL"],
   // ── PATRIMÔNIO LÍQUIDO ───────────────────────
   [/^231/,   "GG1"], [/^232/, "HH1"], [/^233/, "HH1"], [/^234/, "HH1"],
   [/^23/,    "PL_TOTAL"],
   [/^24/,    "GG1"],
   // ── DRE ──────────────────────────────────────
+  // FIX (A): Receita Líquida = 31 − 32 − 33 (NÃO grupo 3 agregado).
+  // Códigos DRE bare (1 dígito: "3"…"8") são totalizadores macro que
+  // duplicariam soma se aceitos. Marcamos como IGNORE para impedir o
+  // fallback regex de roteá-los a receita_liquida/cmv/despesas.
+  [/^3$/,    "DRE_ROOT_IGNORE"],
+  [/^4$/,    "DRE_ROOT_IGNORE"],
+  [/^5$/,    "DRE_ROOT_IGNORE"],
+  [/^6$/,    "DRE_ROOT_IGNORE"],
+  [/^7$/,    "DRE_ROOT_IGNORE"],
+  [/^8$/,    "DRE_ROOT_IGNORE"],
   [/^31/,    "RECEITA"],
   [/^32/,    "DEDUCOES_RECEITA"],
   [/^33/,    "DEDUCOES_RECEITA"],
@@ -310,22 +325,22 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
 const stripAccents = (s: string) =>
   (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-/** Sub-classifica componentes de Passivo Circulante (21X) pela descrição. */
+/** Sub-classifica componentes de Passivo Circulante (21X exceto 211) pela descrição. */
 function classifyPCByDescription(desc: string): string {
   const d = stripAccents(desc);
   if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "II";
-  if (/fornecedor/.test(d)) return "BB";
+  // FIX (B): "Fornecedores" só via código 211; NÃO casamos por descrição aqui.
   if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "AA";
   if (/sal[aá]ri|f[eé]rias|13[ºo°]|d[eé]cimo\s+terceiro|inss|fgts|trabalhi|encargos\s+soci|provis[aã]o.*f[eé]ria/.test(d)) return "CC";
   if (/tribut|imposto|icms|iss|pis|cofins|irpj|csll|simples|parcelament|refis/.test(d)) return "DD";
   return "JJ"; // Outras Obrigações (resíduo do PC)
 }
 
-/** Sub-classifica componentes de Passivo Não Circulante (22X) pela descrição. */
+/** Sub-classifica componentes de Passivo Não Circulante (22X exceto 221) pela descrição. */
 function classifyPNCByDescription(desc: string): string {
   const d = stripAccents(desc);
   if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "CC1";
-  if (/fornecedor/.test(d)) return "PP";
+  // FIX (B): Fornecedores LP só via 221; sem fallback por descrição.
   if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "QQ";
   if (/tribut|imposto|parcelament|refis/.test(d)) return "RR";
   return "DD1";
@@ -339,6 +354,8 @@ export function inferRefByCode(code: string, descricao?: string): string | undef
     if (pattern.test(c)) {
       if (ref === "PC_COMPONENT") return classifyPCByDescription(descricao || "");
       if (ref === "PNC_COMPONENT") return classifyPNCByDescription(descricao || "");
+      // FIX (A): bare "3".."8" são raízes DRE — descartar sem cair em fallback.
+      if (ref === "DRE_ROOT_IGNORE") return "__IGNORE__";
       return ref;
     }
   }

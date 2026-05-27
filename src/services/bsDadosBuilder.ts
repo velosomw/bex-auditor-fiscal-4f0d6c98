@@ -399,6 +399,9 @@ function resolveDotDRERef(ref: string): string | null {
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
   let ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
+  // FIX (A): sentinel para raízes DRE bare ("3".."8") — descarta a linha
+  // antes do fallback por descrição (impede dupla contagem na receita_liquida).
+  if (ref1 === "__IGNORE__") return null;
   if (ref1) {
     // Normaliza refs DRE dot-decimal (formato planilha XPT: "10.A", "40.J", "50.B")
     const dotResolved = resolveDotDRERef(String(ref1));
