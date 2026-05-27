@@ -340,9 +340,10 @@ function classifyPCByDescription(desc: string): string {
 function classifyPNCByDescription(desc: string): string {
   const d = stripAccents(desc);
   if (/credores?\s+rj|recuperacao\s+judic/.test(d)) return "CC1";
-  // FIX (B): Fornecedores LP só via 221; sem fallback por descrição.
   if (/emprestim|financiament|instituic[oõ]es?\s+financ|deb[eê]ntures?|leasing|arrendament/.test(d)) return "QQ";
   if (/tribut|imposto|parcelament|refis/.test(d)) return "RR";
+  // Fornecedores LP só com descrição explícita.
+  if (/\bfornecedor/.test(d)) return "PP";
   return "DD1";
 }
 
