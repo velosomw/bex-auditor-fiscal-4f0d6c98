@@ -596,6 +596,11 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
   }
   const filtered = linhas.filter(l => {
     const c = normCode(l.conta);
+    // FIX — totalizadores oficiais do balancete (AC_TOTAL/PC_TOTAL/ANC_TOTAL/
+    // PNC_TOTAL/PL_TOTAL) NUNCA podem ser podados, mesmo que sejam prefixo de
+    // contas filhas. São a fonte da verdade para AC/PC/PNC/PL em finalize().
+    const isTotalRef = typeof l.ref1 === "string" && /_TOTAL$/i.test(l.ref1.trim());
+    if (isTotalRef) return true;
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
     if (parents.has(c)) return false;
