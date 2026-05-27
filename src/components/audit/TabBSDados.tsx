@@ -134,13 +134,19 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
                 <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                   <CheckCircle2 className="w-3 h-3 mr-1" /> Validado
                 </Badge>
-
+              ) : (
+                <Badge className="bg-amber-500/15 text-amber-700 border border-amber-500/30">
+                  <AlertTriangle className="w-3 h-3 mr-1" /> {totalErrors} alerta(s)
+                </Badge>
+              )}
+              <WindowSelector value={windowSize} onChange={setWindowSize} available={allRows.length} />
               <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5">
                 <Download className="w-3.5 h-3.5" /> Exportar CSV
               </Button>
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="overflow-x-auto">
           <Table className="text-xs">
             <TableHeader>
