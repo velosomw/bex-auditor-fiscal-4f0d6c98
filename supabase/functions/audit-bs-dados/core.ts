@@ -388,24 +388,28 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
     case "depreciacao":     row.depreciacao -= Math.abs(v); break;
     case "amortizacao":     row.amortizacao -= Math.abs(v); break;
     case "resultado":       row.resultado += v; break;
+    // FIX (b): totalizadores IRMÃOS (ex: ANC = grupo 12 + grupo 13) devem ser
+    // SOMADOS, não MAX. Antes Math.max perdia o grupo 13 (Ativo Permanente)
+    // quando havia também o grupo 12. Mesma lógica aplicada a AC/PC/PNC/PL
+    // para suportar planos contábeis com múltiplos subgrupos totalizadores.
     case "ativo_circulante":
-      if (isTotal) { b.sawACTotal = true; b.gtAC = Math.max(b.gtAC, Math.abs(v)); }
+      if (isTotal) { b.sawACTotal = true; b.gtAC += Math.abs(v); }
       else { row.ativo_circulante += Math.abs(v); }
       break;
     case "passivo_circulante":
-      if (isTotal) { b.sawPCTotal = true; b.gtPC = Math.max(b.gtPC, Math.abs(v)); }
+      if (isTotal) { b.sawPCTotal = true; b.gtPC += Math.abs(v); }
       else { row.passivo_circulante += Math.abs(v); }
       break;
     case "ativo_nao_circulante":
-      if (isTotal) { b.sawANCTotal = true; b.gtANC = Math.max(b.gtANC, Math.abs(v)); }
+      if (isTotal) { b.sawANCTotal = true; b.gtANC += Math.abs(v); }
       else { row.ativo_nao_circulante += Math.abs(v); }
       break;
     case "passivo_nao_circulante":
-      if (isTotal) { b.sawPNCTotal = true; b.gtPNC = Math.max(b.gtPNC, Math.abs(v)); }
+      if (isTotal) { b.sawPNCTotal = true; b.gtPNC += Math.abs(v); }
       else { row.passivo_nao_circulante += Math.abs(v); }
       break;
     case "patrimonio_liquido":
-      if (isTotal) { b.sawPLTotal = true; b.gtPL = Math.abs(v) > Math.abs(b.gtPL) ? v : b.gtPL; }
+      if (isTotal) { b.sawPLTotal = true; b.gtPL += v; }
       else { row.patrimonio_liquido += v; }
       break;
     case "contas_receber":
