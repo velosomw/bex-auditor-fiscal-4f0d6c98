@@ -127,10 +127,23 @@ const FirmsCompaniesPanel = () => {
                   <Badge variant={blocked ? "destructive" : "outline"} className="text-[10px]">
                     {blocked ? "Bloqueada" : firm.status}
                   </Badge>
+                  {firm.status === "pendente" && (
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1.5 text-xs bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)] text-white"
+                      disabled={approving === firm.id}
+                      onClick={() => approveFirm(firm)}
+                    >
+                      {approving === firm.id
+                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Aprovando…</>
+                        : <><CheckCircle2 className="w-3.5 h-3.5" /> Aprovar e enviar credenciais</>}
+                    </Button>
+                  )}
                   <Button size="sm" variant={blocked ? "default" : "outline"} className="h-8 gap-1.5 text-xs" onClick={() => toggleBlock(firm)}>
                     {blocked ? <><Unlock className="w-3.5 h-3.5" /> Desbloquear</> : <><Lock className="w-3.5 h-3.5" /> Bloquear</>}
                   </Button>
                 </div>
+
               </div>
 
               {open && (
