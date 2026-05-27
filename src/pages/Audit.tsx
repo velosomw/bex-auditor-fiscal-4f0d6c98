@@ -1006,6 +1006,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                 if (ev.progress) setPipelineProgress(ev.progress);
                 else if (ev.status) setPipelineProgress(`Status: ${ev.status}`);
               },
+              forceReprocess,
             );
             if (pipelineResult) {
               setPipelineProgress(null);
