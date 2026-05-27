@@ -1076,7 +1076,12 @@ export function computeKanitz(rows: BSDadosRow[]): KanitzRow[] {
     const PNC = r.passivo_nao_circulante;
     const PL = r.patrimonio_liquido;
     const LL = r.resultado;
-    const RLP = ANC;
+    // Onda 2 — LG = (AC + RLP) / (PC + PNC). RLP discriminado via Refs P..T
+    // (subset de ANC). Fallback: ANC − (Imobilizado + Intangível + Investimentos)
+    // quando RLP não vier explícito; último recurso = ANC inteiro.
+    const RLP = r.realizavel_longo_prazo > 0
+      ? r.realizavel_longo_prazo
+      : Math.max(ANC - r.imobilizado - r.intangivel - r.investimentos, 0) || ANC;
     const safe = (n: number, d: number) => (Math.abs(d) < 0.01 ? 0 : n / d);
 
     // FIX #3 — Bloqueio metodológico: Kanitz é INVÁLIDO quando |PL| < 5% do Ativo Total

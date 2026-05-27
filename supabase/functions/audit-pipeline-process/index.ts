@@ -78,7 +78,7 @@ interface PipelineRequest {
  * BUMP a cada mudança que afete os números calculados:
  * invalida automaticamente o cache de dedup por content_hash.
  */
-const PARSER_VERSION = "2026.05.27.10"; // Ondas 2+6+8: ANC subgroups (RLP/Invest/Intang), validation_status + confidence_by_group
+const PARSER_VERSION = "2026.05.27.11"; // Onda 2 cont.: Kanitz LG usa RLP real (fallback ANC−Imob−Intang−Invest)
 
 /* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
 async function sha256Hex(input: string): Promise<string> {
