@@ -28,6 +28,8 @@ const FirmsCompaniesPanel = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [approving, setApproving] = useState<string | null>(null);
+
 
   const load = async () => {
     setLoading(true);
