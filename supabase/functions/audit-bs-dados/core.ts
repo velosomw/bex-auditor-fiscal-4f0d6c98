@@ -256,7 +256,7 @@ const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
   divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasing|arrendamento)/i,
   fornecedores: /\bfornecedor/i,
   credores_rj: /\b(?:credores?\s+(?:rj|recupera[cç][aã]o)|recupera[cç][aã]o\s+judic)/i,
-};
+  imobilizado: /\b(?:imobilizado|intang[ií]vel|m[aá]quina|equipamento|ve[ií]culo|edifica[cç][oõ]es|terreno|m[oó]vel\s+e?\s*utens[ií]li|software|marca\s+e\s+patent)/i,
 
 // ─── Helpers ─────────────────────────────────────────────
 const upper = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
