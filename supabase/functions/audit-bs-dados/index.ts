@@ -476,25 +476,44 @@ function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
   }
 
   // FIX #6 — Equação contábil Ativo = Passivo + PL (±1%). CPC 26 R1 §54 / NBC TG 26.
+  // PL pode ser NEGATIVO (passivo a descoberto) — não tratar como erro.
   if (r.ativo_total > 0 && (r.passivo_total > 0 || r.patrimonio_liquido !== 0)) {
     const ladoDireito = r.passivo_total + r.patrimonio_liquido;
     const diff = Math.abs(r.ativo_total - ladoDireito);
-    const tol = r.ativo_total * 0.01;
+    const tol = Math.max(r.ativo_total * 0.01, 1);
     if (diff > tol) {
       const desvio = (diff / r.ativo_total) * 100;
-      // FIX #4 — Auto-rebalanço quando PL > Ativo Total (sinal de dupla contagem).
-      if (r.patrimonio_liquido > r.ativo_total) {
+      const plEsperado = r.ativo_total - r.passivo_total;
+      // FIX #4 + FIX B — Auto-rebalanço em 3 cenários:
+      //   (1) PL positivo inflado (dupla contagem): PL > Ativo
+      //   (2) Sinais divergentes: PL lido positivo mas A−P negativo (parser perdeu sinal
+      //       de passivo a descoberto), ou vice-versa
+      //   (3) PL = 0 mas A ≠ P (faltou capturar PL ou capturou só totalizador zerado)
+      const inflatedPositive = r.patrimonio_liquido > r.ativo_total;
+      const signDivergence =
+        (r.patrimonio_liquido > 0 && plEsperado < -tol) ||
+        (r.patrimonio_liquido < 0 && plEsperado > tol);
+      const plMissing = r.patrimonio_liquido === 0 && Math.abs(plEsperado) > tol;
+      if (inflatedPositive || signDivergence || plMissing) {
         const plOriginal = r.patrimonio_liquido;
-        const plDerivado = r.ativo_total - r.passivo_total;
         r.patrimonio_liquido_bruto = plOriginal;
-        r.patrimonio_liquido = plDerivado;
-        r.errors.push(`PL recalculado por equação contábil — original ${plOriginal.toFixed(0)} excedia Ativo Total ${r.ativo_total.toFixed(0)}; derivado A−P = ${plDerivado.toFixed(0)}`);
-        console.log(`[finalize] PL_REBALANCE mes=${r.mesKey} original=${plOriginal.toFixed(0)} derivado=${plDerivado.toFixed(0)} ativo=${r.ativo_total.toFixed(0)}`);
+        r.patrimonio_liquido = plEsperado;
+        const motivo = inflatedPositive
+          ? `original ${plOriginal.toFixed(0)} excedia Ativo Total ${r.ativo_total.toFixed(0)}`
+          : signDivergence
+            ? `sinais divergentes (lido ${plOriginal.toFixed(0)}, A−P = ${plEsperado.toFixed(0)} → indica passivo a descoberto ou inversão)`
+            : `PL ausente no balancete; derivado de A−P = ${plEsperado.toFixed(0)}`;
+        r.errors.push(`PL recalculado por equação contábil — ${motivo}`);
+        console.log(`[finalize] PL_REBALANCE mes=${r.mesKey} motivo=${inflatedPositive ? "inflated" : signDivergence ? "sign_divergence" : "missing"} original=${plOriginal.toFixed(0)} derivado=${plEsperado.toFixed(0)} ativo=${r.ativo_total.toFixed(0)} passivo=${r.passivo_total.toFixed(0)}`);
       } else {
         r.errors.push(`Equação contábil rompida: Ativo=${r.ativo_total.toFixed(0)} ≠ Passivo+PL=${ladoDireito.toFixed(0)} (desvio ${desvio.toFixed(2)}%)`);
         console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}% PC=${r.passivo_circulante.toFixed(0)} PNC=${r.passivo_nao_circulante.toFixed(0)} PL=${r.patrimonio_liquido.toFixed(0)}`);
       }
     }
+  }
+  // Sinaliza passivo a descoberto (não é erro, é diagnóstico contábil real).
+  if (r.patrimonio_liquido < 0) {
+    console.log(`[finalize] PASSIVO_A_DESCOBERTO mes=${r.mesKey} PL=${r.patrimonio_liquido.toFixed(0)}`);
   }
   return r;
 }
