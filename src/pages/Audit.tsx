@@ -4807,6 +4807,7 @@ const AuditContent = () => {
   const [filteredMonths, setFilteredMonths] = useState<string[]>([]);
   const [preParsing, setPreParsing] = useState(false);
   const [balanceteEntries, setBalanceteEntries] = useState<BalanceteEntry[]>([]);
+  const [forceReprocess, setForceReprocess] = useState(false);
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
