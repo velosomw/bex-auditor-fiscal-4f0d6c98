@@ -882,7 +882,7 @@ const processingSteps = [
   { label: "✅ Gerando relatórios BEX e Kanitz...", duration: 1500 },
 ];
 
-const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed, companyId, balanceteEntries }: { 
+const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed, companyId, balanceteEntries, forceReprocess }: { 
   onComplete: () => void; 
   files: File[];
   onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
@@ -890,6 +890,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
   preParsed?: MultiMonthParsed | null;
   companyId?: string | null;
   balanceteEntries?: BalanceteEntry[];
+  forceReprocess?: boolean;
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
