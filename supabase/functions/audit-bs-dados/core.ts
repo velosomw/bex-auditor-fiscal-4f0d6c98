@@ -594,6 +594,29 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
       structuralParents.add(c);
     }
   }
+  // FIX — pais com ref1 mapeado em REF1_MAP (RR, CC1, JJ, AA, BB, DD, etc.)
+  // devem ser PRESERVADOS e suas filhas DIRETAS removidas. O parser detecta
+  // ref1 no nível do agrupador (ex: conta 221010 "Tributário Parcelado" → RR);
+  // as folhas (221010.01 ICMS Refis, etc.) raramente carregam ref1 e seu
+  // texto nem sempre bate com FALLBACK_PATTERNS, ficando órfãs e zerando
+  // os buckets divida_tributaria/credores_rj/outras_obrigacoes.
+  const mappedParents = new Set<string>();
+  for (const l of linhas) {
+    const c = normCode(l.conta);
+    if (!c) continue;
+    if (!(parents.has(c) || structuralParents.has(c))) continue;
+    const r1 = typeof l.ref1 === "string" ? upper(l.ref1.trim()) : "";
+    if (!r1 || r1.endsWith("_TOTAL")) continue;
+    if (REF1_MAP[r1]) mappedParents.add(c);
+  }
+  const isChildOfMappedParent = (c: string) => {
+    for (const p of mappedParents) {
+      if (c === p || !c.startsWith(p)) continue;
+      const suffix = c.slice(p.length).replace(/^\.+/, "");
+      if (suffix && /^\d/.test(suffix)) return true;
+    }
+    return false;
+  };
   const filtered = linhas.filter(l => {
     const c = normCode(l.conta);
     // FIX — totalizadores oficiais do balancete (AC_TOTAL/PC_TOTAL/ANC_TOTAL/
@@ -603,6 +626,10 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (isTotalRef) return true;
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
+    // Preserva pais com ref1 mapeado (ex: RR, CC1, JJ) — são a fonte do bucket.
+    if (mappedParents.has(c)) return true;
+    // Remove filhas diretas de pais mapeados (já contabilizadas no pai).
+    if (isChildOfMappedParent(c)) return false;
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
     return true;
