@@ -847,12 +847,12 @@ function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   diff: number;
   alertas: string[];
 } {
-  // Soma com sinal preservado (não usar Math.abs — perde compensações de provisões/depreciações)
+  // Soma com sinal preservado para detectar Passivo a Descoberto (PL negativo).
   const sum = (t: string) =>
     rows.filter((r) => r.tipo === t).reduce((a, b) => a + (Number(b.valor) || 0), 0);
   const ativo = Math.abs(sum("ativo"));
   const passivo = Math.abs(sum("passivo"));
-  const pl = Math.abs(sum("pl"));
+  const pl = sum("pl"); // PRESERVA SINAL — passivo a descoberto = PL negativo
   const diff = Math.abs(ativo - (passivo + pl));
   const tolerance = Math.max(ativo * 0.02, 1000);
   const alertas: string[] = [];
@@ -865,6 +865,50 @@ function validateBalanco(rows: Array<{ valor: number; tipo: string }>): {
   }
   return { valid: diff <= tolerance, ativo, passivo, pl, diff, alertas };
 }
+
+/**
+ * MOTOR CANÔNICO — extrai totalizadores diretamente dos pai (1, 11, 12, 21, 22)
+ * do balanço bruto recebido em body.balanco, ANTES da normalização LLM.
+ * Plano BR é estrutural: 1.x = Ativo, 21.x = PC, 22.x = PNC. PL = A - P (derivado).
+ * Retorna null quando os pais oficiais não estiverem presentes (fallback p/ LLM).
+ */
+function canonicalBalanceFromParents(
+  balancoRaw: Array<{ conta?: string; descricao?: string; values?: Record<string, number> }>,
+  lastYear: string,
+): { valid: boolean; ativo: number; ativoCirc: number; ativoNaoCirc: number; passivo: number; passivoCirc: number; passivoNaoCirc: number; pl: number; diff: number; source: string; alertas: string[] } | null {
+  if (!balancoRaw || balancoRaw.length === 0) return null;
+  const byCode = new Map<string, number>();
+  for (const r of balancoRaw) {
+    const code = String(r.conta || "").trim();
+    if (!code) continue;
+    const v = Number(r.values?.[lastYear] ?? 0);
+    if (!Number.isFinite(v)) continue;
+    // Mantém o último valor visto (em geral só há uma linha por código pai)
+    byCode.set(code, v);
+  }
+  const ac = byCode.has("11") ? Math.abs(byCode.get("11")!) : 0;
+  const anc = byCode.has("12") ? Math.abs(byCode.get("12")!) : 0;
+  const pc = byCode.has("21") ? Math.abs(byCode.get("21")!) : 0;
+  const pnc = byCode.has("22") ? Math.abs(byCode.get("22")!) : 0;
+  const ativoFromParent = byCode.has("1") ? Math.abs(byCode.get("1")!) : 0;
+  // Aceita o motor canônico apenas se temos PELO MENOS Ativo (1 ou 11) e PC/PNC pelo menos um.
+  if ((ativoFromParent === 0 && ac === 0) || (pc === 0 && pnc === 0)) return null;
+  const ativo = ativoFromParent > 0 ? ativoFromParent : ac + anc;
+  const passivo = pc + pnc;
+  // PL derivado pela equação contábil (CPC 26 R1 §54). Garante Ativo = Passivo + PL.
+  const pl = ativo - passivo;
+  const alertas: string[] = [];
+  if (pl < 0) alertas.push(`Passivo a Descoberto identificado: PL = ${pl.toFixed(0)}`);
+  return {
+    valid: true,
+    ativo, ativoCirc: ac || ativo, ativoNaoCirc: anc,
+    passivo, passivoCirc: pc, passivoNaoCirc: pnc,
+    pl, diff: 0,
+    source: "canonical_parents",
+    alertas,
+  };
+}
+
 
 /* ──────────────── Worker assíncrono (roda em background, sem idle timeout) ──────────────── */
 async function runPipeline(
