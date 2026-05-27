@@ -21,7 +21,7 @@ export const RecoveryEmail = ({ siteUrl, confirmationUrl }: RecoveryEmailProps) 
         <Section style={styles.header}>
           <Img src={LOGO_URL} alt="BEx Auditoria" width="64" height="64" style={styles.logo} />
           <Text style={styles.brandMark}>BEx Auditoria</Text>
-          <Text style={styles.brandTagline}>Plataforma de Auditoria Inteligente</Text>
+          <Text style={styles.brandTagline}>Plataforma Auditoria Inteligente</Text>
         </Section>
         <Section style={styles.body}>
           <Heading style={styles.h1}>Redefinir sua senha</Heading>
