@@ -52,12 +52,12 @@ Deno.serve(async (req) => {
     // lendo `balancete_lines` já persistidas e regravando bs_dados/indicadores/
     // kanitz/insights com a lógica atual do motor. Não cria nova auditoria.
     if (body && typeof body.reprocess_audit_id === "string") {
+    if (body && typeof body.reprocess_audit_id === "string") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
       );
-      const auditId = body.reprocess_audit_id;
+
       const { data: bals, error: bErr } = await supabase
         .from("balancetes")
         .select("id, mes_referencia")
