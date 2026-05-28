@@ -166,6 +166,17 @@ const UserDashboard = () => {
   };
   // Mostra apenas o ÚLTIMO par documento↔relatório no dashboard.
   // Histórico completo fica em /user/empresas.
+  const dedupeDocs = (arr: any[]): any[] => {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const d of arr) {
+      const key = `${d.fileName || ""}|${d.fileSize ?? ""}|${(d.periodos || []).join(",")}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(d);
+    }
+    return out;
+  };
   const groups: ReportGroup[] = reports.slice(0, 1).map(r => {
     let docs: any[] = [];
     if (r.batchId && docsByBatch.has(r.batchId)) {
@@ -173,8 +184,9 @@ const UserDashboard = () => {
     } else if (r.sourceDocuments && r.sourceDocuments.length) {
       docs = r.sourceDocuments.map(s => ({ ...s, date: r.date }));
     }
-    return { report: r, docs };
+    return { report: r, docs: dedupeDocs(docs) };
   });
+
 
   // Apenas o ÚLTIMO documento sem relatório gerado.
   const usedBatchIds = new Set(reports.map(r => r.batchId).filter(Boolean) as string[]);
@@ -316,6 +328,7 @@ const UserDashboard = () => {
         ) : (
           <div className="space-y-4">
             {groups.map(({ report, docs }) => {
+
               const rb = riskBadge[report.riskLevel] || riskBadge.moderado;
               return (
                 <div key={report.id} className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-stretch">
@@ -326,7 +339,7 @@ const UserDashboard = () => {
                         <FileText className="w-4 h-4 text-[hsl(217,91%,50%)]" />
                         <CardTitle className="text-sm">Documentos Analisados</CardTitle>
                         <Badge variant="outline" className="text-[10px] ml-auto">
-                          {docs.length} doc{docs.length > 1 ? "s" : ""} → 1 relatório
+                          {`${docs.length}:1 (${docs.length > 1 ? "docs" : "doc"} → relatório)`}
                         </Badge>
                       </div>
                       <CardDescription className="text-[11px]">
