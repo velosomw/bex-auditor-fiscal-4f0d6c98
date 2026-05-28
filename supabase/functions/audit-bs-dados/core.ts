@@ -1165,7 +1165,7 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   return detectYtdOutliers(desacumulated);
 }
 
-}
+
 
 
 const safePct = (a: number, b: number): number | null =>
