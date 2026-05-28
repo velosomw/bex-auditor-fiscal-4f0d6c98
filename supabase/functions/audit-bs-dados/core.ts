@@ -1143,6 +1143,82 @@ function detectYtdOutliers(rows: BSDadosRow[]): BSDadosRow[] {
   return rows;
 }
 
+
+
+type DREMovementOverride = {
+  receita_bruta: number;
+  receita_liquida_contabil: number;
+  cmv: number;
+  despesas_financeiras: number;
+  deducoes: number;
+};
+
+function directGroupBalance(linhas: InputLinha[], group: string): number {
+  const normCodeLocal = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
+  const valByCode = new Map<string, number>();
+  const codes: string[] = [];
+  for (const l of linhas) {
+    const c = normCodeLocal(l.conta);
+    if (!c) continue;
+    if (!valByCode.has(c)) codes.push(c);
+    valByCode.set(c, (valByCode.get(c) || 0) + (Number(l.saldo) || 0));
+  }
+  const parentVal = valByCode.get(group) || 0;
+  let childSum = 0;
+  for (const c of codes) {
+    if (c === group || !c.startsWith(group)) continue;
+    const suffix = c.slice(group.length).replace(/^\.+/, "");
+    if (suffix && !suffix.includes(".") && /^\d+$/.test(suffix)) {
+      childSum += valByCode.get(c) || 0;
+    }
+  }
+  if (childSum !== 0) {
+    const diff = Math.abs(parentVal - childSum);
+    const rel = diff / Math.max(Math.abs(parentVal), Math.abs(childSum), 1);
+    if (Math.abs(parentVal) < 1 || (diff > 100 && rel > 0.001)) return childSum;
+    return parentVal;
+  }
+  return parentVal;
+}
+
+function computeAuditorDREOverrides(balancetes: InputBalancete[]): Map<string, DREMovementOverride> {
+  const cumulative = balancetes
+    .map(b => {
+      const mesKey = periodToMesKey(b.mes);
+      const receitaBruta = Math.abs(directGroupBalance(b.linhas || [], "31"));
+      const deducoes = Math.abs(directGroupBalance(b.linhas || [], "32")) + Math.abs(directGroupBalance(b.linhas || [], "33"));
+      const cmv = Math.abs(directGroupBalance(b.linhas || [], "4"));
+      const despesasFinanceiras = Math.abs(directGroupBalance(b.linhas || [], "7"));
+      return { mesKey, receitaBruta, deducoes, cmv, despesasFinanceiras };
+    })
+    .filter(x => /^\d{4}-\d{2}$/.test(x.mesKey))
+    .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+  const out = new Map<string, DREMovementOverride>();
+  for (let i = 0; i < cumulative.length; i++) {
+    const curr = cumulative[i];
+    const prev = i > 0 && cumulative[i - 1].mesKey.slice(0, 4) === curr.mesKey.slice(0, 4)
+      ? cumulative[i - 1]
+      : null;
+    const fiscalMonth = Number(curr.mesKey.slice(5, 7)) || 1;
+    const delta = (key: "receitaBruta" | "deducoes" | "cmv" | "despesasFinanceiras") => {
+      if (prev) return curr[key] - prev[key];
+      return fiscalMonth > 1 ? curr[key] / fiscalMonth : curr[key];
+    };
+    const receitaBrutaMov = delta("receitaBruta");
+    const deducoesMov = delta("deducoes");
+    const cmvMov = delta("cmv");
+    const despFinMov = delta("despesasFinanceiras");
+    out.set(curr.mesKey, {
+      receita_bruta: Math.abs(receitaBrutaMov),
+      deducoes: Math.abs(deducoesMov),
+      receita_liquida_contabil: Math.abs(receitaBrutaMov - deducoesMov),
+      cmv: -Math.abs(cmvMov),
+      despesas_financeiras: -Math.abs(despFinMov),
+    });
+  }
+  return out;
+}
+
 export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, Buckets>();
@@ -1232,6 +1308,24 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
       r.receita_liquida = Number(grossMovementAbs.toFixed(2));
       r.resultado = Number((-Math.abs(netMovementAbs)).toFixed(2));
     }
+  }
+
+  const auditorOverrides = computeAuditorDREOverrides(balancetes);
+  for (const r of desacumulated) {
+    const o = auditorOverrides.get(r.mesKey);
+    if (!o || o.receita_bruta <= 0) continue;
+    r.receita_bruta = Number(o.receita_bruta.toFixed(2));
+    r.receita_liquida = Number(o.receita_bruta.toFixed(2));
+    r.cmv = Number(o.cmv.toFixed(2));
+    r.despesas = 0;
+    r.despesas_financeiras = Number(o.despesas_financeiras.toFixed(2));
+    r.resultado = Number((-o.receita_liquida_contabil).toFixed(2));
+    r.validation_diagnostics = {
+      ...(r.validation_diagnostics || {}),
+      receita_bruta_movimento: Number(o.receita_bruta.toFixed(2)),
+      deducoes_receita_movimento: Number(o.deducoes.toFixed(2)),
+      receita_liquida_contabil_movimento: Number(o.receita_liquida_contabil.toFixed(2)),
+    };
   }
 
   return detectYtdOutliers(desacumulated);
