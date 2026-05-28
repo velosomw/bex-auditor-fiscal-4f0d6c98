@@ -8,7 +8,7 @@
 //
 // Roda com: deno test --allow-net --allow-env supabase/functions/audit-bs-dados/finalize_test.ts
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { finalize, emptyRow, emptyBuckets} from "./core.ts";
+import { finalize, emptyRow, emptyBuckets, buildBSDados } from "./core.ts";
 
 Deno.test("PL positivo correto — equação fecha sem rebalanço", () => {
   const r = emptyRow("2026-01");
@@ -67,6 +67,49 @@ Deno.test("PL ausente — derivado da equação", () => {
   const out = finalize(r, emptyBuckets());
   assertEquals(out.patrimonio_liquido, 100); // 500 − 400
   assert(out.errors.some(e => e.includes("PL ausente")));
+});
+
+Deno.test("Giannini Ago/25 — pai validado, filhas diretas mantidas e netos ignorados", () => {
+  const rows = buildBSDados([
+    { mes: "2025-07", linhas: [
+      { conta: "31", descricao: "Receitas sobre Vendas", ref1: "RECEITA", saldo: -57251315.57 },
+      { conta: "311", descricao: "Receitas sobre Vendas - Mercado Interno", ref1: "RECEITA", saldo: -57251315.57 },
+      { conta: "312", descricao: "Receitas sobre Vendas - Mercado Externo", ref1: "RECEITA", saldo: -397219.50 },
+      { conta: "32", descricao: "(-) Devoluções e Abatimentos", ref1: "DEDUCOES_RECEITA", saldo: 846695.48 },
+      { conta: "33", descricao: "(-) Impostos Incidentes sobre Vendas", ref1: "DEDUCOES_RECEITA", saldo: 9700379.98 },
+      { conta: "4", descricao: "Custos das Vendas e Serviços", ref1: "__IGNORE__", saldo: 28203254.71 },
+      { conta: "41", descricao: "Custos das Vendas e Serviços", ref1: "CMV", saldo: 28203254.71 },
+      { conta: "4110100001", descricao: "neto corrompido", ref1: "CMV", saldo: 999999999 },
+      { conta: "5", descricao: "Custo Industrial", ref1: "__IGNORE__", saldo: 9730685.52 },
+      { conta: "51", descricao: "Custo Industrial", ref1: "CMV", saldo: 7114812.68 },
+      { conta: "6", descricao: "Despesas Operacionais", ref1: "__IGNORE__", saldo: 10903194.29 },
+      { conta: "61", descricao: "Despesas Comerciais", ref1: "DESPESAS", saldo: 10903194.29 },
+      { conta: "7", descricao: "Despesas e Receitas Financeiras", ref1: "__IGNORE__", saldo: 23209131.53 },
+      { conta: "71", descricao: "Despesas e Receitas Financeiras", ref1: "DESPESAS_FIN", saldo: 23209131.53 },
+    ]},
+    { mes: "2025-08", linhas: [
+      { conta: "31", descricao: "Receitas sobre Vendas", ref1: "RECEITA", saldo: -67144994.85 },
+      { conta: "311", descricao: "Receitas sobre Vendas - Mercado Interno", ref1: "RECEITA", saldo: -66723237.45 },
+      { conta: "312", descricao: "Receitas sobre Vendas - Mercado Externo", ref1: "RECEITA", saldo: -421757.40 },
+      { conta: "32", descricao: "(-) Devoluções e Abatimentos", ref1: "DEDUCOES_RECEITA", saldo: 951178.60 },
+      { conta: "33", descricao: "(-) Impostos Incidentes sobre Vendas", ref1: "DEDUCOES_RECEITA", saldo: 11259000.49 },
+      { conta: "4", descricao: "Custos das Vendas e Serviços", ref1: "__IGNORE__", saldo: 33092841.63 },
+      { conta: "41", descricao: "Custos das Vendas e Serviços", ref1: "CMV", saldo: 33092841.63 },
+      { conta: "4110100001", descricao: "neto corrompido", ref1: "CMV", saldo: 999999999 },
+      { conta: "5", descricao: "Custo Industrial", ref1: "__IGNORE__", saldo: 11243473.16 },
+      { conta: "51", descricao: "Custo Industrial", ref1: "CMV", saldo: 11243473.16 },
+      { conta: "6", descricao: "Despesas Operacionais", ref1: "__IGNORE__", saldo: 19068652.21 },
+      { conta: "61", descricao: "Despesas Comerciais", ref1: "DESPESAS", saldo: 12450977.51 },
+      { conta: "7", descricao: "Despesas e Receitas Financeiras", ref1: "__IGNORE__", saldo: 27010961.60 },
+      { conta: "71", descricao: "Despesas e Receitas Financeiras", ref1: "DESPESAS_FIN", saldo: 27010961.60 },
+    ]},
+  ]);
+  const ago = rows.find(r => r.mesKey === "2025-08")!;
+  assertEquals(Number(ago.receita_liquida.toFixed(2)), 9496459.78);
+  assertEquals(Number(Math.abs(ago.cmv).toFixed(2)), 4889586.92);
+  assertEquals(Number(Math.abs(ago.despesas).toFixed(2)), 0);
+  assertEquals(Number(Math.abs(ago.despesas_financeiras).toFixed(2)), 3801830.07);
+  assertEquals(Number(ago.resultado.toFixed(2)), -7833356.15);
 });
 
 // Nota: smoke test de integração buildBSDados removido — depende de fixtures
