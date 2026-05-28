@@ -71,7 +71,7 @@ Deno.test("PL ausente — derivado da equação", () => {
 
 Deno.test("Giannini Ago/25 — pai validado, filhas diretas mantidas e netos ignorados", () => {
   const rows = buildBSDados([
-    { mes: "2025-07", linhas: [
+    { mes: "2025-07", is_ytd: true, linhas: [
       { conta: "31", descricao: "Receitas sobre Vendas", ref1: "RECEITA", saldo: -57251315.57 },
       { conta: "311", descricao: "Receitas sobre Vendas - Mercado Interno", ref1: "RECEITA", saldo: -57251315.57 },
       { conta: "312", descricao: "Receitas sobre Vendas - Mercado Externo", ref1: "RECEITA", saldo: -397219.50 },
@@ -87,7 +87,7 @@ Deno.test("Giannini Ago/25 — pai validado, filhas diretas mantidas e netos ign
       { conta: "7", descricao: "Despesas e Receitas Financeiras", ref1: "__IGNORE__", saldo: 23209131.53 },
       { conta: "71", descricao: "Despesas e Receitas Financeiras", ref1: "DESPESAS_FIN", saldo: 23209131.53 },
     ]},
-    { mes: "2025-08", linhas: [
+    { mes: "2025-08", is_ytd: true, linhas: [
       { conta: "31", descricao: "Receitas sobre Vendas", ref1: "RECEITA", saldo: -67144994.85 },
       { conta: "311", descricao: "Receitas sobre Vendas - Mercado Interno", ref1: "RECEITA", saldo: -66723237.45 },
       { conta: "312", descricao: "Receitas sobre Vendas - Mercado Externo", ref1: "RECEITA", saldo: -421757.40 },
