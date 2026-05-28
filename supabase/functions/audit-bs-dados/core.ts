@@ -493,7 +493,11 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
       else { row.passivo_nao_circulante += Math.abs(v); }
       break;
     case "patrimonio_liquido":
-      if (isTotal) { b.sawPLTotal = true; b.gtPL += v; }
+      // Onda 9 (Giannini 2026.05.28): sintético do PL (ex.: cód. 23) é
+      // AUTORIDADE — apresentado em módulo positivo no balancete BR, mesmo
+      // sendo crédito. Folhas (capital, reservas, lucros acumulados) preservam
+      // sinal natural para fallback quando não há sintético.
+      if (isTotal) { b.sawPLTotal = true; b.gtPL += Math.abs(v); }
       else { row.patrimonio_liquido += v; }
       break;
     // Imobilizado/Intangível/Investimentos/RLP preservam SINAL NATURAL:
