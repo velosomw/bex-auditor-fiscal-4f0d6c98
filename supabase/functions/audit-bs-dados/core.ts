@@ -607,18 +607,17 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
 
   // FIX #6 — Equação contábil Ativo = Passivo + PL (±1%). CPC 26 R1 §54 / NBC TG 26.
   // PL pode ser NEGATIVO (passivo a descoberto) — não tratar como erro.
-  if (r.ativo_total > 0 && (r.passivo_total > 0 || r.patrimonio_liquido !== 0)) {
+  // Onda 9 (Giannini 2026.05.28): quando há sintético de PL confiável
+  // (b.sawPLTotal && b.gtPL > 0) E o AT foi reduzido por exclusão do
+  // Ativo Permanente, NÃO rebalanceamos PL — o sintético é autoritativo.
+  const plSinteticoConfiavel = !!(b?.sawPLTotal && b.gtPL > 0);
+  if (!plSinteticoConfiavel && r.ativo_total > 0 && (r.passivo_total > 0 || r.patrimonio_liquido !== 0)) {
     const ladoDireito = r.passivo_total + r.patrimonio_liquido;
     const diff = Math.abs(r.ativo_total - ladoDireito);
     const tol = Math.max(r.ativo_total * 0.01, 1);
     if (diff > tol) {
       const desvio = (diff / r.ativo_total) * 100;
       const plEsperado = r.ativo_total - r.passivo_total;
-      // FIX #4 + FIX B — Auto-rebalanço em 3 cenários:
-      //   (1) PL positivo inflado (dupla contagem): PL > Ativo
-      //   (2) Sinais divergentes: PL lido positivo mas A−P negativo (parser perdeu sinal
-      //       de passivo a descoberto), ou vice-versa
-      //   (3) PL = 0 mas A ≠ P (faltou capturar PL ou capturou só totalizador zerado)
       const inflatedPositive = r.patrimonio_liquido > r.ativo_total;
       const signDivergence =
         (r.patrimonio_liquido > 0 && plEsperado < -tol) ||
@@ -640,6 +639,8 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
         console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}% PC=${r.passivo_circulante.toFixed(0)} PNC=${r.passivo_nao_circulante.toFixed(0)} PL=${r.patrimonio_liquido.toFixed(0)}`);
       }
     }
+  } else if (plSinteticoConfiavel) {
+    console.log(`[finalize] PL_SINTETICO_TRUSTED mes=${r.mesKey} PL=${r.patrimonio_liquido.toFixed(0)} (sintético cód. 23 — rebalanço suprimido)`);
   }
   // Sinaliza passivo a descoberto (não é erro, é diagnóstico contábil real).
   if (r.patrimonio_liquido < 0) {
