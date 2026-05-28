@@ -15,6 +15,8 @@ export interface BSDadosRow {
   mes: string;
   mesKey: string;
   receita_liquida: number;
+  /** Receita Bruta (|grupo 31| ANTES das deduções 32+33). Onda 11 — Giannini 2026.05.28. */
+  receita_bruta?: number;
   cmv: number;
   despesas: number;
   despesas_financeiras: number;
@@ -381,7 +383,7 @@ function mesKeyToLabel(k: string): string {
 export function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
-    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0, receitas_financeiras: 0, outras_nao_operacionais: 0,
+    receita_liquida: 0, receita_bruta: 0, cmv: 0, despesas: 0, despesas_financeiras: 0, receitas_financeiras: 0, outras_nao_operacionais: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
     ativo_circulante: 0, passivo_circulante: 0,
     ativo_nao_circulante: 0, passivo_nao_circulante: 0,
@@ -463,7 +465,14 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
   const refUp = ref1 ? upper(ref1) : "";
   const isTotal = refUp.endsWith("_TOTAL"); // AC_TOTAL, PC_TOTAL, ANC_TOTAL, PNC_TOTAL, PL_TOTAL
   switch (key) {
-    case "receita_liquida": row.receita_liquida += refUp === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v); break;
+    case "receita_liquida":
+      if (refUp === "DEDUCOES_RECEITA") {
+        row.receita_liquida += -Math.abs(v);
+      } else {
+        row.receita_liquida += Math.abs(v);
+        row.receita_bruta = (row.receita_bruta ?? 0) + Math.abs(v);
+      }
+      break;
     case "cmv":             row.cmv -= Math.abs(v); break;
     case "despesas":        row.despesas -= Math.abs(v); break;
     case "despesas_financeiras": row.despesas_financeiras -= Math.abs(v); break;
@@ -885,16 +894,57 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (!c || lineBucketByCode.has(c)) continue;
     lineBucketByCode.set(c, bucketOf(refOf(l)));
   }
+  // ── Onda 11 (Giannini 2026.05.28) — Detecta pais MAPEADOS inconsistentes
+  // (Σfilhas-mesmo-bucket ≠ pai). Quando isso acontece, o pai é incompleto
+  // (ex.: Jul/25 conta 31 = -57.251.315,57 mas 311 + 312 = -57.648.535,07
+  // — faltava mercado externo no totalizador). Nesse caso PRUNAMOS O PAI,
+  // não as filhas, para que a soma das filhas prevaleça e nenhum saldo seja
+  // perdido. Tolerância: 1% relativo ou R$ 1.
+  const inconsistentMappedParents = new Set<string>();
+  // Filhas DIRETAS de pais inconsistentes — devem ser tratadas como FOLHAS
+  // efetivas (seus descendentes são prunados) para que Σfilhas = total correto.
+  const preferredLeaves = new Set<string>();
+  for (const [p, parentBucket] of mappedParents) {
+    const parentVal = valByCode.get(p) || 0;
+    if (Math.abs(parentVal) < 1) continue;
+    const directChildren: string[] = [];
+    let childSum = 0;
+    for (const other of sorted) {
+      if (other === p || !other.startsWith(p)) continue;
+      const suffix = other.slice(p.length).replace(/^\.+/, "");
+      if (!suffix || !/^\d/.test(suffix)) continue;
+      if (suffix.includes(".") || suffix.length > 3) continue;
+      const childBucket = lineBucketByCode.get(other) ?? null;
+      if (childBucket && childBucket !== parentBucket) continue;
+      childSum += valByCode.get(other) || 0;
+      directChildren.push(other);
+    }
+    if (directChildren.length === 0) continue;
+    const diff = Math.abs(parentVal - childSum);
+    const rel = diff / Math.max(Math.abs(parentVal), Math.abs(childSum), 1);
+    if (diff > 100 && rel > 0.001) {
+      inconsistentMappedParents.add(p);
+      for (const dc of directChildren) preferredLeaves.add(dc);
+      console.log(`[pruneParents] PAI INCONSISTENTE p=${p} parent=${parentVal.toFixed(2)} Σchildren=${childSum.toFixed(2)} (n=${directChildren.length}) → pai removido, filhas diretas tratadas como folhas`);
+    }
+  }
   const isChildOfMappedParent = (c: string): boolean => {
     const childBucket = lineBucketByCode.get(c) ?? null;
     for (const [p, parentBucket] of mappedParents) {
       if (c === p || !c.startsWith(p)) continue;
+      if (inconsistentMappedParents.has(p)) continue;
       const suffix = c.slice(p.length).replace(/^\.+/, "");
       if (!suffix || !/^\d/.test(suffix)) continue;
-      // BUCKET-AWARE: só prune se filha e pai compartilham bucket alvo.
-      // Sem bucket identificável → trata como mesmo (comportamento seguro
-      // anterior, evita órfãos sem classificação).
       if (!childBucket || childBucket === parentBucket) return true;
+    }
+    return false;
+  };
+  // Descendente (em qualquer nível) de uma "folha preferida" — pruna.
+  const isDescendantOfPreferredLeaf = (c: string): boolean => {
+    for (const leaf of preferredLeaves) {
+      if (c === leaf || !c.startsWith(leaf)) continue;
+      const suffix = c.slice(leaf.length).replace(/^\.+/, "");
+      if (suffix && /^\d/.test(suffix)) return true;
     }
     return false;
   };
@@ -904,8 +954,10 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (isTotalRef) return true;
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
+    if (preferredLeaves.has(c)) return true; // folha preferida sempre mantida
+    if (isDescendantOfPreferredLeaf(c)) return false;
     if (isChildOfMappedParent(c)) return false;
-    if (mappedParents.has(c)) return true;
+    if (mappedParents.has(c)) return !inconsistentMappedParents.has(c);
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
     return true;
@@ -938,8 +990,8 @@ function desacumularDRE(
   //   mensal = saldo(mês_n) - saldo(mês_n-1)
   // Quando QUALQUER chave da DRE indica YTD no ano, aplicamos delta em TODAS
   // (compartilham o mesmo ciclo contábil acumulado).
-  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras" | "receitas_financeiras" | "outras_nao_operacionais" | "resultado"> = [
-    "receita_liquida", "cmv", "despesas", "despesas_financeiras",
+  const dreKeys: Array<"receita_liquida" | "receita_bruta" | "cmv" | "despesas" | "despesas_financeiras" | "receitas_financeiras" | "outras_nao_operacionais" | "resultado"> = [
+    "receita_liquida", "receita_bruta", "cmv", "despesas", "despesas_financeiras",
     "receitas_financeiras", "outras_nao_operacionais", "resultado",
   ];
   const byYear = new Map<string, BSDadosRow[]>();
