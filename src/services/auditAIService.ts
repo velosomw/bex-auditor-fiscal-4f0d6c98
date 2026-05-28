@@ -283,9 +283,9 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^123/,   "R"],   // Imobilizado
   [/^124/,   "S"],   // Intangível
   [/^12/,    "ANC_TOTAL"],
-  [/^131/,   "R"],   // Imobilizado (planos com 13X = Permanente)
-  [/^132/,   "S"],   // Intangível
-  [/^13/,    "ANC_TOTAL"], // Permanente integra ANC
+  [/^131/,   "C1"],  // Permanente: Imobilizado (planos com 13X)
+  [/^132/,   "D1"],  // Permanente: Intangível
+  [/^13/,    "C1"],  // raiz "13" = Ativo Permanente — NÃO compõe ANC (Giannini 2026.05.28)
   // ── PASSIVO CIRCULANTE — sub-classificação via descrição ─
   // FIX (B): 211 = Fornecedores EXPLÍCITO. Outros 21X resolvem por descrição,
   // mas NUNCA podem cair em "BB" (fornecedores) — apenas 211 alimenta esse bucket.
