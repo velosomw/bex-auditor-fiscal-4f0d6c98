@@ -4725,7 +4725,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             { value: "bs-dados", icon: Database, label: "BS & Dados" },
             { value: "pivot", icon: Layers, label: "Pivot" },
             { value: "graficos-auditoria", icon: BarChart3, label: "Gráficos de Auditoria" },
-            { value: "graficos-parecer", icon: BarChart3, label: "Gráficos Parecer Contábil" },
+            
             { value: "risco-rj", icon: AlertOctagon, label: "Risco RJ" },
             { value: "kanitz", icon: Scale, label: "Kanitz" },
             { value: "relatorio-final", icon: BookOpen, label: "Relatório Final" },
@@ -4748,10 +4748,18 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="bs-dados"><TabBSDados parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria" id="tab-graficos-container" className="bg-background">
-          <TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} />
-        </TabsContent>
-        <TabsContent value="graficos-parecer" id="tab-graficos-parecer-container" className="bg-background">
-          <TabGraficosParecer parsedData={parsedData} entries={balanceteEntries} />
+          <Tabs defaultValue="auditoria" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="auditoria" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Gráficos de Auditoria</TabsTrigger>
+              <TabsTrigger value="parecer" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Gráficos Parecer Contábil</TabsTrigger>
+            </TabsList>
+            <TabsContent value="auditoria">
+              <TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} />
+            </TabsContent>
+            <TabsContent value="parecer" id="tab-graficos-parecer-container">
+              <TabGraficosParecer parsedData={parsedData} entries={balanceteEntries} />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
         <TabsContent value="risco-rj"><TabRiscoRJ aiAnalysis={aiAnalysis} /></TabsContent>
         <TabsContent value="kanitz"><TabKanitz parsedData={parsedData} aiAnalysis={aiAnalysis} balanceteEntries={balanceteEntries} /></TabsContent>
