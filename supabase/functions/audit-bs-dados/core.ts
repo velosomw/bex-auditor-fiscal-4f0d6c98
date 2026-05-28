@@ -978,8 +978,8 @@ function desacumularDRE(
   //   mensal = saldo(mês_n) - saldo(mês_n-1)
   // Quando QUALQUER chave da DRE indica YTD no ano, aplicamos delta em TODAS
   // (compartilham o mesmo ciclo contábil acumulado).
-  const dreKeys: Array<"receita_liquida" | "cmv" | "despesas" | "despesas_financeiras" | "receitas_financeiras" | "outras_nao_operacionais" | "resultado"> = [
-    "receita_liquida", "cmv", "despesas", "despesas_financeiras",
+  const dreKeys: Array<"receita_liquida" | "receita_bruta" | "cmv" | "despesas" | "despesas_financeiras" | "receitas_financeiras" | "outras_nao_operacionais" | "resultado"> = [
+    "receita_liquida", "receita_bruta", "cmv", "despesas", "despesas_financeiras",
     "receitas_financeiras", "outras_nao_operacionais", "resultado",
   ];
   const byYear = new Map<string, BSDadosRow[]>();
