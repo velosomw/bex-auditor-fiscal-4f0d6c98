@@ -465,7 +465,14 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
   const refUp = ref1 ? upper(ref1) : "";
   const isTotal = refUp.endsWith("_TOTAL"); // AC_TOTAL, PC_TOTAL, ANC_TOTAL, PNC_TOTAL, PL_TOTAL
   switch (key) {
-    case "receita_liquida": row.receita_liquida += refUp === "DEDUCOES_RECEITA" ? -Math.abs(v) : Math.abs(v); break;
+    case "receita_liquida":
+      if (refUp === "DEDUCOES_RECEITA") {
+        row.receita_liquida += -Math.abs(v);
+      } else {
+        row.receita_liquida += Math.abs(v);
+        row.receita_bruta = (row.receita_bruta ?? 0) + Math.abs(v);
+      }
+      break;
     case "cmv":             row.cmv -= Math.abs(v); break;
     case "despesas":        row.despesas -= Math.abs(v); break;
     case "despesas_financeiras": row.despesas_financeiras -= Math.abs(v); break;
