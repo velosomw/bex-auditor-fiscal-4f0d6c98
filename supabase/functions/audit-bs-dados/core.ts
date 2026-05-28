@@ -383,7 +383,7 @@ function mesKeyToLabel(k: string): string {
 export function emptyRow(mesKey: string): BSDadosRow {
   return {
     mes: mesKeyToLabel(mesKey), mesKey,
-    receita_liquida: 0, cmv: 0, despesas: 0, despesas_financeiras: 0, receitas_financeiras: 0, outras_nao_operacionais: 0,
+    receita_liquida: 0, receita_bruta: 0, cmv: 0, despesas: 0, despesas_financeiras: 0, receitas_financeiras: 0, outras_nao_operacionais: 0,
     depreciacao: 0, amortizacao: 0, resultado: 0,
     ativo_circulante: 0, passivo_circulante: 0,
     ativo_nao_circulante: 0, passivo_nao_circulante: 0,
