@@ -22,6 +22,7 @@ import {
   type KanitzMonthlyResult,
 } from "@/services/kanitzMonthly";
 import { buildISGSeries, type ISGResult } from "@/services/indicatorsEngine";
+import { KanitzThermometer } from "@/components/audit/KanitzThermometer";
 
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${(n * 100).toFixed(2)}%`;
@@ -204,33 +205,39 @@ const TabKanitz = ({
         </CardHeader>
         {latest && (
           <CardContent>
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div className="text-center p-4 rounded-lg bg-muted/30">
-                <p className="text-xs text-muted-foreground mb-1">Fator de Insolvência (FI)</p>
-                <p className={`text-4xl font-bold font-mono ${
-                  latest.fi > 0 ? "text-emerald-600" : latest.fi >= -3 ? "text-yellow-600" : "text-red-600"
-                }`}>{latest.fi.toFixed(2)}</p>
-                {previous && (
-                  <div className="flex items-center justify-center gap-1 mt-2">
-                    {fiDelta > 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> : <TrendingDown className="w-3.5 h-3.5 text-red-500" />}
-                    <span className={`text-xs font-mono ${fiDelta > 0 ? "text-emerald-500" : "text-red-500"}`}>
-                      {fiDelta > 0 ? "+" : ""}{fiDelta.toFixed(2)} vs {previous.year}
-                    </span>
-                  </div>
-                )}
+            <div className="grid lg:grid-cols-[auto,1fr] gap-6 items-center">
+              {/* Termômetro visual oficial Kanitz (1980) */}
+              <div className="flex justify-center">
+                <KanitzThermometer fi={latest.fi} label={`Período: ${latest.year}`} />
               </div>
-              <div className="text-center p-4 rounded-lg bg-muted/30">
-                <p className="text-xs text-muted-foreground mb-1">Classificação</p>
-                <p className="text-2xl font-bold">{classColors[latest.classificacao].icon}</p>
-                <p className={`text-sm font-semibold mt-1 ${
-                  latest.classificacao === "solvente" ? "text-emerald-600" :
-                  latest.classificacao === "penumbra" ? "text-yellow-600" : "text-red-600"
-                }`}>{classColors[latest.classificacao].label}</p>
-              </div>
-              <div className="text-center p-4 rounded-lg bg-muted/30">
-                <p className="text-xs text-muted-foreground mb-1">Risk Score Normalizado</p>
-                <p className="text-4xl font-bold font-mono text-foreground">{latest.riskScoreNormalized}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Escala EBEX (0-100)</p>
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-lg bg-muted/30">
+                  <p className="text-xs text-muted-foreground mb-1">Fator de Insolvência (FI)</p>
+                  <p className={`text-4xl font-bold font-mono ${
+                    latest.fi > 0 ? "text-emerald-600" : latest.fi >= -3 ? "text-yellow-600" : "text-red-600"
+                  }`}>{latest.fi.toFixed(2)}</p>
+                  {previous && (
+                    <div className="flex items-center justify-center gap-1 mt-2">
+                      {fiDelta > 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> : <TrendingDown className="w-3.5 h-3.5 text-red-500" />}
+                      <span className={`text-xs font-mono ${fiDelta > 0 ? "text-emerald-500" : "text-red-500"}`}>
+                        {fiDelta > 0 ? "+" : ""}{fiDelta.toFixed(2)} vs {previous.year}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/30">
+                  <p className="text-xs text-muted-foreground mb-1">Classificação</p>
+                  <p className="text-2xl font-bold">{classColors[latest.classificacao].icon}</p>
+                  <p className={`text-sm font-semibold mt-1 ${
+                    latest.classificacao === "solvente" ? "text-emerald-600" :
+                    latest.classificacao === "penumbra" ? "text-yellow-600" : "text-red-600"
+                  }`}>{classColors[latest.classificacao].label}</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/30">
+                  <p className="text-xs text-muted-foreground mb-1">Risk Score Normalizado</p>
+                  <p className="text-4xl font-bold font-mono text-foreground">{latest.riskScoreNormalized}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Escala EBEX (0-100)</p>
+                </div>
               </div>
             </div>
           </CardContent>
