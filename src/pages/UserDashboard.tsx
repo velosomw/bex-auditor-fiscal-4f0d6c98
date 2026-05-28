@@ -326,7 +326,8 @@ const UserDashboard = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+                          {docs.length}:1 (doc{docs.length > 1 ? "s" : ""} → relatório)
+
             {groups.map(({ report, docs }) => {
               const rb = riskBadge[report.riskLevel] || riskBadge.moderado;
               return (
