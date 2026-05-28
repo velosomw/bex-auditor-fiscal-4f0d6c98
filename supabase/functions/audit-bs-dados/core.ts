@@ -1168,7 +1168,11 @@ function directGroupBalance(linhas: InputLinha[], group: string): number {
   for (const c of codes) {
     if (c === group || !c.startsWith(group)) continue;
     const suffix = c.slice(group.length).replace(/^\.+/, "");
-    if (suffix && !suffix.includes(".") && /^\d+$/.test(suffix)) {
+      // Filha direta apenas: em plano compacto, 31 → 311/312; 4 → 41.
+      // Netos como 311010/4110100001 estavam sendo tratados como filhos e
+      // inflavam os movimentos YTD. A regra do auditor preserva só filhas
+      // diretas e descarta netos corrompidos.
+      if (suffix && !suffix.includes(".") && /^\d$/.test(suffix)) {
       childSum += valByCode.get(c) || 0;
     }
   }
