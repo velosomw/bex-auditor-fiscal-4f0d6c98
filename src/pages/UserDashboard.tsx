@@ -166,6 +166,17 @@ const UserDashboard = () => {
   };
   // Mostra apenas o ÚLTIMO par documento↔relatório no dashboard.
   // Histórico completo fica em /user/empresas.
+  const dedupeDocs = (arr: any[]): any[] => {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const d of arr) {
+      const key = `${d.fileName || ""}|${d.fileSize ?? ""}|${(d.periodos || []).join(",")}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(d);
+    }
+    return out;
+  };
   const groups: ReportGroup[] = reports.slice(0, 1).map(r => {
     let docs: any[] = [];
     if (r.batchId && docsByBatch.has(r.batchId)) {
@@ -173,8 +184,9 @@ const UserDashboard = () => {
     } else if (r.sourceDocuments && r.sourceDocuments.length) {
       docs = r.sourceDocuments.map(s => ({ ...s, date: r.date }));
     }
-    return { report: r, docs };
+    return { report: r, docs: dedupeDocs(docs) };
   });
+
 
   // Apenas o ÚLTIMO documento sem relatório gerado.
   const usedBatchIds = new Set(reports.map(r => r.batchId).filter(Boolean) as string[]);
