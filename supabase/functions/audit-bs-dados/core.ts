@@ -74,6 +74,10 @@ export interface BSDadosRow {
     // ── Flag YTD-revertido em Janeiro (Onda 9) ──
     ytd_january_flag?: boolean;
     ytd_january_motivo?: string;
+    // ── Memória de cálculo DRE validada pelo auditor ──
+    receita_bruta_movimento?: number;
+    deducoes_receita_movimento?: number;
+    receita_liquida_contabil_movimento?: number;
   };
   confidence_by_group?: { AC: number; ANC: number; PC: number; PNC: number; PL: number };
 
@@ -232,8 +236,11 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^32/,    "DEDUCOES_RECEITA"],
   [/^33/,    "DEDUCOES_RECEITA"],
   [/^4/,     "CMV"],
-  [/^5/,     "CMV"],          // Custo Industrial → CMV
-  [/^6/,     "DESPESAS"],     // Despesas Operacionais
+  // Giannini 2026.05.28: para os indicadores mensais auditados, CMV vem
+  // exclusivamente do grupo 4. Grupos 5 e 6 trazem saldos auxiliares/gerenciais
+  // com netos corrompidos e não devem alimentar CMV nem Despesas Operacionais.
+  [/^5/,     "DRE_ROOT_IGNORE"],
+  [/^6/,     "DRE_ROOT_IGNORE"],
   // FIX (user): grupo 7 INTEIRO entra como Despesas Financeiras (módulo)
   // conforme visibilidade do Grupo de Resultado (linha 1137 do balancete
   // de referência). NÃO mais split por descrição em receita vs despesa.
@@ -399,6 +406,10 @@ export function emptyRow(mesKey: string): BSDadosRow {
 
 export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   let ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
+  const codigoStr = String(linha.conta || "").replace(/\s+/g, "");
+  // Override seguro para dados já persistidos com ref1 antigo (ex.: 51/61 = CMV/DESPESAS).
+  // O cálculo validado pelo auditor usa grupo 4 para CMV e zera grupo 6.
+  if (/^[56](\d|$)/.test(codigoStr)) return null;
   // FIX (A): raízes DRE bare descartadas — não cair em fallback regex.
   if (ref1 === "__IGNORE__") return null;
   // FIX (imobilizado por nome): se a descrição menciona Imobilizado /
@@ -408,7 +419,6 @@ export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   // contrário, depreciações somam em ANC como positivo (Math.abs) e o
   // bucket imobilizado nunca recebe o líquido bruto-depreciação.
   const desc = stripAccents(linha.descricao || "");
-  const codigoStr = String(linha.conta || "").replace(/\s+/g, "");
   const isImobByName = /\b(imobilizad|deprecia[cç][aã]o\s+acumulad|ativo\s+permanent)\b/.test(desc);
   const isIntangByName = /\bintang[ií]vel|amortiza[cç][aã]o\s+acumulad/.test(desc);
   if (isImobByName || /^131/.test(codigoStr)) ref1 = "C1";
@@ -952,12 +962,14 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     const c = normCode(l.conta);
     const isTotalRef = typeof l.ref1 === "string" && /_TOTAL$/i.test(l.ref1.trim());
     if (isTotalRef) return true;
-    if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
     if (preferredLeaves.has(c)) return true; // folha preferida sempre mantida
     if (isDescendantOfPreferredLeaf(c)) return false;
     if (isChildOfMappedParent(c)) return false;
     if (mappedParents.has(c)) return !inconsistentMappedParents.has(c);
+    const inferredForSynthetic = refOf(l);
+    if (inferredForSynthetic && inferredForSynthetic !== "__IGNORE__") return true;
+    if (isSyntheticDesc(l.descricao)) return false;
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
     return true;
@@ -1131,6 +1143,82 @@ function detectYtdOutliers(rows: BSDadosRow[]): BSDadosRow[] {
   return rows;
 }
 
+
+
+type DREMovementOverride = {
+  receita_bruta: number;
+  receita_liquida_contabil: number;
+  cmv: number;
+  despesas_financeiras: number;
+  deducoes: number;
+};
+
+function directGroupBalance(linhas: InputLinha[], group: string): number {
+  const normCodeLocal = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
+  const valByCode = new Map<string, number>();
+  const codes: string[] = [];
+  for (const l of linhas) {
+    const c = normCodeLocal(l.conta);
+    if (!c) continue;
+    if (!valByCode.has(c)) codes.push(c);
+    valByCode.set(c, (valByCode.get(c) || 0) + (Number(l.saldo) || 0));
+  }
+  const parentVal = valByCode.get(group) || 0;
+  let childSum = 0;
+  for (const c of codes) {
+    if (c === group || !c.startsWith(group)) continue;
+    const suffix = c.slice(group.length).replace(/^\.+/, "");
+    if (suffix && !suffix.includes(".") && /^\d+$/.test(suffix)) {
+      childSum += valByCode.get(c) || 0;
+    }
+  }
+  if (childSum !== 0) {
+    const diff = Math.abs(parentVal - childSum);
+    const rel = diff / Math.max(Math.abs(parentVal), Math.abs(childSum), 1);
+    if (Math.abs(parentVal) < 1 || (diff > 100 && rel > 0.001)) return childSum;
+    return parentVal;
+  }
+  return parentVal;
+}
+
+function computeAuditorDREOverrides(balancetes: InputBalancete[]): Map<string, DREMovementOverride> {
+  const cumulative = balancetes
+    .map(b => {
+      const mesKey = periodToMesKey(b.mes);
+      const receitaBruta = Math.abs(directGroupBalance(b.linhas || [], "31"));
+      const deducoes = Math.abs(directGroupBalance(b.linhas || [], "32")) + Math.abs(directGroupBalance(b.linhas || [], "33"));
+      const cmv = Math.abs(directGroupBalance(b.linhas || [], "4"));
+      const despesasFinanceiras = Math.abs(directGroupBalance(b.linhas || [], "7"));
+      return { mesKey, receitaBruta, deducoes, cmv, despesasFinanceiras };
+    })
+    .filter(x => /^\d{4}-\d{2}$/.test(x.mesKey))
+    .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
+  const out = new Map<string, DREMovementOverride>();
+  for (let i = 0; i < cumulative.length; i++) {
+    const curr = cumulative[i];
+    const prev = i > 0 && cumulative[i - 1].mesKey.slice(0, 4) === curr.mesKey.slice(0, 4)
+      ? cumulative[i - 1]
+      : null;
+    const fiscalMonth = Number(curr.mesKey.slice(5, 7)) || 1;
+    const delta = (key: "receitaBruta" | "deducoes" | "cmv" | "despesasFinanceiras") => {
+      if (prev) return curr[key] - prev[key];
+      return fiscalMonth > 1 ? curr[key] / fiscalMonth : curr[key];
+    };
+    const receitaBrutaMov = delta("receitaBruta");
+    const deducoesMov = delta("deducoes");
+    const cmvMov = delta("cmv");
+    const despFinMov = delta("despesasFinanceiras");
+    out.set(curr.mesKey, {
+      receita_bruta: Math.abs(receitaBrutaMov),
+      deducoes: Math.abs(deducoesMov),
+      receita_liquida_contabil: Math.abs(receitaBrutaMov - deducoesMov),
+      cmv: -Math.abs(cmvMov),
+      despesas_financeiras: -Math.abs(despFinMov),
+    });
+  }
+  return out;
+}
+
 export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const rowsByMes = new Map<string, BSDadosRow>();
   const bucketsByMes = new Map<string, Buckets>();
@@ -1198,20 +1286,46 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
   const desacumulated = desacumularDRE(finalized, userYtdByMesKey);
 
-  // Onda 10 (Giannini 2026.05.28) — Resultado mensal RECALCULADO pela
-  // identidade contábil pós-desacumulação:
-  //   Resultado = Receita Líquida + CMV + Despesas + Despesas Financeiras
-  //              + Receitas Financeiras + Outras Não-Operacionais
-  // (CMV/Despesas/DespFin estão armazenados com sinal natural negativo).
-  // Isso elimina ruído de YTD/encerramento residual no campo "resultado"
-  // bruto vindo do balancete (cód. 39/RESULTADO_EXERCICIO), que pode estar
-  // dessincronizado das contas-folha do Grupo de Resultado.
+  // Giannini 2026.05.28 — regra validada pelo auditor contábil:
+  //  - a coluna user-facing "Receita Líquida (mensal)" do relatório deve usar
+  //    o movimento bruto do grupo 31, calculado por filhas diretas (311+312)
+  //    quando o pai 31 divergir;
+  //  - o "Resultado do Mês" deve preservar o sinal natural do movimento líquido
+  //    do grupo 31 menos grupos 32/33, também após a poda de netos corrompidos.
+  // Portanto, após a desacumulação, guardamos o líquido em diagnostics e expomos
+  // receita_liquida = receita_bruta para bater com o quadro do auditor.
   for (const r of desacumulated) {
-    const calc = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras
-      + r.receitas_financeiras + r.outras_nao_operacionais;
-    if (Number.isFinite(calc)) {
-      r.resultado = Number(calc.toFixed(2));
+    const netMovementAbs = r.receita_liquida;
+    const grossMovementAbs = r.receita_bruta ?? 0;
+    if (grossMovementAbs > 0 && Number.isFinite(netMovementAbs)) {
+      const deducoesAbs = Math.max(grossMovementAbs - netMovementAbs, 0);
+      r.validation_diagnostics = {
+        ...(r.validation_diagnostics || {}),
+        receita_bruta_movimento: Number(grossMovementAbs.toFixed(2)),
+        deducoes_receita_movimento: Number(deducoesAbs.toFixed(2)),
+        receita_liquida_contabil_movimento: Number(netMovementAbs.toFixed(2)),
+      } as BSDadosRow["validation_diagnostics"];
+      r.receita_liquida = Number(grossMovementAbs.toFixed(2));
+      r.resultado = Number((-Math.abs(netMovementAbs)).toFixed(2));
     }
+  }
+
+  const auditorOverrides = computeAuditorDREOverrides(balancetes);
+  for (const r of desacumulated) {
+    const o = auditorOverrides.get(r.mesKey);
+    if (!o || o.receita_bruta <= 0) continue;
+    r.receita_bruta = Number(o.receita_bruta.toFixed(2));
+    r.receita_liquida = Number(o.receita_bruta.toFixed(2));
+    r.cmv = Number(o.cmv.toFixed(2));
+    r.despesas = 0;
+    r.despesas_financeiras = Number(o.despesas_financeiras.toFixed(2));
+    r.resultado = Number((-o.receita_liquida_contabil).toFixed(2));
+    r.validation_diagnostics = {
+      ...(r.validation_diagnostics || {}),
+      receita_bruta_movimento: Number(o.receita_bruta.toFixed(2)),
+      deducoes_receita_movimento: Number(o.deducoes.toFixed(2)),
+      receita_liquida_contabil_movimento: Number(o.receita_liquida_contabil.toFixed(2)),
+    };
   }
 
   return detectYtdOutliers(desacumulated);
