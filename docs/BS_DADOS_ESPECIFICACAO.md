@@ -47,7 +47,9 @@ A aba **BS** da planilha define uma chave `Ref Capital` para cada conta do balan
 | N | Consórcio |
 | O | Seguros a Apropriar |
 
-### 2.2 Ativo Não Circulante
+### 2.2 Ativo Não Circulante (ANC — grupo contábil 12)
+> **Referencial Giannini 2026.05.28:** o totalizador ANC autoritativo é o sintético do **grupo 12** (Ativo Não Circulante / Realizável a Longo Prazo). O **grupo 13 (Ativo Permanente)** é bucket independente — **não compõe ANC nem Ativo Total** por padrão; é exposto separadamente para uso no Kanitz/BEX (Imobilizado e Intangível líquidos).
+
 | Ref | Conta |
 |---|---|
 | P | Contas a receber (LP) |
@@ -63,9 +65,13 @@ A aba **BS** da planilha define uma chave `Ref Capital` para cada conta do balan
 | Z | Ativos Financeiros (LP) |
 | A1 | Outros Créditos (LP) |
 | B1 | Investimentos |
-| C1 | Imobilizado Líquido |
-| D1 | Intangível |
 | E1..J1 | Demais ANC |
+
+### 2.2-bis Ativo Permanente (grupo contábil 13 — bucket independente)
+| Ref | Conta |
+|---|---|
+| C1 | Imobilizado Líquido (custo corrigido − depreciação acumulada) |
+| D1 | Intangível |
 
 ### 2.3 Passivo Circulante
 | Ref | Conta |
