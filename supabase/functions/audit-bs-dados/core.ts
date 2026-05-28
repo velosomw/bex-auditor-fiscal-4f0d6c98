@@ -232,8 +232,11 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^32/,    "DEDUCOES_RECEITA"],
   [/^33/,    "DEDUCOES_RECEITA"],
   [/^4/,     "CMV"],
-  [/^5/,     "CMV"],          // Custo Industrial → CMV
-  [/^6/,     "DESPESAS"],     // Despesas Operacionais
+  // Giannini 2026.05.28: para os indicadores mensais auditados, CMV vem
+  // exclusivamente do grupo 4. Grupos 5 e 6 trazem saldos auxiliares/gerenciais
+  // com netos corrompidos e não devem alimentar CMV nem Despesas Operacionais.
+  [/^5/,     "DRE_ROOT_IGNORE"],
+  [/^6/,     "DRE_ROOT_IGNORE"],
   // FIX (user): grupo 7 INTEIRO entra como Despesas Financeiras (módulo)
   // conforme visibilidade do Grupo de Resultado (linha 1137 do balancete
   // de referência). NÃO mais split por descrição em receita vs despesa.
@@ -399,6 +402,10 @@ export function emptyRow(mesKey: string): BSDadosRow {
 
 export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   let ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
+  const codigoStr = String(linha.conta || "").replace(/\s+/g, "");
+  // Override seguro para dados já persistidos com ref1 antigo (ex.: 51/61 = CMV/DESPESAS).
+  // O cálculo validado pelo auditor usa grupo 4 para CMV e zera grupo 6.
+  if (/^[56](\d|$)/.test(codigoStr)) return null;
   // FIX (A): raízes DRE bare descartadas — não cair em fallback regex.
   if (ref1 === "__IGNORE__") return null;
   // FIX (imobilizado por nome): se a descrição menciona Imobilizado /
@@ -408,7 +415,6 @@ export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   // contrário, depreciações somam em ANC como positivo (Math.abs) e o
   // bucket imobilizado nunca recebe o líquido bruto-depreciação.
   const desc = stripAccents(linha.descricao || "");
-  const codigoStr = String(linha.conta || "").replace(/\s+/g, "");
   const isImobByName = /\b(imobilizad|deprecia[cç][aã]o\s+acumulad|ativo\s+permanent)\b/.test(desc);
   const isIntangByName = /\bintang[ií]vel|amortiza[cç][aã]o\s+acumulad/.test(desc);
   if (isImobByName || /^131/.test(codigoStr)) ref1 = "C1";
