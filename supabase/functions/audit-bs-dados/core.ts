@@ -1204,19 +1204,27 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
   const desacumulated = desacumularDRE(finalized, userYtdByMesKey);
 
-  // Onda 10 (Giannini 2026.05.28) — Resultado mensal RECALCULADO pela
-  // identidade contábil pós-desacumulação:
-  //   Resultado = Receita Líquida + CMV + Despesas + Despesas Financeiras
-  //              + Receitas Financeiras + Outras Não-Operacionais
-  // (CMV/Despesas/DespFin estão armazenados com sinal natural negativo).
-  // Isso elimina ruído de YTD/encerramento residual no campo "resultado"
-  // bruto vindo do balancete (cód. 39/RESULTADO_EXERCICIO), que pode estar
-  // dessincronizado das contas-folha do Grupo de Resultado.
+  // Giannini 2026.05.28 — regra validada pelo auditor contábil:
+  //  - a coluna user-facing "Receita Líquida (mensal)" do relatório deve usar
+  //    o movimento bruto do grupo 31, calculado por filhas diretas (311+312)
+  //    quando o pai 31 divergir;
+  //  - o "Resultado do Mês" deve preservar o sinal natural do movimento líquido
+  //    do grupo 31 menos grupos 32/33, também após a poda de netos corrompidos.
+  // Portanto, após a desacumulação, guardamos o líquido em diagnostics e expomos
+  // receita_liquida = receita_bruta para bater com o quadro do auditor.
   for (const r of desacumulated) {
-    const calc = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras
-      + r.receitas_financeiras + r.outras_nao_operacionais;
-    if (Number.isFinite(calc)) {
-      r.resultado = Number(calc.toFixed(2));
+    const netMovementAbs = r.receita_liquida;
+    const grossMovementAbs = r.receita_bruta ?? 0;
+    if (grossMovementAbs > 0 && Number.isFinite(netMovementAbs)) {
+      const deducoesAbs = Math.max(grossMovementAbs - netMovementAbs, 0);
+      r.validation_diagnostics = {
+        ...(r.validation_diagnostics || {}),
+        receita_bruta_movimento: Number(grossMovementAbs.toFixed(2)),
+        deducoes_receita_movimento: Number(deducoesAbs.toFixed(2)),
+        receita_liquida_contabil_movimento: Number(netMovementAbs.toFixed(2)),
+      } as BSDadosRow["validation_diagnostics"];
+      r.receita_liquida = Number(grossMovementAbs.toFixed(2));
+      r.resultado = Number((-Math.abs(netMovementAbs)).toFixed(2));
     }
   }
 
