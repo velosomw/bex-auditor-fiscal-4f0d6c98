@@ -920,7 +920,8 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (childCount === 0) continue;
     const diff = Math.abs(parentVal - childSum);
     const rel = diff / Math.max(Math.abs(parentVal), Math.abs(childSum), 1);
-    if (diff > 1 && rel > 0.01) {
+    // Threshold rigoroso: qualquer divergência > R$ 100 OU > 0,1% denota pai incompleto.
+    if (diff > 100 && rel > 0.001) {
       inconsistentMappedParents.add(p);
       console.log(`[pruneParents] PAI INCONSISTENTE p=${p} parent=${parentVal.toFixed(2)} Σchildren=${childSum.toFixed(2)} (n=${childCount}) → pai removido, filhas mantidas`);
     }
