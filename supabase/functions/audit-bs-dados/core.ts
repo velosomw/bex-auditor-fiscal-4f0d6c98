@@ -537,11 +537,12 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
     if (b.sawPNCTotal && b.gtPNC > 0) r.passivo_nao_circulante = b.gtPNC;
     if (b.sawPLTotal  && b.gtPL !== 0) r.patrimonio_liquido    = b.gtPL;
   }
-  // Onda 2 — somar subgrupos ANC ao ativo_nao_circulante quando NÃO houver GT ANC.
-  // RLP + Investimentos + Imobilizado + Intangível agora vão para buckets dedicados;
-  // sem este somatório o ANC ficaria zerado quando o balancete não traz totalizador.
+  // Onda 9 (Giannini 2026.05.28) — fallback ANC quando NÃO há GT ANC:
+  // soma APENAS Realizável LP + Investimentos. Imobilizado/Intangível
+  // (grupo 13 = Ativo Permanente) ficam FORA do ANC e FORA do AT por
+  // determinação do referencial Giannini — são bucket independente.
   if (!b?.sawANCTotal) {
-    const subANC = r.realizavel_longo_prazo + r.investimentos + r.imobilizado + r.intangivel;
+    const subANC = r.realizavel_longo_prazo + r.investimentos;
     if (subANC !== 0) r.ativo_nao_circulante += subANC;
   }
   // Resíduo do PC vai para outras_obrigacoes (componentes não classificados)
