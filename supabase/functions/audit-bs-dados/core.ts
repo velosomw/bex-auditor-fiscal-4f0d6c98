@@ -998,19 +998,29 @@ function desacumularDRE(
           // anterior foi encerrado (Grupo 3..8 zerado e transferido ao PL).
           // Nesse caso o valor do próprio mês JÁ é o movimento mensal —
           // não se deve aplicar a fórmula C_mês − C_mês−1.
-          const reseted =
+          // Onda 9/10 (Giannini 2026.05.28) — Detecção de ENCERRAMENTO CONTÁBIL:
+          // Regra explícita: se o SALDO INICIAL do mês anterior é ZERO
+          // (saldo_anterior=0 → conta foi encerrada e transferida ao PL),
+          // o valor corrente JÁ É o movimento mensal — não aplicar delta.
+          // Também trata: queda brusca (< 50% do anterior) ou inversão de sinal
+          // como sinal de encerramento intermediário.
+          const prevZero = Math.abs(prev) < 0.01;
+          const resetedHeur =
             Math.abs(prev) > 0 &&
             (Math.abs(curr) < Math.abs(prev) * 0.5 || Math.sign(curr) !== Math.sign(prev));
+          const reseted = prevZero || resetedHeur;
           (group[i] as any)[k] = reseted ? curr : curr - prev;
           if (reseted) {
             group[i].ytd_flags = {
               ...(group[i].ytd_flags || {}),
               ytd_desacumulado: true,
             };
-            const tagReset = `Encerramento contábil detectado em ${group[i].mesKey} (saldo inicial zerado) — usado valor do próprio mês para ${k}`;
+            const motivo = prevZero ? "saldo inicial zerado (encerramento)" : "queda/inversão de saldo";
+            const tagReset = `Encerramento contábil detectado em ${group[i].mesKey} (${motivo}) — usado valor do próprio mês para ${k}`;
             if (!group[i].errors.includes(tagReset)) group[i].errors.push(tagReset);
-            console.log(`[desacumularDRE] RESET mes=${group[i].mesKey} key=${k} prev=${prev.toFixed(0)} curr=${curr.toFixed(0)} → mantido=${curr.toFixed(0)}`);
+            console.log(`[desacumularDRE] RESET mes=${group[i].mesKey} key=${k} prev=${prev.toFixed(0)} curr=${curr.toFixed(0)} motivo=${motivo} → mantido=${curr.toFixed(0)}`);
           }
+
         }
       }
       // Em ambos modos, o 1º mês é YTD ⇒ divide pelo nº fiscal do mês
