@@ -194,9 +194,15 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^125/,   "C1"], [/^126/, "C1"],            // Imobilizado (planos 12.5/12.6)
   [/^127/,   "D1"], [/^128/, "D1"],            // Intangível
   [/^12/,    "ANC_TOTAL"],
+  // ── ATIVO PERMANENTE (grupo 13) — NÃO compõe ANC ──
+  // Diretriz Giannini 2026.05.28: o totalizador ANC (cód. 12) é a autoridade
+  // de Ativo Não Circulante. O grupo 13 (Permanente / Imobilizado / Intangível)
+  // é bucket independente — roteia para C1 (imobilizado líquido) por padrão
+  // e não soma em ANC nem em Ativo Total. Sub-grupos 131/132/133/134 mantêm
+  // a separação Imobilizado vs Intangível.
   [/^131/,   "C1"], [/^132/, "D1"],            // Permanente: Imob/Intang
   [/^133/,   "C1"], [/^134/, "D1"],
-  [/^13/,    "ANC_TOTAL"],
+  [/^13/,    "C1"],                            // raiz "13" = Ativo Permanente (não ANC)
   // ── PASSIVO CIRCULANTE — sub-classificação via descrição ───
   // FIX (B): 211 = Fornecedores EXPLÍCITO. Outros 21X NUNCA caem em "BB".
   [/^211/,   "BB"],
@@ -487,7 +493,11 @@ export function applyValue(row: BSDadosRow, key: keyof BSDadosRow, v: number, re
       else { row.passivo_nao_circulante += Math.abs(v); }
       break;
     case "patrimonio_liquido":
-      if (isTotal) { b.sawPLTotal = true; b.gtPL += v; }
+      // Onda 9 (Giannini 2026.05.28): sintético do PL (ex.: cód. 23) é
+      // AUTORIDADE — apresentado em módulo positivo no balancete BR, mesmo
+      // sendo crédito. Folhas (capital, reservas, lucros acumulados) preservam
+      // sinal natural para fallback quando não há sintético.
+      if (isTotal) { b.sawPLTotal = true; b.gtPL += Math.abs(v); }
       else { row.patrimonio_liquido += v; }
       break;
     // Imobilizado/Intangível/Investimentos/RLP preservam SINAL NATURAL:
@@ -531,11 +541,12 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
     if (b.sawPNCTotal && b.gtPNC > 0) r.passivo_nao_circulante = b.gtPNC;
     if (b.sawPLTotal  && b.gtPL !== 0) r.patrimonio_liquido    = b.gtPL;
   }
-  // Onda 2 — somar subgrupos ANC ao ativo_nao_circulante quando NÃO houver GT ANC.
-  // RLP + Investimentos + Imobilizado + Intangível agora vão para buckets dedicados;
-  // sem este somatório o ANC ficaria zerado quando o balancete não traz totalizador.
+  // Onda 9 (Giannini 2026.05.28) — fallback ANC quando NÃO há GT ANC:
+  // soma APENAS Realizável LP + Investimentos. Imobilizado/Intangível
+  // (grupo 13 = Ativo Permanente) ficam FORA do ANC e FORA do AT por
+  // determinação do referencial Giannini — são bucket independente.
   if (!b?.sawANCTotal) {
-    const subANC = r.realizavel_longo_prazo + r.investimentos + r.imobilizado + r.intangivel;
+    const subANC = r.realizavel_longo_prazo + r.investimentos;
     if (subANC !== 0) r.ativo_nao_circulante += subANC;
   }
   // Resíduo do PC vai para outras_obrigacoes (componentes não classificados)
@@ -596,18 +607,17 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
 
   // FIX #6 — Equação contábil Ativo = Passivo + PL (±1%). CPC 26 R1 §54 / NBC TG 26.
   // PL pode ser NEGATIVO (passivo a descoberto) — não tratar como erro.
-  if (r.ativo_total > 0 && (r.passivo_total > 0 || r.patrimonio_liquido !== 0)) {
+  // Onda 9 (Giannini 2026.05.28): quando há sintético de PL confiável
+  // (b.sawPLTotal && b.gtPL > 0) E o AT foi reduzido por exclusão do
+  // Ativo Permanente, NÃO rebalanceamos PL — o sintético é autoritativo.
+  const plSinteticoConfiavel = !!(b?.sawPLTotal && b.gtPL > 0);
+  if (!plSinteticoConfiavel && r.ativo_total > 0 && (r.passivo_total > 0 || r.patrimonio_liquido !== 0)) {
     const ladoDireito = r.passivo_total + r.patrimonio_liquido;
     const diff = Math.abs(r.ativo_total - ladoDireito);
     const tol = Math.max(r.ativo_total * 0.01, 1);
     if (diff > tol) {
       const desvio = (diff / r.ativo_total) * 100;
       const plEsperado = r.ativo_total - r.passivo_total;
-      // FIX #4 + FIX B — Auto-rebalanço em 3 cenários:
-      //   (1) PL positivo inflado (dupla contagem): PL > Ativo
-      //   (2) Sinais divergentes: PL lido positivo mas A−P negativo (parser perdeu sinal
-      //       de passivo a descoberto), ou vice-versa
-      //   (3) PL = 0 mas A ≠ P (faltou capturar PL ou capturou só totalizador zerado)
       const inflatedPositive = r.patrimonio_liquido > r.ativo_total;
       const signDivergence =
         (r.patrimonio_liquido > 0 && plEsperado < -tol) ||
@@ -629,6 +639,8 @@ export function finalize(r: BSDadosRow, b?: Buckets): BSDadosRow {
         console.log(`[finalize] EQ_BREAK mes=${r.mesKey} A=${r.ativo_total.toFixed(0)} P+PL=${ladoDireito.toFixed(0)} desvio=${desvio.toFixed(2)}% PC=${r.passivo_circulante.toFixed(0)} PNC=${r.passivo_nao_circulante.toFixed(0)} PL=${r.patrimonio_liquido.toFixed(0)}`);
       }
     }
+  } else if (plSinteticoConfiavel) {
+    console.log(`[finalize] PL_SINTETICO_TRUSTED mes=${r.mesKey} PL=${r.patrimonio_liquido.toFixed(0)} (sintético cód. 23 — rebalanço suprimido)`);
   }
   // Sinaliza passivo a descoberto (não é erro, é diagnóstico contábil real).
   if (r.patrimonio_liquido < 0) {
@@ -978,7 +990,27 @@ function desacumularDRE(
       const original = group.map(g => g[k] as number);
       if (mode === "full") {
         for (let i = group.length - 1; i >= 1; i--) {
-          (group[i] as any)[k] = original[i] - original[i - 1];
+          const prev = original[i - 1];
+          const curr = original[i];
+          // Onda 9 (Giannini 2026.05.28) — Detecção de ENCERRAMENTO CONTÁBIL:
+          // quando o saldo do mês atual cai bruscamente em magnitude (< 50%
+          // do mês anterior) ou inverte sinal, interpreta-se que o período
+          // anterior foi encerrado (Grupo 3..8 zerado e transferido ao PL).
+          // Nesse caso o valor do próprio mês JÁ é o movimento mensal —
+          // não se deve aplicar a fórmula C_mês − C_mês−1.
+          const reseted =
+            Math.abs(prev) > 0 &&
+            (Math.abs(curr) < Math.abs(prev) * 0.5 || Math.sign(curr) !== Math.sign(prev));
+          (group[i] as any)[k] = reseted ? curr : curr - prev;
+          if (reseted) {
+            group[i].ytd_flags = {
+              ...(group[i].ytd_flags || {}),
+              ytd_desacumulado: true,
+            };
+            const tagReset = `Encerramento contábil detectado em ${group[i].mesKey} (saldo inicial zerado) — usado valor do próprio mês para ${k}`;
+            if (!group[i].errors.includes(tagReset)) group[i].errors.push(tagReset);
+            console.log(`[desacumularDRE] RESET mes=${group[i].mesKey} key=${k} prev=${prev.toFixed(0)} curr=${curr.toFixed(0)} → mantido=${curr.toFixed(0)}`);
+          }
         }
       }
       // Em ambos modos, o 1º mês é YTD ⇒ divide pelo nº fiscal do mês

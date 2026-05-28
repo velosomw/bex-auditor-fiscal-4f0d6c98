@@ -47,7 +47,9 @@ A aba **BS** da planilha define uma chave `Ref Capital` para cada conta do balan
 | N | Consórcio |
 | O | Seguros a Apropriar |
 
-### 2.2 Ativo Não Circulante
+### 2.2 Ativo Não Circulante (ANC — grupo contábil 12)
+> **Referencial Giannini 2026.05.28:** o totalizador ANC autoritativo é o sintético do **grupo 12** (Ativo Não Circulante / Realizável a Longo Prazo). O **grupo 13 (Ativo Permanente)** é bucket independente — **não compõe ANC nem Ativo Total** por padrão; é exposto separadamente para uso no Kanitz/BEX (Imobilizado e Intangível líquidos).
+
 | Ref | Conta |
 |---|---|
 | P | Contas a receber (LP) |
@@ -63,9 +65,13 @@ A aba **BS** da planilha define uma chave `Ref Capital` para cada conta do balan
 | Z | Ativos Financeiros (LP) |
 | A1 | Outros Créditos (LP) |
 | B1 | Investimentos |
-| C1 | Imobilizado Líquido |
-| D1 | Intangível |
 | E1..J1 | Demais ANC |
+
+### 2.2-bis Ativo Permanente (grupo contábil 13 — bucket independente)
+| Ref | Conta |
+|---|---|
+| C1 | Imobilizado Líquido (custo corrigido − depreciação acumulada) |
+| D1 | Intangível |
 
 ### 2.3 Passivo Circulante
 | Ref | Conta |
@@ -119,10 +125,14 @@ receita_liquida          (positivo)
 cmv                      (negativo)
 despesas                 (negativo)
 resultado                (sinal natural)
-
 — BALANÇO —
 ativo_circulante         (Σ A..O)
+ativo_nao_circulante     (Σ P..A1 + B1)         — APENAS grupo 12
+ativo_permanente         (C1 + D1)              — grupo 13 (separado, não soma em AT)
+ativo_total              = AC + ANC             (NÃO inclui Permanente)
 passivo_circulante       (Σ AA..II1)
+passivo_nao_circulante   (Σ PP..FF1)
+patrimonio_liquido       autoridade = sintético cód. 23 (em módulo, sinal positivo)
 estoques                 (Ref D)
 disponivel               (Ref A + B)
 
@@ -134,6 +144,14 @@ fornecedores             (BB + PP)
 credores_rj              (II + LL + CC1)
 divida_total             = Σ acima
 ```
+
+### 3.1 Encerramento contábil mensal (grupos 3..8)
+Quando o saldo do mês atual de uma conta de resultado (grupos 3..8) **cai bruscamente
+em magnitude (< 50% do mês anterior) ou inverte sinal**, interpreta-se que houve
+**encerramento contábil do período anterior** — saldos zerados e transferidos ao PL.
+Nesse caso o valor do próprio mês JÁ é o movimento mensal: **não se aplica a fórmula
+`C_mês − C_mês−1`**, usa-se `curr` diretamente. Sinalizado em `ytd_flags.ytd_desacumulado`
+e nos `errors` com o tag "Encerramento contábil detectado".
 
 ---
 
