@@ -901,40 +901,50 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
   // não as filhas, para que a soma das filhas prevaleça e nenhum saldo seja
   // perdido. Tolerância: 1% relativo ou R$ 1.
   const inconsistentMappedParents = new Set<string>();
+  // Filhas DIRETAS de pais inconsistentes — devem ser tratadas como FOLHAS
+  // efetivas (seus descendentes são prunados) para que Σfilhas = total correto.
+  const preferredLeaves = new Set<string>();
   for (const [p, parentBucket] of mappedParents) {
     const parentVal = valByCode.get(p) || 0;
     if (Math.abs(parentVal) < 1) continue;
+    const directChildren: string[] = [];
     let childSum = 0;
-    let childCount = 0;
     for (const other of sorted) {
       if (other === p || !other.startsWith(p)) continue;
       const suffix = other.slice(p.length).replace(/^\.+/, "");
       if (!suffix || !/^\d/.test(suffix)) continue;
-      // só filhas DIRETAS (1 nível abaixo) com mesmo bucket
       if (suffix.includes(".") || suffix.length > 3) continue;
       const childBucket = lineBucketByCode.get(other) ?? null;
       if (childBucket && childBucket !== parentBucket) continue;
       childSum += valByCode.get(other) || 0;
-      childCount++;
+      directChildren.push(other);
     }
-    if (childCount === 0) continue;
+    if (directChildren.length === 0) continue;
     const diff = Math.abs(parentVal - childSum);
     const rel = diff / Math.max(Math.abs(parentVal), Math.abs(childSum), 1);
-    // Threshold rigoroso: qualquer divergência > R$ 100 OU > 0,1% denota pai incompleto.
     if (diff > 100 && rel > 0.001) {
       inconsistentMappedParents.add(p);
-      console.log(`[pruneParents] PAI INCONSISTENTE p=${p} parent=${parentVal.toFixed(2)} Σchildren=${childSum.toFixed(2)} (n=${childCount}) → pai removido, filhas mantidas`);
+      for (const dc of directChildren) preferredLeaves.add(dc);
+      console.log(`[pruneParents] PAI INCONSISTENTE p=${p} parent=${parentVal.toFixed(2)} Σchildren=${childSum.toFixed(2)} (n=${directChildren.length}) → pai removido, filhas diretas tratadas como folhas`);
     }
   }
   const isChildOfMappedParent = (c: string): boolean => {
     const childBucket = lineBucketByCode.get(c) ?? null;
     for (const [p, parentBucket] of mappedParents) {
       if (c === p || !c.startsWith(p)) continue;
-      // Onda 11 — se o pai está inconsistente, NÃO prunamos as filhas.
       if (inconsistentMappedParents.has(p)) continue;
       const suffix = c.slice(p.length).replace(/^\.+/, "");
       if (!suffix || !/^\d/.test(suffix)) continue;
       if (!childBucket || childBucket === parentBucket) return true;
+    }
+    return false;
+  };
+  // Descendente (em qualquer nível) de uma "folha preferida" — pruna.
+  const isDescendantOfPreferredLeaf = (c: string): boolean => {
+    for (const leaf of preferredLeaves) {
+      if (c === leaf || !c.startsWith(leaf)) continue;
+      const suffix = c.slice(leaf.length).replace(/^\.+/, "");
+      if (suffix && /^\d/.test(suffix)) return true;
     }
     return false;
   };
@@ -944,8 +954,9 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (isTotalRef) return true;
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
+    if (preferredLeaves.has(c)) return true; // folha preferida sempre mantida
+    if (isDescendantOfPreferredLeaf(c)) return false;
     if (isChildOfMappedParent(c)) return false;
-    // Onda 11 — pai mapeado inconsistente é removido (filhas carregam total).
     if (mappedParents.has(c)) return !inconsistentMappedParents.has(c);
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
