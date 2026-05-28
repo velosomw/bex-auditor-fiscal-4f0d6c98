@@ -1135,7 +1135,26 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const finalized = Array.from(rowsByMes.values()).map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
   const desacumulated = desacumularDRE(finalized, userYtdByMesKey);
+
+  // Onda 10 (Giannini 2026.05.28) — Resultado mensal RECALCULADO pela
+  // identidade contábil pós-desacumulação:
+  //   Resultado = Receita Líquida + CMV + Despesas + Despesas Financeiras
+  //              + Receitas Financeiras + Outras Não-Operacionais
+  // (CMV/Despesas/DespFin estão armazenados com sinal natural negativo).
+  // Isso elimina ruído de YTD/encerramento residual no campo "resultado"
+  // bruto vindo do balancete (cód. 39/RESULTADO_EXERCICIO), que pode estar
+  // dessincronizado das contas-folha do Grupo de Resultado.
+  for (const r of desacumulated) {
+    const calc = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras
+      + r.receitas_financeiras + r.outras_nao_operacionais;
+    if (Number.isFinite(calc)) {
+      r.resultado = Number(calc.toFixed(2));
+    }
+  }
+
   return detectYtdOutliers(desacumulated);
+}
+
 }
 
 
