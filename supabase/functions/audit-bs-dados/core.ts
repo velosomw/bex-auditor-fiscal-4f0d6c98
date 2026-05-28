@@ -194,9 +194,15 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^125/,   "C1"], [/^126/, "C1"],            // Imobilizado (planos 12.5/12.6)
   [/^127/,   "D1"], [/^128/, "D1"],            // Intangível
   [/^12/,    "ANC_TOTAL"],
+  // ── ATIVO PERMANENTE (grupo 13) — NÃO compõe ANC ──
+  // Diretriz Giannini 2026.05.28: o totalizador ANC (cód. 12) é a autoridade
+  // de Ativo Não Circulante. O grupo 13 (Permanente / Imobilizado / Intangível)
+  // é bucket independente — roteia para C1 (imobilizado líquido) por padrão
+  // e não soma em ANC nem em Ativo Total. Sub-grupos 131/132/133/134 mantêm
+  // a separação Imobilizado vs Intangível.
   [/^131/,   "C1"], [/^132/, "D1"],            // Permanente: Imob/Intang
   [/^133/,   "C1"], [/^134/, "D1"],
-  [/^13/,    "ANC_TOTAL"],
+  [/^13/,    "C1"],                            // raiz "13" = Ativo Permanente (não ANC)
   // ── PASSIVO CIRCULANTE — sub-classificação via descrição ───
   // FIX (B): 211 = Fornecedores EXPLÍCITO. Outros 21X NUNCA caem em "BB".
   [/^211/,   "BB"],
