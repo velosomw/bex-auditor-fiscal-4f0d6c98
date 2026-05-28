@@ -15,6 +15,8 @@ export interface BSDadosRow {
   mes: string;
   mesKey: string;
   receita_liquida: number;
+  /** Receita Bruta (|grupo 31| ANTES das deduções 32+33). Onda 11 — Giannini 2026.05.28. */
+  receita_bruta?: number;
   cmv: number;
   despesas: number;
   despesas_financeiras: number;
