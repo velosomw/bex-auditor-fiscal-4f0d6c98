@@ -894,15 +894,45 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (!c || lineBucketByCode.has(c)) continue;
     lineBucketByCode.set(c, bucketOf(refOf(l)));
   }
+  // ── Onda 11 (Giannini 2026.05.28) — Detecta pais MAPEADOS inconsistentes
+  // (Σfilhas-mesmo-bucket ≠ pai). Quando isso acontece, o pai é incompleto
+  // (ex.: Jul/25 conta 31 = -57.251.315,57 mas 311 + 312 = -57.648.535,07
+  // — faltava mercado externo no totalizador). Nesse caso PRUNAMOS O PAI,
+  // não as filhas, para que a soma das filhas prevaleça e nenhum saldo seja
+  // perdido. Tolerância: 1% relativo ou R$ 1.
+  const inconsistentMappedParents = new Set<string>();
+  for (const [p, parentBucket] of mappedParents) {
+    const parentVal = valByCode.get(p) || 0;
+    if (Math.abs(parentVal) < 1) continue;
+    let childSum = 0;
+    let childCount = 0;
+    for (const other of sorted) {
+      if (other === p || !other.startsWith(p)) continue;
+      const suffix = other.slice(p.length).replace(/^\.+/, "");
+      if (!suffix || !/^\d/.test(suffix)) continue;
+      // só filhas DIRETAS (1 nível abaixo) com mesmo bucket
+      if (suffix.includes(".") || suffix.length > 3) continue;
+      const childBucket = lineBucketByCode.get(other) ?? null;
+      if (childBucket && childBucket !== parentBucket) continue;
+      childSum += valByCode.get(other) || 0;
+      childCount++;
+    }
+    if (childCount === 0) continue;
+    const diff = Math.abs(parentVal - childSum);
+    const rel = diff / Math.max(Math.abs(parentVal), Math.abs(childSum), 1);
+    if (diff > 1 && rel > 0.01) {
+      inconsistentMappedParents.add(p);
+      console.log(`[pruneParents] PAI INCONSISTENTE p=${p} parent=${parentVal.toFixed(2)} Σchildren=${childSum.toFixed(2)} (n=${childCount}) → pai removido, filhas mantidas`);
+    }
+  }
   const isChildOfMappedParent = (c: string): boolean => {
     const childBucket = lineBucketByCode.get(c) ?? null;
     for (const [p, parentBucket] of mappedParents) {
       if (c === p || !c.startsWith(p)) continue;
+      // Onda 11 — se o pai está inconsistente, NÃO prunamos as filhas.
+      if (inconsistentMappedParents.has(p)) continue;
       const suffix = c.slice(p.length).replace(/^\.+/, "");
       if (!suffix || !/^\d/.test(suffix)) continue;
-      // BUCKET-AWARE: só prune se filha e pai compartilham bucket alvo.
-      // Sem bucket identificável → trata como mesmo (comportamento seguro
-      // anterior, evita órfãos sem classificação).
       if (!childBucket || childBucket === parentBucket) return true;
     }
     return false;
@@ -914,7 +944,8 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
     if (isChildOfMappedParent(c)) return false;
-    if (mappedParents.has(c)) return true;
+    // Onda 11 — pai mapeado inconsistente é removido (filhas carregam total).
+    if (mappedParents.has(c)) return !inconsistentMappedParents.has(c);
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
     return true;
