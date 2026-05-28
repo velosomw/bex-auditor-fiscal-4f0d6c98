@@ -339,7 +339,7 @@ const UserDashboard = () => {
                         <FileText className="w-4 h-4 text-[hsl(217,91%,50%)]" />
                         <CardTitle className="text-sm">Documentos Analisados</CardTitle>
                         <Badge variant="outline" className="text-[10px] ml-auto">
-                          {docs.length} doc{docs.length > 1 ? "s" : ""} → 1 relatório
+                          {`${docs.length}:1 (${docs.length > 1 ? "docs" : "doc"} → relatório)`}
                         </Badge>
                       </div>
                       <CardDescription className="text-[11px]">
