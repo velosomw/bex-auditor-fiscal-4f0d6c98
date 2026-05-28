@@ -74,6 +74,10 @@ export interface BSDadosRow {
     // ── Flag YTD-revertido em Janeiro (Onda 9) ──
     ytd_january_flag?: boolean;
     ytd_january_motivo?: string;
+    // ── Memória de cálculo DRE validada pelo auditor ──
+    receita_bruta_movimento?: number;
+    deducoes_receita_movimento?: number;
+    receita_liquida_contabil_movimento?: number;
   };
   confidence_by_group?: { AC: number; ANC: number; PC: number; PNC: number; PL: number };
 
