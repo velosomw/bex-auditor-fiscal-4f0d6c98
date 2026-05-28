@@ -990,7 +990,27 @@ function desacumularDRE(
       const original = group.map(g => g[k] as number);
       if (mode === "full") {
         for (let i = group.length - 1; i >= 1; i--) {
-          (group[i] as any)[k] = original[i] - original[i - 1];
+          const prev = original[i - 1];
+          const curr = original[i];
+          // Onda 9 (Giannini 2026.05.28) — Detecção de ENCERRAMENTO CONTÁBIL:
+          // quando o saldo do mês atual cai bruscamente em magnitude (< 50%
+          // do mês anterior) ou inverte sinal, interpreta-se que o período
+          // anterior foi encerrado (Grupo 3..8 zerado e transferido ao PL).
+          // Nesse caso o valor do próprio mês JÁ é o movimento mensal —
+          // não se deve aplicar a fórmula C_mês − C_mês−1.
+          const reseted =
+            Math.abs(prev) > 0 &&
+            (Math.abs(curr) < Math.abs(prev) * 0.5 || Math.sign(curr) !== Math.sign(prev));
+          (group[i] as any)[k] = reseted ? curr : curr - prev;
+          if (reseted) {
+            group[i].ytd_flags = {
+              ...(group[i].ytd_flags || {}),
+              ytd_desacumulado: true,
+            };
+            const tagReset = `Encerramento contábil detectado em ${group[i].mesKey} (saldo inicial zerado) — usado valor do próprio mês para ${k}`;
+            if (!group[i].errors.includes(tagReset)) group[i].errors.push(tagReset);
+            console.log(`[desacumularDRE] RESET mes=${group[i].mesKey} key=${k} prev=${prev.toFixed(0)} curr=${curr.toFixed(0)} → mantido=${curr.toFixed(0)}`);
+          }
         }
       }
       // Em ambos modos, o 1º mês é YTD ⇒ divide pelo nº fiscal do mês
