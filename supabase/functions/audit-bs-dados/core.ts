@@ -967,6 +967,8 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     if (isDescendantOfPreferredLeaf(c)) return false;
     if (isChildOfMappedParent(c)) return false;
     if (mappedParents.has(c)) return !inconsistentMappedParents.has(c);
+    const inferredForSynthetic = refOf(l);
+    if (inferredForSynthetic && inferredForSynthetic !== "__IGNORE__") return true;
     if (isSyntheticDesc(l.descricao)) return false;
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
