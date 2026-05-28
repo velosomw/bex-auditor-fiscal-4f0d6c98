@@ -962,12 +962,12 @@ export function pruneParents(linhas: InputLinha[]): InputLinha[] {
     const c = normCode(l.conta);
     const isTotalRef = typeof l.ref1 === "string" && /_TOTAL$/i.test(l.ref1.trim());
     if (isTotalRef) return true;
-    if (isSyntheticDesc(l.descricao)) return false;
     if (!c) return true;
     if (preferredLeaves.has(c)) return true; // folha preferida sempre mantida
     if (isDescendantOfPreferredLeaf(c)) return false;
     if (isChildOfMappedParent(c)) return false;
     if (mappedParents.has(c)) return !inconsistentMappedParents.has(c);
+    if (isSyntheticDesc(l.descricao)) return false;
     if (parents.has(c)) return false;
     if (structuralParents.has(c)) return false;
     return true;
