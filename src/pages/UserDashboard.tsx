@@ -326,10 +326,9 @@ const UserDashboard = () => {
             </CardContent>
           </Card>
         ) : (
-                          {`${docs.length}:1 (${docs.length > 1 ? "docs" : "doc"} → relatório)`}
-
-
+          <div className="space-y-4">
             {groups.map(({ report, docs }) => {
+
               const rb = riskBadge[report.riskLevel] || riskBadge.moderado;
               return (
                 <div key={report.id} className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-stretch">
