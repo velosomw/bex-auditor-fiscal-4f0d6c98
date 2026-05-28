@@ -998,19 +998,29 @@ function desacumularDRE(
           // anterior foi encerrado (Grupo 3..8 zerado e transferido ao PL).
           // Nesse caso o valor do próprio mês JÁ é o movimento mensal —
           // não se deve aplicar a fórmula C_mês − C_mês−1.
-          const reseted =
+          // Onda 9/10 (Giannini 2026.05.28) — Detecção de ENCERRAMENTO CONTÁBIL:
+          // Regra explícita: se o SALDO INICIAL do mês anterior é ZERO
+          // (saldo_anterior=0 → conta foi encerrada e transferida ao PL),
+          // o valor corrente JÁ É o movimento mensal — não aplicar delta.
+          // Também trata: queda brusca (< 50% do anterior) ou inversão de sinal
+          // como sinal de encerramento intermediário.
+          const prevZero = Math.abs(prev) < 0.01;
+          const resetedHeur =
             Math.abs(prev) > 0 &&
             (Math.abs(curr) < Math.abs(prev) * 0.5 || Math.sign(curr) !== Math.sign(prev));
+          const reseted = prevZero || resetedHeur;
           (group[i] as any)[k] = reseted ? curr : curr - prev;
           if (reseted) {
             group[i].ytd_flags = {
               ...(group[i].ytd_flags || {}),
               ytd_desacumulado: true,
             };
-            const tagReset = `Encerramento contábil detectado em ${group[i].mesKey} (saldo inicial zerado) — usado valor do próprio mês para ${k}`;
+            const motivo = prevZero ? "saldo inicial zerado (encerramento)" : "queda/inversão de saldo";
+            const tagReset = `Encerramento contábil detectado em ${group[i].mesKey} (${motivo}) — usado valor do próprio mês para ${k}`;
             if (!group[i].errors.includes(tagReset)) group[i].errors.push(tagReset);
-            console.log(`[desacumularDRE] RESET mes=${group[i].mesKey} key=${k} prev=${prev.toFixed(0)} curr=${curr.toFixed(0)} → mantido=${curr.toFixed(0)}`);
+            console.log(`[desacumularDRE] RESET mes=${group[i].mesKey} key=${k} prev=${prev.toFixed(0)} curr=${curr.toFixed(0)} motivo=${motivo} → mantido=${curr.toFixed(0)}`);
           }
+
         }
       }
       // Em ambos modos, o 1º mês é YTD ⇒ divide pelo nº fiscal do mês
@@ -1135,8 +1145,27 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
   const finalized = Array.from(rowsByMes.values()).map(r => finalize(r, bucketsByMes.get(r.mesKey)))
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
   const desacumulated = desacumularDRE(finalized, userYtdByMesKey);
+
+  // Onda 10 (Giannini 2026.05.28) — Resultado mensal RECALCULADO pela
+  // identidade contábil pós-desacumulação:
+  //   Resultado = Receita Líquida + CMV + Despesas + Despesas Financeiras
+  //              + Receitas Financeiras + Outras Não-Operacionais
+  // (CMV/Despesas/DespFin estão armazenados com sinal natural negativo).
+  // Isso elimina ruído de YTD/encerramento residual no campo "resultado"
+  // bruto vindo do balancete (cód. 39/RESULTADO_EXERCICIO), que pode estar
+  // dessincronizado das contas-folha do Grupo de Resultado.
+  for (const r of desacumulated) {
+    const calc = r.receita_liquida + r.cmv + r.despesas + r.despesas_financeiras
+      + r.receitas_financeiras + r.outras_nao_operacionais;
+    if (Number.isFinite(calc)) {
+      r.resultado = Number(calc.toFixed(2));
+    }
+  }
+
   return detectYtdOutliers(desacumulated);
 }
+
+
 
 
 const safePct = (a: number, b: number): number | null =>

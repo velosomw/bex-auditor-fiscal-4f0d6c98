@@ -46,11 +46,126 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => null);
+
+    // ─── MODO REPROCESS ──────────────────────────────────────
+    // Onda 10 (Giannini 2026.05.28): reprocessa uma auditoria existente
+    // lendo `balancete_lines` já persistidas e regravando bs_dados/indicadores/
+    // kanitz/insights com a lógica atual do motor. Não cria nova auditoria.
+    if (body && typeof body.reprocess_audit_id === "string") {
+      const auditId = body.reprocess_audit_id as string;
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+
+
+      const { data: bals, error: bErr } = await supabase
+        .from("balancetes")
+        .select("id, mes_referencia")
+        .eq("audit_id", auditId)
+        .order("mes_referencia", { ascending: true });
+      if (bErr || !bals?.length) {
+        return new Response(JSON.stringify({ error: "balancetes não encontrados para a auditoria", detail: bErr?.message }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const inputs: InputBalancete[] = [];
+      for (const b of bals) {
+        const { data: lines } = await supabase
+          .from("balancete_lines")
+          .select("conta, descricao, ref1, saldo")
+          .eq("balancete_id", b.id);
+        const mesKey = String(b.mes_referencia).slice(0, 7);
+        inputs.push({
+          mes: mesKey,
+          linhas: (lines || []).map((l: any) => ({
+            conta: l.conta, descricao: l.descricao, ref1: l.ref1, saldo: Number(l.saldo) || 0,
+          })),
+        });
+      }
+      const bsDados = buildBSDados(inputs);
+      const indicadores = enrich(bsDados);
+      const kanitz = computeKanitz(bsDados);
+      const insightsObj = computeInsights(bsDados, kanitz);
+
+      const bsRows = bsDados.map((r) => ({
+        audit_id: auditId,
+        mes: `${r.mesKey}-01`,
+        receita_liquida: r.receita_liquida, cmv: r.cmv, despesas: r.despesas,
+        despesas_financeiras: r.despesas_financeiras, receitas_financeiras: r.receitas_financeiras,
+        outras_nao_operacionais: r.outras_nao_operacionais,
+        depreciacao: r.depreciacao, amortizacao: r.amortizacao, resultado: r.resultado,
+        ativo_circulante: r.ativo_circulante, ativo_nao_circulante: r.ativo_nao_circulante,
+        passivo_circulante: r.passivo_circulante, passivo_nao_circulante: r.passivo_nao_circulante,
+        patrimonio_liquido: r.patrimonio_liquido,
+        patrimonio_liquido_bruto: r.patrimonio_liquido_bruto ?? null,
+        ativo_total: r.ativo_total, passivo_total: r.passivo_total,
+        estoques: r.estoques, estoques_bruto: r.estoques_bruto ?? null,
+        disponivel: r.disponivel, contas_receber: r.contas_receber,
+        imobilizado: r.imobilizado, realizavel_longo_prazo: r.realizavel_longo_prazo,
+        investimentos: r.investimentos, intangivel: r.intangivel,
+        divida_tributaria: r.divida_tributaria, divida_trabalhista: r.divida_trabalhista,
+        divida_financeira: r.divida_financeira, fornecedores: r.fornecedores,
+        credores_rj: r.credores_rj, outras_obrigacoes: r.outras_obrigacoes,
+        divida_total: r.divida_total, divida_total_bruto: r.divida_total_bruto ?? null,
+        errors: r.errors, ytd_flags: r.ytd_flags ?? null,
+        validation_status: r.validation_status ?? "ok",
+        validation_diagnostics: r.validation_diagnostics ?? null,
+        confidence_by_group: r.confidence_by_group ?? null,
+      }));
+      const indRows = indicadores.map((i, idx) => ({
+        audit_id: auditId, mes: `${bsDados[idx].mesKey}-01`,
+        cmv_percent: i.cmvPercent, despesa_percent: i.despesaPercent,
+        cmv_despesa_percent: i.cmvDespesaPercent, resultado_percent: i.resultadoPercent,
+        liquidez_corrente: i.liquidezCorrente, liquidez_seca: i.liquidezSeca,
+        liquidez_imediata: i.liquidezImediata,
+      }));
+      const kanitzRows = kanitz.map(k => ({
+        audit_id: auditId, mes: `${k.mesKey}-01`,
+        ativo_total: k.ativo_total, passivo_total: k.passivo_total,
+        patrimonio_liquido: k.patrimonio_liquido,
+        x1: k.x1, x2: k.x2, x3: k.x3, x4: k.x4, x5: k.x5,
+        score: k.score, rating: k.rating, insight: k.insight,
+        isg: k.isg, isg_rating: k.isg_rating,
+        modelo_preferencial: k.modelo_preferencial,
+      }));
+
+      // Limpa snapshots antigos e regrava
+      await supabase.from("indicadores").delete().eq("audit_id", auditId);
+      await supabase.from("kanitz_scores").delete().eq("audit_id", auditId);
+      await supabase.from("insights").delete().eq("audit_id", auditId);
+      const ops: Promise<unknown>[] = [];
+      if (bsRows.length) ops.push(supabase.from("bs_dados").upsert(bsRows, { onConflict: "audit_id,mes" }));
+      if (indRows.length) ops.push(supabase.from("indicadores").insert(indRows));
+      if (kanitzRows.length) ops.push(supabase.from("kanitz_scores").insert(kanitzRows));
+      ops.push(supabase.from("insights").insert({
+        audit_id: auditId,
+        diagnostico: insightsObj.diagnostico, problemas: insightsObj.problemas,
+        riscos: insightsObj.riscos, recomendacoes: insightsObj.recomendacoes,
+        positivos: insightsObj.positivos, tendencia: insightsObj.tendencia,
+        generated_by: "deterministic-bs-dados-v2-reprocess",
+      }));
+      const results = await Promise.all(ops);
+      const errors = results.map((r: any) => r?.error?.message).filter(Boolean);
+
+      await supabase.from("audit_logs").insert({
+        audit_id: auditId, etapa: "bs_dados.reprocess",
+        status: errors.length ? "warn" : "ok",
+        payload: { meses: bsDados.length, errors },
+      });
+
+      return new Response(JSON.stringify({
+        reprocessed: true, audit_id: auditId, meses: bsDados.length,
+        bsDados, indicadores, kanitz, errors,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (!body || !Array.isArray(body.balancetes)) {
       return new Response(JSON.stringify({ error: "balancetes[] obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     // ── SANITIZAÇÃO DE mesKey (FIX #2) ───────────────────────
     // Rejeita placeholders ("atual", "corrente", "—") que quebram o cast ::date
