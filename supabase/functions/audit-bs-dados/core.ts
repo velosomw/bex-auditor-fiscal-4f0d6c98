@@ -306,7 +306,12 @@ export function inferRefByCode(code?: string, descricao?: string): string | null
 const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp>> = {
   receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
   cmv: /\bc(?:mv|sv|pv)\b|\bcusto\s+(?:das?\s+)?(?:mercadoria|servi[cç]o|produto|venda)/i,
-  despesas: /\bdespesa|gasto\s+oper/i,
+  // FIX Giannini (2026.06.01): fallback de "despesas" removido — única fonte
+  // canônica para Despesas Operacionais é o grupo contábil 5 (atualmente
+  // DRE_ROOT_IGNORE conforme decisão do auditor). Sem este filtro, descrições
+  // genéricas contendo "despesa" em outros grupos (ex.: grupo 7 financeiro)
+  // inflavam o bucket em ~2.38M no balancete de referência.
+  // despesas: /\bdespesa|gasto\s+oper/i,
   despesas_financeiras: /\b(?:despesas?\s+financeir|juros\s+(?:passivo|pagos?|sobre)|encargos\s+financeir|varia[cç][oõ]es\s+monet[aá]rias?\s+passiv)/i,
   receitas_financeiras: /\b(?:receitas?\s+financeir|juros\s+(?:ativo|recebidos?|aufer)|rendimentos?\s+de\s+aplica|desconto\s+obtid)/i,
   resultado: /\b(?:lucro|preju[ií]zo|resultado)\s+(?:l[ií]quid|do\s+exerc|do\s+per[ií]odo)/i,
