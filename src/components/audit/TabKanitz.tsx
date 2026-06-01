@@ -194,9 +194,15 @@ const TabKanitz = ({
               <Scale className="w-4 h-4 text-accent" /> Kanitz — Termômetro de Insolvência
             </CardTitle>
             {latest && (
-              <Badge className={`${classColors[latest.classificacao].bg} border text-xs`}>
-                {classColors[latest.classificacao].icon} {classColors[latest.classificacao].label}
-              </Badge>
+              latest.blocked ? (
+                <Badge className="bg-muted text-muted-foreground border-muted-foreground/30 border text-xs">
+                  ⛔ Não aplicável
+                </Badge>
+              ) : (
+                <Badge className={`${classColors[latest.classificacao].bg} border text-xs`}>
+                  {classColors[latest.classificacao].icon} {classColors[latest.classificacao].label}
+                </Badge>
+              )
             )}
           </div>
           <CardDescription>
