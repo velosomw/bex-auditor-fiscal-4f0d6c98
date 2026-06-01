@@ -1256,14 +1256,10 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     const linhasLeaf = pruneParents(b.linhas || []);
     for (const linha of linhasLeaf) {
       const saldo = Number(linha.saldo) || 0;
-      // FIX (user): Resultado do Mês = código 3 todo (linha 990 de
-      // referência). Acumulamos o sinal natural das folhas iniciadas em "3"
-      // — é o único feed do bucket `resultado`. Demais grupos (4..8) NÃO
-      // entram aqui; eles são lidos via receita_liquida/cmv/despesas/etc.
-      const conta = String(linha.conta || "").replace(/\s+/g, "");
-      if (/^3(\d|$)/.test(conta)) {
-        row.resultado += saldo;
-      }
+      // FIX (auditor 2026.06.01): a linha "Resultado do Período" do balancete
+      // pertence ao Grupo 3 e, neste plano, representa a Receita Bruta — NÃO
+      // o lucro/prejuízo. O bucket `resultado` é DERIVADO no override final
+      // (RL − Custos − Despesas), e não alimentado por folhas do grupo 3.
       const key = resolveKey(linha);
       if (!key) continue;
       applyValue(row, key, saldo, linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao), buckets);
