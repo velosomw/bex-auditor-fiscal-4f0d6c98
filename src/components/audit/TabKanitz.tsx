@@ -233,11 +233,12 @@ const TabKanitz = ({
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/30">
                   <p className="text-xs text-muted-foreground mb-1">Classificação</p>
-                  <p className="text-2xl font-bold">{classColors[latest.classificacao].icon}</p>
+                  <p className="text-2xl font-bold">{latest.blocked ? "⛔" : classColors[latest.classificacao].icon}</p>
                   <p className={`text-sm font-semibold mt-1 ${
+                    latest.blocked ? "text-muted-foreground" :
                     latest.classificacao === "solvente" ? "text-emerald-600" :
                     latest.classificacao === "penumbra" ? "text-yellow-600" : "text-red-600"
-                  }`}>{classColors[latest.classificacao].label}</p>
+                  }`}>{latest.blocked ? "Não aplicável (PL ≤ 0)" : classColors[latest.classificacao].label}</p>
                 </div>
                 <div className="text-center p-4 rounded-lg bg-muted/30">
                   <p className="text-xs text-muted-foreground mb-1">Risk Score Normalizado</p>
