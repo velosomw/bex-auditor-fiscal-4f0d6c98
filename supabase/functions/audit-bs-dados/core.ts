@@ -1286,46 +1286,48 @@ export function buildBSDados(balancetes: InputBalancete[]): BSDadosRow[] {
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
   const desacumulated = desacumularDRE(finalized, userYtdByMesKey);
 
-  // Giannini 2026.05.28 — regra validada pelo auditor contábil:
-  //  - a coluna user-facing "Receita Líquida (mensal)" do relatório deve usar
-  //    o movimento bruto do grupo 31, calculado por filhas diretas (311+312)
-  //    quando o pai 31 divergir;
-  //  - o "Resultado do Mês" deve preservar o sinal natural do movimento líquido
-  //    do grupo 31 menos grupos 32/33, também após a poda de netos corrompidos.
-  // Portanto, após a desacumulação, guardamos o líquido em diagnostics e expomos
-  // receita_liquida = receita_bruta para bater com o quadro do auditor.
+  // ── Auditor 2026.06.01 — Regra contábil oficial validada ───────────────
+  // Receita Líquida = Receita Bruta (grupo 31) − Deduções (grupos 32 + 33)
+  // Resultado do Mês = Receita Líquida − |CMV| − |Despesas Op.| −
+  //                    |Despesas Financeiras| + Receitas Financeiras +
+  //                    Outras Não Operacionais
+  // A linha "Resultado do Período" do balancete NÃO é usada diretamente —
+  // neste plano (Giannini) ela carrega a Receita Bruta no Grupo 3.
+  const auditorOverrides = computeAuditorDREOverrides(balancetes);
   for (const r of desacumulated) {
-    const netMovementAbs = r.receita_liquida;
-    const grossMovementAbs = r.receita_bruta ?? 0;
-    if (grossMovementAbs > 0 && Number.isFinite(netMovementAbs)) {
-      const deducoesAbs = Math.max(grossMovementAbs - netMovementAbs, 0);
+    const o = auditorOverrides.get(r.mesKey);
+    const grossMovementAbs = o?.receita_bruta ?? r.receita_bruta ?? 0;
+    const deducoesAbs = o?.deducoes ?? Math.max(grossMovementAbs - r.receita_liquida, 0);
+    const receitaLiquidaNet = Math.max(grossMovementAbs - deducoesAbs, 0);
+
+    if (grossMovementAbs > 0) {
+      r.receita_bruta = Number(grossMovementAbs.toFixed(2));
+      r.receita_liquida = Number(receitaLiquidaNet.toFixed(2));
+    }
+    if (o) {
+      r.cmv = Number(o.cmv.toFixed(2));
+      r.despesas_financeiras = Number(o.despesas_financeiras.toFixed(2));
+    }
+
+    // Resultado do Mês = RL − |Custos| − |Despesas Op| − |Desp Fin| + Rec Fin + ONOp
+    // (cmv, despesas, despesas_financeiras já carregam sinal negativo)
+    const resultadoMes =
+      r.receita_liquida +
+      r.cmv +
+      r.despesas +
+      r.despesas_financeiras +
+      r.receitas_financeiras +
+      r.outras_nao_operacionais;
+    r.resultado = Number(resultadoMes.toFixed(2));
+
+    if (grossMovementAbs > 0) {
       r.validation_diagnostics = {
         ...(r.validation_diagnostics || {}),
         receita_bruta_movimento: Number(grossMovementAbs.toFixed(2)),
         deducoes_receita_movimento: Number(deducoesAbs.toFixed(2)),
-        receita_liquida_contabil_movimento: Number(netMovementAbs.toFixed(2)),
+        receita_liquida_contabil_movimento: Number(receitaLiquidaNet.toFixed(2)),
       } as BSDadosRow["validation_diagnostics"];
-      r.receita_liquida = Number(grossMovementAbs.toFixed(2));
-      r.resultado = Number((-Math.abs(netMovementAbs)).toFixed(2));
     }
-  }
-
-  const auditorOverrides = computeAuditorDREOverrides(balancetes);
-  for (const r of desacumulated) {
-    const o = auditorOverrides.get(r.mesKey);
-    if (!o || o.receita_bruta <= 0) continue;
-    r.receita_bruta = Number(o.receita_bruta.toFixed(2));
-    r.receita_liquida = Number(o.receita_bruta.toFixed(2));
-    r.cmv = Number(o.cmv.toFixed(2));
-    r.despesas = 0;
-    r.despesas_financeiras = Number(o.despesas_financeiras.toFixed(2));
-    r.resultado = Number((-o.receita_liquida_contabil).toFixed(2));
-    r.validation_diagnostics = {
-      ...(r.validation_diagnostics || {}),
-      receita_bruta_movimento: Number(o.receita_bruta.toFixed(2)),
-      deducoes_receita_movimento: Number(o.deducoes.toFixed(2)),
-      receita_liquida_contabil_movimento: Number(o.receita_liquida_contabil.toFixed(2)),
-    };
   }
 
   return detectYtdOutliers(desacumulated);
