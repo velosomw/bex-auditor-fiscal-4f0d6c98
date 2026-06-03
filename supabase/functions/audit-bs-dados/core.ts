@@ -150,9 +150,14 @@ const REF1_MAP: Record<string, keyof BSDadosRow> = {
   // Totalizadores
   "AC_TOTAL": "ativo_circulante", "PC_TOTAL": "passivo_circulante",
   "ANC_TOTAL": "ativo_nao_circulante", "PNC_TOTAL": "passivo_nao_circulante", "PL_TOTAL": "patrimonio_liquido",
-  "RECEITA": "receita_liquida", "RECEITA LIQUIDA": "receita_liquida", "RECEITA LÍQUIDA": "receita_liquida",
-  "DEDUCOES_RECEITA": "receita_liquida",
-  "CMV": "cmv", "DESPESAS": "despesas", "DESPESA": "despesas", "RESULTADO": "resultado",
+  "RECEITA": "receita_bruta",
+  "RECEITA LIQUIDA": "receita_liquida",
+  "RECEITA LÍQUIDA": "receita_liquida",
+  "DEDUCOES_RECEITA": "receita_deducoes",
+  "CMV": "cmv",
+  "DESPESAS": "despesas",
+  "DESPESA": "despesas",
+  "RESULTADO": "resultado",
   "DESPESAS_FIN": "despesas_financeiras",
   "RECEITAS_FIN": "receitas_financeiras",
   "DESPESAS_NOP": "outras_nao_operacionais",
@@ -239,8 +244,8 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   // Giannini 2026.05.28: para os indicadores mensais auditados, CMV vem
   // exclusivamente do grupo 4. Grupos 5 e 6 trazem saldos auxiliares/gerenciais
   // com netos corrompidos e não devem alimentar CMV nem Despesas Operacionais.
-  [/^5/,     "DRE_ROOT_IGNORE"],
-  [/^6/,     "DRE_ROOT_IGNORE"],
+  [/^5/,     "DESPESAS"], // Despesas Operacionais (Fonte Canônica)
+  [/^6/,     "DESPESAS"], // Despesas Operacionais (Alternativa)
   // FIX (user): grupo 7 INTEIRO entra como Despesas Financeiras (módulo)
   // conforme visibilidade do Grupo de Resultado (linha 1137 do balancete
   // de referência). NÃO mais split por descrição em receita vs despesa.
