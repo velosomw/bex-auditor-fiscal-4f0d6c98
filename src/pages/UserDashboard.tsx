@@ -534,8 +534,8 @@ const UserDashboard = () => {
                         className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center group relative"
                         onClick={() => handleDocClick(d)}
                       >
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Eye className="w-3 h-3 text-muted-foreground" />
+                        <div className="absolute top-2 right-2">
+                          <Eye className="w-3.5 h-3.5 text-muted-foreground/60" />
                         </div>
                         <div className="relative w-[110px] h-[110px]">
                           <ResponsiveContainer width="100%" height="100%">
