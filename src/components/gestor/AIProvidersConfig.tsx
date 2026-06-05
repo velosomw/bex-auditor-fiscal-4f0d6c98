@@ -457,7 +457,7 @@ const AIProvidersConfig = () => {
       {/* ── Save Bar ───────────────────────────────────────── */}
       <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t border-border -mx-1 px-1 py-3 flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          As chaves são armazenadas localmente no navegador. Para uso em produção, conecte via Lovable Cloud.
+          As chaves são armazenadas localmente no navegador. Para uso em produção, conecte via BEx Cloud.
         </p>
         <Button
           size="sm"
