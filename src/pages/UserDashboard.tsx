@@ -521,7 +521,7 @@ const UserDashboard = () => {
                             <PieChart>
                               <Pie
                                 data={[
-                                  { name: "Conformidade", value: conf },
+                                  { name: "Extração", value: conf },
                                   { name: "Restante", value: Math.max(0, 100 - conf) },
                                 ]}
                                 dataKey="value"
