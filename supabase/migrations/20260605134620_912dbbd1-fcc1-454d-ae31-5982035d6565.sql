@@ -1,0 +1,1 @@
+UPDATE public.ai_cost_config SET label = 'Storage BEx Cloud' WHERE label = 'Storage Lovable Cloud';
