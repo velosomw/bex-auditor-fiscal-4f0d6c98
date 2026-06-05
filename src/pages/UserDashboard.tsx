@@ -495,14 +495,14 @@ const UserDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Conformidade por Documento */}
+          {/* Extração por Documento */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
-                <CardTitle className="text-base">Conformidade por Documento</CardTitle>
+                <CardTitle className="text-base">Extração de Dados por Documento</CardTitle>
               </div>
-              <CardDescription>Mesmo índice, específico por auditoria de documento realizada</CardDescription>
+              <CardDescription>Percentual de dados extraídos por documento na auditoria</CardDescription>
             </CardHeader>
             <CardContent>
               {history.length === 0 ? (
