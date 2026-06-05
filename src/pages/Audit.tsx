@@ -2821,7 +2821,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 <h4 className="text-xs font-semibold text-foreground mb-2 text-center">EVOLUÇÃO DO ENDIVIDAMENTO<br /><span className="font-normal text-[9px]">(Em milhares de reais)</span></h4>
                 <div className="h-[260px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={years.slice(-4).map(y => {
+                    <ComposedChart data={years.map(y => {
                       const yInd = ind[y];
                       const tributarias = Math.abs(yInd?._tributos || 0);
                       const trabalhistas = Math.abs(yInd?._trabalhistas || 0);
