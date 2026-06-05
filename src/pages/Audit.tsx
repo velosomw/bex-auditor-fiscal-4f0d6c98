@@ -4533,7 +4533,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     const baseName = (parsedData as any)?.fileName || aiAnalysis?.fileName || "Auditoria";
     const title = variant === "completo"
       ? `Relatório Kanitz - Ref. (${baseName})`
-      : `Relatório BEX - Ref. (${baseName})`;
+      : `Relatório BEx - Ref. (${baseName})`;
     const entry: GeneratedReportEntry = {
       id: `report-${Date.now()}-${variant}`,
       title,
