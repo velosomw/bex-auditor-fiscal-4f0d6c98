@@ -129,21 +129,16 @@ const UserDashboard = () => {
   const pending = history.filter(h => h.status === "pending").length;
   const totalRiscos = history.reduce((sum, h) => sum + h.riscos, 0);
 
-  // Índice de Conformidade IA (Balancete → BEx/Kanitz)
-  // 1) Extração IA do balancete: média de conformidade dos documentos analisados
-  // 2) Tratamento IA → Relatório: média de conformidade dos relatórios BEx/Kanitz/Completo gerados
+  // Visibilidade de Extração IA Consolidada
+  // 1) Extração IA do documento: média de conformidade de todos os documentos analisados
   const docsAnalisados = history.filter(h => (h.conformidade ?? 0) > 0);
-  const extracaoBalancete = docsAnalisados.length > 0
+  const avgConformidade = docsAnalisados.length > 0
     ? Math.round(docsAnalisados.reduce((s, h) => s + (h.conformidade ?? 0), 0) / docsAnalisados.length * 10) / 10
     : 0;
+
   const relatoriosIA = reports.filter(r => (r.conformidade ?? 0) > 0);
   const tratamentoRelatorio = relatoriosIA.length > 0
     ? Math.round(relatoriosIA.reduce((s, r) => s + (r.conformidade ?? 0), 0) / relatoriosIA.length * 10) / 10
-    : 0;
-  // Composto: 50% extração + 50% geração de relatório (só pondera o lado que existe)
-  const partes = [extracaoBalancete, tratamentoRelatorio].filter(v => v > 0);
-  const avgConformidade = partes.length > 0
-    ? Math.round(partes.reduce((a, b) => a + b, 0) / partes.length * 10) / 10
     : 0;
 
   // Agrupa documentos por batchId; documentos sem batch ficam em "orfãos"
@@ -458,13 +453,13 @@ const UserDashboard = () => {
           </div>
         )}
 
-        {/* Resumo de Conformidade */}
+        {/* Visibilidade de Extração IA */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-base">Resumo de Conformidade</CardTitle>
+              <CardTitle className="text-base">Visibilidade de Extração IA</CardTitle>
               <CardDescription>
-                Conformidade IA consolidada da empresa (balancete → relatório BEx / Kanitz)
+                Percentual consolidado de extração de dados de todos os documentos
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -473,7 +468,7 @@ const UserDashboard = () => {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Conformidade IA", value: avgConformidade },
+                        { name: "Extração IA", value: avgConformidade },
                         { name: "Restante", value: Math.max(0, 100 - avgConformidade) },
                       ]}
                       dataKey="value"
@@ -494,20 +489,20 @@ const UserDashboard = () => {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{avgConformidade}%</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Conformidade IA</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Extração IA</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Conformidade por Documento */}
+          {/* Extração por Documento */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
-                <CardTitle className="text-base">Conformidade por Documento</CardTitle>
+                <FileText className="w-5 h-5 text-[hsl(217,91%,50%)]" />
+                <CardTitle className="text-base">Extração de Dados por Documento</CardTitle>
               </div>
-              <CardDescription>Mesmo índice, específico por auditoria de documento realizada</CardDescription>
+              <CardDescription>Percentual de dados extraídos por documento na auditoria</CardDescription>
             </CardHeader>
             <CardContent>
               {history.length === 0 ? (
@@ -526,7 +521,7 @@ const UserDashboard = () => {
                             <PieChart>
                               <Pie
                                 data={[
-                                  { name: "Conformidade", value: conf },
+                                  { name: "Extração", value: conf },
                                   { name: "Restante", value: Math.max(0, 100 - conf) },
                                 ]}
                                 dataKey="value"
@@ -536,7 +531,7 @@ const UserDashboard = () => {
                                 endAngle={-270}
                                 stroke="none"
                               >
-                                <Cell fill="hsl(258,90%,66%)" />
+                                <Cell fill="hsl(217,91%,50%)" />
                                 <Cell fill="hsl(var(--muted))" />
                               </Pie>
                               <Tooltip
@@ -546,7 +541,7 @@ const UserDashboard = () => {
                             </PieChart>
                           </ResponsiveContainer>
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <p className="text-lg font-bold text-[hsl(258,90%,66%)]">{conf}%</p>
+                            <p className="text-lg font-bold text-[hsl(217,91%,50%)]">{conf}%</p>
                           </div>
                         </div>
                         <p className="text-[11px] font-medium text-foreground truncate w-full text-center mt-2" title={d.fileName}>
