@@ -210,7 +210,7 @@ const AIProvidersConfig = () => {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            O <strong>Lovable AI Gateway</strong> entrega Gemini para 90% dos processos (parse, chat, insights
+            O <strong>BEx AI Gateway</strong> entrega Gemini para 90% dos processos (parse, chat, insights
             padrão, embeddings). <strong>OpenAI GPT-5</strong> é acionado automaticamente para{" "}
             <em>análise de risco avançado</em> (RJ, BEX-RJ, Kanitz crítico) e quando 2+ sinais financeiros de
             risco forem detectados — sem necessidade de cadastro de chave (uso via gateway gerenciado).
