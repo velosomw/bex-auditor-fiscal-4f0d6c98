@@ -48,8 +48,8 @@ const PROVIDERS: {
 }[] = [
   {
     id: "lovable_cloud",
-    name: "Lovable AI Gateway",
-    vendor: "Lovable Cloud (managed)",
+    name: "BEx AI Gateway",
+    vendor: "BEx Cloud (managed)",
     icon: Cloud,
     color: "hsl(258,90%,66%)",
     description: "API key gerenciada pela plataforma. Sem configuração — usa Gemini e GPT via gateway seguro.",
@@ -210,7 +210,7 @@ const AIProvidersConfig = () => {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            O <strong>Lovable AI Gateway</strong> entrega Gemini para 90% dos processos (parse, chat, insights
+            O <strong>BEx AI Gateway</strong> entrega Gemini para 90% dos processos (parse, chat, insights
             padrão, embeddings). <strong>OpenAI GPT-5</strong> é acionado automaticamente para{" "}
             <em>análise de risco avançado</em> (RJ, BEX-RJ, Kanitz crítico) e quando 2+ sinais financeiros de
             risco forem detectados — sem necessidade de cadastro de chave (uso via gateway gerenciado).
@@ -331,7 +331,7 @@ const AIProvidersConfig = () => {
                 <div className="border-t border-border bg-muted/20 p-5 space-y-4">
                   {provider.managed && (
                     <div className="text-xs text-muted-foreground bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20 rounded-md p-3">
-                      ✨ Esta opção usa a chave <code className="bg-muted px-1 rounded">LOVABLE_API_KEY</code> já provisionada. Não requer cadastro.
+                      ✨ Esta opção usa a chave <code className="bg-muted px-1 rounded">BEX_API_KEY</code> já provisionada. Não requer cadastro.
                     </div>
                   )}
 
@@ -457,7 +457,7 @@ const AIProvidersConfig = () => {
       {/* ── Save Bar ───────────────────────────────────────── */}
       <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm border-t border-border -mx-1 px-1 py-3 flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          As chaves são armazenadas localmente no navegador. Para uso em produção, conecte via Lovable Cloud.
+          As chaves são armazenadas localmente no navegador. Para uso em produção, conecte via BEx Cloud.
         </p>
         <Button
           size="sm"
