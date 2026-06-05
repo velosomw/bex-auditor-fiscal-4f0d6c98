@@ -63,10 +63,12 @@ const monthLabel = (key: string) => {
 export function detectMonthFromFilename(fileName: string): MonthRef | null {
   const n = norm(fileName.replace(/\.(xlsx|xls|csv|pdf)$/i, ""));
 
-  // 1) "balancete 03 2024", "balancete 03-2024", "03/2024"
-  let m = n.match(/(?:^|\s)(0?[1-9]|1[0-2])[\s/\-](20\d{2})(?:\s|$)/);
+  // 1) "balancete 03 2024", "balancete 03-2024", "03/2024", "03-24"
+  let m = n.match(/(?:^|\s)(0?[1-9]|1[0-2])[\s/\-](20\d{2}|\d{2})(?:\s|$)/);
   if (m) {
-    const key = `${m[2]}-${padMonth(m[1])}`;
+    let yy = m[2];
+    if (yy.length === 2) yy = `20${yy}`;
+    const key = `${yy}-${padMonth(m[1])}`;
     return { key, label: monthLabel(key), source: "filename", confidence: 0.9 };
   }
 
@@ -77,9 +79,9 @@ export function detectMonthFromFilename(fileName: string): MonthRef | null {
     return { key, label: monthLabel(key), source: "filename", confidence: 0.9 };
   }
 
-  // 3) "balancete jan 2024", "fev/24"
+  // 3) "balancete jan 2024", "fev/24", "setembro-25"
   const monthRe = Object.keys(MONTH_NAMES_PT).join("|");
-  m = n.match(new RegExp(`(${monthRe})[\\s/\\-]?(20\\d{2}|\\d{2})`));
+  m = n.match(new RegExp(`(${monthRe})[\\s/\\-.]?(20\\d{2}|\\d{2})`));
   if (m) {
     const mm = MONTH_NAMES_PT[m[1]];
     let yy = m[2];
@@ -98,19 +100,23 @@ export function detectMonthFromFilename(fileName: string): MonthRef | null {
  */
 export function detectMonthRangeFromFilename(fileName: string): MonthRef[] {
   const n = norm(fileName.replace(/\.(xlsx|xls|csv|pdf)$/i, ""));
-  // padrões: "08 2025 a 01 2026" / "08/2025 ate 01/2026" / "ago 2025 a jan 2026"
-  const numPat = /(0?[1-9]|1[0-2])[\s/\-.](20\d{2})\s*(?:a|ate|até|-|—|to|—|\.\.)\s*(0?[1-9]|1[0-2])[\s/\-.](20\d{2})/;
-  let m = n.match(numPat);
+  // padrões: "08 2025 a 01 2026" / "08/2025 ate 01/2026" / "ago 2025 a jan 2026" / "set-25 a mar-26"
+  const numPat = /(0?[1-9]|1[0-2])[\s/\-.](20\d{2}|\d{2})\s*(?:a|ate|até|-|—|to|—|\.\.)\s*(0?[1-9]|1[0-2])[\s/\-.](20\d{2}|\d{2})/;
   let mm1: number | null = null, yy1: number | null = null, mm2: number | null = null, yy2: number | null = null;
+  let m = n.match(numPat);
   if (m) {
     mm1 = Number(m[1]); yy1 = Number(m[2]); mm2 = Number(m[3]); yy2 = Number(m[4]);
+    if (yy1 < 100) yy1 += 2000;
+    if (yy2 < 100) yy2 += 2000;
   } else {
     const monthRe = Object.keys(MONTH_NAMES_PT).join("|");
-    const namePat = new RegExp(`(${monthRe})[\\s/\\-.]?(20\\d{2})\\s*(?:a|ate|até|-|—|to)\\s*(${monthRe})[\\s/\\-.]?(20\\d{2})`);
+    const namePat = new RegExp(`(${monthRe})[\\s/\\-.]?(20\\d{2}|\\d{2})\\s*(?:a|ate|até|-|—|to)\\s*(${monthRe})[\\s/\\-.]?(20\\d{2}|\\d{2})`);
     m = n.match(namePat);
     if (m) {
       mm1 = Number(MONTH_NAMES_PT[m[1]]); yy1 = Number(m[2]);
       mm2 = Number(MONTH_NAMES_PT[m[3]]); yy2 = Number(m[4]);
+      if (yy1 < 100) yy1 += 2000;
+      if (yy2 < 100) yy2 += 2000;
     }
   }
   if (!mm1 || !yy1 || !mm2 || !yy2) return [];
@@ -222,10 +228,12 @@ export function detectMonthFromYearLabel(label: string, fallbackMonth?: MonthRef
     return { key, label: monthLabel(key), source: "header", confidence: 0.95 };
   }
 
-  // MM/YYYY
-  m = n.match(/(0?[1-9]|1[0-2])[\s/\-](20\d{2})/);
+  // MM/YYYY ou MM/YY
+  m = n.match(/(0?[1-9]|1[0-2])[\s/\-](20\d{2}|\d{2})/);
   if (m) {
-    const key = `${m[2]}-${padMonth(m[1])}`;
+    let yy = m[2];
+    if (yy.length === 2) yy = `20${yy}`;
+    const key = `${yy}-${padMonth(m[1])}`;
     return { key, label: monthLabel(key), source: "header", confidence: 0.95 };
   }
 
