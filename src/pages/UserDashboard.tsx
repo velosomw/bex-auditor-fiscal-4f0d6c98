@@ -531,7 +531,7 @@ const UserDashboard = () => {
                                 endAngle={-270}
                                 stroke="none"
                               >
-                                <Cell fill="hsl(258,90%,66%)" />
+                                <Cell fill="hsl(217,91%,50%)" />
                                 <Cell fill="hsl(var(--muted))" />
                               </Pie>
                               <Tooltip
