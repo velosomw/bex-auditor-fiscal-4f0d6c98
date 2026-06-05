@@ -499,7 +499,7 @@ const UserDashboard = () => {
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+                <FileText className="w-5 h-5 text-[hsl(217,91%,50%)]" />
                 <CardTitle className="text-base">Extração de Dados por Documento</CardTitle>
               </div>
               <CardDescription>Percentual de dados extraídos por documento na auditoria</CardDescription>
