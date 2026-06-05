@@ -331,7 +331,7 @@ const AIProvidersConfig = () => {
                 <div className="border-t border-border bg-muted/20 p-5 space-y-4">
                   {provider.managed && (
                     <div className="text-xs text-muted-foreground bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20 rounded-md p-3">
-                      ✨ Esta opção usa a chave <code className="bg-muted px-1 rounded">LOVABLE_API_KEY</code> já provisionada. Não requer cadastro.
+                      ✨ Esta opção usa a chave <code className="bg-muted px-1 rounded">BEX_API_KEY</code> já provisionada. Não requer cadastro.
                     </div>
                   )}
 
