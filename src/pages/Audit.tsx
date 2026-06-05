@@ -4533,7 +4533,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     const baseName = (parsedData as any)?.fileName || aiAnalysis?.fileName || "Auditoria";
     const title = variant === "completo"
       ? `Relatório Kanitz - Ref. (${baseName})`
-      : `Relatório BEX - Ref. (${baseName})`;
+      : `Relatório BEx - Ref. (${baseName})`;
     const entry: GeneratedReportEntry = {
       id: `report-${Date.now()}-${variant}`,
       title,
@@ -4655,10 +4655,10 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                   variant="ghost" 
                   size="sm" 
                   className="w-full justify-start gap-2 text-xs h-9" 
-                  onClick={() => printReport('report-bex-container', 'Relatório BEX')}
+                  onClick={() => printReport('report-bex-container', 'Relatório BEx')}
                 >
                   <FileText className="w-3.5 h-3.5 text-blue-500" /> 
-                  Relatório BEX (PDF)
+                  Relatório BEx (PDF)
                 </Button>
 
                 {!isResumido && (
