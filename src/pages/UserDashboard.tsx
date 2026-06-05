@@ -489,7 +489,7 @@ const UserDashboard = () => {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{avgConformidade}%</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Conformidade IA</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Extração IA</p>
                 </div>
               </div>
             </CardContent>
