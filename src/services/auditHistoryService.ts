@@ -242,6 +242,7 @@ export async function hydrateFromRemote(opts?: { companyId?: string }): Promise<
         companyId: d.company_id,
         source: d.source,
         periodos: d.metadata?.periodos || [],
+        deviations: d.metadata?.deviations || [],
       }));
       mergeLocal(STORAGE_KEY, remoteDocs, 200);
     }
