@@ -165,7 +165,7 @@ async function persistAuditEntry(entry: AuditHistoryEntry): Promise<void> {
       risk_level: entry.riskLevel,
       batch_id: entry.batchId ?? null,
       source: entry.source ?? "usuario",
-      metadata: { periodos: entry.periodos || [] },
+      metadata: { periodos: entry.periodos || [], deviations: entry.deviations || [] },
     });
   } catch (e) {
     console.warn("[auditHistoryService] persistAuditEntry falhou:", e);
