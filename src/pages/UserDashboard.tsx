@@ -218,6 +218,11 @@ const UserDashboard = () => {
     setReports([]);
   };
 
+  const handleDocClick = (doc: AuditHistoryEntry) => {
+    setSelectedDoc(doc);
+    setDeviationDetailsOpen(true);
+  };
+
   const hasGroups = groups.length > 0;
 
   return (
