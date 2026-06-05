@@ -4658,7 +4658,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                   onClick={() => printReport('report-bex-container', 'Relatório BEx')}
                 >
                   <FileText className="w-3.5 h-3.5 text-blue-500" /> 
-                  Relatório BEX (PDF)
+                  Relatório BEx (PDF)
                 </Button>
 
                 {!isResumido && (
