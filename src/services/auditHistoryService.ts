@@ -17,6 +17,11 @@ export interface AuditHistoryEntry {
   companyName?: string;
   source?: ReportSource;
   periodos?: string[]; // Meses vinculados (ex: ["2024-01", "2024-02"])
+  deviations?: {
+    field: string;
+    reason: "missing_data" | "ai_interpretation_failure";
+    details?: string;
+  }[];
 }
 
 export interface SourceDocumentRef {
