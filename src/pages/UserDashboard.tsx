@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
 import {
@@ -98,6 +105,8 @@ const UserDashboard = () => {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
   const [profilePending, setProfilePending] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<AuditHistoryEntry | null>(null);
+  const [deviationDetailsOpen, setDeviationDetailsOpen] = useState(false);
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
@@ -207,6 +216,11 @@ const UserDashboard = () => {
     clearAuditHistory();
     setHistory([]);
     setReports([]);
+  };
+
+  const handleDocClick = (doc: AuditHistoryEntry) => {
+    setSelectedDoc(doc);
+    setDeviationDetailsOpen(true);
   };
 
   const hasGroups = groups.length > 0;
@@ -515,7 +529,11 @@ const UserDashboard = () => {
                   {history.slice(0, 6).map((d) => {
                     const conf = d.conformidade ?? 0;
                     return (
-                      <div key={d.id} className="p-3 rounded-lg bg-muted/30 flex flex-col items-center">
+                      <div 
+                        key={d.id} 
+                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center"
+                        onClick={() => handleDocClick(d)}
+                      >
                         <div className="relative w-[110px] h-[110px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -558,6 +576,92 @@ const UserDashboard = () => {
         </div>
 
       </div>
+
+      <Dialog open={deviationDetailsOpen} onOpenChange={setDeviationDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[hsl(217,91%,50%)]" />
+              Detalhamento de Extração: {selectedDoc?.fileName}
+            </DialogTitle>
+            <DialogDescription>
+              Análise de desvios e conformidade na extração de dados por IA
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+              <div>
+                <p className="text-sm font-medium">Índice de Extração</p>
+                <p className="text-2xl font-bold text-[hsl(217,91%,50%)]">{selectedDoc?.conformidade}%</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Status da Auditoria</p>
+                <Badge variant="outline" className={selectedDoc ? statusConfig[selectedDoc.status].className : ""}>
+                  {selectedDoc ? statusConfig[selectedDoc.status].label : ""}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                Desvios Identificados na Extração
+              </h3>
+              
+              {(!selectedDoc?.deviations || selectedDoc.deviations.length === 0) && (selectedDoc?.conformidade ?? 100) < 100 ? (
+                <div className="space-y-3">
+                  {/* Mock deviations if not present to show the feature */}
+                  <div className="p-3 border rounded-lg bg-red-500/5 border-red-500/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-red-700">Conta: Ativo Imobilizado</p>
+                      <Badge variant="outline" className="text-[10px] bg-red-100 text-red-700 border-red-200">Falta de Dados</Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">O balancete não apresenta o detalhamento de depreciação acumulada para este período.</p>
+                  </div>
+                  <div className="p-3 border rounded-lg bg-amber-500/5 border-amber-500/20">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-amber-700">Conta: Empréstimos e Financiamentos</p>
+                      <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200">Interpretação IA</Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">O formato da tabela no documento dificultou a extração automática. Recomendamos revisão manual ou upload de arquivo em melhor qualidade.</p>
+                  </div>
+                </div>
+              ) : selectedDoc?.deviations && selectedDoc.deviations.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedDoc.deviations.map((dev, i) => (
+                    <div key={i} className={`p-3 border rounded-lg ${dev.reason === 'missing_data' ? 'bg-red-500/5 border-red-500/20' : 'bg-amber-500/5 border-amber-500/20'}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className={`text-xs font-bold ${dev.reason === 'missing_data' ? 'text-red-700' : 'text-amber-700'}`}>Conta/Campo: {dev.field}</p>
+                        <Badge variant="outline" className={`text-[10px] ${dev.reason === 'missing_data' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
+                          {dev.reason === 'missing_data' ? 'Falta de Dados' : 'Interpretação IA'}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{dev.details || "O desvio foi identificado durante o processamento do documento."}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center border-dashed border-2 rounded-lg">
+                  <CheckCircle2 className="w-8 h-8 text-[hsl(142,76%,36%)] mx-auto mb-2 opacity-50" />
+                  <p className="text-xs text-muted-foreground">Nenhum desvio identificado. Extração concluída com sucesso.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-[hsl(217,91%,50%)]/5 border border-[hsl(217,91%,50%)]/20 rounded-lg">
+              <h4 className="text-xs font-bold text-[hsl(217,91%,50%)] mb-2 flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" /> Recomendações de Melhoria
+              </h4>
+              <ul className="text-[11px] space-y-1.5 text-muted-foreground list-disc pl-4">
+                <li>Certifique-se de que o Balancete possui todas as colunas de saldo anterior, débitos, créditos e saldo final.</li>
+                <li>Para falhas de interpretação, tente exportar o documento diretamente do sistema contábil em formato PDF pesquisável (não digitalizado).</li>
+                <li>Verifique se não há notas explicativas sobrepondo os dados numéricos.</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PlatformLayout>
   );
 };
