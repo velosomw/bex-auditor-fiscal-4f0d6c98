@@ -228,10 +228,12 @@ export function detectMonthFromYearLabel(label: string, fallbackMonth?: MonthRef
     return { key, label: monthLabel(key), source: "header", confidence: 0.95 };
   }
 
-  // MM/YYYY
-  m = n.match(/(0?[1-9]|1[0-2])[\s/\-](20\d{2})/);
+  // MM/YYYY ou MM/YY
+  m = n.match(/(0?[1-9]|1[0-2])[\s/\-](20\d{2}|\d{2})/);
   if (m) {
-    const key = `${m[2]}-${padMonth(m[1])}`;
+    let yy = m[2];
+    if (yy.length === 2) yy = `20${yy}`;
+    const key = `${yy}-${padMonth(m[1])}`;
     return { key, label: monthLabel(key), source: "header", confidence: 0.95 };
   }
 
