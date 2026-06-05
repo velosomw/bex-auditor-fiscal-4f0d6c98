@@ -453,13 +453,13 @@ const UserDashboard = () => {
           </div>
         )}
 
-        {/* Resumo de Conformidade */}
+        {/* Visibilidade de Extração IA */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="text-base">Resumo de Conformidade</CardTitle>
+              <CardTitle className="text-base">Visibilidade de Extração IA</CardTitle>
               <CardDescription>
-                Conformidade IA consolidada da empresa (balancete → relatório BEx / Kanitz)
+                Percentual consolidado de extração de dados de todos os documentos
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -468,7 +468,7 @@ const UserDashboard = () => {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Conformidade IA", value: avgConformidade },
+                        { name: "Extração IA", value: avgConformidade },
                         { name: "Restante", value: Math.max(0, 100 - avgConformidade) },
                       ]}
                       dataKey="value"
