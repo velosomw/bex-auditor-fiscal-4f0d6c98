@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import PlatformLayout from "@/components/PlatformLayout";
 import CompanySelectorDialog from "@/components/CompanySelectorDialog";
 import {
@@ -98,6 +105,8 @@ const UserDashboard = () => {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
   const [profilePending, setProfilePending] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<AuditHistoryEntry | null>(null);
+  const [deviationDetailsOpen, setDeviationDetailsOpen] = useState(false);
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
