@@ -529,7 +529,11 @@ const UserDashboard = () => {
                   {history.slice(0, 6).map((d) => {
                     const conf = d.conformidade ?? 0;
                     return (
-                      <div key={d.id} className="p-3 rounded-lg bg-muted/30 flex flex-col items-center">
+                      <div 
+                        key={d.id} 
+                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center"
+                        onClick={() => handleDocClick(d)}
+                      >
                         <div className="relative w-[110px] h-[110px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
