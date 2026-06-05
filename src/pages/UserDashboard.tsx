@@ -541,7 +541,7 @@ const UserDashboard = () => {
                             </PieChart>
                           </ResponsiveContainer>
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <p className="text-lg font-bold text-[hsl(258,90%,66%)]">{conf}%</p>
+                            <p className="text-lg font-bold text-[hsl(217,91%,50%)]">{conf}%</p>
                           </div>
                         </div>
                         <p className="text-[11px] font-medium text-foreground truncate w-full text-center mt-2" title={d.fileName}>
