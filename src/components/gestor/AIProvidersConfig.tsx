@@ -48,8 +48,8 @@ const PROVIDERS: {
 }[] = [
   {
     id: "lovable_cloud",
-    name: "Lovable AI Gateway",
-    vendor: "Lovable Cloud (managed)",
+    name: "BEx AI Gateway",
+    vendor: "BEx Cloud (managed)",
     icon: Cloud,
     color: "hsl(258,90%,66%)",
     description: "API key gerenciada pela plataforma. Sem configuração — usa Gemini e GPT via gateway seguro.",
