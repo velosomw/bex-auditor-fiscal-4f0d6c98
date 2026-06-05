@@ -129,21 +129,16 @@ const UserDashboard = () => {
   const pending = history.filter(h => h.status === "pending").length;
   const totalRiscos = history.reduce((sum, h) => sum + h.riscos, 0);
 
-  // Índice de Conformidade IA (Balancete → BEx/Kanitz)
-  // 1) Extração IA do balancete: média de conformidade dos documentos analisados
-  // 2) Tratamento IA → Relatório: média de conformidade dos relatórios BEx/Kanitz/Completo gerados
+  // Visibilidade de Extração IA Consolidada
+  // 1) Extração IA do documento: média de conformidade de todos os documentos analisados
   const docsAnalisados = history.filter(h => (h.conformidade ?? 0) > 0);
-  const extracaoBalancete = docsAnalisados.length > 0
+  const avgConformidade = docsAnalisados.length > 0
     ? Math.round(docsAnalisados.reduce((s, h) => s + (h.conformidade ?? 0), 0) / docsAnalisados.length * 10) / 10
     : 0;
+
   const relatoriosIA = reports.filter(r => (r.conformidade ?? 0) > 0);
   const tratamentoRelatorio = relatoriosIA.length > 0
     ? Math.round(relatoriosIA.reduce((s, r) => s + (r.conformidade ?? 0), 0) / relatoriosIA.length * 10) / 10
-    : 0;
-  // Composto: 50% extração + 50% geração de relatório (só pondera o lado que existe)
-  const partes = [extracaoBalancete, tratamentoRelatorio].filter(v => v > 0);
-  const avgConformidade = partes.length > 0
-    ? Math.round(partes.reduce((a, b) => a + b, 0) / partes.length * 10) / 10
     : 0;
 
   // Agrupa documentos por batchId; documentos sem batch ficam em "orfãos"
