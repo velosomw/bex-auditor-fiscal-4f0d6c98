@@ -170,7 +170,7 @@ const cover = [
   P('Auditor Contábil Sênior IA', { align:AlignmentType.CENTER, bold:true, size:22 }),
   P('Período analisado: Setembro/2025 a Março/2026 (7 meses)', { align:AlignmentType.CENTER, size:20 }),
   P(`Emitido em ${new Date().toLocaleDateString('pt-BR')}`, { align:AlignmentType.CENTER, size:20, spacing:{ after:200 } }),
-  P('Nota técnica: nesta versão, Passivo Total (PT) = Passivo Circulante + Passivo Não Circulante; e Capital de Terceiros = PT ÷ PL.',
+  P('Nota técnica: nesta versão, Passivo Total (PT) é o saldo do grupo PASSIVO conforme balancete; Capital de Terceiros = PT ÷ PL.',
     { align:AlignmentType.CENTER, size:18, color:'B45309', spacing:{ after:400 } }),
 
   SUB('Sumário Executivo'),
