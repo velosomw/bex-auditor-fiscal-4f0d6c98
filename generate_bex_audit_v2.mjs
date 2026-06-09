@@ -19,8 +19,8 @@ const pcContas=ext(163), pcEmp=ext(170), pcTrab=ext(181), pcTrib=ext(201), pcMer
 const pncContas=ext(267), pncCred=ext(270), pncTrib=ext(273);
 const plCap=ext(278), plRes=ext(281), plLuc=ext(286);
 
-// PT extraído diretamente do balancete (sem recomposição)
-const PT = ext(261);
+// PT extraído diretamente da linha "PASSIVO" do balancete (como originalmente)
+const PT = ext(161);
 
 const data = months.map((mes,i) => ({
   mes, AT:AT[i], AC:AC[i], ANC:ANC[i], PC:PC[i], PNC:PNC[i], PT:PT[i], PL:PL[i], RL:RL[i],
