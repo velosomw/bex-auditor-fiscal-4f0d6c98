@@ -19,8 +19,8 @@ const pcContas=ext(163), pcEmp=ext(170), pcTrab=ext(181), pcTrib=ext(201), pcMer
 const pncContas=ext(267), pncCred=ext(270), pncTrib=ext(273);
 const plCap=ext(278), plRes=ext(281), plLuc=ext(286);
 
-// PT = PC + PNC (exigível total) — fórmula corrigida conforme solicitação
-const PT = PC.map((v,i) => v + PNC[i]);
+// PT extraído diretamente da linha "PASSIVO" do balancete (como originalmente)
+const PT = ext(161);
 
 const data = months.map((mes,i) => ({
   mes, AT:AT[i], AC:AC[i], ANC:ANC[i], PC:PC[i], PNC:PNC[i], PT:PT[i], PL:PL[i], RL:RL[i],
@@ -99,7 +99,7 @@ const buildMonth = (m) => {
       new TableRow({ children:[C('Ativo Total',{bold:true}), C(fmtC(m.AT),{align:AlignmentType.RIGHT,bold:true}), C('100,00%',{align:AlignmentType.RIGHT,bold:true})] }),
       cap('   Ativo Circulante', m.AC, m.AT),
       cap('   Ativo Não Circulante', m.ANC, m.AT),
-      cap('Passivo Total (PC + PNC)', m.PT, m.AT),
+      cap('Passivo Total', m.PT, m.AT),
       cap('   Passivo Circulante', m.PC, m.AT),
       cap('   Passivo Não Circulante', m.PNC, m.AT),
       cap('Patrimônio Líquido', m.PL, m.AT),
@@ -150,7 +150,7 @@ const buildMonth = (m) => {
     SUB('7. Indicadores do Mês'),
     tbl(['Indicador','Fórmula','Valor'], [
       ['Liquidez Corrente','AC ÷ PC', m.ind.LC.toFixed(3)],
-      ['Endividamento Geral','(PC + PNC) ÷ AT', fmtP(m.ind.EG)],
+      ['Endividamento Geral','PT ÷ AT', fmtP(m.ind.EG)],
       ['Endividamento Curto Prazo','PC ÷ AT', fmtP(m.ind.ECP)],
       ['Endividamento Longo Prazo','PNC ÷ AT', fmtP(m.ind.ELP)],
       ['Composição do Endividamento','PC ÷ PT', fmtP(m.ind.CE)],
@@ -170,7 +170,7 @@ const cover = [
   P('Auditor Contábil Sênior IA', { align:AlignmentType.CENTER, bold:true, size:22 }),
   P('Período analisado: Setembro/2025 a Março/2026 (7 meses)', { align:AlignmentType.CENTER, size:20 }),
   P(`Emitido em ${new Date().toLocaleDateString('pt-BR')}`, { align:AlignmentType.CENTER, size:20, spacing:{ after:200 } }),
-  P('Nota técnica: nesta versão, Passivo Total (PT) = Passivo Circulante + Passivo Não Circulante; e Capital de Terceiros = PT ÷ PL.',
+  P('Nota técnica: nesta versão, Passivo Total (PT) é o saldo do grupo PASSIVO conforme balancete; Capital de Terceiros = PT ÷ PL.',
     { align:AlignmentType.CENTER, size:18, color:'B45309', spacing:{ after:400 } }),
 
   SUB('Sumário Executivo'),
@@ -182,7 +182,7 @@ const cover = [
     width:{ size:9360, type:WidthType.DXA },
     columnWidths:[1860,1500,1500,1500,1500,1500],
     rows:[
-      new TableRow({ tableHeader:true, children:['Mês','Ativo Total','Passivo Total (PC+PNC)','PL','Endiv.Geral','Liq.Corrente'].map(HDR) }),
+      new TableRow({ tableHeader:true, children:['Mês','Ativo Total','Passivo Total','PL','Endiv.Geral','Liq.Corrente'].map(HDR) }),
       ...data.map(m => new TableRow({ children:[
         C(m.mes,{bold:true}),
         C(fmtC(m.AT),{align:AlignmentType.RIGHT}),
