@@ -99,7 +99,7 @@ const buildMonth = (m) => {
       new TableRow({ children:[C('Ativo Total',{bold:true}), C(fmtC(m.AT),{align:AlignmentType.RIGHT,bold:true}), C('100,00%',{align:AlignmentType.RIGHT,bold:true})] }),
       cap('   Ativo Circulante', m.AC, m.AT),
       cap('   Ativo Não Circulante', m.ANC, m.AT),
-      cap('Passivo Total (PC + PNC)', m.PT, m.AT),
+      cap('Passivo Total', m.PT, m.AT),
       cap('   Passivo Circulante', m.PC, m.AT),
       cap('   Passivo Não Circulante', m.PNC, m.AT),
       cap('Patrimônio Líquido', m.PL, m.AT),
@@ -150,7 +150,7 @@ const buildMonth = (m) => {
     SUB('7. Indicadores do Mês'),
     tbl(['Indicador','Fórmula','Valor'], [
       ['Liquidez Corrente','AC ÷ PC', m.ind.LC.toFixed(3)],
-      ['Endividamento Geral','(PC + PNC) ÷ AT', fmtP(m.ind.EG)],
+      ['Endividamento Geral','PT ÷ AT', fmtP(m.ind.EG)],
       ['Endividamento Curto Prazo','PC ÷ AT', fmtP(m.ind.ECP)],
       ['Endividamento Longo Prazo','PNC ÷ AT', fmtP(m.ind.ELP)],
       ['Composição do Endividamento','PC ÷ PT', fmtP(m.ind.CE)],
@@ -182,7 +182,7 @@ const cover = [
     width:{ size:9360, type:WidthType.DXA },
     columnWidths:[1860,1500,1500,1500,1500,1500],
     rows:[
-      new TableRow({ tableHeader:true, children:['Mês','Ativo Total','Passivo Total (PC+PNC)','PL','Endiv.Geral','Liq.Corrente'].map(HDR) }),
+      new TableRow({ tableHeader:true, children:['Mês','Ativo Total','Passivo Total','PL','Endiv.Geral','Liq.Corrente'].map(HDR) }),
       ...data.map(m => new TableRow({ children:[
         C(m.mes,{bold:true}),
         C(fmtC(m.AT),{align:AlignmentType.RIGHT}),
