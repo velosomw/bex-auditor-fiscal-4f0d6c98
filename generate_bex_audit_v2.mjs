@@ -21,8 +21,6 @@ const plCap=ext(278), plRes=ext(281), plLuc=ext(286);
 
 // PT = PC + PNC (exigível total) — fórmula corrigida conforme solicitação
 const PT = PC.map((v,i) => v + PNC[i]);
-// PL = Ativo Total − Passivo Total (identidade do balanço) — sobrescreve valor extraído
-for (let i=0; i<PL.length; i++) PL[i] = AT[i] - PT[i];
 
 const data = months.map((mes,i) => ({
   mes, AT:AT[i], AC:AC[i], ANC:ANC[i], PC:PC[i], PNC:PNC[i], PT:PT[i], PL:PL[i], RL:RL[i],
