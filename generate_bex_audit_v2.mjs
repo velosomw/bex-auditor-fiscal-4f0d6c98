@@ -95,14 +95,14 @@ const buildMonth = (m) => {
     P(`Mês de Referência: ${m.mes}`, { heading:HeadingLevel.HEADING_1, color:'1E3A8A', bold:true, spacing:{ after:200 } }),
 
     SUB('1. Resumo Patrimonial'),
-    tbl(['Item','Valor (R$)','% do Ativo Total'], [
-      new TableRow({ children:[C('Ativo Total',{bold:true}), C(fmtC(m.AT),{align:AlignmentType.RIGHT,bold:true}), C('100,00%',{align:AlignmentType.RIGHT,bold:true})] }),
-      cap('   Ativo Circulante', m.AC, m.AT),
-      cap('   Ativo Não Circulante', m.ANC, m.AT),
-      cap('Passivo Total (PC + PNC)', m.PT, m.AT),
-      cap('   Passivo Circulante', m.PC, m.AT),
-      cap('   Passivo Não Circulante', m.PNC, m.AT),
-      cap('Patrimônio Líquido', m.PL, m.AT),
+    tbl(['Item','Valor (R$)','% Relativo'], [
+      new TableRow({ children:[C('Ativo Total',{bold:true}), C(fmtC(m.AT),{align:AlignmentType.RIGHT,bold:true}), C('100,00% do AT',{align:AlignmentType.RIGHT,bold:true})] }),
+      new TableRow({ children:[C('   Ativo Circulante'), C(fmtC(m.AC),{align:AlignmentType.RIGHT}), C(`${fmtP(m.AC/m.AT)} do AT`,{align:AlignmentType.RIGHT})] }),
+      new TableRow({ children:[C('   Ativo Não Circulante'), C(fmtC(m.ANC),{align:AlignmentType.RIGHT}), C(`${fmtP(m.ANC/m.AT)} do AT`,{align:AlignmentType.RIGHT})] }),
+      new TableRow({ children:[C('Passivo Total (PC + PNC)',{bold:true}), C(fmtC(m.PT),{align:AlignmentType.RIGHT,bold:true}), C(`${fmtP(m.PT/m.AT)} do AT`,{align:AlignmentType.RIGHT,bold:true})] }),
+      new TableRow({ children:[C('   Passivo Circulante'), C(fmtC(m.PC),{align:AlignmentType.RIGHT}), C(`${fmtP(m.PC/m.PT)} do PT`,{align:AlignmentType.RIGHT})] }),
+      new TableRow({ children:[C('   Passivo Não Circulante'), C(fmtC(m.PNC),{align:AlignmentType.RIGHT}), C(`${fmtP(m.PNC/m.PT)} do PT`,{align:AlignmentType.RIGHT})] }),
+      new TableRow({ children:[C('Patrimônio Líquido',{bold:true}), C(fmtC(m.PL),{align:AlignmentType.RIGHT,bold:true}), C(`${fmtP(m.PL/m.AT)} do AT`,{align:AlignmentType.RIGHT,bold:true})] }),
       new TableRow({ children:[C('Receita Líquida (acumulada)'), C(fmtC(m.RL),{align:AlignmentType.RIGHT}), C('—',{align:AlignmentType.RIGHT})] }),
     ]),
 
