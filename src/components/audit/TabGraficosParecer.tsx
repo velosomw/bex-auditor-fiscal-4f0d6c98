@@ -66,9 +66,9 @@ const fmtDec = (v: any) => {
   return n.toFixed(2);
 };
 
-const AXIS = { tick: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }, stroke: "hsl(var(--border))" };
-const GRID = <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />;
-const TIP = { contentStyle: { background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 11 } };
+const AXIS = { tick: { fontSize: 12, fill: "hsl(var(--foreground))", fontWeight: 500 }, stroke: "hsl(var(--foreground) / 0.35)", tickLine: { stroke: "hsl(var(--foreground) / 0.35)" } };
+const GRID = <CartesianGrid stroke="hsl(var(--foreground) / 0.18)" strokeDasharray="3 3" vertical={false} />;
+const TIP = { contentStyle: { background: "hsl(var(--background))", border: "1px solid hsl(var(--foreground) / 0.25)", fontSize: 12, color: "hsl(var(--foreground))", borderRadius: 6, boxShadow: "0 4px 12px hsl(var(--foreground) / 0.15)" }, labelStyle: { color: "hsl(var(--foreground))", fontWeight: 600 }, itemStyle: { color: "hsl(var(--foreground))" }, cursor: { fill: "hsl(var(--foreground) / 0.06)" } };
 
 const Tile: React.FC<{ title: string; subtitle?: string; children: React.ReactNode; height?: number }> = ({ title, subtitle, children, height = 280 }) => (
   <Card className="overflow-hidden">
