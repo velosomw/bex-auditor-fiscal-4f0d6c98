@@ -34,6 +34,9 @@ export interface MonthlyDatum {
   ativo_nao_circulante: number;
   passivo_circulante: number;
   passivo_nao_circulante: number;
+  patrimonio_liquido?: number;
+  imobilizado?: number;
+  intangivel?: number;
   estoques: number;
   disponivel: number;
   // ENDIVIDAMENTO (componentes — todos > 0)

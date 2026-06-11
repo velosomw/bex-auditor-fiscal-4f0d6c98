@@ -14,6 +14,7 @@ import {
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import type { BalanceteEntry } from "@/services/bsDadosBuilder";
 import AuditCharts from "@/components/audit/AuditCharts";
+import AuditChartsBex from "@/components/audit/AuditChartsBex";
 
 interface Props {
   files?: File[];
@@ -336,6 +337,26 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
           </CardContent>
         )}
       </Card>
+
+      {/* ── 12 GRÁFICOS BEX/KANITZ — aba "GRÁFICOS (2)" do template ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-[hsl(217,91%,50%)]" />
+            Gráficos de Auditoria — Padrão BEX (Aba GRÁFICOS 2)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Liquidez Geral, Liquidez Corrente, Evolução do Passivo (PC + PNC), Empréstimos e
+            Financiamentos, Imobilizado/Intangível, Endividamento Geral, Resultado/Receita,
+            Custo+Despesa/Receita e relações anual e média mensal — reprodução visual fiel da aba{" "}
+            <em>GRÁFICOS (2)</em> do template BEX/Kanitz.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AuditChartsBex parsedData={parsedData} entries={entries} />
+        </CardContent>
+      </Card>
+
 
 
       {/* ── 6 GRÁFICOS DO RELATÓRIO BEX/KANITZ — colapsável ── */}
