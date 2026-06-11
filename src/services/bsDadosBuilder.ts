@@ -679,7 +679,14 @@ export function buildBSDados(
   // ── Prune de contas sintéticas (pais) para evitar dupla contagem ─────
   // GRUPO-FIRST: PRESERVAMOS os totalizadores de grupo (11/12/13/21/22/23/31/32/33/4/5/6/7/8)
   // mesmo que tenham folhas — eles são autoritativos.
-  const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\.+$/g, "");
+  // Normaliza códigos contábeis removendo espaços E TODOS os pontos
+  // (ex.: "1.1" → "11", "2.1" → "21") — necessário para que o conjunto
+  // GROUP_TOTAL_CODES (que usa códigos sem ponto: "11","21",…) reconheça
+  // os totais de grupo em planos com numeração pontuada. Sem isso, contas
+  // como "1.1 ATIVO CIRCULANTE" eram tratadas como "pais sintéticos" e
+  // podadas em `leafRows`, zerando AC/PC/ANC/PNC/PL e todos os indicadores
+  // dependentes (Liquidez, Endividamento, etc.).
+  const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\./g, "");
   const allCodes = new Set(allRows.map(r => normCode(r.conta)).filter(Boolean));
   const parentCodes = new Set<string>();
   for (const c of allCodes) {
