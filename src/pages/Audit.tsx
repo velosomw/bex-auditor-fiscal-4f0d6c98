@@ -1930,7 +1930,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
   const [selectedId, setSelectedId] = useState(activePendencias[0]?.id || "");
   const selected = activePendencias.find((p: any) => p.id === selectedId);
   const balanceteScopeId = useMemo(() => {
-    const empresa = company?.razao_social || parsedData?.documentInfo?.empresa || "balancete carregado";
+    const empresa = company?.name || parsedData?.documentInfo?.empresa || "balancete carregado";
     const periodo = parsedData?.documentInfo?.periodo || (parsedData?.years || []).join("-") || "atual";
     return `${empresa} — ${periodo}`;
   }, [company, parsedData]);
@@ -1973,7 +1973,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
       const context = {
         escopoExclusivo: balanceteScopeId,
         restricao: "Responder EXCLUSIVAMENTE sobre o balancete abaixo. Não usar conhecimento externo, outras empresas, outros relatórios ou benchmarks de mercado. Se a pergunta sair desse escopo, recusar educadamente.",
-        empresa: company?.razao_social || parsedData?.documentInfo?.empresa || null,
+        empresa: company?.name || parsedData?.documentInfo?.empresa || null,
         periodo: parsedData?.documentInfo?.periodo || null,
         anos: parsedData?.years || [],
         pendenciaSelecionada: selected,
