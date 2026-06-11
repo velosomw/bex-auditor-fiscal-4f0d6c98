@@ -1525,7 +1525,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
         { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: (n: number) => n.toFixed(2), formula: "AC / PC", benchmark: "> 1,5", accounts: ["Ativo Circulante (Grupo 1.1)", "Passivo Circulante (Grupo 2.1)"] },
         { label: "Liquidez Seca", key: "liquidezSeca", fmt: (n: number) => n.toFixed(2), formula: "(AC - EST) / PC", benchmark: "> 1,0", accounts: ["Ativo Circulante (Grupo 1.1)", "Estoques (Ref 1: D)", "Passivo Circulante (Grupo 2.1)"] },
         { label: "Liquidez Imediata", key: "liquidezImediata", fmt: (n: number) => n.toFixed(2), formula: "Caixa / PC", benchmark: "> 0,3", accounts: ["Disponibilidades (Refs 1: A, B)", "Passivo Circulante (Grupo 2.1)"] },
-        { label: "Liquidez Geral", key: "liquidezGeral", fmt: (n: number) => n.toFixed(2), formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 1,0", accounts: ["Ativo Circulante (Grupo 1.1)", "Realizável a Longo Prazo (Grupo 1.2.1)", "Passivo Circulante (Grupo 2.1)", "Passivo Não Circulante (Grupo 2.2)"] },
+        { label: "Liquidez Geral", key: "liquidezGeral", fmt: (n: number) => n.toFixed(2), formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 0,1", accounts: ["Ativo Circulante (Grupo 1.1)", "Realizável a Longo Prazo (Grupo 1.2.1)", "Passivo Circulante (Grupo 2.1)", "Passivo Não Circulante (Grupo 2.2)"] },
       ]
     },
     {
