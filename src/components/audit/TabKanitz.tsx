@@ -377,22 +377,6 @@ const TabKanitz = ({
         </Card>
       )}
 
-      {/* 3º — Termômetro de Insolvência (visual oficial Kanitz, 1980) */}
-      {latest && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Scale className="w-4 h-4 text-accent" /> Termômetro de Insolvência
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Representação visual da escala de Kanitz (+7 solvente · 0 a −3 penumbra · −4 a −7 insolvente).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center py-4">
-            <KanitzThermometer fi={latest.fi} label={`Período: ${latest.year}`} />
-          </CardContent>
-        </Card>
-      )}
 
       {/* Sub-tabs */}
 
