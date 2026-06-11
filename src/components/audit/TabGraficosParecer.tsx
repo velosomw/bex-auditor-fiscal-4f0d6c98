@@ -70,15 +70,15 @@ const AXIS = { tick: { fontSize: 12, fill: "hsl(var(--foreground))", fontWeight:
 const GRID = <CartesianGrid stroke="hsl(var(--foreground) / 0.18)" strokeDasharray="3 3" vertical={false} />;
 const TIP = { contentStyle: { background: "hsl(var(--background))", border: "1px solid hsl(var(--foreground) / 0.25)", fontSize: 12, color: "hsl(var(--foreground))", borderRadius: 6, boxShadow: "0 4px 12px hsl(var(--foreground) / 0.15)" }, labelStyle: { color: "hsl(var(--foreground))", fontWeight: 600 }, itemStyle: { color: "hsl(var(--foreground))" }, cursor: { fill: "hsl(var(--foreground) / 0.06)" } };
 
-const Tile: React.FC<{ title: string; subtitle?: string; children: React.ReactNode; height?: number }> = ({ title, subtitle, children, height = 280 }) => (
-  <Card className="overflow-hidden">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-[13px] font-bold text-center">{title}</CardTitle>
-      {subtitle && <CardDescription className="text-center text-[11px]">{subtitle}</CardDescription>}
+const Tile: React.FC<{ title: string; subtitle?: string; children: React.ReactNode; height?: number }> = ({ title, subtitle, children, height = 320 }) => (
+  <Card className="overflow-hidden border-2">
+    <CardHeader className="pb-2 bg-muted/30 border-b">
+      <CardTitle className="text-[13px] font-bold text-center uppercase tracking-wide">{title}</CardTitle>
+      {subtitle && <CardDescription className="text-center text-[11px] font-medium">{subtitle}</CardDescription>}
     </CardHeader>
-    <CardContent className="pt-0">
-      <div style={{ width: "100%", height }}>
-        <ResponsiveContainer width="100%" height="100%">
+    <CardContent className="pt-4 pb-3 px-3 bg-background">
+      <div style={{ width: "100%", height, minHeight: height }}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={height}>
           {children as any}
         </ResponsiveContainer>
       </div>
