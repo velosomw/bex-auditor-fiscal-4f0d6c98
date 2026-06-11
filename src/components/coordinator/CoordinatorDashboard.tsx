@@ -20,9 +20,10 @@ type Accountant = {
   name: string;
   email: string;
   empresas: number;
-  consultores: number;
+  relatorios: number;
   status: "ativa" | "pendente" | "bloqueada";
 };
+
 
 type ConsultantUser = {
   id: string;
@@ -106,15 +107,7 @@ const Panel360 = ({ selection, onClose }: { selection: Selection; onClose: () =>
               <Field label="E-mail principal" value={selection.data.email} icon={Mail} />
               <Field label="Status" value={<Badge className={statusBadge(selection.data.status)}>{selection.data.status}</Badge>} icon={ShieldCheck} />
               <Field label="Empresas atendidas" value={selection.data.empresas} icon={Building2} />
-              <Field label="Consultores ativos" value={selection.data.consultores} icon={Users} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-foreground mb-2">Atividade recente</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>• 12 relatórios emitidos no mês</p>
-                <p>• 4 auditorias em andamento</p>
-                <p>• Última movimentação há 2 dias</p>
-              </div>
+              <Field label="Relatórios emitidos" value={selection.data.relatorios} icon={FileText} />
             </div>
           </>
         )}
@@ -176,20 +169,81 @@ export default function CoordinatorDashboard() {
   const [search, setSearch] = useState("");
   const [selection, setSelection] = useState<Selection>(null);
 
+  const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [reportsByCreator, setReportsByCreator] = useState<Map<string, number>>(new Map());
+
   useEffect(() => {
     listCompanies().then(setCompanies).catch(() => {});
+
     (async () => {
-      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, created_at");
-      const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-      const map = new Map<string, string>();
-      (roles || []).forEach((r: any) => map.set(r.user_id, r.role));
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name, created_at"),
+        supabase.from("user_roles").select("user_id, role"),
+      ]);
+      const roleMap = new Map<string, string>();
+      (roles || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
       const list: ConsultantUser[] = (profiles || []).map((p: any) => ({
         id: p.user_id,
         full_name: p.full_name || "—",
-        role: map.get(p.user_id) || "usuario",
+        role: roleMap.get(p.user_id) || "usuario",
         created_at: p.created_at,
       }));
       setUsers(list);
+
+      // Real access logs (login_attempts)
+      const { data: logins } = await supabase
+        .from("login_attempts")
+        .select("id, email, status, ip_address, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      const emailToProfile = new Map<string, { name: string; uid: string }>();
+      // login_attempts has only email; map name via profile email isn't available — use email itself
+      setAccessLogs(
+        (logins || []).map((l: any) => ({
+          id: l.id,
+          user: l.email || "—",
+          email: l.email || "—",
+          role: l.status || "—",
+          when: l.created_at,
+          ip: l.ip_address || "—",
+        })),
+      );
+
+      // Real movements (audit_logs)
+      const { data: alogs } = await supabase
+        .from("audit_logs")
+        .select("id, audit_id, etapa, status, message, created_at")
+        .order("created_at", { ascending: false })
+        .limit(30);
+      const auditIds = Array.from(new Set((alogs || []).map((a: any) => a.audit_id).filter(Boolean)));
+      const { data: auditRows } = auditIds.length
+        ? await supabase.from("audits").select("id, name, company_id").in("id", auditIds)
+        : { data: [] as any[] };
+      const auditMap = new Map((auditRows ?? []).map((a: any) => [a.id, a]));
+      setMovements(
+        (alogs || []).map((l: any) => {
+          const a = auditMap.get(l.audit_id);
+          return {
+            id: l.id,
+            who: l.etapa || "Pipeline",
+            action: l.message || l.status || "evento",
+            target: a?.name || "—",
+            when: l.created_at,
+          };
+        }),
+      );
+
+      // Reports per creator (for accountant relatorios count)
+      const { data: reports } = await supabase
+        .from("audit_reports")
+        .select("created_by");
+      const repMap = new Map<string, number>();
+      (reports || []).forEach((r: any) => {
+        if (!r.created_by) return;
+        repMap.set(r.created_by, (repMap.get(r.created_by) || 0) + 1);
+      });
+      setReportsByCreator(repMap);
     })();
   }, []);
 
@@ -202,46 +256,26 @@ export default function CoordinatorDashboard() {
       const acctName = c.contact_name || c.email || `Contabilidade ${key.slice(0, 6)}`;
       grouped.set(key, { count: prev.count + 1, name: prev.name || acctName });
     });
-    return Array.from(grouped.entries()).map(([uid, v], i) => ({
+    return Array.from(grouped.entries()).map(([uid, v]) => ({
       id: uid,
       name: v.name,
       email: companies.find((c) => c.created_by === uid)?.email || "—",
       empresas: v.count,
-      consultores: 1 + (i % 3),
+      relatorios: reportsByCreator.get(uid) || 0,
       status: "ativa" as const,
     }));
-  }, [companies]);
+  }, [companies, reportsByCreator]);
 
   const consultants = useMemo(
     () => users.filter((u) => ["consultor", "auditor_chefe", "coordenadora"].includes(u.role)),
     [users]
   );
 
-  /* Mock acessos & movimentações (sem backend correspondente) */
-  const accessLogs: AccessLog[] = useMemo(
-    () =>
-      users.slice(0, 8).map((u, i) => ({
-        id: `acc-${u.id}`,
-        user: u.full_name,
-        email: `${u.full_name.toLowerCase().replace(/\s+/g, ".")}@bex.com.br`,
-        role: u.role,
-        when: new Date(Date.now() - i * 3600_000).toISOString(),
-        ip: `192.168.${10 + i}.${20 + i}`,
-      })),
-    [users]
-  );
+  const movementsThisWeek = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 86400_000;
+    return movements.filter((m) => new Date(m.when).getTime() >= weekAgo).length;
+  }, [movements]);
 
-  const movements: Movement[] = useMemo(
-    () => [
-      { id: "m1", who: "Auditor Chefe", action: "Emitiu relatório", target: companies[0]?.name || "Empresa Demo", when: new Date().toISOString() },
-      { id: "m2", who: "Consultor", action: "Cadastrou empresa", target: companies[1]?.name || "Empresa Beta", when: new Date(Date.now() - 86400_000).toISOString() },
-      { id: "m3", who: "Coordenadora", action: "Aprovou usuário", target: users[0]?.full_name || "Novo consultor", when: new Date(Date.now() - 2 * 86400_000).toISOString() },
-      { id: "m4", who: "Empresa", action: "Atualizou cadastro", target: companies[2]?.name || "Empresa Gama", when: new Date(Date.now() - 3 * 86400_000).toISOString() },
-    ],
-    [companies, users]
-  );
-
-  const movementsThisWeek = movements.length;
 
   /* Busca rápida */
   const searchResults = useMemo(() => {
@@ -411,7 +445,7 @@ export default function CoordinatorDashboard() {
                     <TableHead>Contabilidade</TableHead>
                     <TableHead>E-mail</TableHead>
                     <TableHead className="text-center">Empresas</TableHead>
-                    <TableHead className="text-center">Consultores</TableHead>
+                    <TableHead className="text-center">Relatórios</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -425,7 +459,7 @@ export default function CoordinatorDashboard() {
                       <TableCell className="font-medium">{a.name}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{a.email}</TableCell>
                       <TableCell className="text-center">{a.empresas}</TableCell>
-                      <TableCell className="text-center">{a.consultores}</TableCell>
+                      <TableCell className="text-center">{a.relatorios}</TableCell>
                       <TableCell><Badge className={statusBadge(a.status)}>{a.status}</Badge></TableCell>
                     </TableRow>
                   ))}
