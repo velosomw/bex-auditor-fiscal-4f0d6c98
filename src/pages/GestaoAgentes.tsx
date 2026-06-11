@@ -23,43 +23,13 @@ import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/aud
 import { listCompanies, type Company } from "@/services/companiesService";
 import { loadLearningRows, loadDatasetRows, loadPerfStats } from "@/services/agentLearningService";
 import {
+  listRecentBalancetes, loadBalanceteLines, updateLine, teachMapping,
+  type ReviewBalancete, type ReviewLine,
+} from "@/services/validationReviewService";
+import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
 } from "recharts";
-
-// ─── Mock data ────────────────────────────────────────────────
-const mockExtraction = [
-  { id: 1, original: "Receita Operacional Líquida", padrao: "Receita Operacional", categoria: "Receita", valor: 1250000, status: "ok", confianca: 96 },
-  { id: 2, original: "Custo dos Serviços Vendidos", padrao: "CMV/CSV", categoria: "Custo", valor: -680000, status: "ok", confianca: 92 },
-  { id: 3, original: "Desp. Adm. e Gerais", padrao: "Despesas Administrativas", categoria: "Despesa", valor: -210000, status: "duvida", confianca: 78 },
-  { id: 4, original: "Outras Receitas/Despesas", padrao: "?", categoria: "?", valor: 15000, status: "erro", confianca: 42 },
-  { id: 5, original: "Resultado Financeiro Líq.", padrao: "Resultado Financeiro", categoria: "Financeiro", valor: -38000, status: "ok", confianca: 88 },
-];
-
-const learningRows = [
-  { original: "Rec. Op. Líquida", padrao: "Receita Operacional", freq: 142, conf: 98 },
-  { original: "CMV", padrao: "CMV/CSV", freq: 118, conf: 96 },
-  { original: "Desp. Pessoal", padrao: "Despesas com Pessoal", freq: 95, conf: 94 },
-  { original: "Imp. s/ Vendas", padrao: "Impostos sobre Vendas", freq: 87, conf: 92 },
-  { original: "Result. Fin.", padrao: "Resultado Financeiro", freq: 76, conf: 90 },
-];
-
-const datasetRows = [
-  { doc: "Balancete_2024_Q4_EmpresaA.pdf", empresa: "Empresa A", data: "2025-01-12", score: 94, gold: true },
-  { doc: "DRE_2024_EmpresaB.xlsx", empresa: "Empresa B", data: "2025-01-08", score: 88, gold: false },
-  { doc: "Balancete_Out_2024_EmpresaC.pdf", empresa: "Empresa C", data: "2024-12-22", score: 91, gold: true },
-  { doc: "DRE_Nov_2024_EmpresaA.pdf", empresa: "Empresa A", data: "2024-12-10", score: 85, gold: false },
-];
-
-const accuracyTrend = [
-  { mes: "Jul", precisao: 78 }, { mes: "Ago", precisao: 82 }, { mes: "Set", precisao: 85 },
-  { mes: "Out", precisao: 88 }, { mes: "Nov", precisao: 91 }, { mes: "Dez", precisao: 93 }, { mes: "Jan", precisao: 95 },
-];
-
-const errorReduction = [
-  { mes: "Jul", erros: 124 }, { mes: "Ago", erros: 98 }, { mes: "Set", erros: 76 },
-  { mes: "Out", erros: 58 }, { mes: "Nov", erros: 42 }, { mes: "Dez", erros: 31 }, { mes: "Jan", erros: 22 },
-];
 
 // ─── TELA 1 — Upload & Processamento (REAL: parseFile + runAuditPipeline) ─────
 type StageKey = "upload" | "ocr" | "extract" | "normalize" | "validate" | "analyze";
