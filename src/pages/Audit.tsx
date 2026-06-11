@@ -1925,15 +1925,25 @@ const TabRiscoRJ = ({ aiAnalysis }: { aiAnalysis?: any }) => {
 };
 
 /* ── Tab 2: Análise Técnica (Pendências + Chat IA) ── */
-const TabAnaliseTecnica = ({ pendenciasData, parsedData }: { pendenciasData?: any[]; parsedData?: ParsedFinancialData | null }) => {
+const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = false, company }: { pendenciasData?: any[]; parsedData?: ParsedFinancialData | null; isHistoricalView?: boolean; company?: Company | null }) => {
   const activePendencias = pendenciasData || pendencias;
   const [selectedId, setSelectedId] = useState(activePendencias[0]?.id || "");
   const selected = activePendencias.find((p: any) => p.id === selectedId);
+  const balanceteScopeId = useMemo(() => {
+    const empresa = company?.razao_social || parsedData?.documentInfo?.empresa || "balancete carregado";
+    const periodo = parsedData?.documentInfo?.periodo || (parsedData?.years || []).join("-") || "atual";
+    return `${empresa} — ${periodo}`;
+  }, [company, parsedData]);
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([
-    { role: "assistant", text: "Sou o Auditor Contábil Sênior IA. Selecione uma pendência ao lado e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis ou impacto jurídico." },
+    { role: "assistant", text: `Sou o Auditor Contábil Sênior IA. Estou restrito EXCLUSIVAMENTE ao balancete carregado nesta auditoria (${balanceteScopeId}). Selecione uma pendência e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis e impacto no parecer SOMENTE com base nestes dados. Não consulto outras empresas, outros relatórios ou fontes externas.` },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [chatMessages]);
 
   const sendChat = async () => {
     if (!chatInput.trim() || isStreaming) return;
@@ -1961,8 +1971,16 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData }: { pendenciasData?: an
       aiMessages.push({ role: "user", content: q });
 
       const context = {
+        escopoExclusivo: balanceteScopeId,
+        restricao: "Responder EXCLUSIVAMENTE sobre o balancete abaixo. Não usar conhecimento externo, outras empresas, outros relatórios ou benchmarks de mercado. Se a pergunta sair desse escopo, recusar educadamente.",
+        empresa: company?.razao_social || parsedData?.documentInfo?.empresa || null,
+        periodo: parsedData?.documentInfo?.periodo || null,
+        anos: parsedData?.years || [],
         pendenciaSelecionada: selected,
-        dadosFinanceiros: parsedData ? { balanco: parsedData.balanco.slice(0, 20), dre: parsedData.dre.slice(0, 10) } : null,
+        balancete: parsedData ? {
+          balanco: parsedData.balanco,
+          dre: parsedData.dre,
+        } : null,
       };
 
       await streamAuditChat({
