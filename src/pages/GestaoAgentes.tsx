@@ -23,43 +23,13 @@ import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/aud
 import { listCompanies, type Company } from "@/services/companiesService";
 import { loadLearningRows, loadDatasetRows, loadPerfStats } from "@/services/agentLearningService";
 import {
+  listRecentBalancetes, loadBalanceteLines, updateLine, teachMapping,
+  type ReviewBalancete, type ReviewLine,
+} from "@/services/validationReviewService";
+import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
 } from "recharts";
-
-// ─── Mock data ────────────────────────────────────────────────
-const mockExtraction = [
-  { id: 1, original: "Receita Operacional Líquida", padrao: "Receita Operacional", categoria: "Receita", valor: 1250000, status: "ok", confianca: 96 },
-  { id: 2, original: "Custo dos Serviços Vendidos", padrao: "CMV/CSV", categoria: "Custo", valor: -680000, status: "ok", confianca: 92 },
-  { id: 3, original: "Desp. Adm. e Gerais", padrao: "Despesas Administrativas", categoria: "Despesa", valor: -210000, status: "duvida", confianca: 78 },
-  { id: 4, original: "Outras Receitas/Despesas", padrao: "?", categoria: "?", valor: 15000, status: "erro", confianca: 42 },
-  { id: 5, original: "Resultado Financeiro Líq.", padrao: "Resultado Financeiro", categoria: "Financeiro", valor: -38000, status: "ok", confianca: 88 },
-];
-
-const learningRows = [
-  { original: "Rec. Op. Líquida", padrao: "Receita Operacional", freq: 142, conf: 98 },
-  { original: "CMV", padrao: "CMV/CSV", freq: 118, conf: 96 },
-  { original: "Desp. Pessoal", padrao: "Despesas com Pessoal", freq: 95, conf: 94 },
-  { original: "Imp. s/ Vendas", padrao: "Impostos sobre Vendas", freq: 87, conf: 92 },
-  { original: "Result. Fin.", padrao: "Resultado Financeiro", freq: 76, conf: 90 },
-];
-
-const datasetRows = [
-  { doc: "Balancete_2024_Q4_EmpresaA.pdf", empresa: "Empresa A", data: "2025-01-12", score: 94, gold: true },
-  { doc: "DRE_2024_EmpresaB.xlsx", empresa: "Empresa B", data: "2025-01-08", score: 88, gold: false },
-  { doc: "Balancete_Out_2024_EmpresaC.pdf", empresa: "Empresa C", data: "2024-12-22", score: 91, gold: true },
-  { doc: "DRE_Nov_2024_EmpresaA.pdf", empresa: "Empresa A", data: "2024-12-10", score: 85, gold: false },
-];
-
-const accuracyTrend = [
-  { mes: "Jul", precisao: 78 }, { mes: "Ago", precisao: 82 }, { mes: "Set", precisao: 85 },
-  { mes: "Out", precisao: 88 }, { mes: "Nov", precisao: 91 }, { mes: "Dez", precisao: 93 }, { mes: "Jan", precisao: 95 },
-];
-
-const errorReduction = [
-  { mes: "Jul", erros: 124 }, { mes: "Ago", erros: 98 }, { mes: "Set", erros: 76 },
-  { mes: "Out", erros: 58 }, { mes: "Nov", erros: 42 }, { mes: "Dez", erros: 31 }, { mes: "Jan", erros: 22 },
-];
 
 // ─── TELA 1 — Upload & Processamento (REAL: parseFile + runAuditPipeline) ─────
 type StageKey = "upload" | "ocr" | "extract" | "normalize" | "validate" | "analyze";
@@ -465,11 +435,71 @@ const TabUpload = () => {
 
 // ─── TELA 2 — Validação Inteligente (CORE) ────────────────────
 const TabValidacao = () => {
-  const [rows, setRows] = useState(mockExtraction);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [balancetes, setBalancetes] = useState<ReviewBalancete[]>([]);
+  const [balanceteId, setBalanceteId] = useState<string>("");
+  const [rows, setRows] = useState<ReviewLine[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const updateRow = (id: number, field: string, value: string | number) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+  useEffect(() => {
+    listRecentBalancetes(30).then((list) => {
+      setBalancetes(list);
+      if (list.length && !balanceteId) setBalanceteId(list[0].id);
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!balanceteId) { setRows([]); return; }
+    setLoading(true);
+    loadBalanceteLines(balanceteId, 300)
+      .then(setRows)
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false));
+  }, [balanceteId]);
+
+  const updateRow = (id: string, field: "categoria" | "subcategoria" | "ref1", value: string) => {
+    setRows(prev => prev.map(r => {
+      if (r.id !== id) return r;
+      const next = { ...r, [field]: value, confidence: 1 } as ReviewLine;
+      next.status = next.categoria ? "ok" : "erro";
+      return next;
+    }));
+  };
+
+  const persistRow = async (row: ReviewLine) => {
+    try {
+      await updateLine(row.id, { categoria: row.categoria || "", subcategoria: row.subcategoria || "", ref1: row.ref1 || "" });
+      toast.success("Linha atualizada.");
+    } catch (e: any) {
+      toast.error(`Falha ao salvar: ${e?.message || e}`);
+    }
+  };
+
+  const approveAll = async () => {
+    const pending = rows.filter(r => r.status !== "ok");
+    if (!pending.length) return toast.info("Nada para aprovar.");
+    try {
+      await Promise.all(pending.map(r =>
+        updateLine(r.id, { categoria: r.categoria || "Outros", subcategoria: r.subcategoria || "", ref1: r.ref1 || "" }),
+      ));
+      setRows(prev => prev.map(r => ({ ...r, confidence: 1, status: "ok", categoria: r.categoria || "Outros" })));
+      toast.success(`${pending.length} linha(s) aprovada(s).`);
+    } catch (e: any) {
+      toast.error(`Falha: ${e?.message || e}`);
+    }
+  };
+
+  const teachSelected = async () => {
+    const row = rows.find(r => r.id === selected);
+    if (!row) return toast.error("Selecione uma linha.");
+    if (!row.categoria) return toast.error("Defina a categoria antes de ensinar.");
+    try {
+      await teachMapping(row);
+      toast.success("Dicionário atualizado.");
+    } catch (e: any) {
+      toast.error(`Falha: ${e?.message || e}`);
+    }
   };
 
   const statusBadge = (s: string) => {
@@ -478,20 +508,68 @@ const TabValidacao = () => {
     return <Badge className="bg-[hsl(0,70%,55%)]/10 text-[hsl(0,70%,55%)] hover:bg-[hsl(0,70%,55%)]/20">🔴 Erro</Badge>;
   };
 
+  const currentBal = balancetes.find(b => b.id === balanceteId);
+
   return (
     <div className="space-y-4">
+      {/* Seletor de balancete */}
+      <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap items-end gap-3">
+        <div className="flex-1 min-w-[260px] space-y-1.5">
+          <Label className="text-xs">Balancete a validar</Label>
+          <Select value={balanceteId} onValueChange={setBalanceteId}>
+            <SelectTrigger><SelectValue placeholder={balancetes.length ? "Selecionar balancete" : "Nenhum balancete encontrado"} /></SelectTrigger>
+            <SelectContent>
+              {balancetes.map(b => (
+                <SelectItem key={b.id} value={b.id}>
+                  {(b.company_name || "—")} · {b.mes_referencia} · {b.file_name} ({b.total_linhas})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant="outline" size="sm" className="gap-1.5"
+          onClick={() => balanceteId && loadBalanceteLines(balanceteId, 300).then(setRows)}
+          disabled={!balanceteId || loading}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Recarregar
+        </Button>
+      </div>
+
       <div className="grid lg:grid-cols-[1fr_1.4fr] gap-4">
-        {/* Documento original */}
+        {/* Documento original / metadados */}
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-foreground">
-            <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Documento Original
+            <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Documento
           </div>
-          <div className="aspect-[3/4] bg-muted/30 rounded-lg border border-border flex items-center justify-center text-xs text-muted-foreground">
-            <div className="text-center">
-              <FileText className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              Pré-visualização do PDF/Excel renderizado
+          {currentBal ? (
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between border-b border-border pb-1.5"><span className="text-muted-foreground">Arquivo</span><span className="text-foreground font-medium truncate ml-2">{currentBal.file_name}</span></div>
+              <div className="flex justify-between border-b border-border pb-1.5"><span className="text-muted-foreground">Empresa</span><span className="text-foreground font-medium">{currentBal.company_name || "—"}</span></div>
+              <div className="flex justify-between border-b border-border pb-1.5"><span className="text-muted-foreground">Mês ref.</span><span className="text-foreground font-mono">{currentBal.mes_referencia}</span></div>
+              <div className="flex justify-between border-b border-border pb-1.5"><span className="text-muted-foreground">Linhas extraídas</span><span className="text-foreground font-mono">{currentBal.total_linhas}</span></div>
+              <div className="grid grid-cols-3 gap-2 pt-3">
+                {(["ok","duvida","erro"] as const).map(s => {
+                  const n = rows.filter(r => r.status === s).length;
+                  const label = s === "ok" ? "Correto" : s === "duvida" ? "Dúvida" : "Erro";
+                  const color = s === "ok" ? "hsl(152,70%,45%)" : s === "duvida" ? "hsl(38,90%,55%)" : "hsl(0,70%,55%)";
+                  return (
+                    <div key={s} className="rounded-md border border-border p-2 text-center">
+                      <div className="text-lg font-bold" style={{ color }}>{n}</div>
+                      <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="aspect-[3/4] bg-muted/30 rounded-lg border border-border flex items-center justify-center text-xs text-muted-foreground">
+              <div className="text-center">
+                <FileText className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                Nenhum balancete selecionado
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Estrutura extraída */}
@@ -502,75 +580,57 @@ const TabValidacao = () => {
             </div>
             <span className="text-xs text-muted-foreground">{rows.length} linhas</span>
           </div>
-          <div className="overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Conta Original</TableHead>
-                  <TableHead className="text-xs">Conta Padronizada</TableHead>
-                  <TableHead className="text-xs">Categoria</TableHead>
-                  <TableHead className="text-xs text-right">Valor</TableHead>
-                  <TableHead className="text-xs">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.id} className={`cursor-pointer ${selected === r.id ? "bg-[hsl(258,90%,66%)]/5" : ""}`} onClick={() => setSelected(r.id)}>
-                    <TableCell className="text-xs">{r.original}</TableCell>
-                    <TableCell className="text-xs">
-                      <Input value={r.padrao} onChange={(e) => updateRow(r.id, "padrao", e.target.value)} className="h-7 text-xs" />
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      <Input value={r.categoria} onChange={(e) => updateRow(r.id, "categoria", e.target.value)} className="h-7 text-xs" />
-                    </TableCell>
-                    <TableCell className="text-xs text-right font-mono">{r.valor.toLocaleString("pt-BR")}</TableCell>
-                    <TableCell>{statusBadge(r.status)}</TableCell>
+          <div className="overflow-auto max-h-[520px]">
+            {loading ? (
+              <div className="py-10 text-center text-xs text-muted-foreground"><Loader2 className="w-5 h-5 mx-auto animate-spin mb-2" /> Carregando linhas...</div>
+            ) : rows.length === 0 ? (
+              <div className="py-10 text-center text-xs text-muted-foreground">Nenhuma linha disponível para este balancete.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Conta</TableHead>
+                    <TableHead className="text-xs">Descrição</TableHead>
+                    <TableHead className="text-xs">Categoria</TableHead>
+                    <TableHead className="text-xs">Subcategoria</TableHead>
+                    <TableHead className="text-xs text-right">Saldo</TableHead>
+                    <TableHead className="text-xs">Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r) => (
+                    <TableRow key={r.id} className={`cursor-pointer ${selected === r.id ? "bg-[hsl(258,90%,66%)]/5" : ""}`} onClick={() => setSelected(r.id)}>
+                      <TableCell className="text-xs font-mono">{r.conta}</TableCell>
+                      <TableCell className="text-xs">{r.descricao || "—"}</TableCell>
+                      <TableCell className="text-xs">
+                        <Input value={r.categoria ?? ""} onChange={(e) => updateRow(r.id, "categoria", e.target.value)} onBlur={() => persistRow(rows.find(x => x.id === r.id)!)} className="h-7 text-xs" />
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <Input value={r.subcategoria ?? ""} onChange={(e) => updateRow(r.id, "subcategoria", e.target.value)} onBlur={() => persistRow(rows.find(x => x.id === r.id)!)} className="h-7 text-xs" />
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-mono">{r.saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell>{statusBadge(r.status)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </div>
       </div>
 
-      {/* IA Assistiva */}
-      {selected && (
-        <div className="bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-foreground">
-            <Lightbulb className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Sugestões da IA para a linha selecionada
-          </div>
-          <div className="grid md:grid-cols-3 gap-2">
-            {[
-              { label: "Receita Operacional", conf: 92 },
-              { label: "Receita Bruta", conf: 87 },
-              { label: "Receita de Serviços", conf: 81 },
-            ].map((s, i) => (
-              <button key={i} className="text-left bg-card border border-border rounded-lg p-3 hover:border-[hsl(258,90%,66%)] transition-colors">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">{s.label}</span>
-                  <span className="text-xs font-mono text-[hsl(258,90%,66%)]">{s.conf}%</span>
-                </div>
-                <Progress value={s.conf} className="h-1 mt-2" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Ações */}
       <div className="flex flex-wrap items-center justify-end gap-2 bg-card rounded-xl border border-border p-4">
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Edit3 className="w-3.5 h-3.5" /> Corrigir manualmente
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toast.success("Aprovado tudo.")}>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={approveAll} disabled={!rows.length}>
           <CheckCircle2 className="w-3.5 h-3.5" /> Aprovar tudo
         </Button>
         <Button
           size="sm"
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
-          onClick={() => toast.success("IA ensinada: dataset + embedding + dicionário atualizados.")}
+          onClick={teachSelected}
+          disabled={!selected}
         >
-          <Brain className="w-3.5 h-3.5" /> Ensinar IA com essa correção
+          <Brain className="w-3.5 h-3.5" /> Ensinar IA com a linha selecionada
         </Button>
       </div>
     </div>
