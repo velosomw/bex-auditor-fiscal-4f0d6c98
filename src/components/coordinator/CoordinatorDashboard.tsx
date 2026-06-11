@@ -445,7 +445,7 @@ export default function CoordinatorDashboard() {
                     <TableHead>Contabilidade</TableHead>
                     <TableHead>E-mail</TableHead>
                     <TableHead className="text-center">Empresas</TableHead>
-                    <TableHead className="text-center">Consultores</TableHead>
+                    <TableHead className="text-center">Relatórios</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -459,7 +459,7 @@ export default function CoordinatorDashboard() {
                       <TableCell className="font-medium">{a.name}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{a.email}</TableCell>
                       <TableCell className="text-center">{a.empresas}</TableCell>
-                      <TableCell className="text-center">{a.consultores}</TableCell>
+                      <TableCell className="text-center">{a.relatorios}</TableCell>
                       <TableCell><Badge className={statusBadge(a.status)}>{a.status}</Badge></TableCell>
                     </TableRow>
                   ))}
