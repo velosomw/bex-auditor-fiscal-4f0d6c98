@@ -2072,54 +2072,84 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
         </Card>
       </div>
 
-      {/* Chat IA integrado */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Chat com Auditor IA Sênior
-            </CardTitle>
-            {selected && (
-              <Badge variant="secondary" className="text-[10px]">Contexto: Conta {selected.conta}</Badge>
-            )}
-          </div>
-          <CardDescription className="text-xs">Tire dúvidas sobre pendências, fundamentação técnica, riscos e ajustes contábeis.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="mb-3" style={{ maxHeight: 250 }}>
-            <div className="space-y-3 pr-2">
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] p-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
-                    msg.role === "user"
-                      ? "bg-[hsl(258,90%,66%)] text-white rounded-br-sm"
-                      : "bg-muted text-foreground rounded-bl-sm"
-                  }`}>
-                    {msg.text}
+      {/* Chat IA integrado — disponível apenas no dia da auditoria (oculto em relatórios históricos) */}
+      {isHistoricalView ? (
+        <Card className="border-dashed">
+          <CardContent className="py-4">
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 opacity-50" />
+              O Chat com o Auditor IA Sênior está disponível apenas no dia da realização da auditoria. Em relatórios históricos ele não fica acessível para consulta.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-[hsl(258,90%,66%)]/30 shadow-lg">
+          <CardHeader className="pb-2 bg-[hsl(258,90%,66%)]/5 border-b border-[hsl(258,90%,66%)]/20">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-foreground">
+                <MessageCircle className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Chat com Auditor IA Sênior
+              </CardTitle>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Badge variant="outline" className="text-[10px] border-[hsl(258,90%,66%)]/40 text-[hsl(258,90%,66%)]">
+                  Escopo exclusivo: {balanceteScopeId}
+                </Badge>
+                {selected && (
+                  <Badge variant="secondary" className="text-[10px]">Conta {selected.conta}</Badge>
+                )}
+              </div>
+            </div>
+            <CardDescription className="text-xs">
+              Respostas restritas exclusivamente aos dados do balancete carregado nesta auditoria. O agente não consulta outras empresas, outros relatórios ou fontes externas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div
+              ref={chatScrollRef}
+              className="mb-3 overflow-y-auto rounded-lg border border-border/40 bg-background/60 p-3"
+              style={{ height: 340 }}
+            >
+              <div className="space-y-3">
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] p-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm ${
+                      msg.role === "user"
+                        ? "bg-[hsl(258,90%,66%)] text-white rounded-br-sm"
+                        : "bg-card text-foreground border border-border/60 rounded-bl-sm"
+                    }`}>
+                      {msg.text}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+                {isStreaming && (
+                  <div className="flex justify-start">
+                    <div className="bg-card border border-border/60 rounded-xl rounded-bl-sm px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Auditor IA analisando...
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </ScrollArea>
 
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-1.5">
-              {["Por que classificou como crítico?", "Isso pode levar a RJ?", "Qual ajuste contábil?", "Gera ressalva no parecer?"].map(q => (
-                <button key={q} onClick={() => setChatInput(q)}
-                  className="text-[10px] px-2 py-1 rounded-full bg-muted/50 border border-border/50 text-muted-foreground hover:bg-muted transition-colors">
-                  {q}
-                </button>
-              ))}
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {["Por que classificou como crítico?", "Qual o impacto no balancete?", "Qual ajuste contábil sugere?", "Gera ressalva no parecer?"].map(q => (
+                  <button key={q} onClick={() => setChatInput(q)}
+                    className="text-[10px] px-2.5 py-1 rounded-full bg-muted/60 border border-border/60 text-foreground hover:bg-[hsl(258,90%,66%)]/10 hover:border-[hsl(258,90%,66%)]/40 transition-colors">
+                    {q}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Pergunte sobre este balancete..." className="text-sm" disabled={isStreaming} />
+                <Button onClick={sendChat} disabled={isStreaming} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white px-4">
+                  {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Pergunte sobre esta pendência..." className="text-sm" disabled={isStreaming} />
-              <Button onClick={sendChat} disabled={isStreaming} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white px-4">
-                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
 
     </div>
   );
