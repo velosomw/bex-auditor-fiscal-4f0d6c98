@@ -107,15 +107,7 @@ const Panel360 = ({ selection, onClose }: { selection: Selection; onClose: () =>
               <Field label="E-mail principal" value={selection.data.email} icon={Mail} />
               <Field label="Status" value={<Badge className={statusBadge(selection.data.status)}>{selection.data.status}</Badge>} icon={ShieldCheck} />
               <Field label="Empresas atendidas" value={selection.data.empresas} icon={Building2} />
-              <Field label="Consultores ativos" value={selection.data.consultores} icon={Users} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-foreground mb-2">Atividade recente</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <p>• 12 relatórios emitidos no mês</p>
-                <p>• 4 auditorias em andamento</p>
-                <p>• Última movimentação há 2 dias</p>
-              </div>
+              <Field label="Relatórios emitidos" value={selection.data.relatorios} icon={FileText} />
             </div>
           </>
         )}
