@@ -242,40 +242,35 @@ const TabKanitz = ({
         </CardHeader>
         {latest && (
           <CardContent>
-            <div className="grid lg:grid-cols-[auto,1fr] gap-6 items-center">
-              {/* Termômetro visual oficial Kanitz (1980) */}
-              <div className="flex justify-center">
-                <KanitzThermometer fi={latest.fi} label={`Período: ${latest.year}`} />
+            {/* 1º — Menu inline com os dados (indicadores principais) */}
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="text-center p-4 rounded-lg bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Fator de Insolvência (FI)</p>
+                <p className={`text-4xl font-bold font-mono ${
+                  latest.fi > 0 ? "text-emerald-600" : latest.fi >= -3 ? "text-yellow-600" : "text-red-600"
+                }`}>{latest.fi.toFixed(2)}</p>
+                {previous && (
+                  <div className="flex items-center justify-center gap-1 mt-2">
+                    {fiDelta > 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> : <TrendingDown className="w-3.5 h-3.5 text-red-500" />}
+                    <span className={`text-xs font-mono ${fiDelta > 0 ? "text-emerald-500" : "text-red-500"}`}>
+                      {fiDelta > 0 ? "+" : ""}{fiDelta.toFixed(2)} vs {previous.year}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="text-center p-4 rounded-lg bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-1">Fator de Insolvência (FI)</p>
-                  <p className={`text-4xl font-bold font-mono ${
-                    latest.fi > 0 ? "text-emerald-600" : latest.fi >= -3 ? "text-yellow-600" : "text-red-600"
-                  }`}>{latest.fi.toFixed(2)}</p>
-                  {previous && (
-                    <div className="flex items-center justify-center gap-1 mt-2">
-                      {fiDelta > 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> : <TrendingDown className="w-3.5 h-3.5 text-red-500" />}
-                      <span className={`text-xs font-mono ${fiDelta > 0 ? "text-emerald-500" : "text-red-500"}`}>
-                        {fiDelta > 0 ? "+" : ""}{fiDelta.toFixed(2)} vs {previous.year}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="text-center p-4 rounded-lg bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-1">Classificação</p>
-                  <p className="text-2xl font-bold">{latest.blocked ? "⛔" : classColors[latest.classificacao].icon}</p>
-                  <p className={`text-sm font-semibold mt-1 ${
-                    latest.blocked ? "text-muted-foreground" :
-                    latest.classificacao === "solvente" ? "text-emerald-600" :
-                    latest.classificacao === "penumbra" ? "text-yellow-600" : "text-red-600"
-                  }`}>{latest.blocked ? "Não aplicável (PL ≤ 0)" : classColors[latest.classificacao].label}</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-1">Risk Score Normalizado</p>
-                  <p className="text-4xl font-bold font-mono text-foreground">{latest.riskScoreNormalized}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Escala EBEX (0-100)</p>
-                </div>
+              <div className="text-center p-4 rounded-lg bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Classificação</p>
+                <p className="text-2xl font-bold">{latest.blocked ? "⛔" : classColors[latest.classificacao].icon}</p>
+                <p className={`text-sm font-semibold mt-1 ${
+                  latest.blocked ? "text-muted-foreground" :
+                  latest.classificacao === "solvente" ? "text-emerald-600" :
+                  latest.classificacao === "penumbra" ? "text-yellow-600" : "text-red-600"
+                }`}>{latest.blocked ? "Não aplicável (PL ≤ 0)" : classColors[latest.classificacao].label}</p>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Risk Score Normalizado</p>
+                <p className="text-4xl font-bold font-mono text-foreground">{latest.riskScoreNormalized}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Escala EBEX (0-100)</p>
               </div>
             </div>
           </CardContent>
@@ -382,7 +377,26 @@ const TabKanitz = ({
         </Card>
       )}
 
+      {/* 3º — Termômetro de Insolvência (visual oficial Kanitz, 1980) */}
+      {latest && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Scale className="w-4 h-4 text-accent" /> Termômetro de Insolvência
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Representação visual da escala de Kanitz (+7 solvente · 0 a −3 penumbra · −4 a −7 insolvente).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center py-4">
+            <KanitzThermometer fi={latest.fi} label={`Período: ${latest.year}`} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sub-tabs */}
+
+
 
       <Tabs value={subTab} onValueChange={setSubTab}>
         <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
