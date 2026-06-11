@@ -435,11 +435,71 @@ const TabUpload = () => {
 
 // ─── TELA 2 — Validação Inteligente (CORE) ────────────────────
 const TabValidacao = () => {
-  const [rows, setRows] = useState(mockExtraction);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [balancetes, setBalancetes] = useState<ReviewBalancete[]>([]);
+  const [balanceteId, setBalanceteId] = useState<string>("");
+  const [rows, setRows] = useState<ReviewLine[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const updateRow = (id: number, field: string, value: string | number) => {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+  useEffect(() => {
+    listRecentBalancetes(30).then((list) => {
+      setBalancetes(list);
+      if (list.length && !balanceteId) setBalanceteId(list[0].id);
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!balanceteId) { setRows([]); return; }
+    setLoading(true);
+    loadBalanceteLines(balanceteId, 300)
+      .then(setRows)
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false));
+  }, [balanceteId]);
+
+  const updateRow = (id: string, field: "categoria" | "subcategoria" | "ref1", value: string) => {
+    setRows(prev => prev.map(r => {
+      if (r.id !== id) return r;
+      const next = { ...r, [field]: value, confidence: 1 } as ReviewLine;
+      next.status = next.categoria ? "ok" : "erro";
+      return next;
+    }));
+  };
+
+  const persistRow = async (row: ReviewLine) => {
+    try {
+      await updateLine(row.id, { categoria: row.categoria || "", subcategoria: row.subcategoria || "", ref1: row.ref1 || "" });
+      toast.success("Linha atualizada.");
+    } catch (e: any) {
+      toast.error(`Falha ao salvar: ${e?.message || e}`);
+    }
+  };
+
+  const approveAll = async () => {
+    const pending = rows.filter(r => r.status !== "ok");
+    if (!pending.length) return toast.info("Nada para aprovar.");
+    try {
+      await Promise.all(pending.map(r =>
+        updateLine(r.id, { categoria: r.categoria || "Outros", subcategoria: r.subcategoria || "", ref1: r.ref1 || "" }),
+      ));
+      setRows(prev => prev.map(r => ({ ...r, confidence: 1, status: "ok", categoria: r.categoria || "Outros" })));
+      toast.success(`${pending.length} linha(s) aprovada(s).`);
+    } catch (e: any) {
+      toast.error(`Falha: ${e?.message || e}`);
+    }
+  };
+
+  const teachSelected = async () => {
+    const row = rows.find(r => r.id === selected);
+    if (!row) return toast.error("Selecione uma linha.");
+    if (!row.categoria) return toast.error("Defina a categoria antes de ensinar.");
+    try {
+      await teachMapping(row);
+      toast.success("Dicionário atualizado.");
+    } catch (e: any) {
+      toast.error(`Falha: ${e?.message || e}`);
+    }
   };
 
   const statusBadge = (s: string) => {
@@ -447,6 +507,8 @@ const TabValidacao = () => {
     if (s === "duvida") return <Badge className="bg-[hsl(38,90%,55%)]/10 text-[hsl(38,90%,55%)] hover:bg-[hsl(38,90%,55%)]/20">🟡 Dúvida</Badge>;
     return <Badge className="bg-[hsl(0,70%,55%)]/10 text-[hsl(0,70%,55%)] hover:bg-[hsl(0,70%,55%)]/20">🔴 Erro</Badge>;
   };
+
+  const currentBal = balancetes.find(b => b.id === balanceteId);
 
   return (
     <div className="space-y-4">
