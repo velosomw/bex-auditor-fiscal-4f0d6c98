@@ -4789,7 +4789,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         </TabsList>
 
         <TabsContent value="diagnostico"><TabDiagnostico data={activeDiagnostico} /></TabsContent>
-        <TabsContent value="analise-tecnica"><TabAnaliseTecnica pendenciasData={activePendencias} parsedData={parsedData} /></TabsContent>
+        <TabsContent value="analise-tecnica"><TabAnaliseTecnica pendenciasData={activePendencias} parsedData={parsedData} isHistoricalView={skipPersist} company={company} /></TabsContent>
         <TabsContent value="indicadores"><TabIndicadores parsedData={parsedData} aiAnalysis={aiAnalysis} bsRows={bsRows} /></TabsContent>
         <TabsContent value="endividamento"><TabEndividamento aiAnalysis={aiAnalysis} parsedData={parsedData} bsRows={bsRows} /></TabsContent>
         <TabsContent value="patrimonial"><TabPatrimonial aiAnalysis={aiAnalysis} parsedData={parsedData} bsRows={bsRows} /></TabsContent>
