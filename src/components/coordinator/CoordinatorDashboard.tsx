@@ -20,9 +20,10 @@ type Accountant = {
   name: string;
   email: string;
   empresas: number;
-  consultores: number;
+  relatorios: number;
   status: "ativa" | "pendente" | "bloqueada";
 };
+
 
 type ConsultantUser = {
   id: string;
