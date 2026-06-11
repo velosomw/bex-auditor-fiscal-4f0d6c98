@@ -512,18 +512,64 @@ const TabValidacao = () => {
 
   return (
     <div className="space-y-4">
+      {/* Seletor de balancete */}
+      <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap items-end gap-3">
+        <div className="flex-1 min-w-[260px] space-y-1.5">
+          <Label className="text-xs">Balancete a validar</Label>
+          <Select value={balanceteId} onValueChange={setBalanceteId}>
+            <SelectTrigger><SelectValue placeholder={balancetes.length ? "Selecionar balancete" : "Nenhum balancete encontrado"} /></SelectTrigger>
+            <SelectContent>
+              {balancetes.map(b => (
+                <SelectItem key={b.id} value={b.id}>
+                  {(b.company_name || "—")} · {b.mes_referencia} · {b.file_name} ({b.total_linhas})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant="outline" size="sm" className="gap-1.5"
+          onClick={() => balanceteId && loadBalanceteLines(balanceteId, 300).then(setRows)}
+          disabled={!balanceteId || loading}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Recarregar
+        </Button>
+      </div>
+
       <div className="grid lg:grid-cols-[1fr_1.4fr] gap-4">
-        {/* Documento original */}
+        {/* Documento original / metadados */}
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-foreground">
-            <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Documento Original
+            <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Documento
           </div>
-          <div className="aspect-[3/4] bg-muted/30 rounded-lg border border-border flex items-center justify-center text-xs text-muted-foreground">
-            <div className="text-center">
-              <FileText className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              Pré-visualização do PDF/Excel renderizado
+          {currentBal ? (
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between border-b border-border pb-1.5"><span className="text-muted-foreground">Arquivo</span><span className="text-foreground font-medium truncate ml-2">{currentBal.file_name}</span></div>
+              <div className="flex justify-between border-b border-border pb-1.5"><span className="text-muted-foreground">Empresa</span><span className="text-foreground font-medium">{currentBal.company_name || "—"}</span></div>
+              <div className="flex justify-between border-b border-border pb-1.5"><span className="text-muted-foreground">Mês ref.</span><span className="text-foreground font-mono">{currentBal.mes_referencia}</span></div>
+              <div className="flex justify-between border-b border-border pb-1.5"><span className="text-muted-foreground">Linhas extraídas</span><span className="text-foreground font-mono">{currentBal.total_linhas}</span></div>
+              <div className="grid grid-cols-3 gap-2 pt-3">
+                {(["ok","duvida","erro"] as const).map(s => {
+                  const n = rows.filter(r => r.status === s).length;
+                  const label = s === "ok" ? "Correto" : s === "duvida" ? "Dúvida" : "Erro";
+                  const color = s === "ok" ? "hsl(152,70%,45%)" : s === "duvida" ? "hsl(38,90%,55%)" : "hsl(0,70%,55%)";
+                  return (
+                    <div key={s} className="rounded-md border border-border p-2 text-center">
+                      <div className="text-lg font-bold" style={{ color }}>{n}</div>
+                      <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="aspect-[3/4] bg-muted/30 rounded-lg border border-border flex items-center justify-center text-xs text-muted-foreground">
+              <div className="text-center">
+                <FileText className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                Nenhum balancete selecionado
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Estrutura extraída */}
@@ -534,75 +580,57 @@ const TabValidacao = () => {
             </div>
             <span className="text-xs text-muted-foreground">{rows.length} linhas</span>
           </div>
-          <div className="overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Conta Original</TableHead>
-                  <TableHead className="text-xs">Conta Padronizada</TableHead>
-                  <TableHead className="text-xs">Categoria</TableHead>
-                  <TableHead className="text-xs text-right">Valor</TableHead>
-                  <TableHead className="text-xs">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.id} className={`cursor-pointer ${selected === r.id ? "bg-[hsl(258,90%,66%)]/5" : ""}`} onClick={() => setSelected(r.id)}>
-                    <TableCell className="text-xs">{r.original}</TableCell>
-                    <TableCell className="text-xs">
-                      <Input value={r.padrao} onChange={(e) => updateRow(r.id, "padrao", e.target.value)} className="h-7 text-xs" />
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      <Input value={r.categoria} onChange={(e) => updateRow(r.id, "categoria", e.target.value)} className="h-7 text-xs" />
-                    </TableCell>
-                    <TableCell className="text-xs text-right font-mono">{r.valor.toLocaleString("pt-BR")}</TableCell>
-                    <TableCell>{statusBadge(r.status)}</TableCell>
+          <div className="overflow-auto max-h-[520px]">
+            {loading ? (
+              <div className="py-10 text-center text-xs text-muted-foreground"><Loader2 className="w-5 h-5 mx-auto animate-spin mb-2" /> Carregando linhas...</div>
+            ) : rows.length === 0 ? (
+              <div className="py-10 text-center text-xs text-muted-foreground">Nenhuma linha disponível para este balancete.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Conta</TableHead>
+                    <TableHead className="text-xs">Descrição</TableHead>
+                    <TableHead className="text-xs">Categoria</TableHead>
+                    <TableHead className="text-xs">Subcategoria</TableHead>
+                    <TableHead className="text-xs text-right">Saldo</TableHead>
+                    <TableHead className="text-xs">Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r) => (
+                    <TableRow key={r.id} className={`cursor-pointer ${selected === r.id ? "bg-[hsl(258,90%,66%)]/5" : ""}`} onClick={() => setSelected(r.id)}>
+                      <TableCell className="text-xs font-mono">{r.conta}</TableCell>
+                      <TableCell className="text-xs">{r.descricao || "—"}</TableCell>
+                      <TableCell className="text-xs">
+                        <Input value={r.categoria ?? ""} onChange={(e) => updateRow(r.id, "categoria", e.target.value)} onBlur={() => persistRow(rows.find(x => x.id === r.id)!)} className="h-7 text-xs" />
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <Input value={r.subcategoria ?? ""} onChange={(e) => updateRow(r.id, "subcategoria", e.target.value)} onBlur={() => persistRow(rows.find(x => x.id === r.id)!)} className="h-7 text-xs" />
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-mono">{r.saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell>{statusBadge(r.status)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </div>
       </div>
 
-      {/* IA Assistiva */}
-      {selected && (
-        <div className="bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-foreground">
-            <Lightbulb className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Sugestões da IA para a linha selecionada
-          </div>
-          <div className="grid md:grid-cols-3 gap-2">
-            {[
-              { label: "Receita Operacional", conf: 92 },
-              { label: "Receita Bruta", conf: 87 },
-              { label: "Receita de Serviços", conf: 81 },
-            ].map((s, i) => (
-              <button key={i} className="text-left bg-card border border-border rounded-lg p-3 hover:border-[hsl(258,90%,66%)] transition-colors">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">{s.label}</span>
-                  <span className="text-xs font-mono text-[hsl(258,90%,66%)]">{s.conf}%</span>
-                </div>
-                <Progress value={s.conf} className="h-1 mt-2" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Ações */}
       <div className="flex flex-wrap items-center justify-end gap-2 bg-card rounded-xl border border-border p-4">
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Edit3 className="w-3.5 h-3.5" /> Corrigir manualmente
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toast.success("Aprovado tudo.")}>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={approveAll} disabled={!rows.length}>
           <CheckCircle2 className="w-3.5 h-3.5" /> Aprovar tudo
         </Button>
         <Button
           size="sm"
           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
-          onClick={() => toast.success("IA ensinada: dataset + embedding + dicionário atualizados.")}
+          onClick={teachSelected}
+          disabled={!selected}
         >
-          <Brain className="w-3.5 h-3.5" /> Ensinar IA com essa correção
+          <Brain className="w-3.5 h-3.5" /> Ensinar IA com a linha selecionada
         </Button>
       </div>
     </div>
