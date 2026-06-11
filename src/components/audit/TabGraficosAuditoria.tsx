@@ -14,6 +14,7 @@ import {
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import type { BalanceteEntry } from "@/services/bsDadosBuilder";
 import AuditCharts from "@/components/audit/AuditCharts";
+import AuditChartsBex from "@/components/audit/AuditChartsBex";
 
 interface Props {
   files?: File[];
