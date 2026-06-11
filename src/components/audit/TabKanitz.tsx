@@ -132,7 +132,38 @@ const TabKanitz = ({
 
   // ▶ Camadas 1–5 do MD: pipeline canônico (anual — preservado para compat)
   const v2Series = buildKanitzSeries(parsedData || null, aiAnalysis);
-  const kanitzResults: KanitzResult[] = v2Series.map(toLegacy);
+  let kanitzResults: KanitzResult[] = v2Series.map(toLegacy);
+
+  // ▶ Fallback: quando o pipeline anual não produz dados (parsedData sem `years`
+  // e sem aiAnalysis utilizável) mas existe série mensal proveniente do balancete,
+  // derivamos uma série anual usando o ÚLTIMO mês de cada ano (snapshot de saldos).
+  // Sem isso, o header e todas as sub-abas baseadas em `kanitzResults` ficavam
+  // vazias mesmo havendo dados em "Análise Mensal" e em "Gráficos de Auditoria".
+  if (kanitzResults.length === 0 && monthlySeries.length > 0) {
+    const byYear = new Map<string, KanitzMonthlyResult>();
+    for (const m of monthlySeries) {
+      const year = m.mesKey.slice(0, 4);
+      const prev = byYear.get(year);
+      if (!prev || m.mesKey > prev.mesKey) byYear.set(year, m);
+    }
+    kanitzResults = Array.from(byYear.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([year, m]) => {
+        const legacyClass: "solvente" | "penumbra" | "insolvente" =
+          m.rating === "A" ? "solvente" : m.rating === "D" ? "insolvente" : "penumbra";
+        return {
+          year,
+          rpl: m.rl, lg: m.lg, ls: m.ls, lc: m.lc, ge: m.ge,
+          fi: m.score,
+          classificacao: legacyClass,
+          riskScoreNormalized: 0,
+          blocked: false,
+          blockReasons: [],
+          origem: "balancete-mensal",
+          confianca: 0.85,
+        };
+      });
+  }
 
   // Risk Score normalizado (escala min-max do FI por série, exclusivo do display)
   if (kanitzResults.length > 0) {
