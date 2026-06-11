@@ -25,20 +25,27 @@ interface Props {
   entries?: BalanceteEntry[];
 }
 
-const TITLE_STYLE = "text-center text-[13px] font-bold text-[#1F1F1F] mb-1";
-const SUB_STYLE = "text-center text-[11px] text-[#1F1F1F] mb-2";
+const TITLE_STYLE = "text-center text-[13px] font-bold text-foreground mb-1 uppercase tracking-wide";
+const SUB_STYLE = "text-center text-[11px] text-muted-foreground mb-2 font-medium";
 const AXIS_PROPS = {
-  tick: { fontSize: 11, fill: "#333", fontFamily: "Segoe UI, Arial, sans-serif" },
-  stroke: "#BFBFBF",
+  tick: { fontSize: 12, fill: "hsl(var(--foreground))", fontFamily: "Segoe UI, Arial, sans-serif", fontWeight: 500 },
+  stroke: "hsl(var(--foreground) / 0.35)",
+  tickLine: { stroke: "hsl(var(--foreground) / 0.35)" },
 };
-const GRID = <CartesianGrid stroke="#E7E7E7" strokeDasharray="3 3" vertical={false} />;
+const GRID = <CartesianGrid stroke="hsl(var(--foreground) / 0.18)" strokeDasharray="3 3" vertical={false} />;
 const TOOLTIP_STYLE = {
   contentStyle: {
-    backgroundColor: "rgba(255,255,255,0.96)",
-    border: "1px solid #BFBFBF",
-    fontSize: 11,
+    backgroundColor: "hsl(var(--background))",
+    border: "1px solid hsl(var(--foreground) / 0.25)",
+    fontSize: 12,
     fontFamily: "Segoe UI, Arial, sans-serif",
+    color: "hsl(var(--foreground))",
+    borderRadius: 6,
+    boxShadow: "0 4px 12px hsl(var(--foreground) / 0.15)",
   },
+  labelStyle: { color: "hsl(var(--foreground))", fontWeight: 600 },
+  itemStyle: { color: "hsl(var(--foreground))" },
+  cursor: { fill: "hsl(var(--foreground) / 0.06)" },
 };
 
 const Empty = ({ msg }: { msg: string }) => (
@@ -49,12 +56,12 @@ const Empty = ({ msg }: { msg: string }) => (
 );
 
 const ChartTile = ({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) => (
-  <Card className="overflow-hidden">
-    <CardContent className="p-4">
+  <Card className="overflow-hidden border-2">
+    <CardContent className="p-4 bg-background">
       <div className={TITLE_STYLE}>{title}</div>
       {subtitle && <div className={SUB_STYLE}>{subtitle}</div>}
-      <div style={{ width: "100%", height: 280 }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div style={{ width: "100%", height: 320, minHeight: 320 }}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={320}>
           {children as any}
         </ResponsiveContainer>
       </div>
@@ -173,10 +180,10 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
             <YAxis yAxisId="right" orientation="right" {...AXIS_PROPS} domain={[-100, 100]} tickFormatter={(v) => `${v}%`} />
             <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [n.includes("%") ? tooltipPct(v) : tooltipMilhar(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <Bar yAxisId="left" dataKey="receita" name="Receita Líquida" fill={EXCEL_COLORS.azul} />
             <Bar yAxisId="left" dataKey="cmv" name="CMV" fill={EXCEL_COLORS.laranja} />
-            <Line yAxisId="right" type="monotone" dataKey="cmvPct" name="CMV / Receita (%)" stroke={EXCEL_COLORS.vermelho} strokeWidth={2} dot={{ r: 4 }} />
+            <Line yAxisId="right" type="monotone" dataKey="cmvPct" name="CMV / Receita (%)" stroke={EXCEL_COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
           </ComposedChart>
         </ChartTile>
 
@@ -188,10 +195,10 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
             <YAxis yAxisId="right" orientation="right" {...AXIS_PROPS} tickFormatter={(v) => `${v}%`} />
             <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [n.includes("%") ? tooltipPct(v) : tooltipMilhar(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <Bar yAxisId="left" dataKey="receita" name="Receita Líquida" fill={EXCEL_COLORS.azul} />
             <Bar yAxisId="left" dataKey="cmvDesp" name="CMV + Despesa" fill={EXCEL_COLORS.vermelho} />
-            <Line yAxisId="right" type="monotone" dataKey="cmvDespPct" name="CMV+Desp / Receita (%)" stroke={EXCEL_COLORS.vermelho} strokeWidth={2} dot={{ r: 4 }} />
+            <Line yAxisId="right" type="monotone" dataKey="cmvDespPct" name="CMV+Desp / Receita (%)" stroke={EXCEL_COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
             <ReferenceLine yAxisId="right" y={100} stroke={EXCEL_COLORS.vermelho} strokeDasharray="4 4" label={{ value: "100% (limite)", fontSize: 10, fill: EXCEL_COLORS.vermelho }} />
           </ComposedChart>
         </ChartTile>
@@ -204,10 +211,10 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
             <YAxis yAxisId="right" orientation="right" {...AXIS_PROPS} tickFormatter={(v) => `${v}%`} />
             <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [n.includes("%") ? tooltipPct(v) : tooltipMilhar(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <Bar yAxisId="left" dataKey="receita" name="Receita Líquida" fill={EXCEL_COLORS.azul} />
             <Bar yAxisId="left" dataKey="resultado" name="Lucro/Prejuízo Líquido" fill={EXCEL_COLORS.laranja} />
-            <Line yAxisId="right" type="monotone" dataKey="margemPct" name="Resultado / Receita (%)" stroke={EXCEL_COLORS.verde} strokeWidth={2} dot={{ r: 4 }} />
+            <Line yAxisId="right" type="monotone" dataKey="margemPct" name="Resultado / Receita (%)" stroke={EXCEL_COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
           </ComposedChart>
         </ChartTile>
 
@@ -218,7 +225,7 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS_PROPS} />
             <YAxis {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
             <Tooltip {...TOOLTIP_STYLE} formatter={(v: any) => [tooltipMilhar(v), "EBITDA"]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <ReferenceLine y={0} stroke={EXCEL_COLORS.cinza} />
             <Line type="monotone" dataKey="ebitda" name="EBITDA" stroke={EXCEL_COLORS.ciano} strokeWidth={3} dot={{ r: 5, fill: EXCEL_COLORS.ciano }} />
           </LineChart>
@@ -231,11 +238,11 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS_PROPS} />
             <YAxis {...AXIS_PROPS} tickFormatter={tooltipDec} />
             <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [tooltipDec(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="liquidez_imediata" name="LIQUIDEZ IMEDIATA" stroke={EXCEL_COLORS.azul} strokeWidth={2} dot={{ r: 3 }} />
-            <Line type="monotone" dataKey="liquidez_corrente" name="LIQUIDEZ CORRENTE" stroke={EXCEL_COLORS.vermelho} strokeWidth={2} dot={{ r: 3 }} />
-            <Line type="monotone" dataKey="liquidez_seca" name="LIQUIDEZ SECA" stroke={EXCEL_COLORS.verde} strokeWidth={2} dot={{ r: 3 }} />
-            <Line type="monotone" dataKey="liquidez_geral" name="LIQUIDEZ GERAL" stroke={EXCEL_COLORS.roxo} strokeWidth={2} dot={{ r: 3 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
+            <Line type="monotone" dataKey="liquidez_imediata" name="LIQUIDEZ IMEDIATA" stroke={EXCEL_COLORS.azul} strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="liquidez_corrente" name="LIQUIDEZ CORRENTE" stroke={EXCEL_COLORS.vermelho} strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="liquidez_seca" name="LIQUIDEZ SECA" stroke={EXCEL_COLORS.verde} strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="liquidez_geral" name="LIQUIDEZ GERAL" stroke={EXCEL_COLORS.roxo} strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} />
           </LineChart>
         </ChartTile>
 
@@ -247,7 +254,7 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis yAxisId="left" {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
             <YAxis yAxisId="right" orientation="right" {...AXIS_PROPS} tickFormatter={tooltipMilhar} stroke={EXCEL_COLORS.vermelho} />
             <Tooltip {...TOOLTIP_STYLE} formatter={(v: any, n: string) => [tooltipMilhar(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <Bar yAxisId="left" dataKey="divida_tributaria" name="OBRIG. TRIBUTÁRIAS" stackId="div" fill={EXCEL_COLORS.azul} />
             <Bar yAxisId="left" dataKey="divida_trabalhista" name="OBRIG. TRABALHISTAS" stackId="div" fill={EXCEL_COLORS.laranja} />
             <Bar yAxisId="left" dataKey="divida_financeira" name="EMPR. E FINANCIAMENTOS" stackId="div" fill={EXCEL_COLORS.cinzaEscuro} />

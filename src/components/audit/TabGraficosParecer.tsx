@@ -66,19 +66,19 @@ const fmtDec = (v: any) => {
   return n.toFixed(2);
 };
 
-const AXIS = { tick: { fontSize: 11, fill: "hsl(var(--muted-foreground))" }, stroke: "hsl(var(--border))" };
-const GRID = <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />;
-const TIP = { contentStyle: { background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 11 } };
+const AXIS = { tick: { fontSize: 12, fill: "hsl(var(--foreground))", fontWeight: 500 }, stroke: "hsl(var(--foreground) / 0.35)", tickLine: { stroke: "hsl(var(--foreground) / 0.35)" } };
+const GRID = <CartesianGrid stroke="hsl(var(--foreground) / 0.18)" strokeDasharray="3 3" vertical={false} />;
+const TIP = { contentStyle: { background: "hsl(var(--background))", border: "1px solid hsl(var(--foreground) / 0.25)", fontSize: 12, color: "hsl(var(--foreground))", borderRadius: 6, boxShadow: "0 4px 12px hsl(var(--foreground) / 0.15)" }, labelStyle: { color: "hsl(var(--foreground))", fontWeight: 600 }, itemStyle: { color: "hsl(var(--foreground))" }, cursor: { fill: "hsl(var(--foreground) / 0.06)" } };
 
-const Tile: React.FC<{ title: string; subtitle?: string; children: React.ReactNode; height?: number }> = ({ title, subtitle, children, height = 280 }) => (
-  <Card className="overflow-hidden">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-[13px] font-bold text-center">{title}</CardTitle>
-      {subtitle && <CardDescription className="text-center text-[11px]">{subtitle}</CardDescription>}
+const Tile: React.FC<{ title: string; subtitle?: string; children: React.ReactNode; height?: number }> = ({ title, subtitle, children, height = 320 }) => (
+  <Card className="overflow-hidden border-2">
+    <CardHeader className="pb-2 bg-muted/30 border-b">
+      <CardTitle className="text-[13px] font-bold text-center uppercase tracking-wide">{title}</CardTitle>
+      {subtitle && <CardDescription className="text-center text-[11px] font-medium">{subtitle}</CardDescription>}
     </CardHeader>
-    <CardContent className="pt-0">
-      <div style={{ width: "100%", height }}>
-        <ResponsiveContainer width="100%" height="100%">
+    <CardContent className="pt-4 pb-3 px-3 bg-background">
+      <div style={{ width: "100%", height, minHeight: height }}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={height}>
           {children as any}
         </ResponsiveContainer>
       </div>
@@ -194,7 +194,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={fmtDec} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtDec(v), "Liquidez Geral"]} />
-            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azul} strokeWidth={2} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
           </LineChart>
         </Tile>
 
@@ -206,14 +206,14 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis yAxisId="l" {...AXIS} tickFormatter={fmtMil} />
             <YAxis yAxisId="r" orientation="right" {...AXIS} tickFormatter={fmtMil} stroke={COLORS.vermelho} />
             <Tooltip {...TIP} formatter={(v: any, n: string) => [fmtBRL(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 10 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <Bar yAxisId="l" dataKey="trib" name="Obrig. Tributárias" stackId="d" fill={COLORS.azul} />
             <Bar yAxisId="l" dataKey="trab" name="Obrig. Trabalhistas" stackId="d" fill={COLORS.laranja} />
             <Bar yAxisId="l" dataKey="emp" name="Empr. e Financ." stackId="d" fill={COLORS.cinzaEsc} />
             <Bar yAxisId="l" dataKey="forn" name="Fornecedores" stackId="d" fill={COLORS.verde} />
             <Bar yAxisId="l" dataKey="credRJ" name="Credores RJ" stackId="d" fill={COLORS.amarelo} />
             <Bar yAxisId="l" dataKey="outras" name="Outras Obrigações" stackId="d" fill={COLORS.rosa} />
-            <Line yAxisId="r" type="monotone" dataKey="total" name="TOTAL" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 4 }} />
+            <Line yAxisId="r" type="monotone" dataKey="total" name="TOTAL" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
           </ComposedChart>
         </Tile>
 
@@ -224,7 +224,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={fmtMil} />
             <Tooltip {...TIP} formatter={(v: any, n: string) => [fmtBRL(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <Bar dataKey="PC" name="Passivo Circulante" fill={COLORS.azul} />
             <Bar dataKey="PNC" name="Passivo Não Circulante" fill={COLORS.laranja} />
           </BarChart>
@@ -237,7 +237,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(1)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Emp. / Passivo Total"]} />
-            <Line type="monotone" dataKey="empPass" name="Empr. / Passivo Total" stroke={COLORS.verde} strokeWidth={2} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="empPass" name="Empr. / Passivo Total" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
           </LineChart>
         </Tile>
 
@@ -249,7 +249,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Endividamento Geral"]} />
             <ReferenceLine y={1} stroke={COLORS.vermelho} strokeDasharray="4 4" label={{ value: "100%", fontSize: 10, fill: COLORS.vermelho }} />
-            <Line type="monotone" dataKey="endivG" name="Endividamento Geral" stroke={COLORS.vermelho} strokeWidth={2} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="endivG" name="Endividamento Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
           </LineChart>
         </Tile>
 
@@ -277,7 +277,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Resultado / Receita"]} />
             <ReferenceLine y={0} stroke={COLORS.cinza} />
-            <Line type="monotone" dataKey="resReceita" name="Resultado / Receita" stroke={COLORS.verde} strokeWidth={2} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="resReceita" name="Resultado / Receita" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
           </LineChart>
         </Tile>
 
@@ -329,10 +329,10 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={fmtDec} />
             <Tooltip {...TIP} formatter={(v: any, n: string) => [fmtDec(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <ReferenceLine y={1} stroke={COLORS.cinza} strokeDasharray="4 4" />
-            <Line type="monotone" dataKey="liqCorr" name="Liquidez Corrente (AC/PC)" stroke={COLORS.azul} strokeWidth={2} dot={{ r: 4 }} />
-            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.vermelho} strokeWidth={2} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="liqCorr" name="Liquidez Corrente (AC/PC)" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
           </LineChart>
         </Tile>
 
