@@ -32,13 +32,15 @@ const Login = () => {
     return () => clearInterval(timer);
   }, [resendCountdown]);
 
-  // Se estiver logado mas o e-mail não estiver confirmado, desloga e pede confirmação
-  // (Pode acontecer se o redirecionamento pós-login for automático ou se houver uma sessão pendente)
-  if (!userLoading && supabaseUser && !supabaseUser.email_confirmed_at) {
-    logout();
-    toast.error("E-mail não confirmado. Por favor, verifique sua caixa de entrada.");
-    setMode("resend");
-  }
+  // Se estiver logado mas o e-mail não estiver confirmado, desloga e pede confirmação.
+  // IMPORTANTE: side-effects precisam estar em useEffect, nunca em render.
+  useEffect(() => {
+    if (!userLoading && supabaseUser && !supabaseUser.email_confirmed_at) {
+      logout();
+      toast.error("E-mail não confirmado. Por favor, verifique sua caixa de entrada.");
+      setMode("resend");
+    }
+  }, [userLoading, supabaseUser, logout]);
 
   // Já autenticado e confirmado → redireciona para a home da role (evita ficar travado em /login)
   if (!userLoading && authenticated && realRole && supabaseUser?.email_confirmed_at) {
@@ -48,6 +50,7 @@ const Login = () => {
       : "/user";
     return <Navigate to={target} replace />;
   }
+
 
   const getRedirectPath = (role: string) => {
     if (role === "gestor_ia") return "/gestor-ia";
