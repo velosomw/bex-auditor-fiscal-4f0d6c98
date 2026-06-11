@@ -36,6 +36,9 @@ export function bsDadosToMonthlyDataset(rows: BSDadosRow[]): MonthlyDatum[] {
       ativo_nao_circulante: r.ativo_nao_circulante,
       passivo_circulante: r.passivo_circulante,
       passivo_nao_circulante: r.passivo_nao_circulante,
+      patrimonio_liquido: r.patrimonio_liquido,
+      imobilizado: r.imobilizado,
+      intangivel: r.intangivel,
       estoques: r.estoques,
       disponivel: r.disponivel,
       // ENDIVIDAMENTO
