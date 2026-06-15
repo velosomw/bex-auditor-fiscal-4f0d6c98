@@ -566,19 +566,7 @@ const UserDashboard = () => {
           </div>
         )}
 
-        {/* Visibilidade de Extração IA */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-base">Visibilidade de Extração IA</CardTitle>
-              <CardDescription>
-                Quanto a IA conseguiu extrair de cada arquivo enviado (premissa: extração de dados — não consistência interna do balancete).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="relative h-[220px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+
         {/* Visibilidade de Extração IA + Visibilidade IA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Visibilidade de Extração IA — com desvio */}
