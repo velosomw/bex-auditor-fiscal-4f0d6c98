@@ -294,10 +294,19 @@ const UserDashboard = () => {
               <>
                 <Button
                   size="sm"
-                  onClick={() => navigate("/user/empresas")}
-                  className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                  onClick={handleNovaAuditoriaClick}
+                  disabled={limitLoading}
+                  title={limitReached ? `Limite mensal atingido (${monthlyUsed}/${monthlyLimit}). Clique para saber como liberar.` : undefined}
+                  className={
+                    limitReached
+                      ? "bg-muted text-muted-foreground hover:bg-muted/80 gap-1.5 cursor-pointer"
+                      : "bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                  }
                 >
                   <Plus className="w-4 h-4" /> Nova Auditoria
+                  {limitReached && monthlyLimit !== null && (
+                    <span className="text-[10px] opacity-80 ml-1">({monthlyUsed}/{monthlyLimit})</span>
+                  )}
                 </Button>
                 <Button
                   size="sm"
