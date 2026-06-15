@@ -356,7 +356,7 @@ const exportDocx = (containerId: string, reportTitle: string) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${reportTitle}.doc`;
+  a.download = `${bexFileName(reportTitle)}.doc`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
