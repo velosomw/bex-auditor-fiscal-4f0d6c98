@@ -15,7 +15,7 @@ import {
 } from "@/services/reportLimitsService";
 import { listCompanies, type Company } from "@/services/companiesService";
 
-const DEFAULT_GLOBAL: GlobalLimits = { resumido: 50, completo: 10 };
+const DEFAULT_GLOBAL: GlobalLimits = { resumido: 50, completo: 10, empresas: 10 };
 
 const TabReportLimits = () => {
   const [global, setGlobal] = useState<GlobalLimits>(DEFAULT_GLOBAL);
@@ -77,7 +77,7 @@ const TabReportLimits = () => {
     setSaving(true);
     try {
       await setGlobalLimits(global);
-      toast.success(`Cotas mensais salvas: ${global.resumido} resumidos · ${global.completo} completos por empresa`);
+      toast.success(`Cotas salvas: ${global.empresas} empresas · ${global.resumido} gratuitos · ${global.completo} kanitz por empresa/mês`);
       await reload();
     } catch (e: any) {
       toast.error("Erro ao salvar cotas: " + (e?.message ?? "verifique se você é Gestor IA"));
@@ -95,7 +95,7 @@ const TabReportLimits = () => {
     setSaving(true);
     try {
       await setPerCompanyExtra(c.id, c.name, { resumido: r, completo: co });
-      toast.success(`Extras atribuídos a ${c.name}: +${r} resumidos · +${co} completos`);
+      toast.success(`Extras atribuídos a ${c.name}: +${r} gratuitos · +${co} kanitz`);
       await reload();
     } catch (e: any) {
       toast.error("Erro ao salvar extras: " + (e?.message ?? "permissão negada"));
@@ -127,24 +127,24 @@ const TabReportLimits = () => {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileText className="w-3.5 h-3.5" /> Cota Resumidos</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><Building2 className="w-3.5 h-3.5" /> Empresas / Contabilidade</div>
+          <div className="text-3xl font-bold mt-2">{global.empresas}</div>
+          <div className="text-xs text-muted-foreground">limite de cadastro</div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileText className="w-3.5 h-3.5" /> Cota Gratuitos</div>
           <div className="text-3xl font-bold mt-2">{global.resumido}</div>
           <div className="text-xs text-muted-foreground">/empresa/mês</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileStack className="w-3.5 h-3.5" /> Cota Completos</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileStack className="w-3.5 h-3.5" /> Cota Kanitz</div>
           <div className="text-3xl font-bold mt-2">{global.completo}</div>
           <div className="text-xs text-muted-foreground">/empresa/mês</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileBarChart className="w-3.5 h-3.5" /> Emitidos</div>
           <div className="text-3xl font-bold mt-2">{totals.totalResumidos + totals.totalCompletos}</div>
-          <div className="text-xs text-muted-foreground">{totals.totalResumidos} resumidos · {totals.totalCompletos} completos</div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><Building2 className="w-3.5 h-3.5" /> Empresas Ativas</div>
-          <div className="text-3xl font-bold mt-2">{totals.companiesWithReports}</div>
-          <div className="text-xs text-muted-foreground">consumindo cota no mês</div>
+          <div className="text-xs text-muted-foreground">{totals.totalResumidos} gratuitos · {totals.totalCompletos} kanitz</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><CalendarClock className="w-3.5 h-3.5" /> Renovação</div>
@@ -154,17 +154,28 @@ const TabReportLimits = () => {
       </div>
 
       <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-xs text-amber-900 dark:text-amber-300">
-        <strong>Regra de consumo:</strong> selecionar “Relatório BEx_Completo_Kanitz” gera o Completo + Resumido, consumindo <b>1 completo + 1 resumido</b> da cota.
-        Selecionar “Relatório BEx_Resumido_Kanitz” consome apenas <b>1 resumido</b>. Cotas resetam todo dia 1º.
+        <strong>Regra de consumo:</strong> selecionar “Relatório Kanitz” gera o Kanitz + Gratuito, consumindo <b>1 kanitz + 1 gratuito</b> da cota.
+        Selecionar “Relatório Gratuito” consome apenas <b>1 gratuito</b>. Cotas resetam todo dia 1º. O limite de <b>empresas</b> aplica-se ao cadastro feito pelo perfil Contabilidade.
       </div>
 
       {/* Limites globais por variante */}
       <div className="bg-card border border-border rounded-xl p-6">
         <h3 className="text-base font-bold mb-1 flex items-center gap-2"><Globe2 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Cotas Globais por Nível Técnico</h3>
-        <p className="text-xs text-muted-foreground mb-4">Aplicadas a todas as empresas. Empresas com complemento abaixo recebem quantidade adicional acima dessas cotas.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end max-w-2xl">
+        <p className="text-xs text-muted-foreground mb-4">Aplicadas a todas as contabilidades/empresas. Definem quantas empresas o perfil Contabilidade pode cadastrar e quantos relatórios cada empresa pode gerar por mês.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end max-w-3xl">
           <div>
-            <Label className="text-xs">Resumidos / mês</Label>
+            <Label className="text-xs">Empresas / contabilidade</Label>
+            <Input
+              type="number" min={0} max={9999}
+              value={global.empresas}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, empresas: Number.isFinite(v) && v >= 0 ? v : 0 });
+              }}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Relatórios Gratuitos / mês</Label>
             <Input
               type="number" min={0} max={9999}
               value={global.resumido}
@@ -175,7 +186,7 @@ const TabReportLimits = () => {
             />
           </div>
           <div>
-            <Label className="text-xs">Completos / mês</Label>
+            <Label className="text-xs">Relatórios Kanitz / mês</Label>
             <Input
               type="number" min={0} max={9999}
               value={global.completo}
@@ -208,11 +219,11 @@ const TabReportLimits = () => {
             </Select>
           </div>
           <div>
-            <Label className="text-xs">+ Resumidos</Label>
+            <Label className="text-xs">+ Gratuitos</Label>
             <Input type="number" min={0} max={999} value={extraResumido} onChange={e => setExtraResumido(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">+ Completos</Label>
+            <Label className="text-xs">+ Kanitz</Label>
             <Input type="number" min={0} max={999} value={extraCompleto} onChange={e => setExtraCompleto(e.target.value)} />
           </div>
         </div>
@@ -226,8 +237,8 @@ const TabReportLimits = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Empresa</TableHead>
-                  <TableHead className="text-center">Resumidos (Total)</TableHead>
-                  <TableHead className="text-center">Completos (Total)</TableHead>
+                  <TableHead className="text-center">Gratuitos (Total)</TableHead>
+                  <TableHead className="text-center">Kanitz (Total)</TableHead>
                   <TableHead className="text-center">Extras</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
@@ -283,8 +294,8 @@ const TabReportLimits = () => {
               <TableRow>
                 <TableHead>Empresa</TableHead>
                 <TableHead>CNPJ</TableHead>
-                <TableHead className="text-center">Resumidos</TableHead>
-                <TableHead className="text-center">Completos</TableHead>
+                <TableHead className="text-center">Gratuitos</TableHead>
+                <TableHead className="text-center">Kanitz</TableHead>
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>

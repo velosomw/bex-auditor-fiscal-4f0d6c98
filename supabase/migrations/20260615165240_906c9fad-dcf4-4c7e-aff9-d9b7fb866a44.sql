@@ -1,0 +1,1 @@
+ALTER TABLE public.report_global_quotas ADD COLUMN IF NOT EXISTS empresas integer NOT NULL DEFAULT 10 CHECK (empresas >= 0 AND empresas <= 9999);
