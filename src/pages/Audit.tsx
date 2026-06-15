@@ -840,7 +840,12 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
       </div>
 
       <div className="max-w-3xl mx-auto pt-2">
-        <DedupPresetForm value={dedupConfig} onChange={onDedupChange} />
+        <DedupPresetForm
+          value={dedupConfig}
+          onChange={onDedupChange}
+          disabled={isFreeTier}
+          lockedMessage="Disponível apenas em planos pagos. Faça upgrade para liberar ajustes finos de deduplicação."
+        />
       </div>
 
       <div className="flex flex-col items-center pt-2 gap-2">
