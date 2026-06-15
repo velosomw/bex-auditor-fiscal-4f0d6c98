@@ -258,7 +258,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(1)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Emp. / Passivo Total"]} />
-            <Line type="monotone" dataKey="empPass" name="Empr. / Passivo Total" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="empPass" name="Empr. / Passivo Total" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="empPass" {...LABEL_PCT} />
+            </Line>
           </LineChart>
         </Tile>
 
