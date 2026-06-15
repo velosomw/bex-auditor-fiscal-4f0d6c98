@@ -448,14 +448,22 @@ const UserDashboard = () => {
                   </div>
 
                   {/* Relatório gerado */}
+                  {(() => {
+                    const isNew = latestReportId === report.id;
+                    return (
                   <Card
-                    className="border-l-4 border-l-[hsl(258,90%,66%)] cursor-pointer hover:bg-muted/20 transition-colors group"
-                    onClick={() => navigate(`/user/report/${report.id}`)}
+                    className={`border-l-4 border-l-[hsl(258,90%,66%)] cursor-pointer hover:bg-muted/20 transition-colors group ${isNew ? "ring-2 ring-[hsl(142,76%,36%)] shadow-[0_0_0_4px_hsl(142,76%,36%/0.15)] animate-pulse" : ""}`}
+                    onClick={() => { clearLatestReport(); setLatestReportId(null); navigate(`/user/report/${report.id}`); }}
                   >
                     <CardHeader className="pb-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" />
                         <CardTitle className="text-sm">Relatório Gerado</CardTitle>
+                        {isNew && (
+                          <Badge className="text-[10px] border bg-[hsl(142,76%,36%)] text-white border-[hsl(142,76%,36%)] animate-pulse">
+                            ● Disponível para análise
+                          </Badge>
+                        )}
                         <Badge className={`text-[10px] border ml-auto ${statusConfig.completed.className}`}>Concluído</Badge>
                       </div>
                     </CardHeader>
