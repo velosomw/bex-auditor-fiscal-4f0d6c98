@@ -30,6 +30,7 @@ import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getGlobalLimits } from "@/services/reportLimitsService";
 import { getExtractionMetric, EXTRACTION_TIERS, getTierMeta } from "@/lib/extractionQuality";
+import { getVisibilityMetric, VISIBILITY_TIERS, getVisibilityTierMeta } from "@/lib/dataVisibility";
 
 const statusConfig = {
   completed: { label: "Concluída", className: "bg-[hsl(142,76%,36%)]/20 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30" },
@@ -209,6 +210,25 @@ const UserDashboard = () => {
     return { tier, name: meta.shortLabel, fullLabel: meta.label, value: count, color: meta.dotColor };
   });
   const hasExtractionData = extractionMetrics.length > 0;
+
+  // Desvio: o que NÃO foi extraído (100 - extractionAvg) detalhado por tier não-completo
+  const extractionDeviation = Math.max(0, 100 - extractionAvg);
+  const deviationBreakdown = extractionBreakdown
+    .filter(d => d.tier !== "completo" && d.value > 0)
+    .map(d => ({ ...d }));
+
+  // Visibilidade IA — a IA conseguiu enxergar meses e dados do balancete?
+  const visibilityMetrics = reports.map(r => getVisibilityMetric({ parsedData: r.parsedData }));
+  const visibilityAvg = visibilityMetrics.length > 0
+    ? Math.round(visibilityMetrics.reduce((s, m) => s + m.percent, 0) / visibilityMetrics.length)
+    : 0;
+  const visibilityBreakdown = VISIBILITY_TIERS.map(tier => {
+    const meta = getVisibilityTierMeta(tier);
+    const count = visibilityMetrics.filter(m => m.tier === tier).length;
+    return { tier, name: meta.shortLabel, fullLabel: meta.label, value: count, color: meta.dotColor };
+  });
+  const hasVisibilityData = visibilityMetrics.length > 0;
+  const visibilityDeviation = Math.max(0, 100 - visibilityAvg);
 
   // Agrupa documentos por batchId; documentos sem batch ficam em "orfãos"
   const docsByBatch = new Map<string, AuditHistoryEntry[]>();
@@ -546,13 +566,15 @@ const UserDashboard = () => {
           </div>
         )}
 
-        {/* Visibilidade de Extração IA */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1">
+
+        {/* Visibilidade de Extração IA + Visibilidade IA */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Visibilidade de Extração IA — com desvio */}
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">Visibilidade de Extração IA</CardTitle>
               <CardDescription>
-                Quanto a IA conseguiu extrair de cada arquivo enviado (premissa: extração de dados — não consistência interna do balancete).
+                Quanto a IA conseguiu extrair de cada arquivo enviado e qual o desvio para 100%.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -560,9 +582,10 @@ const UserDashboard = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={hasExtractionData
-                        ? extractionBreakdown.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, color: d.color, fullLabel: d.fullLabel }))
-                        : [{ name: "Sem dados", value: 1, color: "hsl(var(--muted))", fullLabel: "Sem dados" }]}
+                      data={[
+                        { name: "Extraído", value: extractionAvg, color: "hsl(217,91%,50%)", fullLabel: `Extraído (${extractionAvg}%)` },
+                        { name: "Não extraído", value: extractionDeviation, color: "hsl(0,84%,60%)", fullLabel: `Desvio / não extraído (${extractionDeviation}%)` },
+                      ]}
                       dataKey="value"
                       innerRadius={60}
                       outerRadius={90}
@@ -570,27 +593,92 @@ const UserDashboard = () => {
                       endAngle={-270}
                       stroke="none"
                     >
-                      {(hasExtractionData
-                        ? extractionBreakdown.filter(d => d.value > 0)
-                        : [{ color: "hsl(var(--muted))" }]
-                      ).map((d, i) => (
-                        <Cell key={i} fill={d.color} />
-                      ))}
+                      <Cell fill="hsl(217,91%,50%)" />
+                      <Cell fill="hsl(0,84%,60%)" />
                     </Pie>
                     <Tooltip
-                      formatter={(v: number, _n: string, p: any) => [`${v} arquivo(s)`, p?.payload?.fullLabel ?? _n]}
+                      formatter={(v: number, _n: string, p: any) => [`${v}%`, p?.payload?.fullLabel ?? _n]}
                       contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{extractionAvg}%</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Extração média</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Extraído · desvio {extractionDeviation}%</p>
                 </div>
               </div>
               {hasExtractionData && (
+                <div className="mt-3 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ background: "hsl(217,91%,50%)" }} />
+                    <span className="text-muted-foreground">Extraído</span>
+                    <span className="ml-auto font-medium text-foreground">{extractionAvg}%</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ background: "hsl(0,84%,60%)" }} />
+                    <span className="text-muted-foreground">Não extraído (desvio)</span>
+                    <span className="ml-auto font-medium text-foreground">{extractionDeviation}%</span>
+                  </div>
+                  {deviationBreakdown.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <p className="text-[10px] text-muted-foreground mb-1">Composição do desvio:</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {deviationBreakdown.map(d => (
+                          <div key={d.tier} className="flex items-center gap-1.5 text-[11px]">
+                            <span className="inline-block w-2 h-2 rounded-full" style={{ background: d.color }} />
+                            <span className="text-muted-foreground truncate" title={d.fullLabel}>{d.name}</span>
+                            <span className="ml-auto font-medium text-foreground">{d.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Visibilidade IA — leitura de meses e dados do balancete */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Visibilidade IA</CardTitle>
+              <CardDescription>
+                Se a IA conseguiu enxergar os meses e dados do balancete (sem avaliar consistência contábil).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative h-[220px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Visível", value: visibilityAvg, color: "hsl(142,76%,36%)", fullLabel: `IA enxergou (${visibilityAvg}%)` },
+                        { name: "Não visível", value: visibilityDeviation, color: "hsl(0,84%,60%)", fullLabel: `Não enxergou / em branco (${visibilityDeviation}%)` },
+                      ]}
+                      dataKey="value"
+                      innerRadius={60}
+                      outerRadius={90}
+                      startAngle={90}
+                      endAngle={-270}
+                      stroke="none"
+                    >
+                      <Cell fill="hsl(142,76%,36%)" />
+                      <Cell fill="hsl(0,84%,60%)" />
+                    </Pie>
+                    <Tooltip
+                      formatter={(v: number, _n: string, p: any) => [`${v}%`, p?.payload?.fullLabel ?? _n]}
+                      contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <p className="text-3xl font-bold text-[hsl(142,76%,36%)]">{visibilityAvg}%</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">IA enxergou · desvio {visibilityDeviation}%</p>
+                </div>
+              </div>
+              {hasVisibilityData && (
                 <div className="mt-3 grid grid-cols-2 gap-1.5">
-                  {extractionBreakdown.filter(d => d.value > 0).map(d => (
+                  {visibilityBreakdown.filter(d => d.value > 0).map(d => (
                     <div key={d.tier} className="flex items-center gap-1.5 text-[11px]">
                       <span className="inline-block w-2 h-2 rounded-full" style={{ background: d.color }} />
                       <span className="text-muted-foreground truncate" title={d.fullLabel}>{d.name}</span>
@@ -601,75 +689,75 @@ const UserDashboard = () => {
               )}
             </CardContent>
           </Card>
-
-          {/* Extração por Documento */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[hsl(217,91%,50%)]" />
-                <CardTitle className="text-base">Extração de Dados por Documento</CardTitle>
-              </div>
-              <CardDescription>Percentual de dados extraídos por documento na auditoria</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {history.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Nenhum documento analisado</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {history.slice(0, 6).map((d) => {
-                    const conf = d.conformidade ?? 0;
-                    return (
-                      <div 
-                        key={d.id} 
-                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center group relative"
-                        onClick={() => handleDocClick(d)}
-                      >
-                        <div className="absolute top-2 right-2">
-                          <Eye className="w-3.5 h-3.5 text-muted-foreground/60" />
-                        </div>
-                        <div className="relative w-[110px] h-[110px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={[
-                                  { name: "Extração", value: conf },
-                                  { name: "Restante", value: Math.max(0, 100 - conf) },
-                                ]}
-                                dataKey="value"
-                                innerRadius={36}
-                                outerRadius={52}
-                                startAngle={90}
-                                endAngle={-270}
-                                stroke="none"
-                              >
-                                <Cell fill="hsl(217,91%,50%)" />
-                                <Cell fill="hsl(var(--muted))" />
-                              </Pie>
-                              <Tooltip
-                                formatter={(v: number, n: string) => [`${v}%`, n]}
-                                contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <p className="text-lg font-bold text-[hsl(217,91%,50%)]">{conf}%</p>
-                          </div>
-                        </div>
-                        <p className="text-[11px] font-medium text-foreground truncate w-full text-center mt-2" title={d.fileName}>
-                          {d.fileName}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">{d.date}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
+
+        {/* Extração por Documento */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[hsl(217,91%,50%)]" />
+              <CardTitle className="text-base">Extração de Dados por Documento</CardTitle>
+            </div>
+            <CardDescription>Percentual de dados extraídos por documento na auditoria</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {history.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">Nenhum documento analisado</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {history.slice(0, 6).map((d) => {
+                  const conf = d.conformidade ?? 0;
+                  return (
+                    <div 
+                      key={d.id} 
+                      className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center group relative"
+                      onClick={() => handleDocClick(d)}
+                    >
+                      <div className="absolute top-2 right-2">
+                        <Eye className="w-3.5 h-3.5 text-muted-foreground/60" />
+                      </div>
+                      <div className="relative w-[110px] h-[110px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: "Extração", value: conf },
+                                { name: "Restante", value: Math.max(0, 100 - conf) },
+                              ]}
+                              dataKey="value"
+                              innerRadius={36}
+                              outerRadius={52}
+                              startAngle={90}
+                              endAngle={-270}
+                              stroke="none"
+                            >
+                              <Cell fill="hsl(217,91%,50%)" />
+                              <Cell fill="hsl(var(--muted))" />
+                            </Pie>
+                            <Tooltip
+                              formatter={(v: number, n: string) => [`${v}%`, n]}
+                              contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <p className="text-lg font-bold text-[hsl(217,91%,50%)]">{conf}%</p>
+                        </div>
+                      </div>
+                      <p className="text-[11px] font-medium text-foreground truncate w-full text-center mt-2" title={d.fileName}>
+                        {d.fileName}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{d.date}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
       </div>
 
