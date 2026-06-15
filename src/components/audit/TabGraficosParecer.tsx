@@ -207,7 +207,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={fmtDec} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtDec(v), "Liquidez Geral"]} />
-            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="liqGeral" {...LABEL_DEC} />
+            </Line>
           </LineChart>
         </Tile>
 
