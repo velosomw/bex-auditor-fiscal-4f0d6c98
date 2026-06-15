@@ -518,7 +518,9 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} unit="%" />
                     <Tooltip formatter={(v: number) => `${v}%`} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Line type="monotone" dataKey="Margem (%)" stroke="hsl(150,70%,42%)" strokeWidth={2.5} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="Margem (%)" stroke="hsl(150,70%,42%)" strokeWidth={2.5} dot={{ r: 4 }}>
+                      <LabelList dataKey="Margem (%)" position="top" fontSize={10} fontWeight={600} fill="hsl(var(--foreground))" formatter={(v: any) => Number.isFinite(+v) ? `${(+v).toFixed(1)}%` : ""} />
+                    </Line>
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
