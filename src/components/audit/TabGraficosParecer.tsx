@@ -242,8 +242,12 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={fmtMil} />
             <Tooltip {...TIP} formatter={(v: any, n: string) => [fmtBRL(v), n]} />
             <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
-            <Bar dataKey="PC" name="Passivo Circulante" fill={COLORS.azul} />
-            <Bar dataKey="PNC" name="Passivo Não Circulante" fill={COLORS.laranja} />
+            <Bar dataKey="PC" name="Passivo Circulante" fill={COLORS.azul}>
+              <LabelList dataKey="PC" {...LABEL_MIL} />
+            </Bar>
+            <Bar dataKey="PNC" name="Passivo Não Circulante" fill={COLORS.laranja}>
+              <LabelList dataKey="PNC" {...LABEL_MIL} />
+            </Bar>
           </BarChart>
         </Tile>
 
