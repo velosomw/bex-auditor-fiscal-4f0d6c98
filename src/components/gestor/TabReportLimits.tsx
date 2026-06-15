@@ -15,7 +15,7 @@ import {
 } from "@/services/reportLimitsService";
 import { listCompanies, type Company } from "@/services/companiesService";
 
-const DEFAULT_GLOBAL: GlobalLimits = { resumido: 50, completo: 10, empresas: 10 };
+const DEFAULT_GLOBAL: GlobalLimits = { resumido: 1, completo: 10, empresas: 3, arquivos_por_auditoria: 3 };
 
 const TabReportLimits = () => {
   const [global, setGlobal] = useState<GlobalLimits>(DEFAULT_GLOBAL);
