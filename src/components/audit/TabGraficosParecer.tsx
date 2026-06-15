@@ -303,7 +303,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Resultado / Receita"]} />
             <ReferenceLine y={0} stroke={COLORS.cinza} />
-            <Line type="monotone" dataKey="resReceita" name="Resultado / Receita" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="resReceita" name="Resultado / Receita" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="resReceita" {...LABEL_PCT} />
+            </Line>
           </LineChart>
         </Tile>
 
