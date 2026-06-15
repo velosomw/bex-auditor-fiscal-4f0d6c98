@@ -77,7 +77,7 @@ const TabReportLimits = () => {
     setSaving(true);
     try {
       await setGlobalLimits(global);
-      toast.success(`Cotas salvas: ${global.empresas} empresas · ${global.resumido} gratuitos · ${global.completo} kanitz por empresa/mês`);
+      toast.success(`Cotas salvas: ${global.empresas} empresas · ${global.arquivos_por_auditoria} arq/auditoria · ${global.resumido} gratuitos · ${global.completo} kanitz por mês`);
       await reload();
     } catch (e: any) {
       toast.error("Erro ao salvar cotas: " + (e?.message ?? "verifique se você é Gestor IA"));
