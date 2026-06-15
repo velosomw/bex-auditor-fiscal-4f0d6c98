@@ -161,10 +161,21 @@ const TabReportLimits = () => {
       {/* Limites globais por variante */}
       <div className="bg-card border border-border rounded-xl p-6">
         <h3 className="text-base font-bold mb-1 flex items-center gap-2"><Globe2 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Cotas Globais por Nível Técnico</h3>
-        <p className="text-xs text-muted-foreground mb-4">Aplicadas a todas as empresas. Empresas com complemento abaixo recebem quantidade adicional acima dessas cotas.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end max-w-2xl">
+        <p className="text-xs text-muted-foreground mb-4">Aplicadas a todas as contabilidades/empresas. Definem quantas empresas o perfil Contabilidade pode cadastrar e quantos relatórios cada empresa pode gerar por mês.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end max-w-3xl">
           <div>
-            <Label className="text-xs">Resumidos / mês</Label>
+            <Label className="text-xs">Empresas / contabilidade</Label>
+            <Input
+              type="number" min={0} max={9999}
+              value={global.empresas}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, empresas: Number.isFinite(v) && v >= 0 ? v : 0 });
+              }}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Relatórios Gratuitos / mês</Label>
             <Input
               type="number" min={0} max={9999}
               value={global.resumido}
@@ -175,7 +186,7 @@ const TabReportLimits = () => {
             />
           </div>
           <div>
-            <Label className="text-xs">Completos / mês</Label>
+            <Label className="text-xs">Relatórios Kanitz / mês</Label>
             <Input
               type="number" min={0} max={9999}
               value={global.completo}
