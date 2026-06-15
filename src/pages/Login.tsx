@@ -32,24 +32,18 @@ const Login = () => {
     return () => clearInterval(timer);
   }, [resendCountdown]);
 
-  // Se estiver logado mas o e-mail não estiver confirmado, desloga e pede confirmação.
-  // IMPORTANTE: side-effects precisam estar em useEffect, nunca em render.
-  useEffect(() => {
-    if (!userLoading && supabaseUser && !supabaseUser.email_confirmed_at) {
-      logout();
-      toast.error("E-mail não confirmado. Por favor, verifique sua caixa de entrada.");
-      setMode("resend");
-    }
-  }, [userLoading, supabaseUser, logout]);
-
-  // Já autenticado e confirmado → redireciona para a home da role (evita ficar travado em /login)
-  if (!userLoading && authenticated && realRole && supabaseUser?.email_confirmed_at) {
+  // Já autenticado → redireciona para a home da role (evita ficar travado em /login).
+  // Observação: a checagem de e-mail confirmado é responsabilidade do Supabase no
+  // próprio signInWithPassword (retorna "Email not confirmed"). Fazer logout aqui
+  // com base em email_confirmed_at quebra contas provisionadas por admin.
+  if (!userLoading && authenticated && realRole) {
     const target =
       realRole === "gestor_ia" ? "/gestor-ia"
       : realRole === "auditor_chefe" || realRole === "coordenadora" ? "/dashboard"
       : "/user";
     return <Navigate to={target} replace />;
   }
+
 
 
   const getRedirectPath = (role: string) => {
