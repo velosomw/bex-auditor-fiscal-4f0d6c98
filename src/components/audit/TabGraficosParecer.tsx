@@ -347,6 +347,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <Bar dataKey="v">
               <Cell fill={COLORS.azul} />
               <Cell fill={COLORS.vermelho} />
+              <LabelList dataKey="v" {...LABEL_MIL} />
             </Bar>
           </BarChart>
         </Tile>
