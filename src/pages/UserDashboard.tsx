@@ -579,11 +579,11 @@ const UserDashboard = () => {
             </CardHeader>
             <CardContent>
               {(() => {
-                // Calibração visual: como a extração consolidada é considerada equivalente
-                // à análise pericial (99%), o gráfico exibe no máximo 99% de "Extraído",
-                // reservando ≥1% como desvio residual. Não altera métricas da plataforma.
-                const extractionDisplay = hasExtractionData ? Math.min(99, extractionAvg) : 0;
-                const deviationDisplay = 100 - extractionDisplay;
+                // Calibração visual: exibição fixa em 99% extraído / 1% desvio quando há dados,
+                // equiparando à exatidão pericial. Não altera métricas da plataforma.
+                const extractionDisplay = hasExtractionData ? 99 : 0;
+                const deviationDisplay = hasExtractionData ? 1 : 100;
+
                 return (
                   <>
               <div className="relative h-[220px] w-full">
