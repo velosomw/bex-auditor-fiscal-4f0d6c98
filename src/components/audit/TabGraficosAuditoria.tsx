@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, ComposedChart, PieChart, Pie, Cell,
-  RadialBarChart, RadialBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  RadialBarChart, RadialBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList,
 } from "recharts";
+
+// Labels sempre visíveis sobre cada série (sem necessidade de hover).
+const ALWAYS_LABEL = { position: "top" as const, fontSize: 10, fill: "hsl(var(--foreground))", fontWeight: 600, formatter: (v: any) => {
+  const n = Number(v); if (!Number.isFinite(n) || n === 0) return "";
+  const a = Math.abs(n);
+  if (a >= 1e9) return `${(n/1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `${(n/1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${(n/1e3).toFixed(0)}k`;
+  return n.toFixed(0);
+}};
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Activity, DollarSign, Gauge, Eye, EyeOff, ChevronDown } from "lucide-react";
