@@ -30,6 +30,7 @@ import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getGlobalLimits } from "@/services/reportLimitsService";
 import { getExtractionMetric, EXTRACTION_TIERS, getTierMeta } from "@/lib/extractionQuality";
+import { getVisibilityMetric, VISIBILITY_TIERS, getVisibilityTierMeta } from "@/lib/dataVisibility";
 
 const statusConfig = {
   completed: { label: "Concluída", className: "bg-[hsl(142,76%,36%)]/20 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30" },
