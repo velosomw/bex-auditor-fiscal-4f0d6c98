@@ -294,8 +294,8 @@ const TabReportLimits = () => {
               <TableRow>
                 <TableHead>Empresa</TableHead>
                 <TableHead>CNPJ</TableHead>
-                <TableHead className="text-center">Resumidos</TableHead>
-                <TableHead className="text-center">Completos</TableHead>
+                <TableHead className="text-center">Gratuitos</TableHead>
+                <TableHead className="text-center">Kanitz</TableHead>
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
