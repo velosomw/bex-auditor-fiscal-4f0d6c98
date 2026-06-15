@@ -290,6 +290,20 @@
   body[data-print-target="tab-graficos-container"] .bex-print-cover {
     display: flex !important;
     page-break-after: always;
+    break-after: page;
+  }
+
+  /* Mantém título + gráfico juntos na mesma página de impressão */
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container .recharts-responsive-container,
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container [class*="rounded-xl"],
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container [class*="rounded-lg"] {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container h2,
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container h3 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   body {
