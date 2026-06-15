@@ -18,8 +18,21 @@
 import { useMemo } from "react";
 import {
   ResponsiveContainer, BarChart, LineChart, ComposedChart,
-  Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, Cell,
+  Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, Cell, LabelList,
 } from "recharts";
+
+// Labels sempre visíveis (renderizados diretamente sobre o gráfico) — atende
+// o requisito de manter os números à mostra mesmo sem hover.
+const LABEL_DEC = { position: "top" as const, fontSize: 10, fill: "hsl(var(--foreground))", fontWeight: 600, formatter: (v: any) => (Number.isFinite(+v) ? (+v).toFixed(2) : "") };
+const LABEL_PCT = { position: "top" as const, fontSize: 10, fill: "hsl(var(--foreground))", fontWeight: 600, formatter: (v: any) => (Number.isFinite(+v) ? `${(+v * 100).toFixed(1)}%` : "") };
+const LABEL_MIL = { position: "top" as const, fontSize: 10, fill: "hsl(var(--foreground))", fontWeight: 600, formatter: (v: any) => {
+  const n = Number(v); if (!Number.isFinite(n)) return "";
+  const a = Math.abs(n);
+  if (a >= 1e9) return `${(n/1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `${(n/1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${(n/1e3).toFixed(0)}k`;
+  return n.toFixed(0);
+}};
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, FileSpreadsheet, Info } from "lucide-react";
