@@ -377,7 +377,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(1)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Imob. / (PL+PNC)"]} />
-            <Bar dataKey="imobRnp" name="Imob. / (PL + PNC)" fill={COLORS.roxo} />
+            <Bar dataKey="imobRnp" name="Imob. / (PL + PNC)" fill={COLORS.roxo}>
+              <LabelList dataKey="imobRnp" {...LABEL_PCT} />
+            </Bar>
           </BarChart>
         </Tile>
 
