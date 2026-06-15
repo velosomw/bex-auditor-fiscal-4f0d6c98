@@ -228,7 +228,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <Bar yAxisId="l" dataKey="forn" name="Fornecedores" stackId="d" fill={COLORS.verde} />
             <Bar yAxisId="l" dataKey="credRJ" name="Credores RJ" stackId="d" fill={COLORS.amarelo} />
             <Bar yAxisId="l" dataKey="outras" name="Outras Obrigações" stackId="d" fill={COLORS.rosa} />
-            <Line yAxisId="r" type="monotone" dataKey="total" name="TOTAL" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line yAxisId="r" type="monotone" dataKey="total" name="TOTAL" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="total" {...LABEL_MIL} />
+            </Line>
           </ComposedChart>
         </Tile>
 
