@@ -901,6 +901,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
   balanceteEntries?: BalanceteEntry[];
   forceReprocess?: boolean;
 }) => {
+  const { role } = useUser();
+  const isContabilidade = role === "contabilidade";
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
