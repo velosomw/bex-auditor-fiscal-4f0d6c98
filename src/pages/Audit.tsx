@@ -4746,9 +4746,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                   variant="ghost" 
                   size="sm" 
                   className="w-full justify-start gap-2 text-xs h-9" 
-                  onClick={() => printReport('tab-graficos-container', 'Gráficos de Auditoria')}
+                  onClick={() => printReport('tab-graficos-container', `BEx_Graficos_Auditoria_e_Parecer_Contabil_${new Date().toISOString().split('T')[0]}`)}
                 >
-                  <BarChart3 className="w-3.5 h-3.5 text-purple-500" /> Painel de Gráficos (PDF)
+                  <BarChart3 className="w-3.5 h-3.5 text-purple-500" /> Gráficos de Auditoria + Parecer (PDF)
                 </Button>
                 
                 <div className="h-px bg-border my-1" />
