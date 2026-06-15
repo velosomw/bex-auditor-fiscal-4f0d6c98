@@ -108,6 +108,11 @@ const UserDashboard = () => {
   const [profilePending, setProfilePending] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<AuditHistoryEntry | null>(null);
   const [deviationDetailsOpen, setDeviationDetailsOpen] = useState(false);
+  const [monthlyLimit, setMonthlyLimit] = useState<number | null>(null);
+  const [monthlyUsed, setMonthlyUsed] = useState<number>(0);
+  const [isFreeTier, setIsFreeTier] = useState<boolean>(true);
+  const [limitLoading, setLimitLoading] = useState<boolean>(true);
+  const [limitDialogOpen, setLimitDialogOpen] = useState<boolean>(false);
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
