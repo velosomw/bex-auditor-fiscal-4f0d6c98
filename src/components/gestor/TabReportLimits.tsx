@@ -161,8 +161,8 @@ const TabReportLimits = () => {
       {/* Limites globais por variante */}
       <div className="bg-card border border-border rounded-xl p-6">
         <h3 className="text-base font-bold mb-1 flex items-center gap-2"><Globe2 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Cotas Globais por Nível Técnico</h3>
-        <p className="text-xs text-muted-foreground mb-4">Aplicadas a todas as contabilidades/empresas. Definem quantas empresas o perfil Contabilidade pode cadastrar e quantos relatórios cada empresa pode gerar por mês.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end max-w-3xl">
+        <p className="text-xs text-muted-foreground mb-4">Aplicadas ao perfil Contabilidade (acesso gratuito). Definem quantas empresas podem ser cadastradas, quantos arquivos podem ser enviados por auditoria e quantos relatórios podem ser baixados/impressos por mês.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end max-w-5xl">
           <div>
             <Label className="text-xs">Empresas / contabilidade</Label>
             <Input
@@ -171,6 +171,17 @@ const TabReportLimits = () => {
               onChange={(e) => {
                 const v = parseInt(e.target.value, 10);
                 setGlobal({ ...global, empresas: Number.isFinite(v) && v >= 0 ? v : 0 });
+              }}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Arquivos / auditoria</Label>
+            <Input
+              type="number" min={1} max={50}
+              value={global.arquivos_por_auditoria}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, arquivos_por_auditoria: Number.isFinite(v) && v >= 1 ? v : 1 });
               }}
             />
           </div>
