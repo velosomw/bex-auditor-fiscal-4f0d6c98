@@ -26,6 +26,7 @@ import TabExecutionTime from "@/components/gestor/TabExecutionTime";
 import PipelineDiagnosticPanel from "@/components/gestor/PipelineDiagnosticPanel";
 import TabLoginAttempts from "@/components/gestor/TabLoginAttempts";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
+import { bexFileName } from "@/lib/bexFileName";
 
 // ─── Mock Data (somente para abas ainda não conectadas) ─────
 const integrations = [
@@ -1057,7 +1058,7 @@ const GestorIA = () => {
             className="gap-1.5 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white h-8 text-xs"
             onClick={() => {
               const prevTitle = document.title;
-              document.title = `Dashboard Gestor IA - ${selectedPeriod}`;
+              document.title = bexFileName(`Dashboard_Gestor_IA_${selectedPeriod}`);
               document.body.classList.add('printing-report');
               
               // Define o container principal como alvo de impressão

@@ -53,10 +53,7 @@ const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
 const fmtDays = (n: number) => `${Math.round(n)} dias`;
 
 /** Padroniza nomes de arquivos baixados/impressos da plataforma (sempre "BEx_..."). */
-const bexFileName = (raw: string) => {
-  const cleaned = (raw || "Relatorio").replace(/^lovable[\s_-]*/i, "").trim();
-  return /^bex[\s_-]/i.test(cleaned) ? cleaned : `BEx_${cleaned}`;
-};
+import { bexFileName } from "@/lib/bexFileName";
 
 const printReport = (containerId: string, reportTitle: string) => {
   const prevTitle = document.title;
