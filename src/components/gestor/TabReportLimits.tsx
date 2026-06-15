@@ -219,11 +219,11 @@ const TabReportLimits = () => {
             </Select>
           </div>
           <div>
-            <Label className="text-xs">+ Resumidos</Label>
+            <Label className="text-xs">+ Gratuitos</Label>
             <Input type="number" min={0} max={999} value={extraResumido} onChange={e => setExtraResumido(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">+ Completos</Label>
+            <Label className="text-xs">+ Kanitz</Label>
             <Input type="number" min={0} max={999} value={extraCompleto} onChange={e => setExtraCompleto(e.target.value)} />
           </div>
         </div>
