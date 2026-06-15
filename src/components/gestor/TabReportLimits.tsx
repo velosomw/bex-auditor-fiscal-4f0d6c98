@@ -167,7 +167,7 @@ const TabReportLimits = () => {
       <div className="bg-card border border-border rounded-xl p-6">
         <h3 className="text-base font-bold mb-1 flex items-center gap-2"><Globe2 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Cotas Globais por Nível Técnico</h3>
         <p className="text-xs text-muted-foreground mb-4">Aplicadas ao perfil Contabilidade (acesso gratuito). Definem quantas empresas podem ser cadastradas, quantos arquivos podem ser enviados por auditoria e quantos relatórios podem ser baixados/impressos por mês.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end max-w-5xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 items-end">
           <div>
             <Label className="text-xs">Empresas / contabilidade</Label>
             <Input
