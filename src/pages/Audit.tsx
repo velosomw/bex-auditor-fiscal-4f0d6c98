@@ -842,14 +842,18 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto pt-2">
-        <DedupPresetForm
-          value={dedupConfig}
-          onChange={onDedupChange}
-          disabled={isFreeTier}
-          lockedMessage="Disponível apenas em planos pagos. Faça upgrade para liberar ajustes finos de deduplicação."
-        />
-      </div>
+      {/* Bloco de ajustes finos ocultado do upload para não gerar dúvidas ao usuário.
+          Será exibido apenas quando detectado alto desvio no carregamento. */}
+      {false && (
+        <div className="max-w-3xl mx-auto pt-2">
+          <DedupPresetForm
+            value={dedupConfig}
+            onChange={onDedupChange}
+            disabled={isFreeTier}
+            lockedMessage="Disponível apenas em planos pagos."
+          />
+        </div>
+      )}
 
       <div className="flex flex-col items-center pt-2 gap-2">
         {hasFiles && missingMeses.length > 0 && (
