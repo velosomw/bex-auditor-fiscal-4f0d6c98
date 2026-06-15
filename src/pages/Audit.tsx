@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend, LineChart, Line, LabelList, ComposedChart } from "recharts";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
+import { useSubscription } from "@/hooks/useSubscription";
 import { getCompany, type Company } from "@/services/companiesService";
 import folhaRostoBg from "@/assets/folha-rosto-bex.jpg";
 import logoBrasilExpert from "@/assets/logo-brasil-expert.jpg";
@@ -436,6 +437,8 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
    PHASE 1: UPLOAD (Configuração + Carregamento)
    ══════════════════════════════════════════════════════ */
 const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDedupChange, onDepthChange, onForceReprocess }: { onProcess: () => void; onFilesReady: (files: File[]) => void; onMesesReady?: (entries: BalanceteEntry[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void; onForceReprocess?: (force: boolean) => void }) => {
+  const { subscription } = useSubscription();
+  const isFreeTier = !subscription || subscription.plan_code !== "enterprise" || subscription.status !== "active";
   const { state, setConfig } = useAudit();
   const [dragOver, setDragOver] = useState(false);
   const [depth, setDepth] = useState<"executivo" | "tecnico">("tecnico");
@@ -837,7 +840,12 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
       </div>
 
       <div className="max-w-3xl mx-auto pt-2">
-        <DedupPresetForm value={dedupConfig} onChange={onDedupChange} />
+        <DedupPresetForm
+          value={dedupConfig}
+          onChange={onDedupChange}
+          disabled={isFreeTier}
+          lockedMessage="Disponível apenas em planos pagos. Faça upgrade para liberar ajustes finos de deduplicação."
+        />
       </div>
 
       <div className="flex flex-col items-center pt-2 gap-2">
@@ -893,6 +901,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
   balanceteEntries?: BalanceteEntry[];
   forceReprocess?: boolean;
 }) => {
+  const { role } = useUser();
+  const isContabilidade = role === "contabilidade";
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
@@ -1215,17 +1225,19 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
           </div>
         </div>
 
-        {/* Toggle: visualização anterior (lista de tópicos detalhada) */}
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setShowDetails(v => !v)}
-            className="text-xs text-[hsl(258,90%,66%)] hover:underline inline-flex items-center gap-1"
-          >
-            {showDetails ? "Ocultar etapas detalhadas" : "Ver etapas detalhadas"}
-            <ChevronDown className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} />
-          </button>
-        </div>
+        {/* Toggle: visualização anterior (lista de tópicos detalhada) — oculto para perfil contabilidade */}
+        {!isContabilidade && (
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setShowDetails(v => !v)}
+              className="text-xs text-[hsl(258,90%,66%)] hover:underline inline-flex items-center gap-1"
+            >
+              {showDetails ? "Ocultar etapas detalhadas" : "Ver etapas detalhadas"}
+              <ChevronDown className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+        )}
 
         {showDetails && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">

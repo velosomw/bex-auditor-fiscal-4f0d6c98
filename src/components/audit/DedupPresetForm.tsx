@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Sliders } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, Sliders } from "lucide-react";
 import type { DedupConfig, DedupOptions, DedupDataKind } from "@/services/auditAIService";
 
 interface Props {
   value: DedupConfig;
   onChange: (cfg: DedupConfig) => void;
+  disabled?: boolean;
+  lockedMessage?: string;
 }
 
 const DATA_KINDS: { id: DedupDataKind; label: string; hint: string }[] = [
@@ -122,8 +124,32 @@ const KindBlock = ({
   );
 };
 
-export const DedupPresetForm = ({ value, onChange }: Props) => {
+export const DedupPresetForm = ({ value, onChange, disabled = false, lockedMessage }: Props) => {
   const [open, setOpen] = useState(false);
+
+  if (disabled) {
+    return (
+      <div
+        className="border border-border rounded-xl bg-muted/30 opacity-70 cursor-not-allowed"
+        title={lockedMessage || "Disponível em planos pagos"}
+      >
+        <div className="w-full flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-semibold text-muted-foreground">Deduplicação avançada</p>
+              <p className="text-[11px] text-muted-foreground">
+                {lockedMessage || "Disponível em planos pagos — faça upgrade para liberar."}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground border border-border rounded-full px-2 py-0.5">
+            Plano pago
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-border rounded-xl bg-background">
