@@ -195,6 +195,20 @@ const UserDashboard = () => {
     ? Math.round(relatoriosIA.reduce((s, r) => s + (r.conformidade ?? 0), 0) / relatoriosIA.length * 10) / 10
     : 0;
 
+  // Distribuição por tier de Extração IA — base: relatórios gerados (premissa: extração de dados, não interna do balancete)
+  const extractionMetrics = reports.map(r =>
+    getExtractionMetric({ parsedData: r.parsedData, conformidade: r.conformidade })
+  );
+  const extractionAvg = extractionMetrics.length > 0
+    ? Math.round(extractionMetrics.reduce((s, m) => s + m.percent, 0) / extractionMetrics.length)
+    : 0;
+  const extractionBreakdown = EXTRACTION_TIERS.map(tier => {
+    const meta = getTierMeta(tier);
+    const count = extractionMetrics.filter(m => m.tier === tier).length;
+    return { tier, name: meta.shortLabel, fullLabel: meta.label, value: count, color: meta.dotColor };
+  });
+  const hasExtractionData = extractionMetrics.length > 0;
+
   // Agrupa documentos por batchId; documentos sem batch ficam em "orfãos"
   const docsByBatch = new Map<string, AuditHistoryEntry[]>();
   const orphanDocs: AuditHistoryEntry[] = [];
