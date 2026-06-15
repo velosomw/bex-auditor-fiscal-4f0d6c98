@@ -125,11 +125,16 @@ const TabReportLimits = () => {
   return (
     <div className="space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Building2 className="w-3.5 h-3.5" /> Empresas / Contabilidade</div>
           <div className="text-3xl font-bold mt-2">{global.empresas}</div>
           <div className="text-xs text-muted-foreground">limite de cadastro</div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileStack className="w-3.5 h-3.5" /> Arquivos / Auditoria</div>
+          <div className="text-3xl font-bold mt-2">{global.arquivos_por_auditoria}</div>
+          <div className="text-xs text-muted-foreground">upload por auditoria</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileText className="w-3.5 h-3.5" /> Cota Gratuitos</div>
