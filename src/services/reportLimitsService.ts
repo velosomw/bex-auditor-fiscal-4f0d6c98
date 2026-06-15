@@ -17,7 +17,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type ReportVariant = "resumido" | "completo";
 
-export interface GlobalLimits { resumido: number; completo: number; empresas: number; arquivos_por_auditoria: number; }
+export interface GlobalLimits {
+  resumido: number;
+  completo: number;
+  empresas: number;
+  arquivos_por_auditoria: number;
+  meses_extracao_gratuito: number;
+  meses_extracao_pago: number;
+}
 export interface PerCompanyExtra {
   companyId: string;
   companyName: string;
@@ -29,23 +36,28 @@ export interface CompanyQuota {
   completo: { used: number; limit: number; remaining: number };
 }
 
-const DEFAULT_GLOBAL: GlobalLimits = { resumido: 1, completo: 10, empresas: 3, arquivos_por_auditoria: 3 };
+const DEFAULT_GLOBAL: GlobalLimits = {
+  resumido: 1, completo: 10, empresas: 3, arquivos_por_auditoria: 3,
+  meses_extracao_gratuito: 3, meses_extracao_pago: 12,
+};
 
 /* ────────────────── Global (DB) ────────────────── */
 export async function getGlobalLimits(): Promise<GlobalLimits> {
   const { data, error } = await supabase
     .from("report_global_quotas")
-    .select("resumido, completo, empresas, arquivos_por_auditoria")
+    .select("resumido, completo, empresas, arquivos_por_auditoria, meses_extracao_gratuito, meses_extracao_pago")
     .eq("id", true)
     .maybeSingle();
   if (error || !data) return { ...DEFAULT_GLOBAL };
+  const d: any = data;
+  const num = (v: any, def: number) => Number.isFinite(Number(v)) ? Number(v) : def;
   return {
-    resumido: Number.isFinite(Number(data.resumido)) ? Number(data.resumido) : DEFAULT_GLOBAL.resumido,
-    completo: Number.isFinite(Number(data.completo)) ? Number(data.completo) : DEFAULT_GLOBAL.completo,
-    empresas: Number.isFinite(Number((data as any).empresas)) ? Number((data as any).empresas) : DEFAULT_GLOBAL.empresas,
-    arquivos_por_auditoria: Number.isFinite(Number((data as any).arquivos_por_auditoria))
-      ? Number((data as any).arquivos_por_auditoria)
-      : DEFAULT_GLOBAL.arquivos_por_auditoria,
+    resumido: num(d.resumido, DEFAULT_GLOBAL.resumido),
+    completo: num(d.completo, DEFAULT_GLOBAL.completo),
+    empresas: num(d.empresas, DEFAULT_GLOBAL.empresas),
+    arquivos_por_auditoria: num(d.arquivos_por_auditoria, DEFAULT_GLOBAL.arquivos_por_auditoria),
+    meses_extracao_gratuito: num(d.meses_extracao_gratuito, DEFAULT_GLOBAL.meses_extracao_gratuito),
+    meses_extracao_pago: num(d.meses_extracao_pago, DEFAULT_GLOBAL.meses_extracao_pago),
   };
 }
 
@@ -55,6 +67,8 @@ export async function setGlobalLimits(value: GlobalLimits): Promise<void> {
     completo: Math.max(0, Math.floor(Number(value.completo) || 0)),
     empresas: Math.max(0, Math.floor(Number(value.empresas) || 0)),
     arquivos_por_auditoria: Math.max(1, Math.floor(Number(value.arquivos_por_auditoria) || 1)),
+    meses_extracao_gratuito: Math.max(1, Math.min(60, Math.floor(Number(value.meses_extracao_gratuito) || 1))),
+    meses_extracao_pago: Math.max(1, Math.min(120, Math.floor(Number(value.meses_extracao_pago) || 1))),
   };
   const { data: userRes } = await supabase.auth.getUser();
   const { error } = await supabase

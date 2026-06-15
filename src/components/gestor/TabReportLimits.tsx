@@ -15,7 +15,7 @@ import {
 } from "@/services/reportLimitsService";
 import { listCompanies, type Company } from "@/services/companiesService";
 
-const DEFAULT_GLOBAL: GlobalLimits = { resumido: 1, completo: 10, empresas: 3, arquivos_por_auditoria: 3 };
+const DEFAULT_GLOBAL: GlobalLimits = { resumido: 1, completo: 10, empresas: 3, arquivos_por_auditoria: 3, meses_extracao_gratuito: 3, meses_extracao_pago: 12 };
 
 const TabReportLimits = () => {
   const [global, setGlobal] = useState<GlobalLimits>(DEFAULT_GLOBAL);
@@ -167,7 +167,7 @@ const TabReportLimits = () => {
       <div className="bg-card border border-border rounded-xl p-6">
         <h3 className="text-base font-bold mb-1 flex items-center gap-2"><Globe2 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Cotas Globais por Nível Técnico</h3>
         <p className="text-xs text-muted-foreground mb-4">Aplicadas ao perfil Contabilidade (acesso gratuito). Definem quantas empresas podem ser cadastradas, quantos arquivos podem ser enviados por auditoria e quantos relatórios podem ser baixados/impressos por mês.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end max-w-5xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 items-end">
           <div>
             <Label className="text-xs">Empresas / contabilidade</Label>
             <Input
@@ -209,6 +209,28 @@ const TabReportLimits = () => {
               onChange={(e) => {
                 const v = parseInt(e.target.value, 10);
                 setGlobal({ ...global, completo: Number.isFinite(v) && v >= 0 ? v : 0 });
+              }}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Meses extração (Gratuito)</Label>
+            <Input
+              type="number" min={1} max={60}
+              value={global.meses_extracao_gratuito}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, meses_extracao_gratuito: Number.isFinite(v) && v >= 1 ? v : 1 });
+              }}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Meses extração (Pago)</Label>
+            <Input
+              type="number" min={1} max={120}
+              value={global.meses_extracao_pago}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, meses_extracao_pago: Number.isFinite(v) && v >= 1 ? v : 1 });
               }}
             />
           </div>
