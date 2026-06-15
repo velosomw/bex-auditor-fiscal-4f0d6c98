@@ -211,6 +211,25 @@ const UserDashboard = () => {
   });
   const hasExtractionData = extractionMetrics.length > 0;
 
+  // Desvio: o que NÃO foi extraído (100 - extractionAvg) detalhado por tier não-completo
+  const extractionDeviation = Math.max(0, 100 - extractionAvg);
+  const deviationBreakdown = extractionBreakdown
+    .filter(d => d.tier !== "completo" && d.value > 0)
+    .map(d => ({ ...d }));
+
+  // Visibilidade IA — a IA conseguiu enxergar meses e dados do balancete?
+  const visibilityMetrics = reports.map(r => getVisibilityMetric({ parsedData: r.parsedData }));
+  const visibilityAvg = visibilityMetrics.length > 0
+    ? Math.round(visibilityMetrics.reduce((s, m) => s + m.percent, 0) / visibilityMetrics.length)
+    : 0;
+  const visibilityBreakdown = VISIBILITY_TIERS.map(tier => {
+    const meta = getVisibilityTierMeta(tier);
+    const count = visibilityMetrics.filter(m => m.tier === tier).length;
+    return { tier, name: meta.shortLabel, fullLabel: meta.label, value: count, color: meta.dotColor };
+  });
+  const hasVisibilityData = visibilityMetrics.length > 0;
+  const visibilityDeviation = Math.max(0, 100 - visibilityAvg);
+
   // Agrupa documentos por batchId; documentos sem batch ficam em "orfãos"
   const docsByBatch = new Map<string, AuditHistoryEntry[]>();
   const orphanDocs: AuditHistoryEntry[] = [];
