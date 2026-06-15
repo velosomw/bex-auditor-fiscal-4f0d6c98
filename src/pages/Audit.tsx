@@ -4819,14 +4819,42 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria" id="tab-graficos-container" className="bg-background">
           {/* Capa de impressão BEx — só aparece em @media print */}
-          <div className="bex-print-cover hidden" style={{ minHeight: "260mm", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "40mm 20mm", background: "linear-gradient(160deg, #0a1f44 0%, #1e3a8a 60%, #2563eb 100%)", color: "white", borderRadius: "0" }}>
-            <div style={{ fontSize: "12pt", letterSpacing: "6pt", opacity: 0.85, marginBottom: "16pt" }}>BEx · AUDITORIA CONTÁBIL</div>
-            <div style={{ fontSize: "32pt", fontWeight: 800, lineHeight: 1.1, marginBottom: "10pt" }}>Painel de Gráficos</div>
-            <div style={{ fontSize: "18pt", fontWeight: 600, opacity: 0.95, marginBottom: "30pt" }}>Auditoria + Parecer Contábil</div>
-            <div style={{ width: "60mm", height: "2pt", background: "white", opacity: 0.7, margin: "0 auto 30pt" }} />
-            <div style={{ fontSize: "11pt", opacity: 0.85 }}>
-              {company?.name ?? "—"}<br />
-              Gerado em {new Date().toLocaleDateString("pt-BR")} · BEx Auditoria
+          <div className="bex-print-cover hidden" style={{ minHeight: "287mm", flexDirection: "column", background: "white", color: "hsl(220, 25%, 14%)", borderRadius: 0 }}>
+            {/* Header com logo (padrão BEx) */}
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "6mm 8mm 0" }}>
+              <img src={logoBrasilExpertFull} alt="Brasil Expert" style={{ height: "14mm", objectFit: "contain" }} />
+            </div>
+            <div style={{ padding: "0 12mm", textAlign: "center", marginTop: "8mm" }}>
+              <p style={{ fontSize: "22pt", fontWeight: 800, margin: 0 }}>BRASIL EXPERT</p>
+            </div>
+            {/* Centro */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 12mm", textAlign: "center" }}>
+              <h1 style={{ fontSize: "22pt", fontWeight: 800, lineHeight: 1.15, margin: 0 }}>
+                RELATÓRIO TÉCNICO DE GRÁFICOS<br />AUDITORIA CONTÁBIL E PARECER
+              </h1>
+              <p style={{ fontSize: "10pt", color: "hsl(220, 10%, 46%)", marginTop: "8pt", fontStyle: "italic" }}>Business Extended Analysis</p>
+
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "8pt", padding: "8pt 16pt", borderRadius: "999px", border: "1px solid hsl(258, 90%, 66%, 0.3)", background: "hsl(258, 90%, 66%, 0.05)", marginTop: "20pt" }}>
+                <span style={{ fontSize: "12pt" }}>📊</span>
+                <span style={{ fontSize: "10pt", fontWeight: 600 }}>Painel de Gráficos — Auditoria + Parecer Contábil</span>
+              </div>
+
+              <div style={{ marginTop: "28pt", fontSize: "10pt", color: "hsl(220, 10%, 46%)", lineHeight: 1.7 }}>
+                <p style={{ fontWeight: 700, fontSize: "12pt", color: "hsl(220, 25%, 14%)", margin: 0 }}>Empresa Analisada: {company?.name ?? "—"}</p>
+                {company?.cnpj && <p style={{ margin: 0 }}>CNPJ: {company.cnpj}</p>}
+                <p style={{ margin: 0 }}>Data de Emissão: {new Date().toLocaleDateString("pt-BR")}</p>
+              </div>
+
+              <div style={{ marginTop: "24pt", paddingTop: "16pt", borderTop: "1px solid hsl(220, 18%, 90%)", width: "100%", maxWidth: "120mm" }}>
+                <p style={{ fontSize: "8pt", color: "hsl(220, 10%, 46%)", textTransform: "uppercase", letterSpacing: "2pt", margin: 0 }}>Responsável Técnico</p>
+                <p style={{ fontSize: "10pt", fontWeight: 600, margin: "4pt 0 0" }}>Auditor Contábil Sênior IA</p>
+                <p style={{ fontSize: "9pt", color: "hsl(220, 10%, 46%)", margin: 0 }}>Especialista em Recuperação Judicial e Análise Empresarial</p>
+              </div>
+            </div>
+            {/* Footer */}
+            <div style={{ borderTop: "3px solid hsl(195, 53%, 50%)", padding: "3mm 8mm", textAlign: "center", fontSize: "9px", color: "hsl(220, 10%, 46%)", lineHeight: 1.5 }}>
+              <p style={{ margin: 0 }}>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
+              <p style={{ margin: 0 }}>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
             </div>
           </div>
           <div className="flex items-center justify-between mb-3 print:hidden">
