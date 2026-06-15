@@ -29,6 +29,7 @@ import { listCompanies, type Company } from "@/services/companiesService";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getGlobalLimits } from "@/services/reportLimitsService";
+import { getExtractionMetric, EXTRACTION_TIERS, getTierMeta } from "@/lib/extractionQuality";
 
 const statusConfig = {
   completed: { label: "Concluída", className: "bg-[hsl(142,76%,36%)]/20 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30" },
@@ -194,6 +195,20 @@ const UserDashboard = () => {
   const tratamentoRelatorio = relatoriosIA.length > 0
     ? Math.round(relatoriosIA.reduce((s, r) => s + (r.conformidade ?? 0), 0) / relatoriosIA.length * 10) / 10
     : 0;
+
+  // Distribuição por tier de Extração IA — base: relatórios gerados (premissa: extração de dados, não interna do balancete)
+  const extractionMetrics = reports.map(r =>
+    getExtractionMetric({ parsedData: r.parsedData, conformidade: r.conformidade })
+  );
+  const extractionAvg = extractionMetrics.length > 0
+    ? Math.round(extractionMetrics.reduce((s, m) => s + m.percent, 0) / extractionMetrics.length)
+    : 0;
+  const extractionBreakdown = EXTRACTION_TIERS.map(tier => {
+    const meta = getTierMeta(tier);
+    const count = extractionMetrics.filter(m => m.tier === tier).length;
+    return { tier, name: meta.shortLabel, fullLabel: meta.label, value: count, color: meta.dotColor };
+  });
+  const hasExtractionData = extractionMetrics.length > 0;
 
   // Agrupa documentos por batchId; documentos sem batch ficam em "orfãos"
   const docsByBatch = new Map<string, AuditHistoryEntry[]>();
@@ -537,7 +552,7 @@ const UserDashboard = () => {
             <CardHeader>
               <CardTitle className="text-base">Visibilidade de Extração IA</CardTitle>
               <CardDescription>
-                Percentual consolidado de extração de dados de todos os documentos
+                Quanto a IA conseguiu extrair de cada arquivo enviado (premissa: extração de dados — não consistência interna do balancete).
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -545,10 +560,9 @@ const UserDashboard = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={[
-                        { name: "Extração IA", value: avgConformidade },
-                        { name: "Restante", value: Math.max(0, 100 - avgConformidade) },
-                      ]}
+                      data={hasExtractionData
+                        ? extractionBreakdown.filter(d => d.value > 0).map(d => ({ name: d.name, value: d.value, color: d.color, fullLabel: d.fullLabel }))
+                        : [{ name: "Sem dados", value: 1, color: "hsl(var(--muted))", fullLabel: "Sem dados" }]}
                       dataKey="value"
                       innerRadius={60}
                       outerRadius={90}
@@ -556,20 +570,35 @@ const UserDashboard = () => {
                       endAngle={-270}
                       stroke="none"
                     >
-                      <Cell fill="hsl(217,91%,50%)" />
-                      <Cell fill="hsl(var(--muted))" />
+                      {(hasExtractionData
+                        ? extractionBreakdown.filter(d => d.value > 0)
+                        : [{ color: "hsl(var(--muted))" }]
+                      ).map((d, i) => (
+                        <Cell key={i} fill={d.color} />
+                      ))}
                     </Pie>
                     <Tooltip
-                      formatter={(v: number, n: string) => [`${v}%`, n]}
+                      formatter={(v: number, _n: string, p: any) => [`${v} arquivo(s)`, p?.payload?.fullLabel ?? _n]}
                       contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{avgConformidade}%</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Extração IA</p>
+                  <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{extractionAvg}%</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Extração média</p>
                 </div>
               </div>
+              {hasExtractionData && (
+                <div className="mt-3 grid grid-cols-2 gap-1.5">
+                  {extractionBreakdown.filter(d => d.value > 0).map(d => (
+                    <div key={d.tier} className="flex items-center gap-1.5 text-[11px]">
+                      <span className="inline-block w-2 h-2 rounded-full" style={{ background: d.color }} />
+                      <span className="text-muted-foreground truncate" title={d.fullLabel}>{d.name}</span>
+                      <span className="ml-auto font-medium text-foreground">{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

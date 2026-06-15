@@ -23,6 +23,7 @@ import { canGenerateForCompany } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyAccountingFirm, type AccountingFirm } from "@/services/accountingFirmsService";
+import { getExtractionMetric, EXTRACTION_TIERS, getTierMeta, classifyExtraction, estimateExtractionPercent } from "@/lib/extractionQuality";
 
 const SECTORS = ["Indústria", "Varejo", "Serviços", "Tecnologia", "Construção", "Agro", "Saúde", "Financeiro", "Educação", "Outro"];
 const UF = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -780,6 +781,7 @@ const UserEmpresas = () => {
                       <div className="space-y-2">
                         {selected.reports.map(r => {
                           const rb = riskBadge[r.riskLevel] || riskBadge.moderado;
+                          const ex = getExtractionMetric({ parsedData: r.parsedData, conformidade: r.conformidade });
                           return (
                             <div
                               key={r.id}
@@ -791,6 +793,13 @@ const UserEmpresas = () => {
                                   <p className="text-sm font-medium text-foreground truncate">{r.title}</p>
                                   <Badge variant="outline" className="text-[10px]">{r.format}</Badge>
                                   <Badge className={`text-[10px] border ${rb.className}`}>Risco: {rb.label}</Badge>
+                                  <Badge
+                                    className={`text-[10px] border ${ex.className}`}
+                                    title={`Extração IA: ${ex.label} (${ex.percent}%)`}
+                                  >
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ background: ex.dotColor }} />
+                                    Extração: {ex.shortLabel} · {ex.percent}%
+                                  </Badge>
                                 </div>
                                 <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                                   <span>{r.date}</span>
