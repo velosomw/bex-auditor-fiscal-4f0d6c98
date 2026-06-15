@@ -135,8 +135,43 @@ const UserDashboard = () => {
       });
   }, [supabaseUser]);
 
+  // Limite mensal de auditorias (versão gratuita)
+  useEffect(() => {
+    if (!supabaseUser) return;
+    let cancel = false;
+    (async () => {
+      setLimitLoading(true);
+      try {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+        const [{ data: sub }, gl, { count }] = await Promise.all([
+          supabase.from("subscriptions").select("plan_code, status").eq("user_id", supabaseUser.id).maybeSingle(),
+          getGlobalLimits(),
+          supabase.from("audits").select("id", { count: "exact", head: true })
+            .eq("created_by", supabaseUser.id).gte("created_at", start).lt("created_at", end),
+        ]);
+        if (cancel) return;
+        const paid = !!sub && (sub as any).status === "active" && (sub as any).plan_code === "enterprise";
+        setIsFreeTier(!paid);
+        setMonthlyLimit(gl.resumido);
+        setMonthlyUsed(count ?? 0);
+      } finally {
+        if (!cancel) setLimitLoading(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [supabaseUser]);
+
+  const limitReached = isFreeTier && monthlyLimit !== null && monthlyUsed >= monthlyLimit;
+
   const handleStartNewAudit = (company: Company) => {
     navigate(`/audit?company=${company.id}`);
+  };
+
+  const handleNovaAuditoriaClick = () => {
+    if (limitReached) { setLimitDialogOpen(true); return; }
+    navigate("/user/empresas");
   };
 
   const completed = history.filter(h => h.status === "completed").length;
