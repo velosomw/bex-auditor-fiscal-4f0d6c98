@@ -666,8 +666,12 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                   contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="Fluxo Mensal" fill="hsl(217, 91%, 50%)" radius={[4,4,0,0]} />
-                <Line type="monotone" dataKey="Saldo Acumulado" stroke="hsl(34, 95%, 55%)" strokeWidth={2.5} dot={{ r: 4 }} />
+                <Bar dataKey="Fluxo Mensal" fill="hsl(217, 91%, 50%)" radius={[4,4,0,0]}>
+                  <LabelList dataKey="Fluxo Mensal" {...ALWAYS_LABEL} />
+                </Bar>
+                <Line type="monotone" dataKey="Saldo Acumulado" stroke="hsl(34, 95%, 55%)" strokeWidth={2.5} dot={{ r: 4 }}>
+                  <LabelList dataKey="Saldo Acumulado" {...ALWAYS_LABEL} />
+                </Line>
               </ComposedChart>
             </ResponsiveContainer>
           ) : <EmptyState icon={Wallet} title="Sem dados na aba 'FCP - 6 meses'." />}
