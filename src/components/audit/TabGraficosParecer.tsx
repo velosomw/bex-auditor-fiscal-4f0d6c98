@@ -290,6 +290,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
               {series.map((s, i) => (
                 <Cell key={i} fill={(s.cdReceitaPct ?? 0) > 1 ? COLORS.vermelho : COLORS.azul} />
               ))}
+              <LabelList dataKey="cdReceitaPct" {...LABEL_PCT} />
             </Bar>
           </BarChart>
         </Tile>
