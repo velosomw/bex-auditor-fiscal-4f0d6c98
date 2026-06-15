@@ -78,7 +78,8 @@ interface CompanyAggregate {
 
 const UserEmpresas = () => {
   const navigate = useNavigate();
-  const { isReadOnly } = useUser();
+  const { isReadOnly, role } = useUser();
+  const isContabilidade = role === "contabilidade";
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
