@@ -1058,7 +1058,7 @@ const GestorIA = () => {
             className="gap-1.5 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white h-8 text-xs"
             onClick={() => {
               const prevTitle = document.title;
-              document.title = `Dashboard Gestor IA - ${selectedPeriod}`;
+              document.title = bexFileName(`Dashboard_Gestor_IA_${selectedPeriod}`);
               document.body.classList.add('printing-report');
               
               // Define o container principal como alvo de impressão
