@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type ReportVariant = "resumido" | "completo";
 
-export interface GlobalLimits { resumido: number; completo: number; empresas: number; }
+export interface GlobalLimits { resumido: number; completo: number; empresas: number; arquivos_por_auditoria: number; }
 export interface PerCompanyExtra {
   companyId: string;
   companyName: string;
@@ -29,13 +29,13 @@ export interface CompanyQuota {
   completo: { used: number; limit: number; remaining: number };
 }
 
-const DEFAULT_GLOBAL: GlobalLimits = { resumido: 50, completo: 10, empresas: 10 };
+const DEFAULT_GLOBAL: GlobalLimits = { resumido: 1, completo: 10, empresas: 3, arquivos_por_auditoria: 3 };
 
 /* ────────────────── Global (DB) ────────────────── */
 export async function getGlobalLimits(): Promise<GlobalLimits> {
   const { data, error } = await supabase
     .from("report_global_quotas")
-    .select("resumido, completo, empresas")
+    .select("resumido, completo, empresas, arquivos_por_auditoria")
     .eq("id", true)
     .maybeSingle();
   if (error || !data) return { ...DEFAULT_GLOBAL };
@@ -43,6 +43,9 @@ export async function getGlobalLimits(): Promise<GlobalLimits> {
     resumido: Number.isFinite(Number(data.resumido)) ? Number(data.resumido) : DEFAULT_GLOBAL.resumido,
     completo: Number.isFinite(Number(data.completo)) ? Number(data.completo) : DEFAULT_GLOBAL.completo,
     empresas: Number.isFinite(Number((data as any).empresas)) ? Number((data as any).empresas) : DEFAULT_GLOBAL.empresas,
+    arquivos_por_auditoria: Number.isFinite(Number((data as any).arquivos_por_auditoria))
+      ? Number((data as any).arquivos_por_auditoria)
+      : DEFAULT_GLOBAL.arquivos_por_auditoria,
   };
 }
 
@@ -51,6 +54,7 @@ export async function setGlobalLimits(value: GlobalLimits): Promise<void> {
     resumido: Math.max(0, Math.floor(Number(value.resumido) || 0)),
     completo: Math.max(0, Math.floor(Number(value.completo) || 0)),
     empresas: Math.max(0, Math.floor(Number(value.empresas) || 0)),
+    arquivos_por_auditoria: Math.max(1, Math.floor(Number(value.arquivos_por_auditoria) || 1)),
   };
   const { data: userRes } = await supabase.auth.getUser();
   const { error } = await supabase

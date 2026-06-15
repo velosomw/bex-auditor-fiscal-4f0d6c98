@@ -1,0 +1,1 @@
+ALTER TABLE public.report_global_quotas ADD COLUMN IF NOT EXISTS arquivos_por_auditoria integer NOT NULL DEFAULT 3; ALTER TABLE public.report_global_quotas ALTER COLUMN empresas SET DEFAULT 3; ALTER TABLE public.report_global_quotas ALTER COLUMN resumido SET DEFAULT 1; UPDATE public.report_global_quotas SET arquivos_por_auditoria = COALESCE(arquivos_por_auditoria, 3);

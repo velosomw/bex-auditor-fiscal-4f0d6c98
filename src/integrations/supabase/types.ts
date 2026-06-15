@@ -1725,6 +1725,7 @@ export type Database = {
       }
       report_global_quotas: {
         Row: {
+          arquivos_por_auditoria: number
           completo: number
           empresas: number
           id: boolean
@@ -1733,6 +1734,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          arquivos_por_auditoria?: number
           completo?: number
           empresas?: number
           id?: boolean
@@ -1741,6 +1743,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          arquivos_por_auditoria?: number
           completo?: number
           empresas?: number
           id?: boolean
