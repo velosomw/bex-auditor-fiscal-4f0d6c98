@@ -1729,6 +1729,8 @@ export type Database = {
           completo: number
           empresas: number
           id: boolean
+          meses_extracao_gratuito: number
+          meses_extracao_pago: number
           resumido: number
           updated_at: string
           updated_by: string | null
@@ -1738,6 +1740,8 @@ export type Database = {
           completo?: number
           empresas?: number
           id?: boolean
+          meses_extracao_gratuito?: number
+          meses_extracao_pago?: number
           resumido?: number
           updated_at?: string
           updated_by?: string | null
@@ -1747,6 +1751,8 @@ export type Database = {
           completo?: number
           empresas?: number
           id?: boolean
+          meses_extracao_gratuito?: number
+          meses_extracao_pago?: number
           resumido?: number
           updated_at?: string
           updated_by?: string | null
