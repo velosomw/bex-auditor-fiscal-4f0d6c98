@@ -390,7 +390,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={fmtMil} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtBRL(v), "Imob. + Intang."]} />
-            <Bar dataKey="imob" name="Imobilizado + Intangível" fill={COLORS.ciano} />
+            <Bar dataKey="imob" name="Imobilizado + Intangível" fill={COLORS.ciano}>
+              <LabelList dataKey="imob" {...LABEL_MIL} />
+            </Bar>
           </BarChart>
         </Tile>
       </div>
