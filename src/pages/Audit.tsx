@@ -4765,7 +4765,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = url;
-                    a.download = `bs_dados_consolidado_${new Date().toISOString().split('T')[0]}.csv`;
+                    a.download = `BEx_Balancete_Consolidado_${new Date().toISOString().split('T')[0]}.csv`;
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
