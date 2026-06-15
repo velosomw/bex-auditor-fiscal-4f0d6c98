@@ -52,9 +52,15 @@ const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
 const fmtDays = (n: number) => `${Math.round(n)} dias`;
 
+/** Padroniza nomes de arquivos baixados/impressos da plataforma (sempre "BEx_..."). */
+const bexFileName = (raw: string) => {
+  const cleaned = (raw || "Relatorio").replace(/^lovable[\s_-]*/i, "").trim();
+  return /^bex[\s_-]/i.test(cleaned) ? cleaned : `BEx_${cleaned}`;
+};
+
 const printReport = (containerId: string, reportTitle: string) => {
   const prevTitle = document.title;
-  document.title = reportTitle;
+  document.title = bexFileName(reportTitle);
   document.body.classList.add('printing-report');
   document.body.setAttribute('data-print-target', containerId);
   window.print();
