@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Sliders } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, Sliders } from "lucide-react";
 import type { DedupConfig, DedupOptions, DedupDataKind } from "@/services/auditAIService";
 
 interface Props {
   value: DedupConfig;
   onChange: (cfg: DedupConfig) => void;
+  disabled?: boolean;
+  lockedMessage?: string;
 }
 
 const DATA_KINDS: { id: DedupDataKind; label: string; hint: string }[] = [
