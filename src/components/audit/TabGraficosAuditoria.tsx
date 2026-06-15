@@ -613,7 +613,9 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                     <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
                     <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
-                    <Bar dataKey="Nº Funcionários" fill="hsl(150, 70%, 42%)" radius={[4,4,0,0]} />
+                    <Bar dataKey="Nº Funcionários" fill="hsl(150, 70%, 42%)" radius={[4,4,0,0]}>
+                      <LabelList dataKey="Nº Funcionários" position="top" fontSize={10} fontWeight={600} fill="hsl(var(--foreground))" />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
