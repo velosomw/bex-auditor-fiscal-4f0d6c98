@@ -1225,17 +1225,19 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
           </div>
         </div>
 
-        {/* Toggle: visualização anterior (lista de tópicos detalhada) */}
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setShowDetails(v => !v)}
-            className="text-xs text-[hsl(258,90%,66%)] hover:underline inline-flex items-center gap-1"
-          >
-            {showDetails ? "Ocultar etapas detalhadas" : "Ver etapas detalhadas"}
-            <ChevronDown className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} />
-          </button>
-        </div>
+        {/* Toggle: visualização anterior (lista de tópicos detalhada) — oculto para perfil contabilidade */}
+        {!isContabilidade && (
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setShowDetails(v => !v)}
+              className="text-xs text-[hsl(258,90%,66%)] hover:underline inline-flex items-center gap-1"
+            >
+              {showDetails ? "Ocultar etapas detalhadas" : "Ver etapas detalhadas"}
+              <ChevronDown className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+        )}
 
         {showDetails && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
