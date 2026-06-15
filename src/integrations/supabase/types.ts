@@ -1726,6 +1726,7 @@ export type Database = {
       report_global_quotas: {
         Row: {
           completo: number
+          empresas: number
           id: boolean
           resumido: number
           updated_at: string
@@ -1733,6 +1734,7 @@ export type Database = {
         }
         Insert: {
           completo?: number
+          empresas?: number
           id?: boolean
           resumido?: number
           updated_at?: string
@@ -1740,6 +1742,7 @@ export type Database = {
         }
         Update: {
           completo?: number
+          empresas?: number
           id?: boolean
           resumido?: number
           updated_at?: string
