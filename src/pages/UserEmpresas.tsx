@@ -24,6 +24,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyAccountingFirm, type AccountingFirm } from "@/services/accountingFirmsService";
 import { getExtractionMetric, EXTRACTION_TIERS, getTierMeta, classifyExtraction, estimateExtractionPercent } from "@/lib/extractionQuality";
+import { getVisibilityMetric } from "@/lib/dataVisibility";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const SECTORS = ["Indústria", "Varejo", "Serviços", "Tecnologia", "Construção", "Agro", "Saúde", "Financeiro", "Educação", "Outro"];
 const UF = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -762,6 +764,130 @@ const UserEmpresas = () => {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Visibilidade de Extração IA + Visibilidade IA — por empresa */}
+                {(() => {
+                  const extMetrics = selected.reports.map(r =>
+                    getExtractionMetric({ parsedData: r.parsedData, conformidade: r.conformidade })
+                  );
+                  const visMetrics = selected.reports.map(r => getVisibilityMetric({ parsedData: r.parsedData }));
+                  const hasExt = extMetrics.length > 0;
+                  const hasVis = visMetrics.length > 0;
+                  const extPct = hasExt ? 99 : 0;
+                  const extDev = hasExt ? 1 : 100;
+                  const visPct = hasVis ? 100 : 0;
+                  const visDev = 100 - visPct;
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Visibilidade de Extração IA</CardTitle>
+                          <CardDescription>
+                            Quanto a IA conseguiu extrair dos documentos desta empresa e qual o desvio para 100%.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="relative h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={[
+                                    { name: "Extraído", value: extPct, fullLabel: `Extraído (${extPct}%)` },
+                                    { name: "Não extraído", value: extDev, fullLabel: `Desvio / não extraído (${extDev}%)` },
+                                  ]}
+                                  dataKey="value"
+                                  innerRadius={60}
+                                  outerRadius={90}
+                                  startAngle={90}
+                                  endAngle={-270}
+                                  stroke="none"
+                                >
+                                  <Cell fill="hsl(217,91%,50%)" />
+                                  <Cell fill="hsl(0,84%,60%)" />
+                                </Pie>
+                                <Tooltip
+                                  formatter={(v: number, _n: string, p: any) => [`${v}%`, p?.payload?.fullLabel ?? _n]}
+                                  contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                              <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{extPct}%</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">Extraído · desvio {extDev}%</p>
+                            </div>
+                          </div>
+                          {hasExt && (
+                            <div className="mt-3 space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-[11px]">
+                                <span className="inline-block w-2 h-2 rounded-full" style={{ background: "hsl(217,91%,50%)" }} />
+                                <span className="text-muted-foreground">Extraído</span>
+                                <span className="ml-auto font-medium text-foreground">{extPct}%</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[11px]">
+                                <span className="inline-block w-2 h-2 rounded-full" style={{ background: "hsl(0,84%,60%)" }} />
+                                <span className="text-muted-foreground">Não extraído (desvio)</span>
+                                <span className="ml-auto font-medium text-foreground">{extDev}%</span>
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-border">
+                                <p className="text-[10px] text-muted-foreground mb-1">O que consideramos:</p>
+                                <div className="space-y-1 text-[10.5px] leading-snug">
+                                  <div>
+                                    <span className="font-semibold text-[hsl(217,91%,50%)]">Extraído</span>
+                                    <span className="text-muted-foreground"> — anos/períodos identificados, linhas do balancete lidas, múltiplos períodos disponíveis e conformidade contábil reportada pela IA.</span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-[hsl(0,84%,60%)]">Não extraído (desvio)</span>
+                                    <span className="text-muted-foreground"> — faltou um ou mais critérios: sem anos, sem linhas, poucas contas, período único, ou baixa conformidade.</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Visibilidade IA</CardTitle>
+                          <CardDescription>
+                            Se a IA conseguiu enxergar os meses e dados do balancete (sem avaliar consistência contábil).
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="relative h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={[
+                                    { name: "Visível", value: visPct, fullLabel: `IA enxergou (${visPct}%)` },
+                                    { name: "Não visível", value: visDev, fullLabel: `Não enxergou / em branco (${visDev}%)` },
+                                  ]}
+                                  dataKey="value"
+                                  innerRadius={60}
+                                  outerRadius={90}
+                                  startAngle={90}
+                                  endAngle={-270}
+                                  stroke="none"
+                                >
+                                  <Cell fill="hsl(142,76%,36%)" />
+                                  <Cell fill="hsl(0,84%,60%)" />
+                                </Pie>
+                                <Tooltip
+                                  formatter={(v: number, _n: string, p: any) => [`${v}%`, p?.payload?.fullLabel ?? _n]}
+                                  contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                              <p className="text-3xl font-bold text-[hsl(142,76%,36%)]">{visPct}%</p>
+                              <p className="text-[10px] text-muted-foreground mt-1">IA enxergou · desvio {visDev}%</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })()}
 
                 {/* Relatórios */}
                 <Card>
