@@ -115,11 +115,13 @@ const UserDashboard = () => {
   const [isFreeTier, setIsFreeTier] = useState<boolean>(true);
   const [limitLoading, setLimitLoading] = useState<boolean>(true);
   const [limitDialogOpen, setLimitDialogOpen] = useState<boolean>(false);
+  const [latestReportId, setLatestReportId] = useState<string | null>(null);
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
       setHistory(getAuditHistory());
       setReports(getGeneratedReports());
+      setLatestReportId(getLatestReportId());
     });
     listCompanies({ ownedOnly: true }).then(setCompanies).catch(() => {});
   }, []);
