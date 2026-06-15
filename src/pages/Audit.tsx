@@ -4817,15 +4817,34 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="bs-dados"><TabBSDados parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria" id="tab-graficos-container" className="bg-background">
+          {/* Capa de impressão BEx — só aparece em @media print */}
+          <div className="bex-print-cover hidden" style={{ minHeight: "260mm", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "40mm 20mm", background: "linear-gradient(160deg, #0a1f44 0%, #1e3a8a 60%, #2563eb 100%)", color: "white", borderRadius: "0" }}>
+            <div style={{ fontSize: "12pt", letterSpacing: "6pt", opacity: 0.85, marginBottom: "16pt" }}>BEx · AUDITORIA CONTÁBIL</div>
+            <div style={{ fontSize: "32pt", fontWeight: 800, lineHeight: 1.1, marginBottom: "10pt" }}>Painel de Gráficos</div>
+            <div style={{ fontSize: "18pt", fontWeight: 600, opacity: 0.95, marginBottom: "30pt" }}>Auditoria + Parecer Contábil</div>
+            <div style={{ width: "60mm", height: "2pt", background: "white", opacity: 0.7, margin: "0 auto 30pt" }} />
+            <div style={{ fontSize: "11pt", opacity: 0.85 }}>
+              {company?.name ?? "—"}<br />
+              Gerado em {new Date().toLocaleDateString("pt-BR")} · BEx Auditoria
+            </div>
+          </div>
+          <div className="flex items-center justify-between mb-3 print:hidden">
+            <div className="text-xs text-muted-foreground">Use o botão abaixo para gerar um PDF (BEx) com ambos os painéis e capa.</div>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => printReport('tab-graficos-container', `BEx_Graficos_Auditoria_e_Parecer_Contabil_${new Date().toISOString().split('T')[0]}`)}>
+              <Printer className="w-3.5 h-3.5" /> Imprimir Gráficos (PDF BEx)
+            </Button>
+          </div>
           <Tabs defaultValue="auditoria" className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="auditoria" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Gráficos de Auditoria</TabsTrigger>
               <TabsTrigger value="parecer" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Gráficos Parecer Contábil</TabsTrigger>
             </TabsList>
-            <TabsContent value="auditoria">
+            <TabsContent value="auditoria" forceMount>
+              <h2 className="hidden print:block text-xl font-bold mb-3 mt-6 text-[#1e3a8a]">1. Gráficos de Auditoria</h2>
               <TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} />
             </TabsContent>
-            <TabsContent value="parecer" id="tab-graficos-parecer-container">
+            <TabsContent value="parecer" id="tab-graficos-parecer-container" forceMount>
+              <h2 className="hidden print:block text-xl font-bold mb-3 mt-8 text-[#1e3a8a]" style={{ pageBreakBefore: "always" }}>2. Gráficos do Parecer Contábil</h2>
               <TabGraficosParecer parsedData={parsedData} entries={balanceteEntries} />
             </TabsContent>
           </Tabs>
