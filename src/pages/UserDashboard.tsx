@@ -638,11 +638,11 @@ const UserDashboard = () => {
                     <div className="space-y-1 text-[10.5px] leading-snug">
                       <div>
                         <span className="font-semibold text-[hsl(217,91%,50%)]">Extraído</span>
-                        <span className="text-muted-foreground"> — anos/períodos identificados, linhas do balancete lidas (≥20 contas), múltiplos períodos disponíveis e conformidade contábil reportada pela IA.</span>
+                        <span className="text-muted-foreground"> — anos/períodos identificados, linhas do balancete lidas, múltiplos períodos disponíveis e conformidade contábil reportada pela IA.</span>
                       </div>
                       <div>
                         <span className="font-semibold text-[hsl(0,84%,60%)]">Não extraído (desvio)</span>
-                        <span className="text-muted-foreground"> — faltou um ou mais critérios: sem anos, sem linhas, poucas contas (&lt;20), período único, ou baixa conformidade. Inclui: <em>Parcial</em> (70–99%), <em>Incompleto</em> (40–69%), <em>Falha</em> (1–39%) e <em>Sem extração</em> (0%).</span>
+                        <span className="text-muted-foreground"> — faltou um ou mais critérios: sem anos, sem linhas, poucas contas, período único, ou baixa conformidade.</span>
                       </div>
                     </div>
                   </div>
