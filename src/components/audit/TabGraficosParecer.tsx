@@ -361,8 +361,12 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <Tooltip {...TIP} formatter={(v: any, n: string) => [fmtDec(v), n]} />
             <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <ReferenceLine y={1} stroke={COLORS.cinza} strokeDasharray="4 4" />
-            <Line type="monotone" dataKey="liqCorr" name="Liquidez Corrente (AC/PC)" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
-            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="liqCorr" name="Liquidez Corrente (AC/PC)" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="liqCorr" {...LABEL_DEC} />
+            </Line>
+            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="liqGeral" {...LABEL_DEC} />
+            </Line>
           </LineChart>
         </Tile>
 
