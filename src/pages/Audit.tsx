@@ -4646,6 +4646,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     } else {
       persistReport("completo");
     }
+    // Após gerar e persistir o relatório, levar usuário à tela principal,
+    // onde o card "Relatório Gerado" exibirá a tag "Disponível para análise".
+    setTimeout(() => navigate("/user"), 600);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiAnalysis, isResumido, skipPersist]);
 
