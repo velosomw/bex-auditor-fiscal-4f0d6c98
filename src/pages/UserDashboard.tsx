@@ -657,7 +657,11 @@ const UserDashboard = () => {
                   </div>
                 </div>
               )}
+                  </>
+                );
+              })()}
             </CardContent>
+
           </Card>
 
           {/* Visibilidade IA — leitura de meses e dados do balancete */}
