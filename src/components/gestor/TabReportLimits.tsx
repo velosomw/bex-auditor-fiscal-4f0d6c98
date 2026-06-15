@@ -127,24 +127,24 @@ const TabReportLimits = () => {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileText className="w-3.5 h-3.5" /> Cota Resumidos</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><Building2 className="w-3.5 h-3.5" /> Empresas / Contabilidade</div>
+          <div className="text-3xl font-bold mt-2">{global.empresas}</div>
+          <div className="text-xs text-muted-foreground">limite de cadastro</div>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileText className="w-3.5 h-3.5" /> Cota Gratuitos</div>
           <div className="text-3xl font-bold mt-2">{global.resumido}</div>
           <div className="text-xs text-muted-foreground">/empresa/mês</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileStack className="w-3.5 h-3.5" /> Cota Completos</div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileStack className="w-3.5 h-3.5" /> Cota Kanitz</div>
           <div className="text-3xl font-bold mt-2">{global.completo}</div>
           <div className="text-xs text-muted-foreground">/empresa/mês</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileBarChart className="w-3.5 h-3.5" /> Emitidos</div>
           <div className="text-3xl font-bold mt-2">{totals.totalResumidos + totals.totalCompletos}</div>
-          <div className="text-xs text-muted-foreground">{totals.totalResumidos} resumidos · {totals.totalCompletos} completos</div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><Building2 className="w-3.5 h-3.5" /> Empresas Ativas</div>
-          <div className="text-3xl font-bold mt-2">{totals.companiesWithReports}</div>
-          <div className="text-xs text-muted-foreground">consumindo cota no mês</div>
+          <div className="text-xs text-muted-foreground">{totals.totalResumidos} gratuitos · {totals.totalCompletos} kanitz</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><CalendarClock className="w-3.5 h-3.5" /> Renovação</div>
@@ -154,8 +154,8 @@ const TabReportLimits = () => {
       </div>
 
       <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-xs text-amber-900 dark:text-amber-300">
-        <strong>Regra de consumo:</strong> selecionar “Relatório BEx_Completo_Kanitz” gera o Completo + Resumido, consumindo <b>1 completo + 1 resumido</b> da cota.
-        Selecionar “Relatório BEx_Resumido_Kanitz” consome apenas <b>1 resumido</b>. Cotas resetam todo dia 1º.
+        <strong>Regra de consumo:</strong> selecionar “Relatório Kanitz” gera o Kanitz + Gratuito, consumindo <b>1 kanitz + 1 gratuito</b> da cota.
+        Selecionar “Relatório Gratuito” consome apenas <b>1 gratuito</b>. Cotas resetam todo dia 1º. O limite de <b>empresas</b> aplica-se ao cadastro feito pelo perfil Contabilidade.
       </div>
 
       {/* Limites globais por variante */}
