@@ -118,6 +118,7 @@ const UserDashboard = () => {
   const [limitLoading, setLimitLoading] = useState<boolean>(true);
   const [limitDialogOpen, setLimitDialogOpen] = useState<boolean>(false);
   const [latestReportId, setLatestReportId] = useState<string | null>(null);
+  const [visibilityPeriod, setVisibilityPeriod] = useState<"1M" | "2M" | "3M" | "6M" | "1A">("3M");
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
@@ -197,8 +198,30 @@ const UserDashboard = () => {
     ? Math.round(relatoriosIA.reduce((s, r) => s + (r.conformidade ?? 0), 0) / relatoriosIA.length * 10) / 10
     : 0;
 
-  // Distribuição por tier de Extração IA — base: relatórios gerados (premissa: extração de dados, não interna do balancete)
-  const extractionMetrics = reports.map(r =>
+  // Filtro de período (acumulado) para Visibilidade IA / Extração IA
+  const PERIOD_MONTHS: Record<typeof visibilityPeriod, number> = { "1M": 1, "2M": 2, "3M": 3, "6M": 6, "1A": 12 };
+  const periodCutoff = (() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - PERIOD_MONTHS[visibilityPeriod]);
+    return d;
+  })();
+  const inPeriod = (dateStr?: string) => {
+    if (!dateStr) return false;
+    const t = new Date(dateStr).getTime();
+    return Number.isFinite(t) && t >= periodCutoff.getTime();
+  };
+  const reportsInPeriod = reports.filter(r => inPeriod(r.date));
+  const historyInPeriod = history.filter(h => inPeriod(h.date));
+
+  // Meses disponíveis com base nas datas de relatórios+documentos
+  const monthsAvailable = (() => {
+    const set = new Set<string>();
+    [...reports, ...history].forEach(x => { if (x.date) set.add(x.date.slice(0, 7)); });
+    return set.size;
+  })();
+
+  // Distribuição por tier de Extração IA — base: relatórios do período selecionado
+  const extractionMetrics = reportsInPeriod.map(r =>
     getExtractionMetric({ parsedData: r.parsedData, conformidade: r.conformidade })
   );
   const extractionAvg = extractionMetrics.length > 0
@@ -217,8 +240,8 @@ const UserDashboard = () => {
     .filter(d => d.tier !== "completo" && d.value > 0)
     .map(d => ({ ...d }));
 
-  // Visibilidade IA — a IA conseguiu enxergar meses e dados do balancete?
-  const visibilityMetrics = reports.map(r => getVisibilityMetric({ parsedData: r.parsedData }));
+  // Visibilidade IA — base: relatórios do período selecionado
+  const visibilityMetrics = reportsInPeriod.map(r => getVisibilityMetric({ parsedData: r.parsedData }));
   const visibilityAvg = visibilityMetrics.length > 0
     ? Math.round(visibilityMetrics.reduce((s, m) => s + m.percent, 0) / visibilityMetrics.length)
     : 0;
