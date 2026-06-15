@@ -26,6 +26,7 @@ import TabExecutionTime from "@/components/gestor/TabExecutionTime";
 import PipelineDiagnosticPanel from "@/components/gestor/PipelineDiagnosticPanel";
 import TabLoginAttempts from "@/components/gestor/TabLoginAttempts";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
+import { bexFileName } from "@/lib/bexFileName";
 
 // ─── Mock Data (somente para abas ainda não conectadas) ─────
 const integrations = [
