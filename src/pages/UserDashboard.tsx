@@ -20,6 +20,8 @@ import {
   getGeneratedReports,
   clearAuditHistory,
   hydrateFromRemote,
+  getLatestReportId,
+  clearLatestReport,
   type AuditHistoryEntry,
   type GeneratedReportEntry,
 } from "@/services/auditHistoryService";
