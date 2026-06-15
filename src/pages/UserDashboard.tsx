@@ -661,9 +661,15 @@ const UserDashboard = () => {
             </CardHeader>
             <CardContent>
               {(() => {
-                // Visualização: como os dados extraídos são considerados corretos,
-                // a visão de exatidão da extração é exibida em 100%.
-                const visPct = hasVisibilityData ? 100 : 0;
+                // Regra de visualização: se a extração tem mais de 2 contas lidas
+                // e exatidão acima de 54%, considera-se 100% de visibilidade.
+                const totalRows = reports.reduce((sum, r) => {
+                  const pd: any = r.parsedData;
+                  const rows = Array.isArray(pd?.rows) ? pd.rows : Array.isArray(pd?.balancete) ? pd.balancete : [];
+                  return sum + rows.length;
+                }, 0);
+                const meetsThreshold = totalRows > 2 && extractionAvg > 54;
+                const visPct = meetsThreshold ? 100 : (hasVisibilityData ? visibilityAvg : 0);
                 const visDev = 100 - visPct;
                 return (
                   <>
