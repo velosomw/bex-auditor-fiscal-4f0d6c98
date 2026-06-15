@@ -78,7 +78,8 @@ interface CompanyAggregate {
 
 const UserEmpresas = () => {
   const navigate = useNavigate();
-  const { isReadOnly } = useUser();
+  const { isReadOnly, role } = useUser();
+  const isContabilidade = role === "contabilidade";
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -806,7 +807,8 @@ const UserEmpresas = () => {
                   </CardContent>
                 </Card>
 
-                {/* Documentos */}
+                {/* Documentos — ocultos para perfil contabilidade */}
+                {!isContabilidade && (
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -835,6 +837,7 @@ const UserEmpresas = () => {
                     )}
                   </CardContent>
                 </Card>
+                )}
               </>
             )}
           </div>
