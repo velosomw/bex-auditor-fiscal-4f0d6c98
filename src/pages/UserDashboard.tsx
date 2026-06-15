@@ -26,6 +26,7 @@ import {
 import { listCompanies, type Company } from "@/services/companiesService";
 import { useUser } from "@/contexts/UserContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getGlobalLimits } from "@/services/reportLimitsService";
 
 const statusConfig = {
   completed: { label: "Concluída", className: "bg-[hsl(142,76%,36%)]/20 text-[hsl(142,76%,36%)] border-[hsl(142,76%,36%)]/30" },
@@ -107,6 +108,11 @@ const UserDashboard = () => {
   const [profilePending, setProfilePending] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<AuditHistoryEntry | null>(null);
   const [deviationDetailsOpen, setDeviationDetailsOpen] = useState(false);
+  const [monthlyLimit, setMonthlyLimit] = useState<number | null>(null);
+  const [monthlyUsed, setMonthlyUsed] = useState<number>(0);
+  const [isFreeTier, setIsFreeTier] = useState<boolean>(true);
+  const [limitLoading, setLimitLoading] = useState<boolean>(true);
+  const [limitDialogOpen, setLimitDialogOpen] = useState<boolean>(false);
 
   useEffect(() => {
     hydrateFromRemote().finally(() => {
@@ -129,8 +135,43 @@ const UserDashboard = () => {
       });
   }, [supabaseUser]);
 
+  // Limite mensal de auditorias (versão gratuita)
+  useEffect(() => {
+    if (!supabaseUser) return;
+    let cancel = false;
+    (async () => {
+      setLimitLoading(true);
+      try {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+        const [{ data: sub }, gl, { count }] = await Promise.all([
+          supabase.from("subscriptions").select("plan_code, status").eq("user_id", supabaseUser.id).maybeSingle(),
+          getGlobalLimits(),
+          supabase.from("audits").select("id", { count: "exact", head: true })
+            .eq("created_by", supabaseUser.id).gte("created_at", start).lt("created_at", end),
+        ]);
+        if (cancel) return;
+        const paid = !!sub && (sub as any).status === "active" && (sub as any).plan_code === "enterprise";
+        setIsFreeTier(!paid);
+        setMonthlyLimit(gl.resumido);
+        setMonthlyUsed(count ?? 0);
+      } finally {
+        if (!cancel) setLimitLoading(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [supabaseUser]);
+
+  const limitReached = isFreeTier && monthlyLimit !== null && monthlyUsed >= monthlyLimit;
+
   const handleStartNewAudit = (company: Company) => {
     navigate(`/audit?company=${company.id}`);
+  };
+
+  const handleNovaAuditoriaClick = () => {
+    if (limitReached) { setLimitDialogOpen(true); return; }
+    navigate("/user/empresas");
   };
 
   const completed = history.filter(h => h.status === "completed").length;
@@ -253,10 +294,19 @@ const UserDashboard = () => {
               <>
                 <Button
                   size="sm"
-                  onClick={() => navigate("/user/empresas")}
-                  className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                  onClick={handleNovaAuditoriaClick}
+                  disabled={limitLoading}
+                  title={limitReached ? `Limite mensal atingido (${monthlyUsed}/${monthlyLimit}). Clique para saber como liberar.` : undefined}
+                  className={
+                    limitReached
+                      ? "bg-muted text-muted-foreground hover:bg-muted/80 gap-1.5 cursor-pointer"
+                      : "bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                  }
                 >
                   <Plus className="w-4 h-4" /> Nova Auditoria
+                  {limitReached && monthlyLimit !== null && (
+                    <span className="text-[10px] opacity-80 ml-1">({monthlyUsed}/{monthlyLimit})</span>
+                  )}
                 </Button>
                 <Button
                   size="sm"
@@ -662,6 +712,28 @@ const UserDashboard = () => {
                 <li>Verifique se não há notas explicativas sobrepondo os dados numéricos.</li>
               </ul>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: limite mensal da versão gratuita */}
+      <Dialog open={limitDialogOpen} onOpenChange={setLimitDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" /> Limite da versão gratuita atingido
+            </DialogTitle>
+            <DialogDescription>
+              Você já utilizou {monthlyUsed} de {monthlyLimit ?? "—"} auditoria(s) gratuita(s) deste mês.
+              Para liberar novas auditorias agora, selecione um plano de serviço.
+              A cota gratuita é renovada automaticamente no dia 1º de cada mês.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" onClick={() => setLimitDialogOpen(false)}>Fechar</Button>
+            <Button onClick={() => { setLimitDialogOpen(false); navigate("/planos"); }} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
+              Ver planos
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
