@@ -112,6 +112,18 @@ export function getGeneratedReports(): GeneratedReportEntry[] {
   }
 }
 
+export const LATEST_REPORT_KEY = "bex_latest_report_id";
+
+export function markLatestReport(id: string) {
+  try { localStorage.setItem(LATEST_REPORT_KEY, id); } catch {}
+}
+export function getLatestReportId(): string | null {
+  try { return localStorage.getItem(LATEST_REPORT_KEY); } catch { return null; }
+}
+export function clearLatestReport() {
+  try { localStorage.removeItem(LATEST_REPORT_KEY); } catch {}
+}
+
 export function saveGeneratedReport(entry: GeneratedReportEntry) {
   const list = getGeneratedReports();
   const existing = list.findIndex(r => r.id === entry.id);
@@ -122,6 +134,7 @@ export function saveGeneratedReport(entry: GeneratedReportEntry) {
   } catch {
     localStorage.setItem(REPORTS_KEY, JSON.stringify(list.slice(0, 5)));
   }
+  markLatestReport(entry.id);
   void persistGeneratedReport(entry);
 }
 
