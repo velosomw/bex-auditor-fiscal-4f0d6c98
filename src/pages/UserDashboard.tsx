@@ -578,13 +578,21 @@ const UserDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {(() => {
+                // Calibração visual: como a extração consolidada é considerada equivalente
+                // à análise pericial (99%), o gráfico exibe no máximo 99% de "Extraído",
+                // reservando ≥1% como desvio residual. Não altera métricas da plataforma.
+                const extractionDisplay = hasExtractionData ? Math.min(99, extractionAvg) : 0;
+                const deviationDisplay = 100 - extractionDisplay;
+                return (
+                  <>
               <div className="relative h-[220px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={[
-                        { name: "Extraído", value: extractionAvg, color: "hsl(217,91%,50%)", fullLabel: `Extraído (${extractionAvg}%)` },
-                        { name: "Não extraído", value: extractionDeviation, color: "hsl(0,84%,60%)", fullLabel: `Desvio / não extraído (${extractionDeviation}%)` },
+                        { name: "Extraído", value: extractionDisplay, color: "hsl(217,91%,50%)", fullLabel: `Extraído (${extractionDisplay}%)` },
+                        { name: "Não extraído", value: deviationDisplay, color: "hsl(0,84%,60%)", fullLabel: `Desvio / não extraído (${deviationDisplay}%)` },
                       ]}
                       dataKey="value"
                       innerRadius={60}
@@ -603,8 +611,8 @@ const UserDashboard = () => {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{extractionAvg}%</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Extraído · desvio {extractionDeviation}%</p>
+                  <p className="text-3xl font-bold text-[hsl(217,91%,50%)]">{extractionDisplay}%</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Extraído · desvio {deviationDisplay}%</p>
                 </div>
               </div>
               {hasExtractionData && (
@@ -612,13 +620,14 @@ const UserDashboard = () => {
                   <div className="flex items-center gap-1.5 text-[11px]">
                     <span className="inline-block w-2 h-2 rounded-full" style={{ background: "hsl(217,91%,50%)" }} />
                     <span className="text-muted-foreground">Extraído</span>
-                    <span className="ml-auto font-medium text-foreground">{extractionAvg}%</span>
+                    <span className="ml-auto font-medium text-foreground">{extractionDisplay}%</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px]">
                     <span className="inline-block w-2 h-2 rounded-full" style={{ background: "hsl(0,84%,60%)" }} />
                     <span className="text-muted-foreground">Não extraído (desvio)</span>
-                    <span className="ml-auto font-medium text-foreground">{extractionDeviation}%</span>
+                    <span className="ml-auto font-medium text-foreground">{deviationDisplay}%</span>
                   </div>
+
                   {deviationBreakdown.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-border">
                       <p className="text-[10px] text-muted-foreground mb-1">Composição do desvio:</p>
@@ -648,7 +657,11 @@ const UserDashboard = () => {
                   </div>
                 </div>
               )}
+                  </>
+                );
+              })()}
             </CardContent>
+
           </Card>
 
           {/* Visibilidade IA — leitura de meses e dados do balancete */}
