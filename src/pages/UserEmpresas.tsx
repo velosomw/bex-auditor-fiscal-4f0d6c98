@@ -780,6 +780,7 @@ const UserEmpresas = () => {
                       <div className="space-y-2">
                         {selected.reports.map(r => {
                           const rb = riskBadge[r.riskLevel] || riskBadge.moderado;
+                          const ex = getExtractionMetric({ parsedData: r.parsedData, conformidade: r.conformidade });
                           return (
                             <div
                               key={r.id}
@@ -791,6 +792,13 @@ const UserEmpresas = () => {
                                   <p className="text-sm font-medium text-foreground truncate">{r.title}</p>
                                   <Badge variant="outline" className="text-[10px]">{r.format}</Badge>
                                   <Badge className={`text-[10px] border ${rb.className}`}>Risco: {rb.label}</Badge>
+                                  <Badge
+                                    className={`text-[10px] border ${ex.className}`}
+                                    title={`Extração IA: ${ex.label} (${ex.percent}%)`}
+                                  >
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-1" style={{ background: ex.dotColor }} />
+                                    Extração: {ex.shortLabel} · {ex.percent}%
+                                  </Badge>
                                 </div>
                                 <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                                   <span>{r.date}</span>
