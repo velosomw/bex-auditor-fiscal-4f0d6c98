@@ -715,6 +715,28 @@ const UserDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: limite mensal da versão gratuita */}
+      <Dialog open={limitDialogOpen} onOpenChange={setLimitDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" /> Limite da versão gratuita atingido
+            </DialogTitle>
+            <DialogDescription>
+              Você já utilizou {monthlyUsed} de {monthlyLimit ?? "—"} auditoria(s) gratuita(s) deste mês.
+              Para liberar novas auditorias agora, selecione um plano de serviço.
+              A cota gratuita é renovada automaticamente no dia 1º de cada mês.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" onClick={() => setLimitDialogOpen(false)}>Fechar</Button>
+            <Button onClick={() => { setLimitDialogOpen(false); navigate("/planos"); }} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
+              Ver planos
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PlatformLayout>
   );
 };
