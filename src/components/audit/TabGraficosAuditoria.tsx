@@ -495,9 +495,9 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={fmtCompact} />
                     <Tooltip formatter={(v: number) => fmtMoeda(v)} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="Receita" fill="hsl(217,91%,50%)" radius={[3,3,0,0]} />
-                    <Bar dataKey="Custo" fill="hsl(0,75%,55%)" radius={[3,3,0,0]} />
-                    <Bar dataKey="Lucro" fill="hsl(150,70%,42%)" radius={[3,3,0,0]} />
+                    <Bar dataKey="Receita" fill="hsl(217,91%,50%)" radius={[3,3,0,0]}><LabelList dataKey="Receita" {...ALWAYS_LABEL} /></Bar>
+                    <Bar dataKey="Custo" fill="hsl(0,75%,55%)" radius={[3,3,0,0]}><LabelList dataKey="Custo" {...ALWAYS_LABEL} /></Bar>
+                    <Bar dataKey="Lucro" fill="hsl(150,70%,42%)" radius={[3,3,0,0]}><LabelList dataKey="Lucro" {...ALWAYS_LABEL} /></Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
