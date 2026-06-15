@@ -754,7 +754,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                         onChange={(e) => setFileIsYtd(prev => ({ ...prev, [f.id]: e.target.checked }))}
                         className="h-3.5 w-3.5 accent-emerald-600"
                       />
-                      <span><strong>Balancete YTD</strong> (saldos acumulados desde Janeiro). Marque em 2+ meses consecutivos para reconstrução exata por subtração.</span>
+                      <span><strong>Balancete Ano</strong> (saldos acumulados desde Janeiro). Marque em 2+ meses consecutivos para reconstrução exata por subtração.</span>
                     </label>
                   </div>
                 );
