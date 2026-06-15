@@ -212,6 +212,28 @@ const TabReportLimits = () => {
               }}
             />
           </div>
+          <div>
+            <Label className="text-xs">Meses extração (Gratuito)</Label>
+            <Input
+              type="number" min={1} max={60}
+              value={global.meses_extracao_gratuito}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, meses_extracao_gratuito: Number.isFinite(v) && v >= 1 ? v : 1 });
+              }}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Meses extração (Pago)</Label>
+            <Input
+              type="number" min={1} max={120}
+              value={global.meses_extracao_pago}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setGlobal({ ...global, meses_extracao_pago: Number.isFinite(v) && v >= 1 ? v : 1 });
+              }}
+            />
+          </div>
           <Button onClick={handleSaveGlobal} disabled={saving}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar
           </Button>
