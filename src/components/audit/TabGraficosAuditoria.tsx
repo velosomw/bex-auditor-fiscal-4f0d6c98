@@ -631,8 +631,12 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                       contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Line type="monotone" dataKey="Folha de Pagamento" stroke="hsl(217, 91%, 50%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
-                    <Line type="monotone" dataKey="Contratados PJ" stroke="hsl(34, 95%, 55%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+                    <Line type="monotone" dataKey="Folha de Pagamento" stroke="hsl(217, 91%, 50%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false}>
+                      <LabelList dataKey="Folha de Pagamento" {...ALWAYS_LABEL} />
+                    </Line>
+                    <Line type="monotone" dataKey="Contratados PJ" stroke="hsl(34, 95%, 55%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false}>
+                      <LabelList dataKey="Contratados PJ" {...ALWAYS_LABEL} />
+                    </Line>
                   </LineChart>
                 </ResponsiveContainer>
               </div>
