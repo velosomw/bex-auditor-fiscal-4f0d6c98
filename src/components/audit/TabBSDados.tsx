@@ -61,7 +61,7 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `bs_dados_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `BEx_BS_Dados_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };

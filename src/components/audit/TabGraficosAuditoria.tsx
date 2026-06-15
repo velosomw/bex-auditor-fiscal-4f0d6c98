@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, ComposedChart, PieChart, Pie, Cell,
-  RadialBarChart, RadialBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  RadialBarChart, RadialBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList,
 } from "recharts";
+
+// Labels sempre visíveis sobre cada série (sem necessidade de hover).
+const ALWAYS_LABEL = { position: "top" as const, fontSize: 10, fill: "hsl(var(--foreground))", fontWeight: 600, formatter: (v: any) => {
+  const n = Number(v); if (!Number.isFinite(n) || n === 0) return "";
+  const a = Math.abs(n);
+  if (a >= 1e9) return `${(n/1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `${(n/1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${(n/1e3).toFixed(0)}k`;
+  return n.toFixed(0);
+}};
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, FileSpreadsheet, Loader2, Users, Wallet, TrendingUp, AlertTriangle, CheckCircle2, Activity, DollarSign, Gauge, Eye, EyeOff, ChevronDown } from "lucide-react";
@@ -485,9 +495,9 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={fmtCompact} />
                     <Tooltip formatter={(v: number) => fmtMoeda(v)} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="Receita" fill="hsl(217,91%,50%)" radius={[3,3,0,0]} />
-                    <Bar dataKey="Custo" fill="hsl(0,75%,55%)" radius={[3,3,0,0]} />
-                    <Bar dataKey="Lucro" fill="hsl(150,70%,42%)" radius={[3,3,0,0]} />
+                    <Bar dataKey="Receita" fill="hsl(217,91%,50%)" radius={[3,3,0,0]}><LabelList dataKey="Receita" {...ALWAYS_LABEL} /></Bar>
+                    <Bar dataKey="Custo" fill="hsl(0,75%,55%)" radius={[3,3,0,0]}><LabelList dataKey="Custo" {...ALWAYS_LABEL} /></Bar>
+                    <Bar dataKey="Lucro" fill="hsl(150,70%,42%)" radius={[3,3,0,0]}><LabelList dataKey="Lucro" {...ALWAYS_LABEL} /></Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -508,7 +518,9 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} unit="%" />
                     <Tooltip formatter={(v: number) => `${v}%`} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Line type="monotone" dataKey="Margem (%)" stroke="hsl(150,70%,42%)" strokeWidth={2.5} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="Margem (%)" stroke="hsl(150,70%,42%)" strokeWidth={2.5} dot={{ r: 4 }}>
+                      <LabelList dataKey="Margem (%)" position="top" fontSize={10} fontWeight={600} fill="hsl(var(--foreground))" formatter={(v: any) => Number.isFinite(+v) ? `${(+v).toFixed(1)}%` : ""} />
+                    </Line>
                   </LineChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -601,7 +613,9 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                     <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
                     <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
-                    <Bar dataKey="Nº Funcionários" fill="hsl(150, 70%, 42%)" radius={[4,4,0,0]} />
+                    <Bar dataKey="Nº Funcionários" fill="hsl(150, 70%, 42%)" radius={[4,4,0,0]}>
+                      <LabelList dataKey="Nº Funcionários" position="top" fontSize={10} fontWeight={600} fill="hsl(var(--foreground))" />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -617,8 +631,12 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                       contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Line type="monotone" dataKey="Folha de Pagamento" stroke="hsl(217, 91%, 50%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
-                    <Line type="monotone" dataKey="Contratados PJ" stroke="hsl(34, 95%, 55%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+                    <Line type="monotone" dataKey="Folha de Pagamento" stroke="hsl(217, 91%, 50%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false}>
+                      <LabelList dataKey="Folha de Pagamento" {...ALWAYS_LABEL} />
+                    </Line>
+                    <Line type="monotone" dataKey="Contratados PJ" stroke="hsl(34, 95%, 55%)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false}>
+                      <LabelList dataKey="Contratados PJ" {...ALWAYS_LABEL} />
+                    </Line>
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -648,8 +666,12 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                   contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="Fluxo Mensal" fill="hsl(217, 91%, 50%)" radius={[4,4,0,0]} />
-                <Line type="monotone" dataKey="Saldo Acumulado" stroke="hsl(34, 95%, 55%)" strokeWidth={2.5} dot={{ r: 4 }} />
+                <Bar dataKey="Fluxo Mensal" fill="hsl(217, 91%, 50%)" radius={[4,4,0,0]}>
+                  <LabelList dataKey="Fluxo Mensal" {...ALWAYS_LABEL} />
+                </Bar>
+                <Line type="monotone" dataKey="Saldo Acumulado" stroke="hsl(34, 95%, 55%)" strokeWidth={2.5} dot={{ r: 4 }}>
+                  <LabelList dataKey="Saldo Acumulado" {...ALWAYS_LABEL} />
+                </Line>
               </ComposedChart>
             </ResponsiveContainer>
           ) : <EmptyState icon={Wallet} title="Sem dados na aba 'FCP - 6 meses'." />}

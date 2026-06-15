@@ -18,8 +18,21 @@
 import { useMemo } from "react";
 import {
   ResponsiveContainer, BarChart, LineChart, ComposedChart,
-  Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, Cell,
+  Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, Cell, LabelList,
 } from "recharts";
+
+// Labels sempre visíveis (renderizados diretamente sobre o gráfico) — atende
+// o requisito de manter os números à mostra mesmo sem hover.
+const LABEL_DEC = { position: "top" as const, fontSize: 10, fill: "hsl(var(--foreground))", fontWeight: 600, formatter: (v: any) => (Number.isFinite(+v) ? (+v).toFixed(2) : "") };
+const LABEL_PCT = { position: "top" as const, fontSize: 10, fill: "hsl(var(--foreground))", fontWeight: 600, formatter: (v: any) => (Number.isFinite(+v) ? `${(+v * 100).toFixed(1)}%` : "") };
+const LABEL_MIL = { position: "top" as const, fontSize: 10, fill: "hsl(var(--foreground))", fontWeight: 600, formatter: (v: any) => {
+  const n = Number(v); if (!Number.isFinite(n)) return "";
+  const a = Math.abs(n);
+  if (a >= 1e9) return `${(n/1e9).toFixed(1)}B`;
+  if (a >= 1e6) return `${(n/1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${(n/1e3).toFixed(0)}k`;
+  return n.toFixed(0);
+}};
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, FileSpreadsheet, Info } from "lucide-react";
@@ -194,7 +207,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={fmtDec} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtDec(v), "Liquidez Geral"]} />
-            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="liqGeral" {...LABEL_DEC} />
+            </Line>
           </LineChart>
         </Tile>
 
@@ -213,7 +228,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <Bar yAxisId="l" dataKey="forn" name="Fornecedores" stackId="d" fill={COLORS.verde} />
             <Bar yAxisId="l" dataKey="credRJ" name="Credores RJ" stackId="d" fill={COLORS.amarelo} />
             <Bar yAxisId="l" dataKey="outras" name="Outras Obrigações" stackId="d" fill={COLORS.rosa} />
-            <Line yAxisId="r" type="monotone" dataKey="total" name="TOTAL" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line yAxisId="r" type="monotone" dataKey="total" name="TOTAL" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="total" {...LABEL_MIL} />
+            </Line>
           </ComposedChart>
         </Tile>
 
@@ -225,8 +242,12 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={fmtMil} />
             <Tooltip {...TIP} formatter={(v: any, n: string) => [fmtBRL(v), n]} />
             <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
-            <Bar dataKey="PC" name="Passivo Circulante" fill={COLORS.azul} />
-            <Bar dataKey="PNC" name="Passivo Não Circulante" fill={COLORS.laranja} />
+            <Bar dataKey="PC" name="Passivo Circulante" fill={COLORS.azul}>
+              <LabelList dataKey="PC" {...LABEL_MIL} />
+            </Bar>
+            <Bar dataKey="PNC" name="Passivo Não Circulante" fill={COLORS.laranja}>
+              <LabelList dataKey="PNC" {...LABEL_MIL} />
+            </Bar>
           </BarChart>
         </Tile>
 
@@ -237,7 +258,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(1)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Emp. / Passivo Total"]} />
-            <Line type="monotone" dataKey="empPass" name="Empr. / Passivo Total" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="empPass" name="Empr. / Passivo Total" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="empPass" {...LABEL_PCT} />
+            </Line>
           </LineChart>
         </Tile>
 
@@ -249,7 +272,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Endividamento Geral"]} />
             <ReferenceLine y={1} stroke={COLORS.vermelho} strokeDasharray="4 4" label={{ value: "100%", fontSize: 10, fill: COLORS.vermelho }} />
-            <Line type="monotone" dataKey="endivG" name="Endividamento Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="endivG" name="Endividamento Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="endivG" {...LABEL_PCT} />
+            </Line>
           </LineChart>
         </Tile>
 
@@ -265,6 +290,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
               {series.map((s, i) => (
                 <Cell key={i} fill={(s.cdReceitaPct ?? 0) > 1 ? COLORS.vermelho : COLORS.azul} />
               ))}
+              <LabelList dataKey="cdReceitaPct" {...LABEL_PCT} />
             </Bar>
           </BarChart>
         </Tile>
@@ -277,7 +303,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Resultado / Receita"]} />
             <ReferenceLine y={0} stroke={COLORS.cinza} />
-            <Line type="monotone" dataKey="resReceita" name="Resultado / Receita" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="resReceita" name="Resultado / Receita" stroke={COLORS.verde} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="resReceita" {...LABEL_PCT} />
+            </Line>
           </LineChart>
         </Tile>
 
@@ -298,6 +326,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
               {[totalReceita, totalCusto].map((_, i) => (
                 <Cell key={i} fill={i === 0 ? COLORS.azul : COLORS.vermelho} />
               ))}
+              <LabelList dataKey="v" {...LABEL_MIL} />
             </Bar>
           </BarChart>
         </Tile>
@@ -318,6 +347,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <Bar dataKey="v">
               <Cell fill={COLORS.azul} />
               <Cell fill={COLORS.vermelho} />
+              <LabelList dataKey="v" {...LABEL_MIL} />
             </Bar>
           </BarChart>
         </Tile>
@@ -331,8 +361,12 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <Tooltip {...TIP} formatter={(v: any, n: string) => [fmtDec(v), n]} />
             <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
             <ReferenceLine y={1} stroke={COLORS.cinza} strokeDasharray="4 4" />
-            <Line type="monotone" dataKey="liqCorr" name="Liquidez Corrente (AC/PC)" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
-            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="liqCorr" name="Liquidez Corrente (AC/PC)" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="liqCorr" {...LABEL_DEC} />
+            </Line>
+            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="liqGeral" {...LABEL_DEC} />
+            </Line>
           </LineChart>
         </Tile>
 
@@ -343,7 +377,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(1)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Imob. / (PL+PNC)"]} />
-            <Bar dataKey="imobRnp" name="Imob. / (PL + PNC)" fill={COLORS.roxo} />
+            <Bar dataKey="imobRnp" name="Imob. / (PL + PNC)" fill={COLORS.roxo}>
+              <LabelList dataKey="imobRnp" {...LABEL_PCT} />
+            </Bar>
           </BarChart>
         </Tile>
 
@@ -354,7 +390,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={fmtMil} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtBRL(v), "Imob. + Intang."]} />
-            <Bar dataKey="imob" name="Imobilizado + Intangível" fill={COLORS.ciano} />
+            <Bar dataKey="imob" name="Imobilizado + Intangível" fill={COLORS.ciano}>
+              <LabelList dataKey="imob" {...LABEL_MIL} />
+            </Bar>
           </BarChart>
         </Tile>
       </div>

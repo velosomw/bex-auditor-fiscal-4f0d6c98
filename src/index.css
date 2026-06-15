@@ -275,6 +275,23 @@
     visibility: hidden !important;
   }
 
+  /* Quando imprimimos o painel de gráficos, força ambos os tabs internos
+     (Auditoria + Parecer Contábil) a aparecerem mesmo se inativos. */
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container [role="tabpanel"][hidden],
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container [role="tabpanel"][data-state="inactive"] {
+    display: block !important;
+    visibility: visible !important;
+  }
+  body[data-print-target="tab-graficos-container"] #tab-graficos-container [role="tablist"] {
+    display: none !important;
+  }
+
+  /* Capa de impressão do painel de gráficos (padrão BEx) */
+  body[data-print-target="tab-graficos-container"] .bex-print-cover {
+    display: flex !important;
+    page-break-after: always;
+  }
+
   body {
     background: white !important;
   }
