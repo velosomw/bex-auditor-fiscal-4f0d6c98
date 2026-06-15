@@ -272,7 +272,9 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Endividamento Geral"]} />
             <ReferenceLine y={1} stroke={COLORS.vermelho} strokeDasharray="4 4" label={{ value: "100%", fontSize: 10, fill: COLORS.vermelho }} />
-            <Line type="monotone" dataKey="endivG" name="Endividamento Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }} />
+            <Line type="monotone" dataKey="endivG" name="Endividamento Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="endivG" {...LABEL_PCT} />
+            </Line>
           </LineChart>
         </Tile>
 
