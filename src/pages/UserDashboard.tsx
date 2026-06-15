@@ -590,7 +590,35 @@ const UserDashboard = () => {
         )}
 
 
-        {/* Visibilidade de Extração IA + Visibilidade IA */}
+        {/* Visibilidade de Extração IA + Visibilidade IA — acumulado por período */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Maturidade de Visibilidade IA</p>
+            <p className="text-[11px] text-muted-foreground">
+              Acumulado de auditorias no período · {reportsInPeriod.length} relatório{reportsInPeriod.length === 1 ? "" : "s"} · {historyInPeriod.length} doc{historyInPeriod.length === 1 ? "" : "s"} · {monthsAvailable} mês{monthsAvailable === 1 ? "" : "es"} disponível{monthsAvailable === 1 ? "" : "is"}
+            </p>
+          </div>
+          <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
+            {(["1M","2M","3M","6M","1A"] as const).map(p => {
+              const monthsNeeded = { "1M":1,"2M":2,"3M":3,"6M":6,"1A":12 }[p];
+              const disabled = monthsAvailable < monthsNeeded && monthsAvailable > 0;
+              const active = visibilityPeriod === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setVisibilityPeriod(p)}
+                  disabled={disabled}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
+                    active ? "bg-[hsl(217,91%,50%)] text-white" : "text-muted-foreground hover:text-foreground"
+                  } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                  title={disabled ? `Necessita ${monthsNeeded} meses de histórico` : `Últimos ${p}`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Visibilidade de Extração IA — com desvio */}
           <Card>
