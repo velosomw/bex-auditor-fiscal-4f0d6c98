@@ -95,7 +95,7 @@ const TabReportLimits = () => {
     setSaving(true);
     try {
       await setPerCompanyExtra(c.id, c.name, { resumido: r, completo: co });
-      toast.success(`Extras atribuídos a ${c.name}: +${r} resumidos · +${co} completos`);
+      toast.success(`Extras atribuídos a ${c.name}: +${r} gratuitos · +${co} kanitz`);
       await reload();
     } catch (e: any) {
       toast.error("Erro ao salvar extras: " + (e?.message ?? "permissão negada"));
