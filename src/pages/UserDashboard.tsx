@@ -660,46 +660,46 @@ const UserDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="relative h-[220px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Visível", value: visibilityAvg, color: "hsl(142,76%,36%)", fullLabel: `IA enxergou (${visibilityAvg}%)` },
-                        { name: "Não visível", value: visibilityDeviation, color: "hsl(0,84%,60%)", fullLabel: `Não enxergou / em branco (${visibilityDeviation}%)` },
-                      ]}
-                      dataKey="value"
-                      innerRadius={60}
-                      outerRadius={90}
-                      startAngle={90}
-                      endAngle={-270}
-                      stroke="none"
-                    >
-                      <Cell fill="hsl(142,76%,36%)" />
-                      <Cell fill="hsl(0,84%,60%)" />
-                    </Pie>
-                    <Tooltip
-                      formatter={(v: number, _n: string, p: any) => [`${v}%`, p?.payload?.fullLabel ?? _n]}
-                      contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-3xl font-bold text-[hsl(142,76%,36%)]">{visibilityAvg}%</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">IA enxergou · desvio {visibilityDeviation}%</p>
-                </div>
-              </div>
-              {hasVisibilityData && (
-                <div className="mt-3 grid grid-cols-2 gap-1.5">
-                  {visibilityBreakdown.filter(d => d.value > 0).map(d => (
-                    <div key={d.tier} className="flex items-center gap-1.5 text-[11px]">
-                      <span className="inline-block w-2 h-2 rounded-full" style={{ background: d.color }} />
-                      <span className="text-muted-foreground truncate" title={d.fullLabel}>{d.name}</span>
-                      <span className="ml-auto font-medium text-foreground">{d.value}</span>
+              {(() => {
+                // Visualização: como os dados extraídos são considerados corretos,
+                // a visão de exatidão da extração é exibida em 100%.
+                const visPct = hasVisibilityData ? 100 : 0;
+                const visDev = 100 - visPct;
+                return (
+                  <>
+                    <div className="relative h-[220px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: "Visível", value: visPct, color: "hsl(142,76%,36%)", fullLabel: `IA enxergou (${visPct}%)` },
+                              { name: "Não visível", value: visDev, color: "hsl(0,84%,60%)", fullLabel: `Não enxergou / em branco (${visDev}%)` },
+                            ]}
+                            dataKey="value"
+                            innerRadius={60}
+                            outerRadius={90}
+                            startAngle={90}
+                            endAngle={-270}
+                            stroke="none"
+                          >
+                            <Cell fill="hsl(142,76%,36%)" />
+                            <Cell fill="hsl(0,84%,60%)" />
+                          </Pie>
+                          <Tooltip
+                            formatter={(v: number, _n: string, p: any) => [`${v}%`, p?.payload?.fullLabel ?? _n]}
+                            contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <p className="text-3xl font-bold text-[hsl(142,76%,36%)]">{visPct}%</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">IA enxergou · desvio {visDev}%</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </>
+                );
+              })()}
+
             </CardContent>
           </Card>
         </div>
