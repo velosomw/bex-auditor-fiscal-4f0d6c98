@@ -108,18 +108,20 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
       // Fast-path: só reidrata cache se for o MESMO usuário do localStorage.
       const cached = !isDifferentUser ? (localStorage.getItem("userRole") as UserRole | null) : null;
-      if (cached) setRoleState(cached);
+      if (cached) {
+        setRoleState(cached);
+        setLoading(false);
+      }
       if (!isDifferentUser) {
         const va = localStorage.getItem("viewAsRole") as UserRole | null;
         if (va) setViewAsRoleState(va);
       }
-      setLoading(false);
-
       const userRole = await fetchUserRole(sessionUser.id);
       if (cancelled) return;
       setRoleState(userRole);
       if (userRole) localStorage.setItem("userRole", userRole);
       else localStorage.removeItem("userRole");
+      setLoading(false);
 
       const r = userRole || cached;
       if (r === "usuario" || r === "empresa" || r === "contabilidade") prefetchUserRoutes();
