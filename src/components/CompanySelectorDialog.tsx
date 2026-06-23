@@ -105,16 +105,26 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
                   <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
                 </div>
               ) : (
-                <Select value={selectedId} onValueChange={setSelectedId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione uma empresa" /></SelectTrigger>
+                <Select value={selectedId} onValueChange={setSelectedId} disabled={availableCompanies.length === 0}>
+                  <SelectTrigger><SelectValue placeholder={allBlocked ? "Sem cotas disponíveis este mês" : "Selecione uma empresa"} /></SelectTrigger>
                   <SelectContent>
-                    {companies.map(c => (
+                    {availableCompanies.map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}{c.cnpj ? ` — ${c.cnpj}` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              )}
+              {allBlocked && (
+                <p className="text-xs text-amber-500 mt-1">
+                  Todas as empresas atingiram o limite mensal de auditorias. Solicite cota extra ao Gestor IA.
+                </p>
+              )}
+              {!allBlocked && companies.length > availableCompanies.length && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {companies.length - availableCompanies.length} empresa(s) ocultada(s) por limite mensal atingido.
+                </p>
               )}
             </div>
             <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setMode("create")}>
@@ -146,9 +156,11 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {mode === "select" ? (
-            <Button onClick={handleConfirmSelect} disabled={!selectedId} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
-              Iniciar Auditoria
-            </Button>
+            !allBlocked && (
+              <Button onClick={handleConfirmSelect} disabled={!selectedId} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
+                Iniciar Auditoria
+              </Button>
+            )
           ) : (
             <Button onClick={handleCreate} disabled={saving} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
               {saving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />} Cadastrar e Iniciar
