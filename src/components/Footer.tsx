@@ -63,7 +63,7 @@ const Footer = () => {
 
         <div className="mt-12 pt-8 border-t border-primary-foreground/10">
           <div className="text-center text-xs text-primary-foreground/40">
-            © {new Date().getFullYear()} BEX Auditoria. Todos os direitos reservados.
+            © {new Date().getFullYear()} BEx Expert. Todos os direitos reservados.
           </div>
         </div>
       </div>
