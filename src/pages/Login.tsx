@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import logoBEx from "@/assets/marca_logo_BEx.jpeg";
+import type { UserRole } from "@/types/user";
 
 
 const Login = () => {
@@ -19,7 +20,7 @@ const Login = () => {
   const [resendSuccess, setResendSuccess] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot" | "resend">("login");
   const navigate = useNavigate();
-  const { authenticated, realRole, loading: userLoading, supabaseUser, logout } = useUser();
+  const { authenticated, realRole, loading: userLoading, setRole, login } = useUser();
 
 
   useEffect(() => {
@@ -101,9 +102,11 @@ const Login = () => {
       }
 
       if (roles?.role) {
-        const role = roles.role as string;
-        // O role no UserContext é atualizado via onAuthStateChange.
-        // Aqui usamos apenas para decidir o redirect imediato.
+        const role = roles.role as UserRole;
+        // Aplica imediatamente no contexto para evitar corrida entre o redirect
+        // e o carregamento assíncrono do onAuthStateChange.
+        login();
+        setRole(role);
         toast.success("Login realizado com sucesso!");
         navigate(getRedirectPath(role), { replace: true });
       } else {
