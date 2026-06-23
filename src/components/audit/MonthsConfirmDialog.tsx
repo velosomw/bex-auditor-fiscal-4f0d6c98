@@ -60,8 +60,8 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
             Confirme os meses detectados
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-2">
-             A IA detectou {totalMonths} {totalMonths === 1 ? "período" : "períodos"} nos arquivos.
-             Selecione os meses para o diagnóstico (sugestão: os mais recentes já marcados).
+             A IA identificou {totalMonths} {totalMonths === 1 ? "período" : "períodos"} nos arquivos.
+             A auditoria processa <strong>somente os 3 meses mais recentes</strong>{truncated ? " — os meses anteriores ficam visíveis apenas para conferência." : "."}
           </p>
         </DialogHeader>
 
