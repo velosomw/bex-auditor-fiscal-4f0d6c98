@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Plus, Loader2 } from "lucide-react";
 import { listCompanies, createCompany, type Company } from "@/services/companiesService";
-import { canGenerateForCompany } from "@/services/reportLimitsService";
+import { canGenerateForCompany, getAllCompaniesQuota, isQuotaExhausted, type CompanyQuota } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
