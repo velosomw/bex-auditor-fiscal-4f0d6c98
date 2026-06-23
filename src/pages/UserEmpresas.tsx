@@ -661,7 +661,7 @@ const UserEmpresas = () => {
                             <Pencil className="w-3.5 h-3.5" /> Editar
                           </Button>
                         )}
-                        {!isReadOnly && (
+                        {!isReadOnly && !isCompanyBlocked(selected.company.id) && (
                           <Button
                             size="sm"
                             onClick={() => handleNewAudit(selected.company)}
@@ -670,6 +670,14 @@ const UserEmpresas = () => {
                             <Plus className="w-4 h-4" /> Fazer Auditoria
                           </Button>
                         )}
+                        {!isReadOnly && isCompanyBlocked(selected.company.id) && (() => {
+                          const q = getCompanyQuotaCached(selected.company.id);
+                          return (
+                            <Badge variant="outline" className="px-3 py-1.5 text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">
+                              Limite mensal atingido{q ? ` (${q.resumido.used}/${q.resumido.limit})` : ""} — solicite cota extra ao Gestor IA
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     </div>
 
