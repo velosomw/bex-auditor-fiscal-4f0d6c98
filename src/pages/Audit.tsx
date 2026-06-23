@@ -5075,8 +5075,18 @@ const AuditContent = () => {
                   });
                 }
                 setMultiMonth(merged);
-                // Auto-validação: pré-seleciona TODOS os meses detectados pelo parser.
-                setFilteredMonths(merged.months.map(m => m.key));
+                // Regra de negócio: auditoria processa SOMENTE os últimos 3 meses,
+                // mesmo que o balancete contenha histórico retroativo maior.
+                const last3 = defaultLast3(merged);
+                setFilteredMonths(last3);
+                if (merged.months.length > 3) {
+                  toast({
+                    title: "Auditoria limitada aos 3 meses mais recentes",
+                    description: `Detectamos ${merged.months.length} meses. Apenas os 3 mais atuais (${last3.map(k => {
+                      const m = merged.months.find(x => x.key === k); return m?.label ?? k;
+                    }).join(", ")}) serão usados no diagnóstico e nos relatórios.`,
+                  });
+                }
                 setPhase("confirm-months");
 
               } catch (e) {
