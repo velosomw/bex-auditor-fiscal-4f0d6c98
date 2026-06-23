@@ -208,7 +208,7 @@ const SolicitarCadastro = () => {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="f-zip">CEP</Label>
-                      <Input id="f-zip" value={firm.zip} onChange={e => setFirmField("zip", e.target.value)} placeholder="00000-000" maxLength={10} />
+                      <Input id="f-zip" value={firm.zip} onChange={e => setFirmField("zip", formatCep(e.target.value))} placeholder="00.000.000" maxLength={10} inputMode="numeric" />
                     </div>
                   </div>
                   <div className="flex justify-end pt-6">
