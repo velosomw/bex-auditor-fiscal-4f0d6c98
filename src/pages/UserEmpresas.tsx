@@ -92,6 +92,13 @@ const UserEmpresas = () => {
   const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
   const [myFirm, setMyFirm] = useState<AccountingFirm | null>(null);
   const [hiddenList, setHiddenList] = useState(false);
+  const [quotaMap, setQuotaMap] = useState<Map<string, CompanyQuota>>(new Map());
+
+  const defaultQuota = quotaMap.get("__default__");
+  const getCompanyQuotaCached = (id: string): CompanyQuota | undefined =>
+    quotaMap.get(id) ?? defaultQuota;
+  const isCompanyBlocked = (id: string): boolean =>
+    isQuotaExhausted(getCompanyQuotaCached(id));
 
   const toggleHiddenList = () => setHiddenList(v => !v);
 
