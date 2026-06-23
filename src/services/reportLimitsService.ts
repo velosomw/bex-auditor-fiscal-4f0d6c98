@@ -236,9 +236,13 @@ export async function getAllCompaniesQuota(): Promise<Map<string, CompanyQuota>>
   return out;
 }
 
-/** True quando a empresa NÃO pode gerar nenhum tipo de relatório (resumido nem completo). */
+/**
+ * True quando a empresa atingiu o limite de auditorias do mês.
+ * Como "completo" também consome 1 "resumido", basta checar resumido.remaining.
+ */
 export function isQuotaExhausted(quota: CompanyQuota | undefined): boolean {
   if (!quota) return false;
-  return quota.resumido.remaining <= 0 && quota.completo.remaining <= 0;
+  return quota.resumido.remaining <= 0;
 }
+
 
