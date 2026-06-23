@@ -119,8 +119,12 @@ const UserEmpresas = () => {
     Promise.all([
       listCompanies({ ownedOnly: true }),
       hydrateFromRemote(),
+      getAllCompaniesQuota().catch(() => new Map<string, CompanyQuota>()),
     ])
-      .then(([list]) => setCompanies(list))
+      .then(([list, _h, qmap]) => {
+        setCompanies(list);
+        setQuotaMap(qmap);
+      })
       .catch(e => toast({ title: "Erro ao carregar empresas", description: e.message, variant: "destructive" }))
       .finally(() => setLoading(false));
   };
