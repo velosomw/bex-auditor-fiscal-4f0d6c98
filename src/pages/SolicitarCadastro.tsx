@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import HeroBanner from "@/components/HeroBanner";
 import { submitAccountingFirmRegistration } from "@/services/accountingFirmsService";
 import { toast } from "@/hooks/use-toast";
+import { formatCep } from "@/lib/cep";
 
 type Step = "contabilidade" | "empresas" | "sucesso";
 
