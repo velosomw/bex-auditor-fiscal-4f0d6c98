@@ -245,4 +245,32 @@ export function isQuotaExhausted(quota: CompanyQuota | undefined): boolean {
   return quota.resumido.remaining <= 0;
 }
 
+/**
+ * Define o tier ("gratuito" | "pago") da empresa para auditoria de balancete
+ * e o limite (cap) de meses processáveis no workspace + relatórios.
+ * - Tier PAGO  → empresa ainda tem cota de "completo" disponível.
+ * - Tier GRATUITO → só consegue gerar "resumido" / esgotou os "completos".
+ * O cap vem de `report_global_quotas.meses_extracao_pago / _gratuito`.
+ */
+export type AuditMonthsTier = "gratuito" | "pago";
+export interface AuditMonthsCap {
+  cap: number;
+  tier: AuditMonthsTier;
+}
+
+export async function getAuditMonthsCap(companyId: string | null | undefined): Promise<AuditMonthsCap> {
+  const global = await getGlobalLimits();
+  const capGrat = Math.max(1, Number(global.meses_extracao_gratuito) || 3);
+  const capPago = Math.max(capGrat, Number(global.meses_extracao_pago) || 12);
+  if (!companyId) return { cap: capGrat, tier: "gratuito" };
+  try {
+    const quota = await getCompanyQuota(companyId);
+    const isPago = quota.completo.remaining > 0;
+    return { cap: isPago ? capPago : capGrat, tier: isPago ? "pago" : "gratuito" };
+  } catch {
+    return { cap: capGrat, tier: "gratuito" };
+  }
+}
+
+
 
