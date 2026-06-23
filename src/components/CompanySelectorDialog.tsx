@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Plus, Loader2 } from "lucide-react";
 import { listCompanies, createCompany, type Company } from "@/services/companiesService";
-import { canGenerateForCompany } from "@/services/reportLimitsService";
+import { canGenerateForCompany, getAllCompaniesQuota, isQuotaExhausted, type CompanyQuota } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
 
 const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [quotaMap, setQuotaMap] = useState<Map<string, CompanyQuota>>(new Map());
   const [selectedId, setSelectedId] = useState<string>("");
   const [mode, setMode] = useState<"select" | "create">("select");
   const [name, setName] = useState("");
@@ -25,12 +26,22 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const defaultQuota = quotaMap.get("__default__");
+  const quotaFor = (id: string) => quotaMap.get(id) ?? defaultQuota;
+  const isBlocked = (id: string) => isQuotaExhausted(quotaFor(id));
+  const availableCompanies = companies.filter(c => !isBlocked(c.id));
+  const allBlocked = companies.length > 0 && availableCompanies.length === 0;
+
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    listCompanies()
-      .then(list => {
+    Promise.all([
+      listCompanies(),
+      getAllCompaniesQuota().catch(() => new Map<string, CompanyQuota>()),
+    ])
+      .then(([list, qmap]) => {
         setCompanies(list);
+        setQuotaMap(qmap);
         if (list.length === 0) setMode("create");
       })
       .catch(e => toast({ title: "Erro ao carregar empresas", description: e.message, variant: "destructive" }))
@@ -94,16 +105,26 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
                   <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
                 </div>
               ) : (
-                <Select value={selectedId} onValueChange={setSelectedId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione uma empresa" /></SelectTrigger>
+                <Select value={selectedId} onValueChange={setSelectedId} disabled={availableCompanies.length === 0}>
+                  <SelectTrigger><SelectValue placeholder={allBlocked ? "Sem cotas disponíveis este mês" : "Selecione uma empresa"} /></SelectTrigger>
                   <SelectContent>
-                    {companies.map(c => (
+                    {availableCompanies.map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}{c.cnpj ? ` — ${c.cnpj}` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              )}
+              {allBlocked && (
+                <p className="text-xs text-amber-500 mt-1">
+                  Todas as empresas atingiram o limite mensal de auditorias. Solicite cota extra ao Gestor IA.
+                </p>
+              )}
+              {!allBlocked && companies.length > availableCompanies.length && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {companies.length - availableCompanies.length} empresa(s) ocultada(s) por limite mensal atingido.
+                </p>
               )}
             </div>
             <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setMode("create")}>
@@ -135,9 +156,11 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {mode === "select" ? (
-            <Button onClick={handleConfirmSelect} disabled={!selectedId} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
-              Iniciar Auditoria
-            </Button>
+            !allBlocked && (
+              <Button onClick={handleConfirmSelect} disabled={!selectedId} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
+                Iniciar Auditoria
+              </Button>
+            )
           ) : (
             <Button onClick={handleCreate} disabled={saving} className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white">
               {saving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />} Cadastrar e Iniciar

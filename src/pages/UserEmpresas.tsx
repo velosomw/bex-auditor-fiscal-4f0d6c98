@@ -20,7 +20,7 @@ import {
   type GeneratedReportEntry,
   type AuditHistoryEntry,
 } from "@/services/auditHistoryService";
-import { canGenerateForCompany } from "@/services/reportLimitsService";
+import { canGenerateForCompany, getAllCompaniesQuota, isQuotaExhausted, type CompanyQuota } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyAccountingFirm, type AccountingFirm } from "@/services/accountingFirmsService";
@@ -92,6 +92,13 @@ const UserEmpresas = () => {
   const [viewMode, setViewMode] = useState<"detail" | "table">("detail");
   const [myFirm, setMyFirm] = useState<AccountingFirm | null>(null);
   const [hiddenList, setHiddenList] = useState(false);
+  const [quotaMap, setQuotaMap] = useState<Map<string, CompanyQuota>>(new Map());
+
+  const defaultQuota = quotaMap.get("__default__");
+  const getCompanyQuotaCached = (id: string): CompanyQuota | undefined =>
+    quotaMap.get(id) ?? defaultQuota;
+  const isCompanyBlocked = (id: string): boolean =>
+    isQuotaExhausted(getCompanyQuotaCached(id));
 
   const toggleHiddenList = () => setHiddenList(v => !v);
 
@@ -112,8 +119,12 @@ const UserEmpresas = () => {
     Promise.all([
       listCompanies({ ownedOnly: true }),
       hydrateFromRemote(),
+      getAllCompaniesQuota().catch(() => new Map<string, CompanyQuota>()),
     ])
-      .then(([list]) => setCompanies(list))
+      .then(([list, _h, qmap]) => {
+        setCompanies(list);
+        setQuotaMap(qmap);
+      })
       .catch(e => toast({ title: "Erro ao carregar empresas", description: e.message, variant: "destructive" }))
       .finally(() => setLoading(false));
   };
@@ -477,7 +488,7 @@ const UserEmpresas = () => {
                             >
                               <Eye className="w-3.5 h-3.5" /> Detalhes
                             </Button>
-                            {!isReadOnly && (
+                            {!isReadOnly && !isCompanyBlocked(a.company.id) && (
                               <Button
                                 size="sm"
                                 onClick={() => handleNewAudit(a.company)}
@@ -485,6 +496,11 @@ const UserEmpresas = () => {
                               >
                                 <Plus className="w-3.5 h-3.5" /> Auditoria
                               </Button>
+                            )}
+                            {!isReadOnly && isCompanyBlocked(a.company.id) && (
+                              <Badge variant="outline" className="h-8 px-2 text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">
+                                Limite mensal atingido
+                              </Badge>
                             )}
                           </div>
                         </TableCell>
@@ -645,7 +661,7 @@ const UserEmpresas = () => {
                             <Pencil className="w-3.5 h-3.5" /> Editar
                           </Button>
                         )}
-                        {!isReadOnly && (
+                        {!isReadOnly && !isCompanyBlocked(selected.company.id) && (
                           <Button
                             size="sm"
                             onClick={() => handleNewAudit(selected.company)}
@@ -654,6 +670,14 @@ const UserEmpresas = () => {
                             <Plus className="w-4 h-4" /> Fazer Auditoria
                           </Button>
                         )}
+                        {!isReadOnly && isCompanyBlocked(selected.company.id) && (() => {
+                          const q = getCompanyQuotaCached(selected.company.id);
+                          return (
+                            <Badge variant="outline" className="px-3 py-1.5 text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">
+                              Limite mensal atingido{q ? ` (${q.resumido.used}/${q.resumido.limit})` : ""} — solicite cota extra ao Gestor IA
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     </div>
 

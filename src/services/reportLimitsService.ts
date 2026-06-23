@@ -203,3 +203,46 @@ export async function canGenerateForCompany(
   }
   return { allowed: true, quota };
 }
+
+/**
+ * Retorna a cota mensal de TODAS as empresas em uma única chamada (eficiente
+ * para listagens). Usa o uso agregado de audit_reports + extras por empresa.
+ */
+export async function getAllCompaniesQuota(): Promise<Map<string, CompanyQuota>> {
+  const [global, extras, usageMap] = await Promise.all([
+    getGlobalLimits(),
+    getPerCompanyExtras(),
+    getAllCompaniesMonthlyUsage(),
+  ]);
+  const extrasMap = new Map(extras.map(e => [e.companyId, e]));
+  const out = new Map<string, CompanyQuota>();
+  const ids = new Set<string>([...usageMap.keys(), ...extrasMap.keys()]);
+  const build = (companyId: string): CompanyQuota => {
+    const used = usageMap.get(companyId) || { resumido: 0, completo: 0 };
+    const extra = extrasMap.get(companyId);
+    const limR = global.resumido + (extra?.resumido ?? 0);
+    const limC = global.completo + (extra?.completo ?? 0);
+    return {
+      resumido: { used: used.resumido, limit: limR, remaining: Math.max(0, limR - used.resumido) },
+      completo: { used: used.completo, limit: limC, remaining: Math.max(0, limC - used.completo) },
+    };
+  };
+  for (const id of ids) out.set(id, build(id));
+  // Marcador especial para empresas sem uso/extras (usar default)
+  out.set("__default__", {
+    resumido: { used: 0, limit: global.resumido, remaining: global.resumido },
+    completo: { used: 0, limit: global.completo, remaining: global.completo },
+  });
+  return out;
+}
+
+/**
+ * True quando a empresa atingiu o limite de auditorias do mês.
+ * Como "completo" também consome 1 "resumido", basta checar resumido.remaining.
+ */
+export function isQuotaExhausted(quota: CompanyQuota | undefined): boolean {
+  if (!quota) return false;
+  return quota.resumido.remaining <= 0;
+}
+
+
