@@ -5,11 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, FileSpreadsheet, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { MultiMonthParsed } from "@/services/auditMonthDetector";
-import { defaultLast3 } from "@/services/auditMonthDetector";
 
 interface MonthsConfirmDialogProps {
   open: boolean;
   data: MultiMonthParsed | null;
+  /** Limite máximo de meses processáveis (3 gratuito, 12 pago). */
+  maxMonths?: number;
+  /** Tier do plano vigente, usado nas mensagens. */
+  tier?: "gratuito" | "pago";
   onConfirm: (selectedMonthKeys: string[]) => void;
   onCancel: () => void;
 }
@@ -21,26 +24,27 @@ const sourceColor = (s: string) =>
   s === "filename" || s === "header" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
   : "bg-amber-500/15 text-amber-400 border-amber-500/30";
 
-const MAX_AUDIT_MONTHS = 3;
+const pickLastN = (data: MultiMonthParsed, n: number) => data.years.slice(-Math.max(1, n));
 
-export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsConfirmDialogProps) => {
+export const MonthsConfirmDialog = ({ open, data, maxMonths = 3, tier = "gratuito", onConfirm, onCancel }: MonthsConfirmDialogProps) => {
   const [selected, setSelected] = useState<string[]>([]);
+  const cap = Math.max(1, maxMonths);
 
   useEffect(() => {
-    // Regra: auditoria considera SOMENTE os últimos 3 meses identificados.
-    if (data) setSelected(defaultLast3(data));
-  }, [data]);
+    // Pré-seleciona os N mais recentes respeitando o cap do tier (gratuito=3 / pago=12).
+    if (data) setSelected(pickLastN(data, cap));
+  }, [data, cap]);
 
   const totalMonths = data?.months.length || 0;
   const tooFew = totalMonths < 1;
   const lowConf = (data?.months || []).filter(m => m.confidence < 0.7);
-  const truncated = totalMonths > MAX_AUDIT_MONTHS;
+  const truncated = totalMonths > cap;
 
   const toggle = (key: string) => {
     setSelected(prev => {
       if (prev.includes(key)) return prev.filter(k => k !== key);
-      // Cap em 3: se já atingiu, remove o mais antigo selecionado para abrir espaço.
-      if (prev.length >= MAX_AUDIT_MONTHS) {
+      // Cap dinâmico: se atingiu, remove o mais antigo p/ abrir espaço.
+      if (prev.length >= cap) {
         const sorted = [...prev].sort();
         return [...sorted.slice(1), key];
       }
@@ -49,7 +53,8 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
   };
 
   const ordered = useMemo(() => [...(data?.months || [])].sort((a,b) => b.key.localeCompare(a.key)), [data]);
-  const canConfirm = selected.length >= 1 && selected.length <= MAX_AUDIT_MONTHS;
+  const canConfirm = selected.length >= 1 && selected.length <= cap;
+  const tierLabel = tier === "pago" ? "pago" : "gratuito";
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
@@ -60,13 +65,14 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
             Confirme os meses detectados
           </DialogTitle>
           <p className="text-xs text-muted-foreground mt-2">
-             A IA identificou {totalMonths} {totalMonths === 1 ? "período" : "períodos"} nos arquivos.
-             A auditoria processa <strong>somente os 3 meses mais recentes</strong>{truncated ? " — os meses anteriores ficam visíveis apenas para conferência." : "."}
+            A IA identificou {totalMonths} {totalMonths === 1 ? "período" : "períodos"} nos arquivos.
+            Seu plano <strong>{tierLabel}</strong> processa até{" "}
+            <strong>{cap} {cap === 1 ? "mês" : "meses"}</strong> mais recentes
+            {truncated ? " — os anteriores ficam visíveis apenas para conferência." : "."}
           </p>
         </DialogHeader>
 
         <div className="space-y-3 py-2 max-h-[60vh] overflow-y-auto">
-          {/* Resumo por arquivo */}
           {(data?.perFileMonths || []).length > 0 && (
             <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-1.5">
               <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Arquivos processados</p>
@@ -82,7 +88,6 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
             </div>
           )}
 
-          {/* Lista de meses */}
           <div className="space-y-1.5">
             {ordered.map((m) => {
               const checked = selected.includes(m.key);
@@ -113,7 +118,6 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
             })}
           </div>
 
-          {/* Avisos */}
           {tooFew && (
             <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2.5 text-xs">
               <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
@@ -130,8 +134,10 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
             <div className="flex items-start gap-2 rounded-lg border border-[hsl(217,91%,50%)]/30 bg-[hsl(217,91%,50%)]/10 p-2.5 text-xs">
               <AlertTriangle className="w-4 h-4 text-[hsl(217,91%,60%)] shrink-0 mt-0.5" />
               <span className="text-[hsl(217,91%,70%)]">
-                Detectamos {totalMonths} meses no balancete. A auditoria, o workspace e os relatórios (gratuito e Kanitz)
-                consideram apenas os <strong>3 meses mais recentes</strong>. Você pode trocar quais 3 meses analisar, mas não selecionar mais que isso.
+                Detectamos {totalMonths} meses no balancete. No plano <strong>{tierLabel}</strong> a auditoria, o workspace
+                e os relatórios (gratuito e Kanitz) consideram apenas os{" "}
+                <strong>{cap} meses mais recentes</strong>. Você pode trocar quais meses analisar, mas não selecionar mais que isso.
+                {tier === "gratuito" && " Para processar até 12 meses, libere uma cota de Relatório Completo (plano pago)."}
               </span>
             </div>
           )}
@@ -139,7 +145,7 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
 
         <DialogFooter className="flex items-center justify-between sm:justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            {selected.length}/{MAX_AUDIT_MONTHS} {selected.length === 1 ? "mês selecionado" : "meses selecionados"}
+            {selected.length}/{cap} {selected.length === 1 ? "mês selecionado" : "meses selecionados"}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onCancel}>Cancelar</Button>
