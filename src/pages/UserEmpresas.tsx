@@ -20,7 +20,7 @@ import {
   type GeneratedReportEntry,
   type AuditHistoryEntry,
 } from "@/services/auditHistoryService";
-import { canGenerateForCompany } from "@/services/reportLimitsService";
+import { canGenerateForCompany, getAllCompaniesQuota, isQuotaExhausted, type CompanyQuota } from "@/services/reportLimitsService";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyAccountingFirm, type AccountingFirm } from "@/services/accountingFirmsService";
