@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PlatformLayout from "@/components/PlatformLayout";
 import { listCompanies, createCompany, updateCompany, type Company } from "@/services/companiesService";
 import { Textarea } from "@/components/ui/textarea";
+import { formatCep } from "@/lib/cep";
 import { useUser } from "@/contexts/UserContext";
 import {
   getReportsByCompany,
