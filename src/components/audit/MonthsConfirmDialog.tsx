@@ -126,11 +126,20 @@ export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsC
               <span className="text-amber-400">{lowConf.length} período(s) com baixa confiança — confira se a data está correta antes de prosseguir.</span>
             </div>
           )}
+          {truncated && (
+            <div className="flex items-start gap-2 rounded-lg border border-[hsl(217,91%,50%)]/30 bg-[hsl(217,91%,50%)]/10 p-2.5 text-xs">
+              <AlertTriangle className="w-4 h-4 text-[hsl(217,91%,60%)] shrink-0 mt-0.5" />
+              <span className="text-[hsl(217,91%,70%)]">
+                Detectamos {totalMonths} meses no balancete. A auditoria, o workspace e os relatórios (gratuito e Kanitz)
+                consideram apenas os <strong>3 meses mais recentes</strong>. Você pode trocar quais 3 meses analisar, mas não selecionar mais que isso.
+              </span>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex items-center justify-between sm:justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            {selected.length} {selected.length === 1 ? "mês selecionado" : "meses selecionados"}
+            {selected.length}/{MAX_AUDIT_MONTHS} {selected.length === 1 ? "mês selecionado" : "meses selecionados"}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onCancel}>Cancelar</Button>
