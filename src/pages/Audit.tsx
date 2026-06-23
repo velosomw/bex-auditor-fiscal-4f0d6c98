@@ -4967,6 +4967,9 @@ const AuditContent = () => {
   const [selectedDepth, setSelectedDepth] = useState<"executivo" | "tecnico">("tecnico");
   const [multiMonth, setMultiMonth] = useState<import("@/services/auditMonthDetector").MultiMonthParsed | null>(null);
   const [filteredMonths, setFilteredMonths] = useState<string[]>([]);
+  const [monthsCap, setMonthsCap] = useState<number>(3);
+  const [monthsTier, setMonthsTier] = useState<AuditMonthsTier>("gratuito");
+
   const [preParsing, setPreParsing] = useState(false);
   const [balanceteEntries, setBalanceteEntries] = useState<BalanceteEntry[]>([]);
   const [forceReprocess, setForceReprocess] = useState(false);
