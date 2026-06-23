@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PlatformLayout from "@/components/PlatformLayout";
 import { listCompanies, createCompany, updateCompany, type Company } from "@/services/companiesService";
 import { Textarea } from "@/components/ui/textarea";
+import { formatCep } from "@/lib/cep";
 import { useUser } from "@/contexts/UserContext";
 import {
   getReportsByCompany,
@@ -239,7 +240,7 @@ const UserEmpresas = () => {
       address: c.address || "",
       city: c.city || "",
       uf: c.uf || "",
-      zip: c.zip || "",
+      zip: formatCep(c.zip || ""),
       notes: c.notes || "",
     });
     setEditing(true);
@@ -740,7 +741,7 @@ const UserEmpresas = () => {
                             </div>
                             <div className="space-y-1.5">
                               <Label htmlFor="ezip" className="text-xs">CEP</Label>
-                              <Input id="ezip" value={editForm.zip || ""} onChange={e => setEditForm(f => ({ ...f, zip: e.target.value }))} placeholder="00000-000" />
+                              <Input id="ezip" value={editForm.zip || ""} onChange={e => setEditForm(f => ({ ...f, zip: formatCep(e.target.value) }))} placeholder="00.000.000" maxLength={10} inputMode="numeric" />
                             </div>
                           </div>
                           <div className="space-y-1.5 md:col-span-2">
