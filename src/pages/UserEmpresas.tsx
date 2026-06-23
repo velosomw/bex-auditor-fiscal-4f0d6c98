@@ -741,7 +741,7 @@ const UserEmpresas = () => {
                             </div>
                             <div className="space-y-1.5">
                               <Label htmlFor="ezip" className="text-xs">CEP</Label>
-                              <Input id="ezip" value={editForm.zip || ""} onChange={e => setEditForm(f => ({ ...f, zip: e.target.value }))} placeholder="00000-000" />
+                              <Input id="ezip" value={editForm.zip || ""} onChange={e => setEditForm(f => ({ ...f, zip: formatCep(e.target.value) }))} placeholder="00.000.000" maxLength={10} inputMode="numeric" />
                             </div>
                           </div>
                           <div className="space-y-1.5 md:col-span-2">
