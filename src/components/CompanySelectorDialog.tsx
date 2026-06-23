@@ -17,6 +17,7 @@ interface Props {
 
 const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [quotaMap, setQuotaMap] = useState<Map<string, CompanyQuota>>(new Map());
   const [selectedId, setSelectedId] = useState<string>("");
   const [mode, setMode] = useState<"select" | "create">("select");
   const [name, setName] = useState("");
@@ -25,12 +26,22 @@ const CompanySelectorDialog = ({ open, onOpenChange, onConfirm }: Props) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const defaultQuota = quotaMap.get("__default__");
+  const quotaFor = (id: string) => quotaMap.get(id) ?? defaultQuota;
+  const isBlocked = (id: string) => isQuotaExhausted(quotaFor(id));
+  const availableCompanies = companies.filter(c => !isBlocked(c.id));
+  const allBlocked = companies.length > 0 && availableCompanies.length === 0;
+
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    listCompanies()
-      .then(list => {
+    Promise.all([
+      listCompanies(),
+      getAllCompaniesQuota().catch(() => new Map<string, CompanyQuota>()),
+    ])
+      .then(([list, qmap]) => {
         setCompanies(list);
+        setQuotaMap(qmap);
         if (list.length === 0) setMode("create");
       })
       .catch(e => toast({ title: "Erro ao carregar empresas", description: e.message, variant: "destructive" }))
