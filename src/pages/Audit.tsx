@@ -5115,9 +5115,12 @@ const AuditContent = () => {
         <MonthsConfirmDialog
           open={phase === "confirm-months" && !!multiMonth}
           data={multiMonth}
+          maxMonths={monthsCap}
+          tier={monthsTier}
           onConfirm={(keys) => { setFilteredMonths(keys); setPhase("processing"); }}
           onCancel={() => { setMultiMonth(null); setPhase("upload"); }}
         />
+
         {phase === "processing" && (
           <ProcessingPhase 
             onComplete={() => setPhase("results")} 
