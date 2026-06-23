@@ -488,7 +488,7 @@ const UserEmpresas = () => {
                             >
                               <Eye className="w-3.5 h-3.5" /> Detalhes
                             </Button>
-                            {!isReadOnly && (
+                            {!isReadOnly && !isCompanyBlocked(a.company.id) && (
                               <Button
                                 size="sm"
                                 onClick={() => handleNewAudit(a.company)}
@@ -496,6 +496,11 @@ const UserEmpresas = () => {
                               >
                                 <Plus className="w-3.5 h-3.5" /> Auditoria
                               </Button>
+                            )}
+                            {!isReadOnly && isCompanyBlocked(a.company.id) && (
+                              <Badge variant="outline" className="h-8 px-2 text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/30">
+                                Limite mensal atingido
+                              </Badge>
                             )}
                           </div>
                         </TableCell>
