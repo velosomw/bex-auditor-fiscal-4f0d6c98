@@ -21,28 +21,35 @@ const sourceColor = (s: string) =>
   s === "filename" || s === "header" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
   : "bg-amber-500/15 text-amber-400 border-amber-500/30";
 
+const MAX_AUDIT_MONTHS = 3;
+
 export const MonthsConfirmDialog = ({ open, data, onConfirm, onCancel }: MonthsConfirmDialogProps) => {
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
-    // Auto-seleciona TODOS os meses detectados — usuário apenas valida/desmarca pontualmente.
-    if (data) setSelected(data.months.map(m => m.key));
+    // Regra: auditoria considera SOMENTE os últimos 3 meses identificados.
+    if (data) setSelected(defaultLast3(data));
   }, [data]);
 
   const totalMonths = data?.months.length || 0;
-  const tooMany = totalMonths > 36; // Aumentado para 3 anos de histórico
   const tooFew = totalMonths < 1;
   const lowConf = (data?.months || []).filter(m => m.confidence < 0.7);
+  const truncated = totalMonths > MAX_AUDIT_MONTHS;
 
   const toggle = (key: string) => {
     setSelected(prev => {
       if (prev.includes(key)) return prev.filter(k => k !== key);
+      // Cap em 3: se já atingiu, remove o mais antigo selecionado para abrir espaço.
+      if (prev.length >= MAX_AUDIT_MONTHS) {
+        const sorted = [...prev].sort();
+        return [...sorted.slice(1), key];
+      }
       return [...prev, key];
     });
   };
 
   const ordered = useMemo(() => [...(data?.months || [])].sort((a,b) => b.key.localeCompare(a.key)), [data]);
-  const canConfirm = selected.length >= 1;
+  const canConfirm = selected.length >= 1 && selected.length <= MAX_AUDIT_MONTHS;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
