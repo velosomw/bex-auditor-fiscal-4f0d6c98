@@ -5078,19 +5078,23 @@ const AuditContent = () => {
                   });
                 }
                 setMultiMonth(merged);
-                // Regra de negócio: auditoria processa SOMENTE os últimos 3 meses,
-                // mesmo que o balancete contenha histórico retroativo maior.
-                const last3 = defaultLast3(merged);
-                setFilteredMonths(last3);
-                if (merged.months.length > 3) {
+                // Regra de negócio: cap de meses depende do tier do plano da empresa
+                // (gratuito = 3 meses recentes; pago = até 12 meses).
+                const { cap, tier } = await getAuditMonthsCap(company?.id ?? null);
+                setMonthsCap(cap);
+                setMonthsTier(tier);
+                const lastN = merged.years.slice(-cap);
+                setFilteredMonths(lastN);
+                if (merged.months.length > cap) {
                   toast({
-                    title: "Auditoria limitada aos 3 meses mais recentes",
-                    description: `Detectamos ${merged.months.length} meses. Apenas os 3 mais atuais (${last3.map(k => {
+                    title: `Auditoria limitada aos ${cap} meses mais recentes`,
+                    description: `Plano ${tier}. Detectamos ${merged.months.length} meses; apenas (${lastN.map(k => {
                       const m = merged.months.find(x => x.key === k); return m?.label ?? k;
                     }).join(", ")}) serão usados no diagnóstico e nos relatórios.`,
                   });
                 }
                 setPhase("confirm-months");
+
 
               } catch (e) {
                 console.error("Pré-parse falhou:", e);
