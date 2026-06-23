@@ -240,7 +240,7 @@ const UserEmpresas = () => {
       address: c.address || "",
       city: c.city || "",
       uf: c.uf || "",
-      zip: c.zip || "",
+      zip: formatCep(c.zip || ""),
       notes: c.notes || "",
     });
     setEditing(true);
