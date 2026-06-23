@@ -89,6 +89,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      setLoading(true);
+
       // Trocou de usuário (B logou após A) → invalida QUALQUER cache do anterior
       // antes de aplicar dados. Evita vazamento de role, viewAs, histórico de
       // auditoria e relatórios entre contas no mesmo navegador.
@@ -130,7 +132,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      void applySession(session?.user ?? null);
+      // Evita executar consultas ao banco dentro do callback síncrono de auth,
+      // prevenindo corrida/deadlock na restauração da sessão e no carregamento da role.
+      window.setTimeout(() => {
+        void applySession(session?.user ?? null);
+      }, 0);
     });
 
     supabase.auth.getSession().then(({ data }) => {
