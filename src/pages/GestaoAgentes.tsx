@@ -862,6 +862,9 @@ const GestaoAgentes = () => {
             <TabsTrigger value="fila" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <ListChecks className="w-3.5 h-3.5" /> Fila de Jobs & DLQ
             </TabsTrigger>
+            <TabsTrigger value="gateway" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <CloudCog className="w-3.5 h-3.5" /> API Gateway
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="mt-5"><TabUpload /></TabsContent>
@@ -872,6 +875,7 @@ const GestaoAgentes = () => {
           <TabsContent value="registro" className="mt-5"><TabAgentRegistry /></TabsContent>
           <TabsContent value="financeiro" className="mt-5"><TabFinanceiroTokens /></TabsContent>
           <TabsContent value="fila" className="mt-5"><TabAIJobsQueue /></TabsContent>
+          <TabsContent value="gateway" className="mt-5"><TabApiGateway /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
