@@ -208,6 +208,21 @@ const Signup = () => {
                     className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
                 </div>
                 <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">CRC / CFC</Label>
+                  <Input value={crc} onChange={(e) => setCrc(formatCrc(e.target.value))} required
+                    placeholder="SP-123456789012"
+                    maxLength={15}
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
+                  <p className="text-xs text-[hsl(220,15%,55%)]">Formato: UF-XXXXXXXXXX (10 a 12 dígitos após a UF)</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[hsl(220,15%,40%)] text-sm">CPF</Label>
+                  <Input value={cpf} onChange={(e) => setCpf(formatCpf(e.target.value))} required
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    className="bg-[hsl(220,30%,96%)] border-[hsl(220,20%,88%)]" />
+                </div>
+                <div className="space-y-2">
                   <Label className="text-[hsl(220,15%,40%)] text-sm">E-mail</Label>
                   <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                     placeholder="voce@email.com"
