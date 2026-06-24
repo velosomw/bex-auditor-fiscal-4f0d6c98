@@ -1,6 +1,8 @@
 project_id = "mrvizydgxysaxazhmfqk"
 
 [functions]
+  [functions.revalidate-credentials]
+    verify_jwt = false
   [functions.admin-create-user]
     verify_jwt = false
   [functions.audit-analyze]
