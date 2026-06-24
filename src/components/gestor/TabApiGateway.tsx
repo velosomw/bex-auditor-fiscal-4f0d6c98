@@ -145,7 +145,7 @@ export default function TabApiGateway() {
               <CloudCog className="w-5 h-5" /> Modo de operação do Gateway
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Padrão <strong>Lovable</strong> — zero impacto. Ative <strong>GCP Gemini</strong> como failover quando o
+              Padrão <strong>Orange</strong> — zero impacto. Ative <strong>GCP Gemini</strong> como failover quando o
               secret <code>GEMINI_API_KEY</code> estiver configurado.
             </p>
           </div>
@@ -318,8 +318,8 @@ export default function TabApiGateway() {
         <ShieldCheck className="w-4 h-4" />
         <AlertTitle>Failover seguro</AlertTitle>
         <AlertDescription>
-          O fluxo atual (Lovable AI) permanece operacional. A virada para GCP só ocorre após salvar modo = GCP
-          <em> e</em> ter <code>GEMINI_API_KEY</code> configurada. Funções de auditoria e e-mail continuam usando
+          O fluxo atual (Orange AI) permanece operacional. A virada para GCP só ocorre após salvar modo = GCP
+          e ter <code>GEMINI_API_KEY</code> configurada. Funções de auditoria e e-mail continuam usando
           o roteador atual até a virada manual.
         </AlertDescription>
       </Alert>
