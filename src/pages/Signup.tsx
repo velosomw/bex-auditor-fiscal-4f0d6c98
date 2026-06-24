@@ -71,6 +71,15 @@ const Signup = () => {
       return;
     }
 
+    if (!isValidCrc(crc)) {
+      toast.error("Informe um CRC/CFC válido no formato UF-XXXXXXXXXX (10 a 12 dígitos).");
+      return;
+    }
+    if (!isValidCpf(cpf)) {
+      toast.error("Informe um CPF válido (XXX.XXX.XXX-XX).");
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -81,6 +90,8 @@ const Signup = () => {
           full_name: fullName,
           company_name: companyName,
           cnpj: cnpj,
+          crc: crc,
+          cpf: cpf,
           signup_source: "public",
         },
       },
