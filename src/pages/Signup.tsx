@@ -19,12 +19,41 @@ const Signup = () => {
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [cnpj, setCnpj] = useState("");
+  const [crc, setCrc] = useState("");
+  const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [resending, setResending] = useState(false);
+
+  const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+
+  const formatCpf = (v: string) => {
+    const d = v.replace(/\D/g, "").slice(0, 11);
+    let out = d;
+    if (d.length > 9) out = `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+    else if (d.length > 6) out = `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+    else if (d.length > 3) out = `${d.slice(0,3)}.${d.slice(3)}`;
+    return out;
+  };
+
+  const formatCrc = (v: string) => {
+    const raw = v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const uf = raw.slice(0, 2).replace(/[^A-Z]/g, "");
+    const num = raw.slice(uf.length).replace(/\D/g, "").slice(0, 12);
+    if (!uf) return "";
+    if (!num) return uf;
+    return `${uf}-${num}`;
+  };
+
+  const isValidCrc = (v: string) => {
+    const m = v.match(/^([A-Z]{2})-(\d{10,12})$/);
+    return !!m && UFS.includes(m[1]);
+  };
+
+  const isValidCpf = (v: string) => v.replace(/\D/g, "").length === 11;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
