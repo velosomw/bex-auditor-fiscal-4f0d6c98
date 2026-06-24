@@ -13,11 +13,12 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Upload, Brain, BookOpen, Database, Activity, FileText,
   CheckCircle2, AlertCircle, Sparkles, Save, RefreshCw, Star, Loader2,
-  Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap, XCircle, Plug, Wallet, ListChecks,
+  Eye, Trash2, Edit3, TrendingUp, Cpu, Lightbulb, Target, Zap, XCircle, Plug, Wallet, ListChecks, CloudCog,
 } from "lucide-react";
 import TabAgentRegistry from "@/components/gestor/TabAgentRegistry";
 import TabFinanceiroTokens from "@/components/gestor/TabFinanceiroTokens";
 import TabAIJobsQueue from "@/components/gestor/TabAIJobsQueue";
+import TabApiGateway from "@/components/gestor/TabApiGateway";
 import { CacheReuseCard } from "@/components/gestor/CacheReuseCard";
 import { parseFile, runAuditPipeline, type PipelineResult } from "@/services/auditAIService";
 import { listCompanies, type Company } from "@/services/companiesService";
@@ -861,6 +862,9 @@ const GestaoAgentes = () => {
             <TabsTrigger value="fila" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
               <ListChecks className="w-3.5 h-3.5" /> Fila de Jobs & DLQ
             </TabsTrigger>
+            <TabsTrigger value="gateway" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+              <CloudCog className="w-3.5 h-3.5" /> API Gateway
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="mt-5"><TabUpload /></TabsContent>
@@ -871,6 +875,7 @@ const GestaoAgentes = () => {
           <TabsContent value="registro" className="mt-5"><TabAgentRegistry /></TabsContent>
           <TabsContent value="financeiro" className="mt-5"><TabFinanceiroTokens /></TabsContent>
           <TabsContent value="fila" className="mt-5"><TabAIJobsQueue /></TabsContent>
+          <TabsContent value="gateway" className="mt-5"><TabApiGateway /></TabsContent>
         </Tabs>
       </div>
     </PlatformLayout>
