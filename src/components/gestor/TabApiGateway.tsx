@@ -134,7 +134,7 @@ export default function TabApiGateway() {
 
   const activeBadge = status.activeMode === "gcp"
     ? <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30">GCP Gemini ativo</Badge>
-    : <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Lovable AI ativo (padrão)</Badge>;
+    : <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Orange AI ativo (padrão)</Badge>;
 
   return (
     <div className="space-y-5">
@@ -145,7 +145,7 @@ export default function TabApiGateway() {
               <CloudCog className="w-5 h-5" /> Modo de operação do Gateway
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Padrão <strong>Lovable</strong> — zero impacto. Ative <strong>GCP Gemini</strong> como failover quando o
+              Padrão <strong>Orange</strong> — zero impacto. Ative <strong>GCP Gemini</strong> como failover quando o
               secret <code>GEMINI_API_KEY</code> estiver configurado.
             </p>
           </div>
@@ -161,7 +161,7 @@ export default function TabApiGateway() {
               <AlertTitle>GEMINI_API_KEY ausente</AlertTitle>
               <AlertDescription>
                 Configure o secret <code>GEMINI_API_KEY</code> nas Funções para ativar o gateway GCP.
-                Enquanto ausente, o sistema continua roteando via Lovable (failover seguro).
+                Enquanto ausente, o sistema continua roteando via Orange (failover seguro).
               </AlertDescription>
             </Alert>
           )}
@@ -175,7 +175,7 @@ export default function TabApiGateway() {
                   onCheckedChange={(c) => setDraft({ ...draft, mode: c ? "gcp" : "lovable" })}
                 />
                 <span className="text-sm">
-                  {draft.mode === "gcp" ? "GCP Gemini (failover)" : "Lovable AI (padrão)"}
+                  {draft.mode === "gcp" ? "GCP Gemini (failover)" : "Orange AI (padrão)"}
                 </span>
               </div>
             </div>
@@ -190,7 +190,7 @@ export default function TabApiGateway() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Modelo padrão (Lovable)</Label>
+              <Label>Modelo padrão (Orange)</Label>
               <Input value={draft.default_model} onChange={(e) => setDraft({ ...draft, default_model: e.target.value })} />
             </div>
             <div className="space-y-2">
@@ -221,7 +221,7 @@ export default function TabApiGateway() {
             <CardTitle className="flex items-center gap-2"><KeyRound className="w-5 h-5" /> Secrets</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <SecretBadge ok={status.secrets.LOVABLE_API_KEY} label="LOVABLE_API_KEY" />
+            <SecretBadge ok={status.secrets.LOVABLE_API_KEY} label="ORANGE_API_KEY" />
             <SecretBadge ok={status.secrets.GEMINI_API_KEY} label="GEMINI_API_KEY (GCP)" />
             <SecretBadge ok={status.secrets.GOOGLE_DOCUMENT_AI_API_KEY} label="GOOGLE_DOCUMENT_AI_API_KEY" />
             <SecretBadge ok={status.secrets.SEND_EMAIL_HOOK_SECRET} label="SEND_EMAIL_HOOK_SECRET (webhook)" />
@@ -263,7 +263,7 @@ export default function TabApiGateway() {
           <div className="flex gap-2">
             <Button onClick={() => runTest("lovable")} disabled={!!testing} variant="outline">
               {testing === "lovable" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Testar Lovable
+              Testar Orange
             </Button>
             <Button onClick={() => runTest("gcp")} disabled={!!testing || !status.secrets.GEMINI_API_KEY}>
               {testing === "gcp" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
@@ -318,8 +318,8 @@ export default function TabApiGateway() {
         <ShieldCheck className="w-4 h-4" />
         <AlertTitle>Failover seguro</AlertTitle>
         <AlertDescription>
-          O fluxo atual (Lovable AI) permanece operacional. A virada para GCP só ocorre após salvar modo = GCP
-          <em> e</em> ter <code>GEMINI_API_KEY</code> configurada. Funções de auditoria e e-mail continuam usando
+          O fluxo atual (Orange AI) permanece operacional. A virada para GCP só ocorre após salvar modo = GCP
+          e ter <code>GEMINI_API_KEY</code> configurada. Funções de auditoria e e-mail continuam usando
           o roteador atual até a virada manual.
         </AlertDescription>
       </Alert>
