@@ -164,6 +164,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_gateway_config: {
+        Row: {
+          default_model: string
+          gcp_endpoint: string | null
+          gcp_model: string
+          id: boolean
+          mode: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+          webhook_signature_enabled: boolean
+        }
+        Insert: {
+          default_model?: string
+          gcp_endpoint?: string | null
+          gcp_model?: string
+          id?: boolean
+          mode?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          webhook_signature_enabled?: boolean
+        }
+        Update: {
+          default_model?: string
+          gcp_endpoint?: string | null
+          gcp_model?: string
+          id?: boolean
+          mode?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          webhook_signature_enabled?: boolean
+        }
+        Relationships: []
+      }
       ai_jobs: {
         Row: {
           attempts: number
