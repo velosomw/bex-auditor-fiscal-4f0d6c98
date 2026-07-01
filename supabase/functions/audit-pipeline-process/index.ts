@@ -1023,17 +1023,28 @@ async function runPipeline(
       if (bdDelErr) {
         console.warn("balancete_data prune warn:", bdDelErr.message);
       }
-      const { error: bdErr } = await supabase.from("balancete_data").insert(
-        normalizedRows.map((r) => ({
-          document_id: documentId,
-          conta_original: r.conta_original,
-          conta_normalizada: r.conta_normalizada,
-          valor: r.valor,
-          tipo: r.tipo,
-          categoria: r.categoria,
-        })),
-      );
-      if (bdErr) console.warn("balancete_data insert warn:", bdErr.message);
+      // Dedupe por conta_original dentro do lote (mesma conta em balanço+DRE)
+      const seen = new Set<string>();
+      const dedupedRows = normalizedRows.filter((r) => {
+        const key = String(r.conta_original ?? "").trim();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      const { error: bdErr } = await supabase
+        .from("balancete_data")
+        .upsert(
+          dedupedRows.map((r) => ({
+            document_id: documentId,
+            conta_original: r.conta_original,
+            conta_normalizada: r.conta_normalizada,
+            valor: r.valor,
+            tipo: r.tipo,
+            categoria: r.categoria,
+          })),
+          { onConflict: "document_id,conta_original", ignoreDuplicates: false },
+        );
+      if (bdErr) console.warn("balancete_data upsert warn:", bdErr.message);
     }
 
     // 6. Validação — motor canônico (pai 1/11/12/21/22) com fallback p/ LLM
