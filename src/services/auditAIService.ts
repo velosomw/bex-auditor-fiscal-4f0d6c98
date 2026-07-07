@@ -350,7 +350,11 @@ function classifyPNCByDescription(desc: string): string {
 /** Resolve Ref 1 a partir do código contábil + descrição (determinístico, sem IA). */
 export function inferRefByCode(code: string, descricao?: string): string | undefined {
   if (!code) return undefined;
-  const c = String(code).replace(/\s+/g, "");
+  // FIX (Giannini 2026-07): planos contábeis brasileiros comumente usam códigos
+  // pontuados ("1.1", "2.1.01", "3.1"). Sem remover os pontos, regex como
+  // /^11/, /^21/, /^31/ nunca casavam e o balancete inteiro caía no fallback
+  // textual — resultando em bs_dados só com passivo_total.
+  const c = String(code).replace(/[\s.]/g, "");
   for (const [pattern, ref] of REF_BY_PREFIX) {
     if (pattern.test(c)) {
       if (ref === "PC_COMPONENT") return classifyPCByDescription(descricao || "");
