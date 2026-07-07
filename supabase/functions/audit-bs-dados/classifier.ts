@@ -76,7 +76,12 @@ const NAME_PATTERNS: Array<[RegExp, string]> = [
 
 function classifyByCode(conta?: string): string | null {
   if (!conta) return null;
-  for (const [rx, g] of CODE_PREFIX_MAP) if (rx.test(conta)) return g;
+  // FIX (Giannini): normaliza códigos pontuados ("1.1" → "11", "2.1.01" → "2101")
+  // para que os prefixos ^1.1/^2.1/^3.1 também casem contra planos com dots.
+  const normalized = String(conta).replace(/[\s.]/g, "");
+  for (const [rx, g] of CODE_PREFIX_MAP) {
+    if (rx.test(conta) || rx.test(normalized)) return g;
+  }
   return null;
 }
 function classifyByName(desc?: string): string | null {
