@@ -293,7 +293,9 @@ function classifyPNCByDescription(desc: string): string {
 }
 
 export function inferRefByCode(code?: string, descricao?: string): string | null {
-  const c = String(code || "").replace(/\s+/g, "");
+  // FIX (Giannini): remove espaços E pontos — planos dotted ("1.1","2.1.01","3.1")
+  // precisam colapsar para "11"/"2101"/"31" para os prefixos ^11/^21/^31 casarem.
+  const c = String(code || "").replace(/[\s.]/g, "");
   for (const [pattern, ref] of REF_BY_PREFIX) {
     if (pattern.test(c)) {
       if (ref === "PC_COMPONENT") return classifyPCByDescription(descricao || "");
@@ -416,7 +418,7 @@ export function emptyRow(mesKey: string): BSDadosRow {
 
 export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   let ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
-  const codigoStr = String(linha.conta || "").replace(/\s+/g, "");
+  const codigoStr = String(linha.conta || "").replace(/[\s.]/g, "");
   // Override seguro para dados já persistidos com ref1 antigo (ex.: 51/61 = CMV/DESPESAS).
   // O cálculo validado pelo auditor usa grupo 4 para CMV e zera grupo 6.
   if (/^[56](\d|$)/.test(codigoStr)) return null;
