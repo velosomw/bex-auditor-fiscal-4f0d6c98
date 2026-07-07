@@ -418,7 +418,7 @@ export function emptyRow(mesKey: string): BSDadosRow {
 
 export function resolveKey(linha: InputLinha): keyof BSDadosRow | null {
   let ref1 = linha.ref1 ?? inferRefByCode(linha.conta, linha.descricao);
-  const codigoStr = String(linha.conta || "").replace(/\s+/g, "");
+  const codigoStr = String(linha.conta || "").replace(/[\s.]/g, "");
   // Override seguro para dados já persistidos com ref1 antigo (ex.: 51/61 = CMV/DESPESAS).
   // O cálculo validado pelo auditor usa grupo 4 para CMV e zera grupo 6.
   if (/^[56](\d|$)/.test(codigoStr)) return null;
