@@ -293,7 +293,9 @@ function classifyPNCByDescription(desc: string): string {
 }
 
 export function inferRefByCode(code?: string, descricao?: string): string | null {
-  const c = String(code || "").replace(/\s+/g, "");
+  // FIX (Giannini): remove espaços E pontos — planos dotted ("1.1","2.1.01","3.1")
+  // precisam colapsar para "11"/"2101"/"31" para os prefixos ^11/^21/^31 casarem.
+  const c = String(code || "").replace(/[\s.]/g, "");
   for (const [pattern, ref] of REF_BY_PREFIX) {
     if (pattern.test(c)) {
       if (ref === "PC_COMPONENT") return classifyPCByDescription(descricao || "");
