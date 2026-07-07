@@ -1,61 +1,53 @@
-## Objetivo
-Aplicar 4 ajustes referenciais na lógica de extração/interpretação do balancete, com base na divergência apurada entre o Relatório v4 e o balancete original (Giannini, ago/25 a jan/26).
+## Escopo
 
----
+Refazer a análise gerada pela IA no **Relatório Kanitz Expandido** (`TabRelatorioKanitz`, em `src/pages/Audit.tsx`), corrigindo cálculos, contexto e narrativa quando o Patrimônio Líquido é negativo (caso Giannini), removendo o módulo Risk Engine e alinhando todos os textos ao motor de cálculo contábil.
 
-## Diagnóstico (apurado no balancete enviado)
+## Correções técnicas (motor de cálculo)
 
-| Métrica | Valor atual (plataforma / v4) | Valor correto (balancete) | Causa raiz |
-|---|---|---|---|
-| ANC ago/25 | R$ 5.278.541,74 | R$ 2.741.435,72 (cód. **12**) | Parser soma código **12** (Ativo Não Circulante) + código **13** (Ativo Permanente) no mesmo bucket `ANC_TOTAL` (`core.ts` linha 196-199) |
-| Ativo Total ago/25 | R$ 80.853.768,32 (cód. 1) | R$ 78.316.662,30 (= AC + ANC, sem Permanente) | AT herda código **1** que inclui Permanente |
-| PL ago/25 | negativo | R$ 301.909.389,98 (cód. **23**) | Parser soma sinais das folhas em vez de respeitar o sintético `23` (autoritativo) |
-| Receita Líquida jan/26 | tratada como YTD ou diff de mês anterior >0 | R$ 10.799.705,52 (valor do próprio mês, pois saldo inicial = 0 após encerramento) | Fórmula `C_mês − C_mês−1` não detecta encerramento contábil |
+1. **Preservar sinal do PL** — remover `Math.abs()` de Patrimônio Líquido e Lucro Líquido em `kanitzResults` (linhas 3638-3640). Com PL negativo o Kanitz é **inválido** (RPL vira falso positivo).
+2. **Novo indicador — Índice de Solvência Geral (ISG)** = `AT / PT`. Calculado sempre; usado como *substituto oficial* quando `PL ≤ 0`. Faixas: > 1,5 saudável · 1,0-1,5 atenção · < 1,0 insolvência técnica.
+3. **Flag `kanitzAplicavel`** por período (= `pl > 0`). Quando falsa: FI mostrado apenas como referência com badge "**Não aplicável — PL negativo**" e a narrativa passa a usar ISG.
+4. **Meses ausentes (01/2026)** — verificar `parsedData.years`; garantir ordenação cronológica e inclusão de todos os períodos retornados pelo motor mensal (`kanitzMonthly`). Corrigir filtragem que descarta o mês mais recente.
+5. **Rentabilidade zerada** — quando PL ≤ 0, exibir "N/A (PL negativo)" ao invés de `0`. Quando PL > 0 e LL = 0, exibir 0 real.
+6. **LG / LS** — recomputar por período usando os totais oficiais do motor (`ac + rlp` sobre `pc + pnc`; e `(ac − estoque)/pc`). Corrigir busca de "realizável a longo prazo" para não colidir com "realizável".
+7. **Endividamento Geral** — usar fórmula do motor: `PT / AT` (não `PT/PL`). Sincronizar valor exibido com o do mês selecionado (janeiro/2026: 5,00 no motor).
+8. **Alavancagem / Capital de Terceiros / PL** — retornar `N/A` quando PL ≤ 0 (evita "0,00x" falso).
+9. **PNC ausente** — buscar por `total do passivo não circulante`, `passivo nao/não circulante` e `exigível a longo prazo` (ampliar variações). Registrar origem do valor em tooltip.
+10. **EBITDA / Cobertura de juros / Geração de caixa / Margem líquida** — trocar proxy simplificado por chamada ao motor (`indicatorsEngine`), garantindo coerência com o BEX.
+11. **Custos ocultos** — reler percentuais do motor mensal (`bs_dados`): `despFin/RL`, `estoque/AC`, `giro = RL/AT`. Substituir cálculos locais.
 
----
+## Ajustes de narrativa (11 seções)
 
-## Mudanças
+| # | Seção | Ação |
+|---|---|---|
+| 1 | Sumário Executivo | Quando `!kanitzAplicavel`: texto explica que Kanitz distorce com PL negativo e passa a usar ISG. Cita valores absolutos de PL, AT, PT. |
+| 2 | Score Kanitz | Renderiza card "**Kanitz não aplicável**" + card ISG destacado. Escala e termômetro exibidos como referência. |
+| 3 | Diagnóstico de Solvência | Adiciona linha 01/2026; RPL como "N/A" quando PL < 0; LG/LS/GE corrigidos; nova linha ISG. |
+| 4 | Estrutura de Liquidez | Mostra origem: `CG = AC − PC (valores)`; `NCG = (AC − Caixa) − (PC − Fornecedores) (valores)`. |
+| 5 | Estrutura de Capital | Endividamento Total = `PT/AT` alinhado ao mês; se PL ≤ 0 alavancagem e KT/PL exibem "N/A — PL negativo" com explicação. |
+| 6 | Análise de Passivos | Puxa PNC do motor; recalcula "Pressão", "Passivo/EBITDA" com valores corrigidos. |
+| 7 | Fluxo de Caixa Estrutural | EBITDA, cobertura de juros, geração de caixa e margem líquida vindos do motor; nota se fonte é DRE ou proxy. |
+| 8 | Custos Ocultos | Reescrever texto: cita % correto do mês (34,89% desp.fin/RL; 11% estoque/AC); explica fórmula do "Giro do Ativo" e "Margem Líquida" logo abaixo do card. |
+| 9 | Risk Engine | **Remover** módulo completo (JSX + variáveis `riskLiquidez/riskAlavancagem/riskFluxoCaixa/riskEngineScore/Class/Color`). Renumerar 10→9 e 11→10. |
+| 10→9 | Simulação Financeira | Recalcular quatro cenários usando premissas Kanitz reais aplicadas aos componentes (não multiplicação heurística). Se PL ≤ 0 os cenários usam ISG projetado. Mostrar fórmula da simulação em cada linha. |
+| 11→10 | Parecer Técnico | Reescrever cinco parágrafos com o novo contexto (PL negativo, ISG, causas, probabilidade, recomendações). Remover menções ao Risk Engine. |
 
-### 1. ANC stricto = código 12 (separar Permanente)
-**Arquivo:** `supabase/functions/audit-bs-dados/core.ts`
-- Remover roteamento `/^13/ → ANC_TOTAL` (linha 199). Código **13** (Ativo Permanente) passa a rotear para um novo bucket `ativo_permanente` (já temos `imobilizado` e `intangivel` separados via 131/132 — reforçar que 13x genérico cai em `ativo_permanente` e **não soma em ANC**).
-- Atualizar `BSDadosRow` no `core.ts` para incluir `ativo_permanente: number` (espelho do total cód. 13).
-- Ajustar `finalize()` para que `ativo_nao_circulante` NÃO some `imobilizado + intangivel + investimentos + realizavel_lp` quando há GT ANC autoritativo (cód. 12). Manter o somatório de subgrupos apenas como fallback quando NÃO há totalizador.
+## Arquivos afetados
 
-### 2. Ativo Total = AC + ANC (sem Permanente)
-**Arquivos:** `supabase/functions/audit-bs-dados/core.ts`, `src/services/bsDadosBuilder.ts`, `src/services/indicatorsEngine.ts` (onde calcular AT)
-- Computar `ativo_total = ativo_circulante + ativo_nao_circulante` (excluir `ativo_permanente`).
-- Manter `ativo_permanente` exposto separadamente para uso no Kanitz/BEX (que dependem do Imobilizado).
-
-### 3. Patrimônio Líquido respeitando sintético
-**Arquivo:** `supabase/functions/audit-bs-dados/core.ts` (`finalize`, switch `patrimonio_liquido`)
-- Quando `sawPLTotal && gtPL > 0` → usar `gtPL` como PL (já existe parcialmente). Reforçar que o valor é tomado do sintético **23** em **módulo** (pois balancete apresenta PL crédito como positivo no sintético).
-- Quando não há sintético, somar folhas mas inverter sinal contábil (crédito → positivo).
-
-### 4. Receita Líquida mensal com detecção de encerramento
-**Novo helper:** `src/services/variationMoM.ts` já existe — estender com regra de encerramento.
-**Lógica:**
-```
-movimentoMes(conta, mês) {
-  prev = saldoFinal(conta, mês−1);
-  curr = saldoFinal(conta, mês);
-  if (grupo ∈ {3,4} && |prev| < ε) return curr;   // saldo inicial zerado = encerramento
-  return curr − prev;
-}
-```
-- Aplicar em `bsDadosBuilder` para todas as contas dos grupos **3 (Receitas)** e **4 (Custos/Despesas)** ao montar `receita_liquida`, `cmv`, `despesas` mês a mês.
-- Persistir flag `closed_period: true` nos `validation_diagnostics` quando regra ativada.
-
----
-
-## Detalhes técnicos
-- Versão do parser: bumpar `PARSER_VERSION` para `2026.05.28.14` (vigente: `2026.05.27.13`).
-- Adicionar testes em `supabase/functions/audit-bs-dados/finalize_test.ts` cobrindo: (a) plano com cód. 12 + 13 separados; (b) PL sintético positivo; (c) jan/26 com saldo inicial zerado.
-- Atualizar `docs/BS_DADOS_ESPECIFICACAO.md` §2.2 para refletir que **Ativo Permanente (Ref C1/D1)** é bucket independente e **não compõe AT** por padrão.
-- Atualizar memória `mem://features/audit-mathematical-logic` com as novas regras de AT e encerramento contábil.
-
----
+- `src/pages/Audit.tsx` — bloco `TabRelatorioKanitz` (linhas ~3600-4500). Alterações localizadas: cálculos (~3625-3760), remoção do módulo 9 (~4218-4268), renumeração dos módulos 10 e 11, reescrita textual das seções 1, 2, 4, 5, 6, 7, 8, 10 (novo), 11 (novo).
+- Nenhum outro arquivo alterado (motor `indicatorsEngine.ts` e `kanitzCalculator.ts` já preservam o sinal do PL — apenas o consumo local em Audit.tsx precisa parar de aplicar `Math.abs`).
 
 ## Fora de escopo
-- Re-gerar relatórios v5 / v4 anteriores (faremos só após confirmação dos novos parsers).
-- Mudar Kanitz/BEX, que continuam usando `ativo_permanente` separadamente.
+
+- Alterações no Relatório BEX (não solicitado).
+- Mudanças no pipeline de extração/OCR.
+- Alterações em Cloud/DB/edge functions.
+
+## Validação
+
+1. Build TypeScript sem erros.
+2. Abrir preview em `/user/report/<id>` do relatório Giannini: confirmar sumário e Score exibindo "Kanitz não aplicável — PL negativo" e ISG destacado.
+3. Verificar mês 01/2026 presente na tabela do Módulo 3.
+4. Endividamento Total no Módulo 5 = valor do mês (5,00).
+5. Percentuais no Módulo 8 batem com o BS mensal.
+6. Módulo 9 (Risk Engine) removido; numeração final 1-10.
