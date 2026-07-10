@@ -4964,10 +4964,24 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             </TabsList>
             <TabsContent value="auditoria" forceMount>
               <h2 className="hidden print:block text-xl font-bold mb-3 mt-6 text-[#1e3a8a]">1. Gráficos de Auditoria</h2>
+              <div className="mb-4 space-y-3 print:hidden">
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="text-sm font-semibold text-foreground">Gráficos de Auditoria — Balancete</div>
+                  <p className="text-xs text-muted-foreground mt-1">Reprodução fiel das abas <strong>Dados para Graficos</strong>, <strong>Folha</strong>, <strong>FCP - 6 meses</strong> e <strong>Fluxo de Caixa - Prev x Realiz</strong>. Ordem, séries e granularidade preservadas.</p>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <div className="text-sm font-semibold text-foreground">Gráficos de Auditoria — Padrão BEX (Aba GRÁFICOS 2)</div>
+                  <p className="text-xs text-muted-foreground mt-1">Liquidez Geral, Liquidez Corrente, Evolução do Passivo (PC + PNC), Empréstimos e Financiamentos, Imobilizado/Intangível, Endividamento Geral, Resultado/Receita, Custo+Despesa/Receita e relações anual e média mensal — reprodução visual fiel da aba <strong>GRÁFICOS (2)</strong> do template BEX/Kanitz.</p>
+                </div>
+              </div>
               <TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} />
             </TabsContent>
             <TabsContent value="parecer" id="tab-graficos-parecer-container" forceMount>
               <h2 className="hidden print:block text-xl font-bold mb-3 mt-8 text-[#1e3a8a]" style={{ pageBreakBefore: "always" }}>2. Gráficos do Parecer Contábil</h2>
+              <div className="mb-4 rounded-lg border bg-muted/30 p-3 print:hidden">
+                <div className="text-sm font-semibold text-foreground">Gráficos — Parecer Contábil</div>
+                <p className="text-xs text-muted-foreground mt-1">Espelha 1:1 a aba <strong>GRÁFICOS (2)</strong> do template Kanitz/Giannini. Fórmulas idênticas às linhas O..V do Parecer Contábil; valores derivados da consolidação BS &amp; Dados. {balanceteEntries?.length || parsedData?.years?.length || 0} mês(es).</p>
+              </div>
               <TabGraficosParecer parsedData={parsedData} entries={balanceteEntries} />
             </TabsContent>
           </Tabs>
