@@ -4962,7 +4962,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
               <TabsTrigger value="auditoria" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Gráficos de Auditoria</TabsTrigger>
               <TabsTrigger value="parecer" className="gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Gráficos Parecer Contábil</TabsTrigger>
             </TabsList>
-            <TabsContent value="auditoria" forceMount>
+            <TabsContent value="auditoria">
               <h2 className="hidden print:block text-xl font-bold mb-3 mt-6 text-[#1e3a8a]">1. Gráficos de Auditoria</h2>
               <div className="mb-4 space-y-3 print:hidden">
                 <div className="rounded-lg border bg-muted/30 p-3">
@@ -4976,7 +4976,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
               </div>
               <TabGraficosAuditoria files={uploadedFiles} parsedData={parsedData} entries={balanceteEntries} />
             </TabsContent>
-            <TabsContent value="parecer" id="tab-graficos-parecer-container" forceMount>
+            <TabsContent value="parecer" id="tab-graficos-parecer-container">
               <h2 className="hidden print:block text-xl font-bold mb-3 mt-8 text-[#1e3a8a]" style={{ pageBreakBefore: "always" }}>2. Gráficos do Parecer Contábil</h2>
               <div className="mb-4 rounded-lg border bg-muted/30 p-3 print:hidden">
                 <div className="text-sm font-semibold text-foreground">Gráficos — Parecer Contábil</div>
