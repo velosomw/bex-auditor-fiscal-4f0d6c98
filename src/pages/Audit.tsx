@@ -66,6 +66,34 @@ const printReport = (containerId: string, reportTitle: string) => {
   document.title = prevTitle;
 };
 
+/** Exporta o container como PDF baixado automaticamente (sem abrir diálogo). */
+const exportPdf = async (containerId: string, reportTitle: string) => {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"]').forEach(n => n.remove());
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:white;';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+  try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename: `${bexFileName(reportTitle)}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.report-a4-page', '.report-a4-cover'] },
+      })
+      .from(clone)
+      .save();
+  } finally {
+    wrapper.remove();
+  }
+};
+
 const exportDocx = (containerId: string, reportTitle: string) => {
   const container = document.getElementById(containerId);
   if (!container) return;
