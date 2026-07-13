@@ -85,8 +85,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['.report-a4-page', '.report-a4-cover'] },
-      })
+      } as any)
       .from(clone)
       .save();
   } finally {
