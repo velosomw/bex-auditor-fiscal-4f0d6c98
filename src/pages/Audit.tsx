@@ -480,15 +480,14 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
   const [fileIsYtd, setFileIsYtd] = useState<Record<string, boolean>>({});
   const [filePreview, setFilePreview] = useState<Record<string, { loading: boolean; months: Array<{ key: string; label: string }>; error?: string }>>({});
 
-  // Ano vigente (atual) até 2029; usuário seleciona mês + ano
+  // Anos suportados: 2021 até 2030
   const MES_FULL = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const yearOptions = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const start = Math.min(currentYear, 2026);
     const years: number[] = [];
-    for (let y = start; y <= 2029; y++) years.push(y);
+    for (let y = 2021; y <= 2030; y++) years.push(y);
     return years;
   }, []);
+
   const [fileYears, setFileYears] = useState<Record<string, number>>({});
   const monthOptions = useMemo(() => {
     const opts = MES_FULL.map((label, idx) => ({
@@ -676,7 +675,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                     {/* Seletor de Ano + Mês de referência */}
                     {(() => {
                       const currentYear = new Date().getFullYear();
-                      const defaultYear = Math.min(Math.max(currentYear, yearOptions[0]), 2029);
+                      const defaultYear = Math.min(Math.max(currentYear, yearOptions[0]), 2030);
                       
                       // mes pode ser "auto" ou "YYYY-MM"
                       const isAuto = mes === "auto";
