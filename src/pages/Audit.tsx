@@ -675,7 +675,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                     {/* Seletor de Ano + Mês de referência */}
                     {(() => {
                       const currentYear = new Date().getFullYear();
-                      const defaultYear = Math.min(Math.max(currentYear, yearOptions[0]), 2029);
+                      const defaultYear = Math.min(Math.max(currentYear, yearOptions[0]), 2030);
                       
                       // mes pode ser "auto" ou "YYYY-MM"
                       const isAuto = mes === "auto";
