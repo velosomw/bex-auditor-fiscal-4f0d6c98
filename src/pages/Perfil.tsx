@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Loader2, Save, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, User, Loader2, Save, CheckCircle2, Building2, Phone, Mail } from "lucide-react";
 import PlatformLayout from "@/components/PlatformLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,78 +99,108 @@ const Perfil = () => {
 
   return (
     <PlatformLayout>
-      <div className="max-w-3xl mx-auto p-6 space-y-6">
-        <button
-          onClick={() => navigate("/user")}
-          className="flex items-center gap-2 text-[hsl(217,91%,50%)] hover:text-[hsl(217,91%,40%)] transition-colors text-sm"
-        >
-          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[hsl(217,91%,50%)] text-white">
-            <ArrowLeft className="w-4 h-4" />
-          </span>
-          Voltar para Minha Área
-        </button>
-
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><User className="w-6 h-6 text-[hsl(217,91%,50%)]" /> Perfil</h1>
-            <p className="text-muted-foreground text-sm">Dados da empresa e do administrador da conta</p>
+      <div className="max-w-[1400px] mx-auto p-6 space-y-6">
+        {/* Header — mesmo padrão de /user/empresas */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/user")} className="gap-1.5 mt-1">
+              <ArrowLeft className="w-4 h-4" />
+              Voltar para Minha Área
+            </Button>
+            <div className="w-12 h-12 rounded-xl bg-[hsl(217,91%,50%)]/10 flex items-center justify-center shrink-0">
+              <User className="w-6 h-6 text-[hsl(217,91%,50%)]" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Perfil</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Dados da empresa e do administrador da conta.
+              </p>
+            </div>
           </div>
-          {required && !completedAt && (
-            <Badge className="bg-amber-500/15 text-amber-700 border border-amber-500/30">Cadastro pendente</Badge>
-          )}
-          {completedAt && (
-            <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Cadastro completo
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {required && !completedAt && (
+              <Badge className="bg-amber-500/15 text-amber-700 border border-amber-500/30">Cadastro pendente</Badge>
+            )}
+            {completedAt && (
+              <Badge className="bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Cadastro completo
+              </Badge>
+            )}
+          </div>
         </div>
 
-        <Card>
+        {/* KPIs — mesmo layout de /user/empresas */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: "Administrador", value: form.full_name || "—", icon: User, color: "hsl(217,91%,50%)" },
+            { label: "Escritório", value: form.company_name || "—", icon: Building2, color: "hsl(258,90%,66%)" },
+            { label: "Contato", value: form.whatsapp || form.phone_fixed || "—", icon: Phone, color: "hsl(142,76%,36%)" },
+          ].map(k => (
+            <Card key={k.label} className="border-border/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">{k.label}</span>
+                  <k.icon className="w-4 h-4" style={{ color: k.color }} />
+                </div>
+                <p className="text-lg font-bold text-foreground truncate">{k.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Card de dados — mesmo estilo do cadastro em /user/empresas */}
+        <Card className="border-[hsl(217,91%,50%)]/40">
           <CardHeader>
-            <CardTitle className="text-base">Dados da Empresa</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-[hsl(217,91%,50%)]" /> Dados da Empresa
+            </CardTitle>
             <CardDescription>
               Todos os campos são opcionais. A validação de CNPJ e CRC via integrações será ativada em breve para liberar
               recursos avançados da plataforma.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             {loading ? (
               <div className="py-10 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Nome do Administrador</Label>
-                    <Input value={form.full_name} onChange={update("full_name")} placeholder="Seu nome completo" />
+                  <div className="space-y-1.5 md:col-span-2">
+                    <Label htmlFor="pname">Nome do Administrador</Label>
+                    <Input id="pname" value={form.full_name} onChange={update("full_name")} placeholder="Seu nome completo" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Escritório / Contabilidade</Label>
-                    <Input value={form.company_name} onChange={update("company_name")} placeholder="Nome fantasia" />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pcompany">Escritório / Contabilidade</Label>
+                    <Input id="pcompany" value={form.company_name} onChange={update("company_name")} placeholder="Nome fantasia" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Razão Social</Label>
-                    <Input value={form.razao_social} onChange={update("razao_social")} placeholder="Razão social completa" />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="prazao">Razão Social</Label>
+                    <Input id="prazao" value={form.razao_social} onChange={update("razao_social")} placeholder="Razão social completa" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>CNPJ</Label>
-                    <Input value={form.cnpj} onChange={update("cnpj")} placeholder="00.000.000/0000-00" />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pcnpj">CNPJ</Label>
+                    <Input id="pcnpj" value={form.cnpj} onChange={update("cnpj")} placeholder="00.000.000/0000-00" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Telefone Fixo</Label>
-                    <Input value={form.phone_fixed} onChange={update("phone_fixed")} placeholder="(00) 0000-0000" />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pfixed">Telefone Fixo</Label>
+                    <Input id="pfixed" value={form.phone_fixed} onChange={update("phone_fixed")} placeholder="(00) 0000-0000" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>WhatsApp</Label>
-                    <Input value={form.whatsapp} onChange={update("whatsapp")} placeholder="(00) 90000-0000" />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pwhats">WhatsApp</Label>
+                    <Input id="pwhats" value={form.whatsapp} onChange={update("whatsapp")} placeholder="(00) 90000-0000" />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Endereço</Label>
-                    <Input value={form.address} onChange={update("address")} placeholder="Rua, número, bairro, cidade/UF, CEP" />
+                  <div className="space-y-1.5 md:col-span-2">
+                    <Label htmlFor="paddr">Endereço</Label>
+                    <Input id="paddr" value={form.address} onChange={update("address")} placeholder="Rua, número, bairro, cidade/UF, CEP" />
                   </div>
                 </div>
-                <div className="flex justify-end">
-                  <Button onClick={handleSave} disabled={saving} className="text-white [background:var(--btn-gradient)] hover:[background:var(--btn-gradient-hover)]">
-                    {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando…</> : <><Save className="w-4 h-4 mr-2" />Salvar alterações</>}
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+                  >
+                    {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Salvando…</> : <><Save className="w-4 h-4" />Salvar alterações</>}
                   </Button>
                 </div>
               </>
