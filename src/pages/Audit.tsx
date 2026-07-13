@@ -4641,7 +4641,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   // Quando o relatório final é gerado (ou ao abrir um relatório salvo), todas as abas ficam visíveis.
   const tabOrder = useMemo(() => [
     "diagnostico", "analise-tecnica", "indicadores", "endividamento", "patrimonial",
-    "bs-dados", "pivot", "graficos-auditoria", "graficos-parecer", "risco-rj", "kanitz", "relatorio-final"
+    "bs-dados", "pivot", "graficos-auditoria", "risco-rj", "kanitz", "relatorio-final"
   ], []);
   const currentIdx = Math.max(0, tabOrder.indexOf(activeTab));
   const [maxUnlocked, setMaxUnlocked] = useState<number>(
