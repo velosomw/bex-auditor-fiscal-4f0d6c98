@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+
 import { Link } from "react-router-dom";
 import HeroBanner from "@/components/HeroBanner";
 import videoInsights from "@/assets/video-insights.mp4";
