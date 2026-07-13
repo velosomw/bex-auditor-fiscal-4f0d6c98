@@ -471,7 +471,7 @@ const UserDashboard = () => {
                       {docs.map((d: any, idx: number) => (
                         <div
                           key={(d.id || d.fileName) + idx}
-                          onClick={() => navigate(`/report/${report.id}`, { state: { from: "/user" } })}
+                          onClick={() => { clearLatestReport(); setLatestReportId(null); navigate(`/user/report/${report.id}`); }}
                           className="p-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex items-start gap-3"
                         >
                           <div className="w-6 h-6 rounded-full bg-[hsl(217,91%,50%)]/10 text-[hsl(217,91%,50%)] text-[11px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
