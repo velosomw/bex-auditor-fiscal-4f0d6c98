@@ -66,6 +66,33 @@ const printReport = (containerId: string, reportTitle: string) => {
   document.title = prevTitle;
 };
 
+/** Exporta o container como PDF baixado automaticamente (sem abrir diálogo). */
+const exportPdf = async (containerId: string, reportTitle: string) => {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"]').forEach(n => n.remove());
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:white;';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+  try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename: `${bexFileName(reportTitle)}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      } as any)
+      .from(clone)
+      .save();
+  } finally {
+    wrapper.remove();
+  }
+};
+
 const exportDocx = (containerId: string, reportTitle: string) => {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -2501,7 +2528,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
           <span className="relative group/docbtn">
@@ -3575,7 +3602,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </button>
           </div>
         </div>
-        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
         <span className="relative group/docbtn inline-flex">
@@ -3808,7 +3835,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}>
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
           <span className="relative group/docbtn inline-flex">
@@ -4573,7 +4600,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             </button>
           </div>
         </div>
-        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}>
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
         <span className="relative group/docbtn inline-flex">
@@ -4819,7 +4846,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                   variant="ghost" 
                   size="sm" 
                   className="w-full justify-start gap-2 text-xs h-9" 
-                  onClick={() => printReport('report-bex-container', 'Relatório BEx')}
+                  onClick={() => exportPdf('report-bex-container', 'Relatório BEx')}
                 >
                   <FileText className="w-3.5 h-3.5 text-blue-500" /> 
                   Relatório BEx (PDF)
@@ -4830,7 +4857,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                     variant="ghost" 
                     size="sm" 
                     className="w-full justify-start gap-2 text-xs h-9" 
-                    onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}
+                    onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}
                   >
                     <FileText className="w-3.5 h-3.5 text-amber-500" /> 
                     Relatório Kanitz (PDF)
@@ -4841,7 +4868,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                   variant="ghost" 
                   size="sm" 
                   className="w-full justify-start gap-2 text-xs h-9" 
-                  onClick={() => printReport('tab-graficos-container', `BEx_Graficos_Auditoria_e_Parecer_Contabil_${new Date().toISOString().split('T')[0]}`)}
+                  onClick={() => exportPdf('tab-graficos-container', `BEx_Graficos_Auditoria_e_Parecer_Contabil_${new Date().toISOString().split('T')[0]}`)}
                 >
                   <BarChart3 className="w-3.5 h-3.5 text-purple-500" /> Gráficos de Auditoria + Parecer (PDF)
                 </Button>
