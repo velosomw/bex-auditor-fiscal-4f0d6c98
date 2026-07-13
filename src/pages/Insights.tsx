@@ -58,9 +58,6 @@ const Insights = () => {
                 </div>
                 <h2 className="font-display font-bold text-xl text-foreground mb-3">{item.title}</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-4">{item.excerpt}</p>
-                <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent cursor-pointer hover:underline">
-                  Ler mais <ArrowRight className="w-4 h-4" />
-                </span>
               </motion.article>
             ))}
           </div>
