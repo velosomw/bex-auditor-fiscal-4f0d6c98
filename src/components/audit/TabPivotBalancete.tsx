@@ -37,6 +37,7 @@ function MultiSelect({
   width?: string;
 }) {
   const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
   const filtered = useMemo(() => {
     if (!q.trim()) return options;
     const f = q.toLowerCase();
@@ -47,6 +48,7 @@ function MultiSelect({
     const next = new Set(selected);
     next.has(v) ? next.delete(v) : next.add(v);
     onChange(next);
+    setOpen(false);
   };
 
   const allFilteredSelected = filtered.length > 0 && filtered.every(o => selected.has(o));
@@ -58,7 +60,8 @@ function MultiSelect({
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
+
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs justify-between min-w-[160px]">
           <span className="flex items-center gap-1.5">
