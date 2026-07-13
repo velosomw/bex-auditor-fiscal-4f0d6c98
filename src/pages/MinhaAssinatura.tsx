@@ -78,19 +78,33 @@ const MinhaAssinatura = () => {
 
   return (
     <PlatformLayout>
-      <div className="max-w-5xl mx-auto p-6 space-y-6">
-        <button
-          onClick={() => navigate("/user")}
-          className="flex items-center gap-2 text-[hsl(217,91%,50%)] hover:text-[hsl(217,91%,40%)] transition-colors text-sm"
-        >
-          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[hsl(217,91%,50%)] text-white">
-            <ArrowLeft className="w-4 h-4" />
-          </span>
-          Voltar para Minha Área
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold">Minha Assinatura</h1>
-          <p className="text-muted-foreground">Gerencie seu plano, cobrança e histórico de faturas</p>
+      <div className="max-w-[1400px] mx-auto p-6 space-y-6">
+        {/* Header — mesmo padrão de /user/empresas */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/user")} className="gap-1.5 mt-1">
+              <ArrowLeft className="w-4 h-4" />
+              Voltar para Minha Área
+            </Button>
+            <div className="w-12 h-12 rounded-xl bg-[hsl(217,91%,50%)]/10 flex items-center justify-center shrink-0">
+              <Crown className="w-6 h-6 text-[hsl(217,91%,50%)]" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Minha Assinatura</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Gerencie seu plano, cobrança e histórico de faturas.
+              </p>
+            </div>
+          </div>
+          {!loading && !isEnterprise && (
+            <Button
+              size="sm"
+              onClick={() => setCheckoutOpen(true)}
+              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
+            >
+              <Crown className="w-4 h-4" /> Contratar Enterprise
+            </Button>
+          )}
         </div>
 
         {loading ? (
