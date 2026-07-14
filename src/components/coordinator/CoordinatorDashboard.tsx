@@ -136,7 +136,7 @@ const Panel360 = ({ selection, onClose }: { selection: Selection; onClose: () =>
 
         {selection.kind === "user" && (
           <>
-            <Header icon={Users} title={selection.data.full_name || "Usuário"} subtitle={`Consultor · ${selection.data.role}`} />
+            <Header icon={Users} title={selection.data.full_name || "Usuário"} subtitle={`Técnico · ${selection.data.role}`} />
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Field label="Nome" value={selection.data.full_name} />
               <Field label="E-mail" value={selection.data.email} icon={Mail} />
