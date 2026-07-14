@@ -621,7 +621,7 @@ const initialUsers: ManagedUser[] = [
 ];
 
 const roleLabels: Record<string, string> = {
-  auditor_chefe: "Auditor Chefe",
+  auditor_chefe: "Técnico Chefe",
   usuario: "Usuário",
   empresa: "Empresa",
   gestor_ia: "Gestor IA",
@@ -811,7 +811,7 @@ const TabLogs = () => {
               <Select value={formRole} onValueChange={setFormRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="auditor_chefe">Auditor Chefe</SelectItem>
+                  <SelectItem value="auditor_chefe">Técnico Chefe</SelectItem>
                   <SelectItem value="usuario">Usuário</SelectItem>
                   <SelectItem value="empresa">Empresa</SelectItem>
                   <SelectItem value="gestor_ia">Gestor IA</SelectItem>

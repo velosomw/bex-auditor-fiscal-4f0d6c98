@@ -16,7 +16,7 @@ import {
 import { useUser } from "@/contexts/UserContext";
 
 const sourceLabel: Record<string, { label: string; className: string }> = {
-  auditor_chefe: { label: "Auditor Chefe", className: "bg-[hsl(217,91%,50%)]/15 text-[hsl(217,91%,50%)] border-[hsl(217,91%,50%)]/30" },
+  auditor_chefe: { label: "Técnico Chefe", className: "bg-[hsl(217,91%,50%)]/15 text-[hsl(217,91%,50%)] border-[hsl(217,91%,50%)]/30" },
   usuario: { label: "Usuário", className: "bg-[hsl(200,98%,55%)]/15 text-[hsl(200,98%,55%)] border-[hsl(200,98%,55%)]/30" },
   empresa: { label: "Empresa", className: "bg-[hsl(38,92%,50%)]/15 text-[hsl(38,92%,50%)] border-[hsl(38,92%,50%)]/30" },
 };
@@ -161,7 +161,7 @@ const CompanyPage = () => {
               <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Relatórios da Empresa
             </CardTitle>
             <CardDescription>
-              Inclui relatórios gerados pelo Auditor Chefe, Usuário e pela própria Empresa.
+              Inclui relatórios gerados pelo Técnico Chefe, Usuário e pela própria Empresa.
             </CardDescription>
           </CardHeader>
           <CardContent>

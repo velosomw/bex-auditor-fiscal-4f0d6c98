@@ -27,7 +27,7 @@ const RoleSelection = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { role: "auditor_chefe" as const, icon: Shield, title: "Auditor Chefe", desc: "Dashboard consolidado de todas as auditorias. Visão gerencial com KPIs, tendências e alertas.", color: "hsl(217,91%,50%)" },
+            { role: "auditor_chefe" as const, icon: Shield, title: "Técnico Chefe", desc: "Dashboard consolidado de todas as auditorias. Visão gerencial com KPIs, tendências e alertas.", color: "hsl(217,91%,50%)" },
             { role: "empresa" as const, icon: User, title: "Empresa", desc: "Dashboard simplificado com suas auditorias contábeis. Acompanhe conformidade e documentos.", color: "hsl(38,92%,50%)" },
             { role: "usuario" as const, icon: User, title: "Usuário", desc: "Dashboard simplificado com suas auditorias. Acesso ao fluxo de auditoria em 5 etapas.", color: "hsl(200,98%,55%)" },
           ].map((item, i) => (
