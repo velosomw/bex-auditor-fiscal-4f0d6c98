@@ -161,7 +161,7 @@ const CompanyPage = () => {
               <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Relatórios da Empresa
             </CardTitle>
             <CardDescription>
-              Inclui relatórios gerados pelo Auditor Chefe, Usuário e pela própria Empresa.
+              Inclui relatórios gerados pelo Técnico Chefe, Usuário e pela própria Empresa.
             </CardDescription>
           </CardHeader>
           <CardContent>
