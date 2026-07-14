@@ -621,7 +621,7 @@ const initialUsers: ManagedUser[] = [
 ];
 
 const roleLabels: Record<string, string> = {
-  auditor_chefe: "Auditor Chefe",
+  auditor_chefe: "Técnico Chefe",
   usuario: "Usuário",
   empresa: "Empresa",
   gestor_ia: "Gestor IA",
