@@ -3901,7 +3901,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               <div className="grid grid-cols-1 gap-1 text-[10px]">
                 <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "N/A"}</p>
                 <p className="text-muted-foreground"><span className="font-medium text-foreground">Processamento:</span> {today}</p>
-                <p className="text-muted-foreground"><span className="font-medium text-foreground">Intervalo Analisado:</span> {parsedData?.years.join(" / ")}</p>
+                <p className="text-muted-foreground"><span className="font-medium text-foreground">Intervalo Analisado:</span> {kanitzResults.map(r => r.year).join(" / ")}</p>
               </div>
             </div>
           </div>
