@@ -3883,7 +3883,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p>
-              <p className="font-semibold text-foreground">{parsedData?.years.join(" / ")}</p>
+              <p className="font-semibold text-foreground">{kanitzResults.map(r => r.year).join(" / ")}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Emissão</p>
