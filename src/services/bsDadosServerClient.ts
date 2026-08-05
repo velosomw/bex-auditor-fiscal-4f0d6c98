@@ -64,7 +64,7 @@ export async function consolidateBSDadosOnServer(
       content_hash: opts.contentHash,
     },
   });
-  if (error) throw new Error(error.message || "Falha ao consolidar BS & Dados no servidor");
-  if (!data) throw new Error("Resposta vazia do servidor");
+  if (error) throw new Error(error.message || "valide o erro que está aparecendo do servidor");
+  if (!data) throw new Error("valide o erro que está aparecendo do servidor");
   return data;
 }
