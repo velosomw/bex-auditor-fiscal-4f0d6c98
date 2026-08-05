@@ -62,10 +62,11 @@ const fmtCompact = (v: number | undefined) => {
   return v.toString();
 };
 
-const EmptyState = ({ icon: Icon, title }: { icon: any; title: string }) => (
-  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+const EmptyState = ({ icon: Icon, title, message }: { icon: any; title: string; message?: string }) => (
+  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground bg-muted/5 rounded-lg border border-dashed border-muted">
     <Icon className="w-8 h-8 mb-2 opacity-40" />
-    <p className="text-sm">{title}</p>
+    <p className="text-sm font-medium">{title}</p>
+    {message && <p className="text-[11px] mt-1 opacity-70 text-center px-4">{message}</p>}
   </div>
 );
 
@@ -414,7 +415,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                       <Tooltip formatter={(v: number) => fmtMoeda(v)} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
                     </PieChart>
                   </ResponsiveContainer>
-                ) : <EmptyState icon={DollarSign} title="Sem dados de custos." />}
+                ) : <EmptyState icon={DollarSign} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de custos não encontrados na estrutura contábil analisada." />}
               </CardContent>
             </Card>
           </div>
@@ -529,7 +530,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                 ))}
               </LineChart>
             </ResponsiveContainer>
-          ) : <EmptyState icon={BarChart3} title="Sem dados na aba 'Dados para Graficos'." />}
+          ) : <EmptyState icon={BarChart3} title="Não existem dados no Balancete para gerar o gráfico" message="A evolução mensal do balanço requer séries temporais que não foram identificadas." />}
         </CardContent>
       </Card>
 
@@ -581,7 +582,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                 </ResponsiveContainer>
               </div>
             </>
-          ) : <EmptyState icon={Users} title="Sem dados na aba 'Folha'." />}
+          ) : <EmptyState icon={Users} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de folha de pagamento não encontrados no arquivo processado." />}
         </CardContent>
       </Card>
 
@@ -614,7 +615,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                 </Line>
               </ComposedChart>
             </ResponsiveContainer>
-          ) : <EmptyState icon={Wallet} title="Sem dados na aba 'FCP - 6 meses'." />}
+          ) : <EmptyState icon={Wallet} title="Não existem dados no Balancete para gerar o gráfico" message="O Fluxo de Caixa Projetado requer a aba específica ou dados de projeção no balancete." />}
         </CardContent>
       </Card>
 
@@ -675,7 +676,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
           ) : null}
 
           {!prevRealRows.entradas.length && !prevRealRows.saidas.length && (
-            <EmptyState icon={BarChart3} title="Sem dados na aba 'Fluxo de Caixa - Prev x Realiz'." />
+            <EmptyState icon={BarChart3} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de fluxo previsto vs realizado não detectados." />
           )}
         </CardContent>
       </Card>

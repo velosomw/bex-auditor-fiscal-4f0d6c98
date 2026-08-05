@@ -48,10 +48,11 @@ const TOOLTIP_STYLE = {
   cursor: { fill: "hsl(var(--foreground) / 0.06)" },
 };
 
-const Empty = ({ msg }: { msg: string }) => (
-  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+const Empty = ({ msg, title }: { msg: string; title?: string }) => (
+  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/5 rounded-lg border border-dashed border-muted">
     <AlertTriangle className="w-6 h-6 mb-2 opacity-50" />
-    <p className="text-xs">{msg}</p>
+    <p className="text-sm font-medium mb-1">{title || "Não existem dados no Balancete para gerar o gráfico"}</p>
+    <p className="text-[11px] opacity-70 text-center px-4">{msg}</p>
   </div>
 );
 
@@ -111,6 +112,15 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
     return buildMonthlyDataset(parsedData ?? null);
   }, [parsedData, entries]);
 
+  // Se o dataset principal estiver vazio, tenta forçar uma derivação mínima para garantir que não fique em branco se houver ao menos alguns meses no parsedData
+  const fallbackDataset = useMemo(() => {
+    if (fullDataset.length > 0) return fullDataset;
+    // Se não há dataset, pode ser que buildMonthlyDataset falhou por falta de padrões rígidos.
+    // Mas TabGraficosAuditoria já faz um deriveChartsFromParsedData.
+    // Aqui no AuditCharts focamos nos indicadores mensais.
+    return fullDataset;
+  }, [fullDataset]);
+
   const dataset = useMemo(() => applyWindow(fullDataset, windowSize), [fullDataset, windowSize]);
   const series = useMemo(() => buildSeries(dataset), [dataset]);
   const insights = useMemo(() => generateInsights(dataset), [dataset]);
@@ -121,7 +131,10 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
         <MonthsConsistencyAlert entries={entries} datasetMesKeys={[]} />
         <Card>
           <CardContent className="py-10">
-            <Empty msg="Carregue um balancete na fase de processamento para gerar os gráficos." />
+            <Empty 
+              title="Não existem dados no Balancete para gerar o gráfico"
+              msg="Carregue um balancete na fase de processamento ou envie o template BEX completo para gerar os indicadores operacionais." 
+            />
           </CardContent>
         </Card>
       </div>

@@ -66,9 +66,10 @@ const Tile = ({ title, subtitle, children }: { title: string; subtitle?: string;
 );
 
 const Empty = ({ msg }: { msg: string }) => (
-  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/5 rounded-lg border border-dashed border-muted">
     <AlertTriangle className="w-6 h-6 mb-2 opacity-50" />
-    <p className="text-xs">{msg}</p>
+    <p className="text-sm font-medium mb-1">Não existem dados no Balancete para gerar o gráfico</p>
+    <p className="text-[11px] opacity-70 text-center px-4">{msg}</p>
   </div>
 );
 
@@ -137,7 +138,7 @@ const AuditChartsBex: React.FC<Props> = ({ parsedData, entries = [] }) => {
     return (
       <Card>
         <CardContent className="py-10">
-          <Empty msg="Carregue um balancete na fase de processamento para gerar os gráficos." />
+          <Empty msg="Carregue um balancete na fase de processamento para gerar a reprodução dos 12 gráficos do Padrão BEX." />
         </CardContent>
       </Card>
     );
