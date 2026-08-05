@@ -70,24 +70,56 @@ const printReport = (containerId: string, reportTitle: string) => {
 const exportPdf = async (containerId: string, reportTitle: string) => {
   const el = document.getElementById(containerId);
   if (!el) return;
-  const clone = el.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"]').forEach(n => n.remove());
+  
+  // Create a clean wrapper for PDF generation
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:white;';
+  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:white;width:210mm;min-height:297mm;';
+  
+  // Clone the element
+  const clone = el.cloneNode(true) as HTMLElement;
+  
+  // Force a light theme/white background on the clone for export
+  clone.style.backgroundColor = '#ffffff';
+  clone.style.color = '#1c2541';
+  
+  // Remove print-hidden elements
+  clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"], .no-export').forEach(n => n.remove());
+  
+  // Ensure all sections inside are visible and themed correctly
+  clone.querySelectorAll('*').forEach((node: any) => {
+    if (node.style) {
+      if (node.classList.contains('bg-muted') || node.classList.contains('bg-slate-50')) {
+        node.style.backgroundColor = '#f8fafc';
+      }
+      if (node.classList.contains('text-muted-foreground')) {
+        node.style.color = '#64748b';
+      }
+    }
+  });
+
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
+
   try {
     const html2pdf = (await import('html2pdf.js')).default;
-    await html2pdf()
-      .set({
-        margin: 0,
-        filename: `${bexFileName(reportTitle)}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      } as any)
-      .from(clone)
-      .save();
+    const opt = {
+      margin: 0,
+      filename: `${bexFileName(reportTitle)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 794, // 210mm at 96dpi
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    await html2pdf().set(opt).from(clone).save();
+  } catch (err) {
+    console.error('Erro ao exportar PDF:', err);
   } finally {
     wrapper.remove();
   }
