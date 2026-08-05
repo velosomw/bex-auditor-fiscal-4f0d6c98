@@ -2613,7 +2613,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-1">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
-            <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
+            <p className="text-sm font-semibold text-foreground">Técnico Contábil Sênior IA</p>
             <p className="text-xs text-muted-foreground">Especialista em Recuperação Judicial e Análise Empresarial</p>
           </div>
         </div>
@@ -2657,7 +2657,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Auditor IA</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Técnico IA</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">{activeDiag.resumo}</p>
               <div className="flex flex-wrap gap-1.5 mt-3">
@@ -3609,7 +3609,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
           <div>
             <p className="text-sm font-semibold text-foreground">Documento gerado e assinado digitalmente</p>
-            <p className="text-xs text-muted-foreground">Auditor Contábil Sênior IA</p>
+            <p className="text-xs text-muted-foreground">Técnico Contábil Sênior IA</p>
             <p className="text-xs text-muted-foreground">Especialista em Recuperação Judicial e Análise Empresarial</p>
             <p className="text-xs text-muted-foreground mt-2">Plataforma BEX — {today}</p>
             {latestKanitz && <p className="text-xs text-muted-foreground">Kanitz (1978)</p>}
@@ -4849,7 +4849,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground font-serif">Relatório BEx_Resumido_Kanitz</h1>
-            <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
+            <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Técnico Contábil Sênior IA</p>
           </div>
         </div>
         <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
@@ -4863,7 +4863,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-serif">Avaliação Empresarial</h1>
-          <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
+          <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Técnico Contábil Sênior IA</p>
         </div>
         
         {/* Export Dropdown */}
