@@ -3920,7 +3920,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
       {/* ══ MÓDULO 1 — SUMÁRIO EXECUTIVO ══ */}
       <ReportPage>
-        <div className="space-y-4">
+        <div className="space-y-4 break-inside-avoid">
           <SectionTitle num="1" title="SUMÁRIO EXECUTIVO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-sm text-foreground leading-relaxed">
