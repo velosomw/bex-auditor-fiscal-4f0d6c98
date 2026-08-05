@@ -530,7 +530,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                 ))}
               </LineChart>
             </ResponsiveContainer>
-          ) : <EmptyState icon={BarChart3} title="Sem dados na aba 'Dados para Graficos'." />}
+          ) : <EmptyState icon={BarChart3} title="Não existem dados no Balancete para gerar o gráfico" message="A evolução mensal do balanço requer séries temporais que não foram identificadas." />}
         </CardContent>
       </Card>
 
