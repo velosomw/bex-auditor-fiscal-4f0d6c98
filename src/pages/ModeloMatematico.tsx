@@ -322,7 +322,7 @@ const TabPersona = () => {
 };
 
 // ─── Agent-Specific Formula Tabs ─────────────────────────────
-const TabAgenteAuditor = () => {
+const TabAgenteTecnico = () => {
   const [persona] = useState<PersonaVector>(presetPersonas[0].vec);
 
   const baseWeights = [0.25, 0.20, 0.20, 0.20, 0.15];
@@ -332,7 +332,7 @@ const TabAgenteAuditor = () => {
 
   return (
     <div className="space-y-6">
-      <SectionTitle icon={Bot} title="Agente Auditor Contábil" subtitle="Framework: IFRS · CPC · NBC TA · CFC" />
+      <SectionTitle icon={Bot} title="Agente Técnico Contábil" subtitle="Framework: IFRS · CPC · NBC TA · CFC" />
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* IRC */}
@@ -532,7 +532,7 @@ const TabRiskEngine = () => {
   const mockComplexidadeRisco = 0.55;
   const mockFreqDesvios = 0.48;
 
-  // 2.1 Score Auditor (SA)
+  // 2.1 Score Técnico (ST)
   const SA = (mockIRC + mockInconsistencias + mockMaterialidade) / 3;
   // 2.2 Score Financeiro (SF)
   const SF = (mockVARAdj + mockSFStress + mockAlavancagem) / 3;
@@ -616,7 +616,7 @@ const TabRiskEngine = () => {
       {/* Scores Base dos 3 Agentes */}
       <div className="grid md:grid-cols-3 gap-4">
         {[
-          { name: "Score Auditor (SA)", score: SA, norm: SA_norm, formula: "SA = (IRC + Inconsistências + Materialidade) / 3", items: [{ k: "IRC", v: mockIRC }, { k: "Inconsistências", v: mockInconsistencias }, { k: "Materialidade", v: mockMaterialidade }], color: "hsl(258,90%,66%)" },
+          { name: "Score Técnico (ST)", score: SA, norm: SA_norm, formula: "SA = (IRC + Inconsistências + Materialidade) / 3", items: [{ k: "IRC", v: mockIRC }, { k: "Inconsistências", v: mockInconsistencias }, { k: "Materialidade", v: mockMaterialidade }], color: "hsl(258,90%,66%)" },
           { name: "Score Financeiro (SF)", score: SF, norm: SF_norm, formula: "SF = (VAR_adj + SF_stress + Alavancagem) / 3", items: [{ k: "VAR Ajustado", v: mockVARAdj }, { k: "Stress Financeiro", v: mockSFStress }, { k: "Alavancagem", v: mockAlavancagem }], color: "hsl(38,90%,55%)" },
           { name: "Score Narrativo (SR)", score: SR, norm: SR_norm, formula: "SR = (AlertLevel + Complexidade + Desvios) / 3", items: [{ k: "Alert Level", v: mockAlertLevel }, { k: "Complexidade", v: mockComplexidadeRisco }, { k: "Freq. Desvios", v: mockFreqDesvios }], color: "hsl(152,70%,45%)" },
         ].map((agent, i) => (
@@ -675,14 +675,14 @@ const TabRiskEngine = () => {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="p-2 text-left text-muted-foreground"></th>
-                    <th className="p-2 text-center font-semibold">Auditor (A)</th>
+                    <th className="p-2 text-center font-semibold">Técnico (T)</th>
                     <th className="p-2 text-center font-semibold">Financeiro (F)</th>
                     <th className="p-2 text-center font-semibold">Relatório (R)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { label: "Auditor (A)", vals: [1, rhoAF, rhoAR] },
+                    { label: "Técnico (T)", vals: [1, rhoAF, rhoAR] },
                     { label: "Financeiro (F)", vals: [rhoAF, 1, rhoFR] },
                     { label: "Relatório (R)", vals: [rhoAR, rhoFR, 1] },
                   ].map((row, i) => (
@@ -722,7 +722,7 @@ const TabRiskEngine = () => {
             {/* Pesos configuráveis */}
             <div className="space-y-3">
               {[
-                { label: "Peso Auditor (w_A)", key: "wA" as const, base: weights.wA, adj: wA_adj },
+                { label: "Peso Técnico (w_T)", key: "wA" as const, base: weights.wA, adj: wA_adj },
                 { label: "Peso Financeiro (w_F)", key: "wF" as const, base: weights.wF, adj: wF_adj },
                 { label: "Peso Relatório (w_R)", key: "wR" as const, base: weights.wR, adj: wR_adj },
               ].map((w) => (
@@ -1226,7 +1226,7 @@ const ModeloMatematico = () => {
         <Tabs defaultValue="persona" className="space-y-4">
           <TabsList className="bg-muted/50 flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="persona" className="text-xs gap-1"><SlidersHorizontal className="w-3 h-3" /> Persona (VPC)</TabsTrigger>
-            <TabsTrigger value="agente-auditor" className="text-xs gap-1"><Bot className="w-3 h-3" /> Agente Auditor</TabsTrigger>
+            <TabsTrigger value="agente-tecnico" className="text-xs gap-1"><Bot className="w-3 h-3" /> Agente Técnico</TabsTrigger>
             <TabsTrigger value="agente-financeiro" className="text-xs gap-1"><DollarSign className="w-3 h-3" /> Agente Financeiro</TabsTrigger>
             <TabsTrigger value="agente-relatorio" className="text-xs gap-1"><FileText className="w-3 h-3" /> Agente Relatório</TabsTrigger>
             <TabsTrigger value="liquidez" className="text-xs">Liquidez</TabsTrigger>
@@ -1243,7 +1243,7 @@ const ModeloMatematico = () => {
 
           {/* PERSONA */}
           <TabsContent value="persona"><TabPersona /></TabsContent>
-          <TabsContent value="agente-auditor"><TabAgenteAuditor /></TabsContent>
+          <TabsContent value="agente-tecnico"><TabAgenteTecnico /></TabsContent>
           <TabsContent value="agente-financeiro"><TabAgenteFinanceiro /></TabsContent>
           <TabsContent value="agente-relatorio"><TabAgenteRelatorio /></TabsContent>
           <TabsContent value="risk-engine"><TabRiskEngine /></TabsContent>

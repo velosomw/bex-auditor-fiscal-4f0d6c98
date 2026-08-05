@@ -73,7 +73,7 @@ const PlatformLayout = ({ children }: { children: ReactNode }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* "Visualizar como" — somente para Auditor Chefe */}
+            {/* "Visualizar como" — somente para Técnico Chefe */}
             {canImpersonate && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
