@@ -415,7 +415,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                       <Tooltip formatter={(v: number) => fmtMoeda(v)} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", fontSize: 12 }} />
                     </PieChart>
                   </ResponsiveContainer>
-                ) : <EmptyState icon={DollarSign} title="Sem dados de custos." />}
+                ) : <EmptyState icon={DollarSign} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de custos não encontrados na estrutura contábil analisada." />}
               </CardContent>
             </Card>
           </div>
