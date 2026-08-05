@@ -582,7 +582,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                 </ResponsiveContainer>
               </div>
             </>
-          ) : <EmptyState icon={Users} title="Sem dados na aba 'Folha'." />}
+          ) : <EmptyState icon={Users} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de folha de pagamento não encontrados no arquivo processado." />}
         </CardContent>
       </Card>
 
