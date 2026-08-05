@@ -3299,7 +3299,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             )}
           </>
         );
-      })()}
+      })()}</div>
 
       {/* ── SCORE FINAL ── */}
       <ReportPage>
