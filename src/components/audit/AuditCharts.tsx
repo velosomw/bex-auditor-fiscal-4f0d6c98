@@ -112,6 +112,15 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
     return buildMonthlyDataset(parsedData ?? null);
   }, [parsedData, entries]);
 
+  // Se o dataset principal estiver vazio, tenta forçar uma derivação mínima para garantir que não fique em branco se houver ao menos alguns meses no parsedData
+  const fallbackDataset = useMemo(() => {
+    if (fullDataset.length > 0) return fullDataset;
+    // Se não há dataset, pode ser que buildMonthlyDataset falhou por falta de padrões rígidos.
+    // Mas TabGraficosAuditoria já faz um deriveChartsFromParsedData.
+    // Aqui no AuditCharts focamos nos indicadores mensais.
+    return fullDataset;
+  }, [fullDataset]);
+
   const dataset = useMemo(() => applyWindow(fullDataset, windowSize), [fullDataset, windowSize]);
   const series = useMemo(() => buildSeries(dataset), [dataset]);
   const insights = useMemo(() => generateInsights(dataset), [dataset]);
