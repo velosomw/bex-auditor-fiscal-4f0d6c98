@@ -3107,8 +3107,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       </ReportPage>
 
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
-      <div className="report-balanco-wrapper">
-
       {(() => {
         const allRows = parsedData?.balanco || state.balancoRows;
         // Whitelist de contas analíticas consolidadas (subtopicos em negrito da planilha)
@@ -3299,7 +3297,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </div>
               </ReportPage>
             )}
-          </div>
+          </>
         );
       })()}
 
