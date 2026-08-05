@@ -676,7 +676,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
           ) : null}
 
           {!prevRealRows.entradas.length && !prevRealRows.saidas.length && (
-            <EmptyState icon={BarChart3} title="Sem dados na aba 'Fluxo de Caixa - Prev x Realiz'." />
+            <EmptyState icon={BarChart3} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de fluxo previsto vs realizado não detectados." />
           )}
         </CardContent>
       </Card>
