@@ -201,7 +201,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
       </Card>
 
       <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-        {/* 1. LIQUIDEZ GERAL */}
+        {/* 1. LIQUIDEZ SECA */}
         <Tile title="LIQUIDEZ SECA" subtitle="(AC - EST) / PC">
           <LineChart data={series} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
             {GRID}
@@ -214,6 +214,7 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
           </LineChart>
         </Tile>
 
+        {/* 2. LIQUIDEZ GERAL */}
         <Tile title="LIQUIDEZ GERAL" subtitle="(AC + RLP) / (PC + PNC)">
           <LineChart data={series} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
             {GRID}
@@ -221,16 +222,6 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
             <YAxis {...AXIS} tickFormatter={fmtDec} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtDec(v), "Liquidez Geral"]} />
             <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azulEsc} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
-              <LabelList dataKey="liqGeral" {...LABEL_DEC} />
-            </Line>
-          </LineChart>
-        </Tile>
-          <LineChart data={series} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-            {GRID}
-            <XAxis dataKey="mes" {...AXIS} />
-            <YAxis {...AXIS} tickFormatter={fmtDec} />
-            <Tooltip {...TIP} formatter={(v: any) => [fmtDec(v), "Liquidez Geral"]} />
-            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
               <LabelList dataKey="liqGeral" {...LABEL_DEC} />
             </Line>
           </LineChart>
