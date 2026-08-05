@@ -138,7 +138,7 @@ const AuditChartsBex: React.FC<Props> = ({ parsedData, entries = [] }) => {
     return (
       <Card>
         <CardContent className="py-10">
-          <Empty msg="Carregue um balancete na fase de processamento para gerar os gráficos." />
+          <Empty msg="Carregue um balancete na fase de processamento para gerar a reprodução dos 12 gráficos do Padrão BEX." />
         </CardContent>
       </Card>
     );
