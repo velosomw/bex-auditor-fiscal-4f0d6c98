@@ -4470,7 +4470,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       {/* ══ MEMÓRIA DE CÁLCULO ══ */}
       <ReportPage>
         <div className="space-y-4">
-          <SectionTitle num="★" title="PARECER TÉCNICO" />
+          <SectionTitle num="★" title="MEMÓRIA DE CÁLCULO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
             <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
             <code className="block text-[11px] font-mono leading-relaxed text-foreground">
