@@ -4429,8 +4429,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
       {/* ══ MÓDULO 10 — PARECER TÉCNICO ══ */}
       <ReportPage>
-        <div className="space-y-4">
-          <SectionTitle num="10" title="PARECER TÉCNICO" />
+        <div className="space-y-4 break-inside-avoid">
+          <SectionTitle num="11" title="PARECER TÉCNICO" />
           <div className="space-y-4">
             {[
               { title: "Diagnóstico Financeiro", text: !kAplic
