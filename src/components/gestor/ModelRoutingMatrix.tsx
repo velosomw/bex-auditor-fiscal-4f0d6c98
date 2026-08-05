@@ -53,7 +53,7 @@ const ROWS: ProcessRow[] = [
     triggerForGpt5: "Sempre — raciocínio profundo obrigatório",
   },
   {
-    process: "Chat Auditor IA",
+    process: "Chat Técnico IA",
     description: "Assistente conversacional técnico.",
     models: {
       low: { model: "gemini-3.5-flash", provider: "google" },

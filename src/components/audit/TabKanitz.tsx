@@ -762,7 +762,7 @@ const TabKanitz = ({
               <CardContent className="space-y-4">
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
-                    { agent: "Agente Auditor Contábil", desc: "Valida consistência das contas e analisa distorções patrimoniais", icon: Shield, status: "ativo" },
+                    { agent: "Agente Técnico Contábil", desc: "Valida consistência das contas e analisa distorções patrimoniais", icon: Shield, status: "ativo" },
                     { agent: "Agente Financeiro", desc: "Simula cenários de reestruturação e projeta FI futuro", icon: BarChart3, status: "ativo" },
                     { agent: "Agente de Relatórios", desc: "Gera parecer técnico estruturado — PDF e Word", icon: Target, status: "ativo" },
                   ].map(a => (

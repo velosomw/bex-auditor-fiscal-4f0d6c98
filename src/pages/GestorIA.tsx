@@ -46,15 +46,15 @@ const knowledgeItems = [
 ];
 
 const agents = [
-  { name: "Agente Auditor Contábil", type: "Auditoria", model: "Gemini 2.5 Pro", temp: 0.3, status: "active", tokens: "128K" },
+  { name: "Agente Técnico Contábil", type: "Auditoria", model: "Gemini 2.5 Pro", temp: 0.3, status: "active", tokens: "128K" },
   { name: "Agente Financeiro", type: "Financeiro", model: "GPT OSS", temp: 0.2, status: "active", tokens: "64K" },
   { name: "Agente de Relatório", type: "Relatório", model: "Gemini 2.5 Flash", temp: 0.4, status: "paused", tokens: "32K" },
 ];
 
 const logs = [
-  { agent: "Auditor Contábil", user: "admin@bex.com", action: "Análise de Balanço", confidence: 94.2, time: "há 5 min" },
+  { agent: "Técnico Contábil", user: "admin@bex.com", action: "Análise de Balanço", confidence: 94.2, time: "há 5 min" },
   { agent: "Financeiro", user: "analista@bex.com", action: "Projeção Fluxo de Caixa", confidence: 88.7, time: "há 12 min" },
-  { agent: "Auditor Contábil", user: "admin@bex.com", action: "Score BEX-RJ", confidence: 91.5, time: "há 28 min" },
+  { agent: "Técnico Contábil", user: "admin@bex.com", action: "Score BEX-RJ", confidence: 91.5, time: "há 28 min" },
   { agent: "Relatório", user: "gestor@bex.com", action: "Geração Parecer", confidence: 85.3, time: "há 1h" },
 ];
 
@@ -407,7 +407,7 @@ const personaVarLabels = [
 ];
 
 const defaultPersonas: Record<string, number[]> = {
-  "Agente Auditor Contábil": [0.9, 0.8, 0.9, 0.9, 0.8, 0.9],
+  "Agente Técnico Contábil": [0.9, 0.8, 0.9, 0.9, 0.8, 0.9],
   "Agente Financeiro": [0.7, 0.7, 0.8, 0.8, 0.6, 0.6],
   "Agente de Relatório": [0.6, 0.5, 0.5, 0.6, 0.9, 0.5],
 };
@@ -887,7 +887,7 @@ const TabRiskEngineDash = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "ECRS Consolidado", value: ECRS.toFixed(3), color: getClassColor(ECRS), sub: getClassLabel(ECRS), icon: Activity },
-          { label: "Score Auditor (SA)", value: SA.toFixed(3), color: "hsl(258,90%,66%)", sub: "Contábil", icon: Bot },
+          { label: "Score Técnico (ST)", value: SA.toFixed(3), color: "hsl(258,90%,66%)", sub: "Contábil", icon: Bot },
           { label: "Score Financeiro (SF)", value: SF.toFixed(3), color: "hsl(38,90%,55%)", sub: "Financeiro", icon: DollarSign },
           { label: "Risco Sistêmico", value: systemicRisk.toFixed(3), color: systemicRisk > 0.5 ? "hsl(0,70%,55%)" : "hsl(152,70%,45%)", sub: systemicRisk > 0.5 ? "Alerta" : "Controlado", icon: AlertTriangle },
         ].map((kpi, i) => (
