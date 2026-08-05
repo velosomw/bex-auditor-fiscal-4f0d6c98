@@ -3299,7 +3299,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             )}
           </>
         );
-      })()}
+      })()}</div>
 
       {/* ── SCORE FINAL ── */}
       <ReportPage>
@@ -3641,7 +3641,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const pages = kanitzContainerRef.current.querySelectorAll('.report-a4-page, .report-a4-cover');
       setTotalPagesKanitz(pages.length);
     }
-  });
+  }, []);
 
   const findValue = (keyword: string, year: string) => {
     if (!parsedData) return 0;
