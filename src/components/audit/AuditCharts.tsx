@@ -122,7 +122,10 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
         <MonthsConsistencyAlert entries={entries} datasetMesKeys={[]} />
         <Card>
           <CardContent className="py-10">
-            <Empty msg="Carregue um balancete na fase de processamento para gerar os gráficos." />
+            <Empty 
+              title="Não existem dados no Balancete para gerar o gráfico"
+              msg="Carregue um balancete na fase de processamento ou envie o template BEX completo para gerar os indicadores operacionais." 
+            />
           </CardContent>
         </Card>
       </div>
