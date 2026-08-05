@@ -615,7 +615,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                 </Line>
               </ComposedChart>
             </ResponsiveContainer>
-          ) : <EmptyState icon={Wallet} title="Sem dados na aba 'FCP - 6 meses'." />}
+          ) : <EmptyState icon={Wallet} title="Não existem dados no Balancete para gerar o gráfico" message="O Fluxo de Caixa Projetado requer a aba específica ou dados de projeção no balancete." />}
         </CardContent>
       </Card>
 
