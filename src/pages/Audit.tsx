@@ -2508,7 +2508,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   );
 
   return (
-    <div ref={reportContainerRef} style={{ "--report-watermark": `url(${folhaRostoBg})` } as any} id="report-bex-container">
+    <div ref={reportContainerRef} style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-bex-container">
       {/* Action buttons print:hidden - outside gray container */}
       <div className="flex items-center justify-between gap-2 print:hidden mb-4 flex-wrap">
         <div className="flex items-center gap-1.5">
@@ -3107,7 +3107,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       </ReportPage>
 
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
-      <div className="report-balanco-wrapper">
+
 
       {(() => {
         const allRows = parsedData?.balanco || state.balancoRows;
