@@ -62,10 +62,11 @@ const fmtCompact = (v: number | undefined) => {
   return v.toString();
 };
 
-const EmptyState = ({ icon: Icon, title }: { icon: any; title: string }) => (
-  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+const EmptyState = ({ icon: Icon, title, message }: { icon: any; title: string; message?: string }) => (
+  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground bg-muted/5 rounded-lg border border-dashed border-muted">
     <Icon className="w-8 h-8 mb-2 opacity-40" />
-    <p className="text-sm">{title}</p>
+    <p className="text-sm font-medium">{title}</p>
+    {message && <p className="text-[11px] mt-1 opacity-70 text-center px-4">{message}</p>}
   </div>
 );
 
