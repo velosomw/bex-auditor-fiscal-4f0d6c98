@@ -3634,7 +3634,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <div className="inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5">
           <div className="relative">
             <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-green-600 bg-green-100 px-1.5 py-0 rounded-full leading-4 whitespace-nowrap">Disponível</span>
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(258,90%,66%)] text-white shadow-sm">
+            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(258,90%,66%)] text-white shadow-sm" onClick={onSwitchToBex}>
               <BookOpen className="w-3.5 h-3.5" /> Relatório BEX
             </button>
           </div>
