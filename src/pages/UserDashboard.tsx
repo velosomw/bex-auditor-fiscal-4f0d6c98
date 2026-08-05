@@ -775,7 +775,7 @@ const UserDashboard = () => {
               <FileText className="w-5 h-5 text-[hsl(217,91%,50%)]" />
               <CardTitle className="text-base">Extração de Dados por Documento</CardTitle>
             </div>
-            <CardDescription>valide a Extração de Dados por Documento exibidaas no gráfico, se foi extraído os dados e carregado as informações o percentual de extração de ser próxima de 100% correspondente aos dados carregados no workspace pela extração</CardDescription>
+            <CardDescription>atualize os percentuais dos arquivos já extraídos para avaliar a nova condição de percentual</CardDescription>
           </CardHeader>
           <CardContent>
             {history.length === 0 ? (
