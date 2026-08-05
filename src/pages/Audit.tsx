@@ -3643,13 +3643,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </button>
           </div>
         </div>
-        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}>
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
-        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
           <FileText className="w-4 h-4" /> Exportar .doc
         </Button>
-        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
         <Button variant="outline" onClick={onBack} className="gap-1.5">
