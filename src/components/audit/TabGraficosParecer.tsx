@@ -106,6 +106,7 @@ function buildSeries(rows: BSDadosRow[]) {
     const pcpnc = (r.passivo_circulante || 0) + (r.passivo_nao_circulante || 0);
     const liqGeral = pcpnc > 0 ? ((r.ativo_circulante || 0) + (r.realizavel_longo_prazo || 0)) / pcpnc : null;
     const liqCorr = (r.passivo_circulante || 0) > 0 ? (r.ativo_circulante || 0) / (r.passivo_circulante || 0) : null;
+    const liqSeca = (r.passivo_circulante || 0) > 0 ? ((r.ativo_circulante || 0) - (r.estoques || 0)) / (r.passivo_circulante || 0) : null;
     const endivG = at > 0 ? pcpnc / at : null;
     const empPass = pcpnc > 0 ? (r.divida_financeira || 0) / pcpnc : null;
     const custoDesp = Math.abs(r.cmv || 0) + Math.abs(r.despesas || 0);
@@ -139,7 +140,7 @@ function buildSeries(rows: BSDadosRow[]) {
       outras: r.outras_obrigacoes || 0,
       total: r.divida_total || 0,
       // índices
-      liqGeral, liqCorr, endivG, empPass, cdReceitaPct, resReceita, imobRnp,
+      liqGeral, liqCorr, liqSeca, endivG, empPass, cdReceitaPct, resReceita, imobRnp,
     };
   });
 }
@@ -201,7 +202,29 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
 
       <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
         {/* 1. LIQUIDEZ GERAL */}
+        <Tile title="LIQUIDEZ SECA" subtitle="(AC - EST) / PC">
+          <LineChart data={series} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+            {GRID}
+            <XAxis dataKey="mes" {...AXIS} />
+            <YAxis {...AXIS} tickFormatter={fmtDec} />
+            <Tooltip {...TIP} formatter={(v: any) => [fmtDec(v), "Liquidez Seca"]} />
+            <Line type="monotone" dataKey="liqSeca" name="Liquidez Seca" stroke={COLORS.azul} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="liqSeca" {...LABEL_DEC} />
+            </Line>
+          </LineChart>
+        </Tile>
+
         <Tile title="LIQUIDEZ GERAL" subtitle="(AC + RLP) / (PC + PNC)">
+          <LineChart data={series} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+            {GRID}
+            <XAxis dataKey="mes" {...AXIS} />
+            <YAxis {...AXIS} tickFormatter={fmtDec} />
+            <Tooltip {...TIP} formatter={(v: any) => [fmtDec(v), "Liquidez Geral"]} />
+            <Line type="monotone" dataKey="liqGeral" name="Liquidez Geral" stroke={COLORS.azulEsc} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+              <LabelList dataKey="liqGeral" {...LABEL_DEC} />
+            </Line>
+          </LineChart>
+        </Tile>
           <LineChart data={series} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
             {GRID}
             <XAxis dataKey="mes" {...AXIS} />
