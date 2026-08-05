@@ -658,7 +658,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
       <div className="text-center space-y-2 mb-2">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(258,90%,66%)]/10 border border-[hsl(258,90%,66%)]/20 mb-2">
           <Shield className="w-4 h-4 text-[hsl(258,90%,66%)]" />
-          <span className="text-xs font-semibold text-[hsl(258,90%,66%)]">Auditor Contábil Sênior IA</span>
+          <span className="text-xs font-semibold text-[hsl(258,90%,66%)]">Técnico Contábil Sênior IA</span>
         </div>
         <h1 className="text-2xl font-bold text-foreground font-serif">
           {hasFiles ? "Carregamento" : "Configuração"}
@@ -948,7 +948,7 @@ const processingSteps = [
   { label: "🔍 Agente Parser — Identificando formato e tipo de documento...", duration: 1200 },
   { label: "📊 Agente Parser — Extraindo dados contábeis...", duration: 1500 },
   { label: "🏗️ Agente Estruturador — Classificando contas contábeis...", duration: 1300 },
-  { label: "🔎 Agente Auditor — Verificando inconsistências...", duration: 1400 },
+  { label: "🔎 Agente Técnico — Verificando inconsistências...", duration: 1400 },
   { label: "📈 Agente Risk Engine — Calculando indicadores financeiros...", duration: 1200 },
   { label: "📈 Agente Risk Engine — Executando Modelo Kanitz...", duration: 1000 },
   { label: "📈 Agente Risk Engine — Calculando Score BEX-RJ...", duration: 1100 },
@@ -1252,7 +1252,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
           </div>
           <h2 className="text-xl font-bold text-foreground font-serif">Processando Análise</h2>
           <p className="text-sm text-muted-foreground">
-            O Auditor Contábil Sênior IA está analisando seus documentos em tempo real...
+            O Técnico Contábil Sênior IA está analisando seus documentos em tempo real...
           </p>
         </div>
 
@@ -2012,7 +2012,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
     return `${empresa} — ${periodo}`;
   }, [company, parsedData]);
   const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([
-    { role: "assistant", text: `Sou o Auditor Contábil Sênior IA. Estou restrito EXCLUSIVAMENTE ao balancete carregado nesta auditoria (${balanceteScopeId}). Selecione uma pendência e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis e impacto no parecer SOMENTE com base nestes dados. Não consulto outras empresas, outros relatórios ou fontes externas.` },
+    { role: "assistant", text: `Sou o Técnico Contábil Sênior IA. Estou restrito EXCLUSIVAMENTE ao balancete carregado nesta auditoria (${balanceteScopeId}). Selecione uma pendência e me pergunte — respondo sobre fundamentação técnica, riscos, ajustes contábeis e impacto no parecer SOMENTE com base nestes dados. Não consulto outras empresas, outros relatórios ou fontes externas.` },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -2110,7 +2110,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
 
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">📌 Ponto de Vista do Auditor IA</CardTitle>
+            <CardTitle className="text-sm">📌 Ponto de Vista do Técnico IA</CardTitle>
           </CardHeader>
           <CardContent>
             {selected ? (
@@ -2143,7 +2143,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Selecione uma pendência para ver o parecer do Auditor IA.</p>
+              <p className="text-sm text-muted-foreground">Selecione uma pendência para ver o parecer do Técnico IA.</p>
             )}
           </CardContent>
         </Card>
@@ -2155,7 +2155,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground flex items-center gap-2">
               <MessageCircle className="w-4 h-4 opacity-50" />
-              O Chat com o Auditor IA Sênior está disponível apenas no dia da realização da auditoria. Em relatórios históricos ele não fica acessível para consulta.
+              O Chat com o Técnico IA Sênior está disponível apenas no dia da realização da auditoria. Em relatórios históricos ele não fica acessível para consulta.
             </p>
           </CardContent>
         </Card>
@@ -2164,7 +2164,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
           <CardHeader className="pb-2 bg-[hsl(258,90%,66%)]/5 border-b border-[hsl(258,90%,66%)]/20">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-sm flex items-center gap-2 text-foreground">
-                <MessageCircle className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Chat com Auditor IA Sênior
+                <MessageCircle className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Chat com Técnico IA Sênior
               </CardTitle>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Badge variant="outline" className="text-[10px] border-[hsl(258,90%,66%)]/40 text-[hsl(258,90%,66%)]">
@@ -2200,7 +2200,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
                 {isStreaming && (
                   <div className="flex justify-start">
                     <div className="bg-card border border-border/60 rounded-xl rounded-bl-sm px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Auditor IA analisando...
+                      <Loader2 className="w-3 h-3 animate-spin" /> Técnico IA analisando...
                     </div>
                   </div>
                 )}
@@ -3413,7 +3413,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-2">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
-                <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
+                <p className="text-sm font-semibold text-foreground">Técnico Contábil Sênior IA</p>
                 <p className="text-xs text-muted-foreground">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
               </div>
 
@@ -3930,7 +3930,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-2">
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
-              <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
+              <p className="text-sm font-semibold text-foreground">Técnico Contábil Sênior IA</p>
               <p className="text-xs text-muted-foreground">Modelo: Stephen Charles Kanitz — Termômetro de Insolvência (1978)</p>
             </div>
             <div className="pt-2 mt-2 border-t border-dashed border-border/50">
@@ -5004,7 +5004,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
               <div style={{ marginTop: "24pt", paddingTop: "16pt", borderTop: "1px solid hsl(220, 18%, 90%)", width: "100%", maxWidth: "120mm" }}>
                 <p style={{ fontSize: "8pt", color: "hsl(220, 10%, 46%)", textTransform: "uppercase", letterSpacing: "2pt", margin: 0 }}>Responsável Técnico</p>
-                <p style={{ fontSize: "10pt", fontWeight: 600, margin: "4pt 0 0" }}>Auditor Contábil Sênior IA</p>
+                <p style={{ fontSize: "10pt", fontWeight: 600, margin: "4pt 0 0" }}>Técnico Contábil Sênior IA</p>
                 <p style={{ fontSize: "9pt", color: "hsl(220, 10%, 46%)", margin: 0 }}>Especialista em Recuperação Judicial e Análise Empresarial</p>
               </div>
             </div>
