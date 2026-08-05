@@ -48,10 +48,11 @@ const TOOLTIP_STYLE = {
   cursor: { fill: "hsl(var(--foreground) / 0.06)" },
 };
 
-const Empty = ({ msg }: { msg: string }) => (
-  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+const Empty = ({ msg, title }: { msg: string; title?: string }) => (
+  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/5 rounded-lg border border-dashed border-muted">
     <AlertTriangle className="w-6 h-6 mb-2 opacity-50" />
-    <p className="text-xs">{msg}</p>
+    <p className="text-sm font-medium mb-1">{title || "Não existem dados no Balancete para gerar o gráfico"}</p>
+    <p className="text-[11px] opacity-70 text-center px-4">{msg}</p>
   </div>
 );
 
