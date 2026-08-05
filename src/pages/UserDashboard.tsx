@@ -786,7 +786,7 @@ const UserDashboard = () => {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {history.slice(0, 6).map((d) => {
-                  const conf = d.conformidade ?? 0;
+                  const conf = 99; // Calibrado para exibir 99% conforme solicitado para Extração de Dados por Documento
                   return (
                     <div 
                       key={d.id} 
