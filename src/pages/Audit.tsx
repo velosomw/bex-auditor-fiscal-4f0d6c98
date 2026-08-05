@@ -70,24 +70,56 @@ const printReport = (containerId: string, reportTitle: string) => {
 const exportPdf = async (containerId: string, reportTitle: string) => {
   const el = document.getElementById(containerId);
   if (!el) return;
-  const clone = el.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"]').forEach(n => n.remove());
+  
+  // Create a clean wrapper for PDF generation
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:white;';
+  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:white;width:210mm;min-height:297mm;';
+  
+  // Clone the element
+  const clone = el.cloneNode(true) as HTMLElement;
+  
+  // Force a light theme/white background on the clone for export
+  clone.style.backgroundColor = '#ffffff';
+  clone.style.color = '#1c2541';
+  
+  // Remove print-hidden elements
+  clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"], .no-export').forEach(n => n.remove());
+  
+  // Ensure all sections inside are visible and themed correctly
+  clone.querySelectorAll('*').forEach((node: any) => {
+    if (node.style) {
+      if (node.classList.contains('bg-muted') || node.classList.contains('bg-slate-50')) {
+        node.style.backgroundColor = '#f8fafc';
+      }
+      if (node.classList.contains('text-muted-foreground')) {
+        node.style.color = '#64748b';
+      }
+    }
+  });
+
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
+
   try {
     const html2pdf = (await import('html2pdf.js')).default;
-    await html2pdf()
-      .set({
-        margin: 0,
-        filename: `${bexFileName(reportTitle)}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      } as any)
-      .from(clone)
-      .save();
+    const opt = {
+      margin: 0,
+      filename: `${bexFileName(reportTitle)}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 794,
+      },
+      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] as any }
+    };
+
+    await html2pdf().set(opt).from(clone).save();
+  } catch (err) {
+    console.error('Erro ao exportar PDF:', err);
   } finally {
     wrapper.remove();
   }
@@ -2581,7 +2613,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div className="mt-8 pt-6 border-t border-border w-full max-w-md space-y-1">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsável Técnico</p>
-            <p className="text-sm font-semibold text-foreground">Auditor Contábil Sênior IA</p>
+            <p className="text-sm font-semibold text-foreground">Técnico Contábil Sênior IA</p>
             <p className="text-xs text-muted-foreground">Especialista em Recuperação Judicial e Análise Empresarial</p>
           </div>
         </div>
@@ -2625,7 +2657,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Auditor IA</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Técnico IA</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">{activeDiag.resumo}</p>
               <div className="flex flex-wrap gap-1.5 mt-3">
@@ -3577,7 +3609,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
           <div>
             <p className="text-sm font-semibold text-foreground">Documento gerado e assinado digitalmente</p>
-            <p className="text-xs text-muted-foreground">Auditor Contábil Sênior IA</p>
+            <p className="text-xs text-muted-foreground">Técnico Contábil Sênior IA</p>
             <p className="text-xs text-muted-foreground">Especialista em Recuperação Judicial e Análise Empresarial</p>
             <p className="text-xs text-muted-foreground mt-2">Plataforma BEX — {today}</p>
             {latestKanitz && <p className="text-xs text-muted-foreground">Kanitz (1978)</p>}
@@ -3602,23 +3634,22 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <div className="inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5">
           <div className="relative">
             <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-green-600 bg-green-100 px-1.5 py-0 rounded-full leading-4 whitespace-nowrap">Disponível</span>
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(258,90%,66%)] text-white shadow-sm">
+            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(258,90%,66%)] text-white shadow-sm" onClick={() => {
+              const tabList = document.querySelector('[role="tablist"]');
+              const bexTab = tabList?.querySelector('[value="relatorio-final"]') as HTMLElement;
+              bexTab?.click();
+            }}>
               <BookOpen className="w-3.5 h-3.5" /> Relatório BEX
             </button>
           </div>
         </div>
-        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}>
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
-        <span className="relative group/docbtn inline-flex">
-          <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
-            <FileText className="w-4 h-4" /> Exportar .doc
-          </Button>
-          <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-red-600 text-white text-[10px] font-bold whitespace-nowrap shadow-md opacity-0 group-hover/docbtn:opacity-100 transition-opacity">
-            Será removido
-          </span>
-        </span>
-        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
+          <FileText className="w-4 h-4" /> Exportar .doc
+        </Button>
+        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
         <Button variant="outline" onClick={onBack} className="gap-1.5">
@@ -4429,8 +4460,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
       {/* ══ MÓDULO 10 — PARECER TÉCNICO ══ */}
       <ReportPage>
-        <div className="space-y-4 break-inside-avoid">
-          <SectionTitle num="11" title="PARECER TÉCNICO" />
+        <div className="space-y-4 break-inside-avoid section-print-avoid-break">
+          <SectionTitle num="10" title="PARECER TÉCNICO" />
           <div className="space-y-4">
             {[
               { title: "Diagnóstico Financeiro", text: !kAplic
@@ -4818,7 +4849,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground font-serif">Relatório BEx_Resumido_Kanitz</h1>
-            <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
+            <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Técnico Contábil Sênior IA</p>
           </div>
         </div>
         <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
@@ -4832,7 +4863,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-serif">Avaliação Empresarial</h1>
-          <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Auditor Contábil Sênior IA</p>
+          <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Técnico Contábil Sênior IA</p>
         </div>
         
         {/* Export Dropdown */}
