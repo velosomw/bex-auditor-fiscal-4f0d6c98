@@ -1395,9 +1395,9 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
                       p.status === "positivo" ? "bg-emerald-500" :
                       p.status === "atencao" ? "bg-yellow-500" : "bg-red-500"
                     }`} />
-                    <span className="text-sm font-medium text-foreground">{p.item}</span>
+                    <span className="text-sm font-medium text-foreground">{p.item.replace(/\s+\d+%.*$/, "")}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{p.detail}</span>
+                  <span className="text-xs text-muted-foreground">{p.detail.replace(/(\b\w+\b)(?:\s+\1)+/gi, "$1")}</span>
                 </div>
               ))}
             </div>
@@ -3133,7 +3133,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         const _inList = (r: any, list: string[]) => {
           const d = _norm(r?.descricao || "");
           if (!d) return false;
-          return list.some(w => d === w || d.startsWith(w));
+          // Matches exactly or starts with the word, but avoids partial mid-word matches
+          return list.some(w => {
+            const normalizedW = _norm(w);
+            return d === normalizedW || d.startsWith(normalizedW + " ");
+          });
         };
         const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && _inList(r, ATIVO_WHITELIST));
         const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && _inList(r, PASSIVO_WHITELIST));
@@ -3203,7 +3207,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               const pParent = pRow && isParent(pRow.conta);
 
               return (
-                <tr key={idx} className="border-b border-border/40 hover:bg-muted/30">
+                <tr key={idx} className="border-b border-border/40 hover:bg-muted/30 break-inside-avoid">
                   <td className={`p-1.5 font-mono text-muted-foreground ${aParent ? "font-bold" : ""}`}>
                     {aRow?.conta || ""}
                   </td>
@@ -4464,7 +4468,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       {/* ══ MEMÓRIA DE CÁLCULO ══ */}
       <ReportPage>
         <div className="space-y-4">
-          <SectionTitle num="★" title="MEMÓRIA DE CÁLCULO" />
+          <SectionTitle num="★" title="PARECER TÉCNICO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
             <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
             <code className="block text-[11px] font-mono leading-relaxed text-foreground">
@@ -4570,7 +4574,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">Documento gerado e assinado digitalmente</p>
-            <p className="text-xs text-muted-foreground">Auditor Contábil Sênior IA</p>
+            <p className="text-xs text-muted-foreground">Parecer Técnico Sênior IA</p>
             <p className="text-xs text-muted-foreground">Relatório Kanitz Expandido v2.0 — Relatório Financeiro de Inteligência de Risco</p>
             <p className="text-xs text-muted-foreground mt-2">Plataforma BEX — {today}</p>
           </div>
