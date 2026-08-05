@@ -3107,7 +3107,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       </ReportPage>
 
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
-      <div className="report-balanco-wrapper">
+
 
       {(() => {
         const allRows = parsedData?.balanco || state.balancoRows;
@@ -3643,7 +3643,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const pages = kanitzContainerRef.current.querySelectorAll('.report-a4-page, .report-a4-cover');
       setTotalPagesKanitz(pages.length);
     }
-  });
+  }, []);
 
   const findValue = (keyword: string, year: string) => {
     if (!parsedData) return 0;
@@ -3920,7 +3920,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
       {/* ══ MÓDULO 1 — SUMÁRIO EXECUTIVO ══ */}
       <ReportPage>
-        <div className="space-y-4">
+        <div className="space-y-4 break-inside-avoid">
           <SectionTitle num="1" title="SUMÁRIO EXECUTIVO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-sm text-foreground leading-relaxed">
@@ -4429,8 +4429,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
       {/* ══ MÓDULO 10 — PARECER TÉCNICO ══ */}
       <ReportPage>
-        <div className="space-y-4">
-          <SectionTitle num="10" title="PARECER TÉCNICO" />
+        <div className="space-y-4 break-inside-avoid">
+          <SectionTitle num="11" title="PARECER TÉCNICO" />
           <div className="space-y-4">
             {[
               { title: "Diagnóstico Financeiro", text: !kAplic
@@ -4470,7 +4470,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       {/* ══ MEMÓRIA DE CÁLCULO ══ */}
       <ReportPage>
         <div className="space-y-4">
-          <SectionTitle num="★" title="PARECER TÉCNICO" />
+          <SectionTitle num="★" title="MEMÓRIA DE CÁLCULO" />
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
             <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
             <code className="block text-[11px] font-mono leading-relaxed text-foreground">
