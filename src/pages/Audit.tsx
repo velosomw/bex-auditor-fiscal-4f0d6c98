@@ -174,16 +174,21 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
         pagebreak: { mode: ['css', 'legacy'] },
       } as any).from(clone).save();
     }
+    progressToast.dismiss();
+    toast({ title: "PDF gerado com sucesso", description: "O download do relatório foi iniciado." });
   } catch (err) {
     console.error('Erro ao exportar PDF:', err);
+    progressToast.dismiss();
     toast({
       title: "Falha ao gerar o PDF",
       description: err instanceof Error ? err.message : "Erro inesperado ao renderizar o relatório.",
       variant: "destructive",
     });
   } finally {
+    pdfExportInProgress = false;
     wrapper.remove();
   }
+
 };
 
 
