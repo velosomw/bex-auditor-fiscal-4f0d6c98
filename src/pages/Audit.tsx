@@ -97,7 +97,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
   // Dimensões A4 em px @96dpi — usar px (não mm) evita arredondamentos
   // diferentes entre Chrome e Firefox ao rasterizar o clone.
   const A4_W = 794;
-  const A4_H = 1123;
+  const A4_H = 1122; // Ajustado de 1123 para 1122 (A4 exato em 96dpi é 793.7x1122.5)
 
   // Wrapper fora da tela com largura exata de A4
   const wrapper = document.createElement('div');
@@ -135,6 +135,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
   const pages = Array.from(clone.querySelectorAll<HTMLElement>('.report-a4-page, .report-a4-cover'));
   pages.forEach(p => {
     p.style.margin = '0';
+    p.style.padding = '0'; // Força remoção de padding que pode causar overflow
     p.style.boxShadow = 'none';
     p.style.border = 'none';
     p.style.borderRadius = '0';
@@ -147,6 +148,8 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.boxSizing = 'border-box';
     p.style.position = 'relative';
     p.style.transform = 'none';
+    p.style.display = 'block'; // Garante que seja block
+    p.style.pageBreakAfter = 'always';
   });
 
   wrapper.appendChild(clone);
@@ -169,12 +172,10 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
       const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       for (let i = 0; i < pages.length; i++) {
         const canvas = await html2canvas(pages[i], {
-          scale: 2,
+          scale: 2, // Aumentado para melhor qualidade
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
-          // Dimensões e viewport explícitos: sem isso o Firefox usa o
-          // tamanho da janela real e corta / estica o conteúdo.
           width: A4_W,
           height: A4_H,
           windowWidth: A4_W,
@@ -183,8 +184,19 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
           y: 0,
           scrollX: 0,
           scrollY: 0,
-          foreignObjectRendering: false,
-          removeContainer: true,
+          imageTimeout: 15000,
+          onclone: (clonedDoc) => {
+            // Garante que as imagens no clone estejam carregadas
+            const images = clonedDoc.getElementsByTagName('img');
+            return Promise.all(Array.from(images).map(img => {
+              const imageElement = img as HTMLImageElement;
+              if (imageElement.complete) return Promise.resolve();
+              return new Promise(resolve => {
+                imageElement.onload = resolve;
+                imageElement.onerror = resolve;
+              });
+            }));
+          }
         } as any);
         const img = canvas.toDataURL('image/jpeg', 0.95);
         if (i > 0) pdf.addPage();
