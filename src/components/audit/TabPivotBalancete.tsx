@@ -217,7 +217,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
     // Atribui código sequencial para linhas sem código numérico válido
     let seq = 0;
     const pad = String(linhasRaw.length).length;
-    const linhas = linhasRaw.map(l => {
+    const linhasBase = linhasRaw.map(l => {
       const conta = String(l.conta || "").trim();
       const hasNumericMarker = /\d/.test(conta);
       if (!hasNumericMarker) {
@@ -226,10 +226,38 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
       }
       return l;
     });
+
+    // ── Hierarquia contábil: nível derivado do código (1 → 1.1 → 1.1.01 …) ──
+    const codeSet = new Set(linhasBase.map(l => String(l.conta)));
+    const parentOf = (code: string): string | null => {
+      const parts = String(code).split(".");
+      for (let i = parts.length - 1; i >= 1; i--) {
+        const cand = parts.slice(0, i).join(".");
+        if (codeSet.has(cand)) return cand;
+      }
+      return null;
+    };
+    const linhas = linhasBase.map(l => {
+      const code = String(l.conta);
+      const parent = l._autoCode ? null : parentOf(code);
+      const nivel = l._autoCode ? 1 : code.split(".").length;
+      return { ...l, _parent: parent, _nivel: nivel };
+    });
+    const withChildren = new Set(linhas.map(l => l._parent).filter(Boolean) as string[]);
+    linhas.forEach(l => { (l as any)._hasChildren = withChildren.has(String(l.conta)); });
+
     const refs = Array.from(new Set(linhas.map(l => l.ref1).filter(Boolean) as string[])).sort();
     const codigos = linhas.map(l => l.conta as string);
     return { meses, linhas, refs, codigos };
   }, [parsedData, entries]);
+
+  // Mapa código → linha (para resolver ancestrais na renderização em árvore)
+  const byCode = useMemo(() => {
+    const m = new Map<string, any>();
+    linhas.forEach(l => m.set(String(l.conta), l));
+    return m;
+  }, [linhas]);
+
 
   // Aplicação combinada (AND) de todos os filtros.
   const filtered = useMemo(() => {
