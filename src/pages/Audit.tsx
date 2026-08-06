@@ -189,10 +189,11 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
             // Garante que as imagens no clone estejam carregadas
             const images = clonedDoc.getElementsByTagName('img');
             return Promise.all(Array.from(images).map(img => {
-              if (img.complete) return Promise.resolve();
+              const imageElement = img as HTMLImageElement;
+              if (imageElement.complete) return Promise.resolve();
               return new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve;
+                imageElement.onload = resolve;
+                imageElement.onerror = resolve;
               });
             }));
           }
