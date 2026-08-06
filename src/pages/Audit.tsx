@@ -69,23 +69,33 @@ const printReport = (containerId: string, reportTitle: string) => {
 /** Exporta o container como PDF baixado automaticamente (sem abrir diálogo). */
 const exportPdf = async (containerId: string, reportTitle: string) => {
   const el = document.getElementById(containerId);
-  if (!el) return;
-  
-  // Create a clean wrapper for PDF generation
+  if (!el) {
+    toast({ title: "Não foi possível exportar", description: "Conteúdo do relatório não encontrado na tela.", variant: "destructive" });
+    return;
+  }
+
+  toast({ title: "Gerando PDF…", description: "Aguarde enquanto o relatório é renderizado." });
+
+  // Wrapper fora da tela com largura exata de A4
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:white;width:210mm;min-height:297mm;';
-  
-  // Clone the element
+  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:#ffffff;width:210mm;';
+
   const clone = el.cloneNode(true) as HTMLElement;
-  
-  // Force a light theme/white background on the clone for export
   clone.style.backgroundColor = '#ffffff';
   clone.style.color = '#1c2541';
-  
-  // Remove print-hidden elements
+  clone.style.padding = '0';
+  clone.style.margin = '0';
+
+  // Remove elementos ocultos na impressão
   clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"], .no-export').forEach(n => n.remove());
-  
-  // Ensure all sections inside are visible and themed correctly
+
+  // Neutraliza o "desk effect" do container (padding/fundo cinza)
+  clone.querySelectorAll<HTMLElement>('.report-pages-container').forEach(n => {
+    n.style.padding = '0';
+    n.style.background = 'none';
+    n.style.borderRadius = '0';
+  });
+
   clone.querySelectorAll('*').forEach((node: any) => {
     if (node.style) {
       if (node.classList.contains('bg-muted') || node.classList.contains('bg-slate-50')) {
@@ -97,33 +107,67 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     }
   });
 
+  // Cada folha A4 vira exatamente 1 página do PDF (evita deslocamento por margens/sombras)
+  const pages = Array.from(clone.querySelectorAll<HTMLElement>('.report-a4-page, .report-a4-cover'));
+  pages.forEach(p => {
+    p.style.margin = '0';
+    p.style.boxShadow = 'none';
+    p.style.border = 'none';
+    p.style.borderRadius = '0';
+    p.style.width = '210mm';
+    p.style.height = '297mm';
+    p.style.minHeight = '297mm';
+    p.style.overflow = 'hidden';
+  });
+
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
   try {
-    const html2pdf = (await import('html2pdf.js')).default;
-    const opt = {
-      margin: 0,
-      filename: `${bexFileName(reportTitle)}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: 794,
-      },
-      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] as any }
-    };
+    const fileName = `${bexFileName(reportTitle)}.pdf`;
 
-    await html2pdf().set(opt).from(clone).save();
+    if (pages.length > 0) {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      for (let i = 0; i < pages.length; i++) {
+        const canvas = await html2canvas(pages[i], {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+        });
+        const img = canvas.toDataURL('image/jpeg', 0.95);
+        if (i > 0) pdf.addPage();
+        pdf.addImage(img, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+      }
+      pdf.save(fileName);
+    } else {
+      // Conteúdo sem folhas A4 (ex.: painel de gráficos) — fluxo padrão
+      const html2pdf = (await import('html2pdf.js')).default;
+      await html2pdf().set({
+        margin: 0,
+        filename: fileName,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', windowWidth: 794 },
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['css', 'legacy'] as any },
+      }).from(clone).save();
+    }
   } catch (err) {
     console.error('Erro ao exportar PDF:', err);
+    toast({
+      title: "Falha ao gerar o PDF",
+      description: err instanceof Error ? err.message : "Erro inesperado ao renderizar o relatório.",
+      variant: "destructive",
+    });
   } finally {
     wrapper.remove();
   }
 };
+
 
 const exportDocx = (containerId: string, reportTitle: string) => {
   const container = document.getElementById(containerId);
