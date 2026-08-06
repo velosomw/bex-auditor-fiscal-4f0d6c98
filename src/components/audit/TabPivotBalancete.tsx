@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Layers, Database, Filter, X, Check, ChevronDown } from "lucide-react";
+import { Search, Layers, Database, Filter, X, Check, ChevronDown, ChevronRight } from "lucide-react";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import { inferRefByCode } from "@/services/auditAIService";
 import { periodToMesKey, mesKeyToLabel, type BalanceteEntry } from "@/services/bsDadosBuilder";
@@ -217,7 +217,7 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
     // Atribui código sequencial para linhas sem código numérico válido
     let seq = 0;
     const pad = String(linhasRaw.length).length;
-    const linhas = linhasRaw.map(l => {
+    const linhasBase = linhasRaw.map(l => {
       const conta = String(l.conta || "").trim();
       const hasNumericMarker = /\d/.test(conta);
       if (!hasNumericMarker) {
@@ -226,10 +226,38 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
       }
       return l;
     });
+
+    // ── Hierarquia contábil: nível derivado do código (1 → 1.1 → 1.1.01 …) ──
+    const codeSet = new Set(linhasBase.map(l => String(l.conta)));
+    const parentOf = (code: string): string | null => {
+      const parts = String(code).split(".");
+      for (let i = parts.length - 1; i >= 1; i--) {
+        const cand = parts.slice(0, i).join(".");
+        if (codeSet.has(cand)) return cand;
+      }
+      return null;
+    };
+    const linhas = linhasBase.map(l => {
+      const code = String(l.conta);
+      const parent = l._autoCode ? null : parentOf(code);
+      const nivel = l._autoCode ? 1 : code.split(".").length;
+      return { ...l, _parent: parent, _nivel: nivel };
+    });
+    const withChildren = new Set(linhas.map(l => l._parent).filter(Boolean) as string[]);
+    linhas.forEach(l => { (l as any)._hasChildren = withChildren.has(String(l.conta)); });
+
     const refs = Array.from(new Set(linhas.map(l => l.ref1).filter(Boolean) as string[])).sort();
     const codigos = linhas.map(l => l.conta as string);
     return { meses, linhas, refs, codigos };
   }, [parsedData, entries]);
+
+  // Mapa código → linha (para resolver ancestrais na renderização em árvore)
+  const byCode = useMemo(() => {
+    const m = new Map<string, any>();
+    linhas.forEach(l => m.set(String(l.conta), l));
+    return m;
+  }, [linhas]);
+
 
   // Aplicação combinada (AND) de todos os filtros.
   const filtered = useMemo(() => {
@@ -254,9 +282,38 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   const visibleMeses = selMeses.size > 0 ? meses.filter(m => selMeses.has(m)) : meses;
   const totalActiveFilters = selMeses.size + selCodigos.size + (textFilter.trim() ? 1 : 0);
 
+  // Estado de expansão: por padrão TUDO recolhido (só os tópicos principais aparecem).
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const isSearching = selCodigos.size > 0 || textFilter.trim().length > 0;
+
+  const toggleExpand = (code: string) => {
+    setExpanded(prev => {
+      const n = new Set(prev);
+      n.has(code) ? n.delete(code) : n.add(code);
+      return n;
+    });
+  };
+  const expandAll = () => setExpanded(new Set(linhas.filter(l => l._hasChildren).map(l => String(l.conta))));
+  const collapseAll = () => setExpanded(new Set());
+
+  // Linhas visíveis na árvore: uma linha aparece se todos os seus ancestrais estão expandidos.
+  // Durante busca/filtro por código, a hierarquia é ignorada (resultado plano).
+  const visibleRows = useMemo(() => {
+    if (isSearching) return filtered;
+    return filtered.filter(l => {
+      let p = l._parent as string | null;
+      while (p) {
+        if (!expanded.has(p)) return false;
+        p = byCode.get(p)?._parent ?? null;
+      }
+      return true;
+    });
+  }, [filtered, expanded, byCode, isSearching]);
+
   const clearAll = () => {
     setTextFilter(""); setSelMeses(new Set()); setSelCodigos(new Set());
   };
+
 
   if (!linhas.length) {
     return (
@@ -353,6 +410,21 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
         )}
       </CardHeader>
       <CardContent className="overflow-x-auto">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-[11px] text-muted-foreground">
+            Contas sintéticas iniciam <strong>recolhidas</strong> — clique na seta para expandir as subcontas.
+          </p>
+          {!isSearching && (
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1" onClick={expandAll}>
+                <ChevronDown className="w-3.5 h-3.5" /> Expandir tudo
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1" onClick={collapseAll}>
+                <ChevronRight className="w-3.5 h-3.5" /> Recolher tudo
+              </Button>
+            </div>
+          )}
+        </div>
         <Table className="text-xs">
           <TableHeader>
             <TableRow className="bg-muted/30">
@@ -364,16 +436,41 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.slice(0, 500).map(l => (
-              <TableRow key={l.conta}>
-                <TableCell className="font-mono text-[10px]">{l.conta}</TableCell>
-                <TableCell className="max-w-[280px] truncate">{l.descricao}</TableCell>
-                {visibleMeses.map(m => (
-                  <TableCell key={m} className="text-right tabular-nums">{fmt(l.byMes[m] || 0)}</TableCell>
-                ))}
-              </TableRow>
-            ))}
-            {filtered.length === 0 && (
+            {visibleRows.slice(0, 500).map(l => {
+              const code = String(l.conta);
+              const nivel = Number(l._nivel || 1);
+              const hasChildren = !!l._hasChildren && !isSearching;
+              const isOpen = expanded.has(code);
+              return (
+                <TableRow key={code} className={cn(nivel === 1 && "bg-muted/20 font-semibold")}>
+                  <TableCell className="font-mono text-[10px] whitespace-nowrap">
+                    <div className="flex items-center gap-1" style={{ paddingLeft: `${(nivel - 1) * 14}px` }}>
+                      {hasChildren ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(code)}
+                          aria-expanded={isOpen}
+                          aria-label={isOpen ? `Recolher ${l.descricao}` : `Expandir ${l.descricao}`}
+                          className="p-0.5 -ml-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        </button>
+                      ) : (
+                        <span className="w-[18px] inline-block" />
+                      )}
+                      {code}
+                    </div>
+                  </TableCell>
+                  <TableCell className={cn("max-w-[280px] truncate", nivel === 1 && "uppercase tracking-wide")}>
+                    {l.descricao}
+                  </TableCell>
+                  {visibleMeses.map(m => (
+                    <TableCell key={m} className="text-right tabular-nums">{fmt(l.byMes[m] || 0)}</TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+            {visibleRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={2 + visibleMeses.length} className="text-center text-muted-foreground py-8 text-xs">
                   Nenhuma linha corresponde aos filtros selecionados.
@@ -382,12 +479,13 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             )}
           </TableBody>
         </Table>
-        {filtered.length > 500 && (
+        {visibleRows.length > 500 && (
           <p className="text-[10px] text-muted-foreground mt-2 text-right">
-            Exibindo 500 de {filtered.length} linhas — refine os filtros para ver mais.
+            Exibindo 500 de {visibleRows.length} linhas — refine os filtros para ver mais.
           </p>
         )}
       </CardContent>
+
     </Card>
   );
 }
