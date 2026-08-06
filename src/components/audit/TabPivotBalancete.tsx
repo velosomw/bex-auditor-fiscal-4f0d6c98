@@ -410,6 +410,21 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
         )}
       </CardHeader>
       <CardContent className="overflow-x-auto">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-[11px] text-muted-foreground">
+            Contas sintéticas iniciam <strong>recolhidas</strong> — clique na seta para expandir as subcontas.
+          </p>
+          {!isSearching && (
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1" onClick={expandAll}>
+                <ChevronDown className="w-3.5 h-3.5" /> Expandir tudo
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-[11px] gap-1" onClick={collapseAll}>
+                <ChevronRight className="w-3.5 h-3.5" /> Recolher tudo
+              </Button>
+            </div>
+          )}
+        </div>
         <Table className="text-xs">
           <TableHeader>
             <TableRow className="bg-muted/30">
@@ -421,16 +436,41 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.slice(0, 500).map(l => (
-              <TableRow key={l.conta}>
-                <TableCell className="font-mono text-[10px]">{l.conta}</TableCell>
-                <TableCell className="max-w-[280px] truncate">{l.descricao}</TableCell>
-                {visibleMeses.map(m => (
-                  <TableCell key={m} className="text-right tabular-nums">{fmt(l.byMes[m] || 0)}</TableCell>
-                ))}
-              </TableRow>
-            ))}
-            {filtered.length === 0 && (
+            {visibleRows.slice(0, 500).map(l => {
+              const code = String(l.conta);
+              const nivel = Number(l._nivel || 1);
+              const hasChildren = !!l._hasChildren && !isSearching;
+              const isOpen = expanded.has(code);
+              return (
+                <TableRow key={code} className={cn(nivel === 1 && "bg-muted/20 font-semibold")}>
+                  <TableCell className="font-mono text-[10px] whitespace-nowrap">
+                    <div className="flex items-center gap-1" style={{ paddingLeft: `${(nivel - 1) * 14}px` }}>
+                      {hasChildren ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(code)}
+                          aria-expanded={isOpen}
+                          aria-label={isOpen ? `Recolher ${l.descricao}` : `Expandir ${l.descricao}`}
+                          className="p-0.5 -ml-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        </button>
+                      ) : (
+                        <span className="w-[18px] inline-block" />
+                      )}
+                      {code}
+                    </div>
+                  </TableCell>
+                  <TableCell className={cn("max-w-[280px] truncate", nivel === 1 && "uppercase tracking-wide")}>
+                    {l.descricao}
+                  </TableCell>
+                  {visibleMeses.map(m => (
+                    <TableCell key={m} className="text-right tabular-nums">{fmt(l.byMes[m] || 0)}</TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+            {visibleRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={2 + visibleMeses.length} className="text-center text-muted-foreground py-8 text-xs">
                   Nenhuma linha corresponde aos filtros selecionados.
@@ -439,12 +479,13 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
             )}
           </TableBody>
         </Table>
-        {filtered.length > 500 && (
+        {visibleRows.length > 500 && (
           <p className="text-[10px] text-muted-foreground mt-2 text-right">
-            Exibindo 500 de {filtered.length} linhas — refine os filtros para ver mais.
+            Exibindo 500 de {visibleRows.length} linhas — refine os filtros para ver mais.
           </p>
         )}
       </CardContent>
+
     </Card>
   );
 }
