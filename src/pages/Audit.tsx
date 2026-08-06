@@ -94,15 +94,21 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
 
 
 
+  // Dimensões A4 em px @96dpi — usar px (não mm) evita arredondamentos
+  // diferentes entre Chrome e Firefox ao rasterizar o clone.
+  const A4_W = 794;
+  const A4_H = 1123;
+
   // Wrapper fora da tela com largura exata de A4
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;background:#ffffff;width:210mm;';
+  wrapper.style.cssText = `position:absolute;left:-10000px;top:0;background:#ffffff;width:${A4_W}px;margin:0;padding:0;`;
 
   const clone = el.cloneNode(true) as HTMLElement;
   clone.style.backgroundColor = '#ffffff';
   clone.style.color = '#1c2541';
   clone.style.padding = '0';
   clone.style.margin = '0';
+  clone.style.width = `${A4_W}px`;
 
   // Remove elementos ocultos na impressão
   clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"], .no-export').forEach(n => n.remove());
@@ -132,10 +138,15 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.boxShadow = 'none';
     p.style.border = 'none';
     p.style.borderRadius = '0';
-    p.style.width = '210mm';
-    p.style.height = '297mm';
-    p.style.minHeight = '297mm';
+    p.style.width = `${A4_W}px`;
+    p.style.maxWidth = `${A4_W}px`;
+    p.style.height = `${A4_H}px`;
+    p.style.minHeight = `${A4_H}px`;
+    p.style.maxHeight = `${A4_H}px`;
     p.style.overflow = 'hidden';
+    p.style.boxSizing = 'border-box';
+    p.style.position = 'relative';
+    p.style.transform = 'none';
   });
 
   wrapper.appendChild(clone);
@@ -143,6 +154,12 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
 
   try {
     const fileName = `${bexFileName(reportTitle)}.pdf`;
+
+    // Firefox rasteriza antes das webfonts carregarem se não aguardarmos
+    if ((document as any).fonts?.ready) {
+      try { await (document as any).fonts.ready; } catch { /* ignore */ }
+    }
+    await new Promise(requestAnimationFrame as any);
 
     if (pages.length > 0) {
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
@@ -156,7 +173,19 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
-        });
+          // Dimensões e viewport explícitos: sem isso o Firefox usa o
+          // tamanho da janela real e corta / estica o conteúdo.
+          width: A4_W,
+          height: A4_H,
+          windowWidth: A4_W,
+          windowHeight: A4_H,
+          x: 0,
+          y: 0,
+          scrollX: 0,
+          scrollY: 0,
+          foreignObjectRendering: false,
+          removeContainer: true,
+        } as any);
         const img = canvas.toDataURL('image/jpeg', 0.95);
         if (i > 0) pdf.addPage();
         pdf.addImage(img, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
