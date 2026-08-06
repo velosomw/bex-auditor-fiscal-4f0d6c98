@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Layers, Database, Filter, X, Check, ChevronDown } from "lucide-react";
+import { Search, Layers, Database, Filter, X, Check, ChevronDown, ChevronRight } from "lucide-react";
 import type { ParsedFinancialData } from "@/services/auditAIService";
 import { inferRefByCode } from "@/services/auditAIService";
 import { periodToMesKey, mesKeyToLabel, type BalanceteEntry } from "@/services/bsDadosBuilder";
