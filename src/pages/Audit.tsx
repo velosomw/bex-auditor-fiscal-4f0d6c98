@@ -3690,7 +3690,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}>
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
-        <Button variant="outline" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
+        <Button variant="outline" className="gap-1.5 hidden" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
           <FileText className="w-4 h-4" /> Exportar .doc
         </Button>
         <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
