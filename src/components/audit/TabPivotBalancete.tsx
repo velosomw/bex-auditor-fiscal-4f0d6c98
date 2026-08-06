@@ -282,9 +282,38 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   const visibleMeses = selMeses.size > 0 ? meses.filter(m => selMeses.has(m)) : meses;
   const totalActiveFilters = selMeses.size + selCodigos.size + (textFilter.trim() ? 1 : 0);
 
+  // Estado de expansão: por padrão TUDO recolhido (só os tópicos principais aparecem).
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const isSearching = selCodigos.size > 0 || textFilter.trim().length > 0;
+
+  const toggleExpand = (code: string) => {
+    setExpanded(prev => {
+      const n = new Set(prev);
+      n.has(code) ? n.delete(code) : n.add(code);
+      return n;
+    });
+  };
+  const expandAll = () => setExpanded(new Set(linhas.filter(l => l._hasChildren).map(l => String(l.conta))));
+  const collapseAll = () => setExpanded(new Set());
+
+  // Linhas visíveis na árvore: uma linha aparece se todos os seus ancestrais estão expandidos.
+  // Durante busca/filtro por código, a hierarquia é ignorada (resultado plano).
+  const visibleRows = useMemo(() => {
+    if (isSearching) return filtered;
+    return filtered.filter(l => {
+      let p = l._parent as string | null;
+      while (p) {
+        if (!expanded.has(p)) return false;
+        p = byCode.get(p)?._parent ?? null;
+      }
+      return true;
+    });
+  }, [filtered, expanded, byCode, isSearching]);
+
   const clearAll = () => {
     setTextFilter(""); setSelMeses(new Set()); setSelCodigos(new Set());
   };
+
 
   if (!linhas.length) {
     return (
