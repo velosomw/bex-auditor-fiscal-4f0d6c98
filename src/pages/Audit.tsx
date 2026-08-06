@@ -153,8 +153,8 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
         image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', windowWidth: 794 },
         jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-        pagebreak: { mode: ['css', 'legacy'] as any },
-      }).from(clone).save();
+        pagebreak: { mode: ['css', 'legacy'] },
+      } as any).from(clone).save();
     }
   } catch (err) {
     console.error('Erro ao exportar PDF:', err);
