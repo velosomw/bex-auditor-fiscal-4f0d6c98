@@ -4914,7 +4914,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <div className="flex items-center gap-2 print:hidden">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="default" className="gap-2 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,75%)]">
+              <Button variant="default" className="gap-2 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,75%)] hidden">
                 <Download className="w-4 h-4" /> Exportar Resultados
                 <ChevronDown className="w-3 h-3 ml-1 opacity-50" />
               </Button>
