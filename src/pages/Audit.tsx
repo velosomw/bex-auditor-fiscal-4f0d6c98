@@ -4978,9 +4978,6 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             </PopoverContent>
           </Popover>
           
-          <Button variant="outline" size="icon" onClick={() => window.print()} title="Imprimir Tela Atual">
-            <Printer className="w-4 h-4" />
-          </Button>
         </div>
       </div>
 
