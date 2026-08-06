@@ -3918,7 +3918,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}>
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
-          <span className="relative group/docbtn inline-flex">
+          <span className="relative group/docbtn inline-flex hidden">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
               <FileText className="w-4 h-4" /> Exportar .doc
             </Button>
