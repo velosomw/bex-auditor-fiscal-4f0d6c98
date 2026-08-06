@@ -2606,7 +2606,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
-          <span className="relative group/docbtn">
+          <span className="relative group/docbtn hidden">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportDocx('report-bex-container', 'Relatório BEX')}>
               <FileText className="w-4 h-4" /> Exportar .doc
             </Button>
