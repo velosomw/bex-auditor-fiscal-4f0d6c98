@@ -66,15 +66,33 @@ const printReport = (containerId: string, reportTitle: string) => {
   document.title = prevTitle;
 };
 
+/** Guard global: impede múltiplas exportações simultâneas de PDF. */
+let pdfExportInProgress = false;
+
 /** Exporta o container como PDF baixado automaticamente (sem abrir diálogo). */
 const exportPdf = async (containerId: string, reportTitle: string) => {
+  if (pdfExportInProgress) {
+    toast({
+      title: "Relatório em geração…",
+      description: "O relatório já está sendo gerado e o download será automático. Aguarde alguns instantes.",
+    });
+    return;
+  }
+
   const el = document.getElementById(containerId);
   if (!el) {
     toast({ title: "Não foi possível exportar", description: "Conteúdo do relatório não encontrado na tela.", variant: "destructive" });
     return;
   }
 
-  toast({ title: "Gerando PDF…", description: "Aguarde enquanto o relatório é renderizado." });
+  pdfExportInProgress = true;
+  const progressToast = toast({
+    title: "Gerando PDF…",
+    description: "Estamos preparando o relatório. O download começará automaticamente — não é necessário clicar novamente.",
+    duration: 1000000,
+  } as any);
+
+
 
   // Wrapper fora da tela com largura exata de A4
   const wrapper = document.createElement('div');
@@ -156,16 +174,21 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
         pagebreak: { mode: ['css', 'legacy'] },
       } as any).from(clone).save();
     }
+    progressToast.dismiss();
+    toast({ title: "PDF gerado com sucesso", description: "O download do relatório foi iniciado." });
   } catch (err) {
     console.error('Erro ao exportar PDF:', err);
+    progressToast.dismiss();
     toast({
       title: "Falha ao gerar o PDF",
       description: err instanceof Error ? err.message : "Erro inesperado ao renderizar o relatório.",
       variant: "destructive",
     });
   } finally {
+    pdfExportInProgress = false;
     wrapper.remove();
   }
+
 };
 
 
