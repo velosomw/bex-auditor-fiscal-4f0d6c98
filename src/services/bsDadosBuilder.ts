@@ -1137,7 +1137,8 @@ export function buildBSDados(
   for (const row of sortedRows) {
     const src = p1RowsByMes.get(row.mesKey);
     if (!src || src.length === 0) continue;
-    const { facts } = resolveP1Facts(src, row.mesKey);
+    const { facts, nodes: p1Nodes } = resolveP1Facts(src, row.mesKey);
+
     const trace: Record<string, CertifiedFact> = {};
 
     for (const [role, field] of P1_TO_FIELD) {
