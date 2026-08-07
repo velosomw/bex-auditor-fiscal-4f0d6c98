@@ -55,8 +55,19 @@ export interface CanonicalReportDataset {
   competency: string;
   company_id: string;
   generated_at: string;
-  facts: BSDadosRow;
+  facts: Partial<BSDadosRow> & { 
+    ativo_circulante: number;
+    ativo_nao_circulante: number;
+    passivo_circulante: number;
+    passivo_nao_circulante: number;
+    patrimonio_liquido: number;
+    receita_liquida: number;
+    resultado_liquido: number;
+    estoques: number;
+    fornecedores: number;
+  };
   ratios: IndicatorRow;
+  history: Record<string, IndicatorRow>;
   kanitz: any;
   narratives: Record<string, { text: string; fact_ids_used: string[] }>;
   limitations: string[];
