@@ -81,6 +81,9 @@ export interface IndicatorRow {
   _depreciacao: number;
   _amortizacao: number;
   _resultado: number;
+  // Readouts diretos
+  isg: number;
+  endividamentoGeral: number; // pt / at
   // Flags
   naROE: boolean;
   naImobilizacao: boolean;
