@@ -3801,7 +3801,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
     classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na"; riskScoreNormalized: number;
     ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number;
     rl: number; cpv: number; fornecedores: number; despFin: number; lajir: number; caixa: number;
-    kanitzAplicavel: boolean;
+    kanitzAplicavel: boolean; ebitda: number;
   };
   const kanitzResults: KanitzRow[] = [];
 
