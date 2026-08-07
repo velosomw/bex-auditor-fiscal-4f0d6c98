@@ -65,6 +65,9 @@ export interface KanitzResultV2 {
   k: number;
   classificacao: KanitzClassification;
   block: KanitzBlock;
+  applicability: "APPLICABLE" | "NOT_APPLICABLE"; // MD-BEX-MULTI-BALANCETE Requirement 47
+  reason_code?: "EQUITY_POSITIVE" | "EQUITY_NON_POSITIVE";
+  alternative_indicator?: "ISG";
   // Comparação Excel (Camada 5 — opcional)
   kExcel?: number;
   diff?: number;
@@ -221,10 +224,29 @@ export function calcKanitz(input: KanitzNormalizedInput, kExcel?: number): Kanit
   const block = checkBlocks(input);
   const indicators = computeIndicators(input);
   const validation = validateIndicators(indicators);
-  const k = block.blocked ? NaN : computeK(indicators);
-  const classificacao: KanitzClassification = block.blocked ? "bloqueado" : classifyK(k);
+  
+  // MD-BEX-MULTI-BALANCETE Requirement 08: PL <= 0 implies NOT_APPLICABLE
+  const isApplicable = input.pl > 0 && !block.blocked;
+  const k = isApplicable ? computeK(indicators) : NaN;
+  const classificacao: KanitzClassification = isApplicable ? classifyK(k) : "bloqueado";
+  
   const cmp = compareWithExcel(k, kExcel);
-  return { periodo: input.periodo, input, indicators, validation, k, classificacao, block, kExcel, diff: cmp.diff, diffStatus: cmp.status };
+  
+  return { 
+    periodo: input.periodo, 
+    input, 
+    indicators, 
+    validation, 
+    k, 
+    classificacao, 
+    block, 
+    applicability: isApplicable ? "APPLICABLE" : "NOT_APPLICABLE",
+    reason_code: input.pl > 0 ? "EQUITY_POSITIVE" : "EQUITY_NON_POSITIVE",
+    alternative_indicator: "ISG",
+    kExcel, 
+    diff: cmp.diff, 
+    diffStatus: cmp.status 
+  };
 }
 
 /**

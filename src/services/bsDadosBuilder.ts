@@ -363,13 +363,15 @@ const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
  * Uma conta contábil deve possuir exatamente UM papel semântico para evitar ROLE_COLLISION.
  */
 export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
+  // ATIVO
   "1": "ativo_total" as any,
   "1.1": "ativo_circulante",
   "1.01": "ativo_circulante",
-  "1.1.03": "estoques",
+  "1.1.03": "estoques", // MD-BEX-RUNTIME-CONSUMER: Requirement 13
   "1.2": "ativo_nao_circulante",
   "1.02": "ativo_nao_circulante",
   "1.2.01": "realizavel_longo_prazo",
+  // PASSIVO
   "2": "passivo_total" as any,
   "2.1": "passivo_circulante",
   "2.01": "passivo_circulante",
@@ -377,13 +379,17 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "2.02": "passivo_nao_circulante",
   "2.3": "patrimonio_liquido",
   "2.03": "patrimonio_liquido",
-  "3": "resultado",
+  "2.4": "patrimonio_liquido", // MD-BEX-MULTI-BALANCETE: Golden 02 support
+  // DRE
+  "3": "resultado" as any, 
   "3.1": "receita_liquida",
   "3.01": "receita_liquida",
   "4": "cmv",
   "5": "cmv",
   "6": "despesas",
   "7": "despesas_financeiras",
+  "8": "outras_nao_operacionais",
+};
   "8": "outras_nao_operacionais",
 };
 
