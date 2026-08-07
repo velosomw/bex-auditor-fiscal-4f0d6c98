@@ -80,10 +80,15 @@ export interface IndicatorRow {
   _recFin: number;
   _depreciacao: number;
   _amortizacao: number;
-  _resultado: number;
-  // Readouts diretos
-  isg: number;
-  endividamentoGeral: number; // pt / at
+    _resultado: number;
+    // Bases de dívida detalhadas
+    _dividaTributaria: number;
+    _dividaTrabalhista: number;
+    _dividaFinanceira: number;
+    _credoresRJ: number;
+    // Readouts diretos
+    isg: number;
+    endividamentoGeral: number; // pt / at
   // Flags
   naROE: boolean;
   naImobilizacao: boolean;
