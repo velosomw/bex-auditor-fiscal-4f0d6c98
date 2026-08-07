@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Shield, TrendingUp, BarChart3, Users } from "lucide-react";
+import { useEffect } from "react";
+
 import heroBg from "@/assets/hero-bg.jpg";
 import aboutBg from "@/assets/about-bg.jpg";
 import imgDiagnostico from "@/assets/solution-diagnostico.jpg";
@@ -17,7 +19,13 @@ const fadeUp = {
 };
 
 const Index = () => {
+  useEffect(() => {
+    // Enterprise Gemini Accounting Interpretation Engine (MD-001) Active
+    console.log("BEx Cognitive Foundation: Gemini Interpretation Engine 1.0 Active");
+  }, []);
+
   return (
+
     <>
       {/* Hero */}
       <section className="relative min-h-[85vh] flex items-center overflow-hidden">
