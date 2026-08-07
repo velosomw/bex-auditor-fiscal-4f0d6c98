@@ -1355,7 +1355,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         }, pipelineResult, {
           companyId: companyId ?? null,
           periodo: dataToAnalyze?.documentInfo?.periodo ?? null,
-          deterministicFacts: reportDataset?.facts || null,
+          deterministicFacts,
         });
 
 
