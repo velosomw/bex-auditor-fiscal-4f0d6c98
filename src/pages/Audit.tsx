@@ -28,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
-import { computeIndicatorsForRow as _computeIndicatorRow, type IndicatorRow } from "@/services/indicatorsEngine";
+import { computeIndicatorsForRow, type IndicatorRow } from "@/services/indicatorsEngine";
 import PlatformLayout from "@/components/PlatformLayout";
 import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData, type ConsolidatedFinancialData } from "@/services/auditAIService";
