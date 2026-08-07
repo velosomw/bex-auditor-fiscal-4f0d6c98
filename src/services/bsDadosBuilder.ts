@@ -486,6 +486,27 @@ function resolveKey(row: RowLike): keyof BSDadosRow | null {
  * atualizamos buckets/sub-componentes. Elimina dupla contagem entre
  * totalizador e folhas (raiz do bug de Liquidez Corrente em planos como Giannini).
  */
+/**
+ * certifyFinancialColumn — Proteção de Coluna Errada (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001).
+ * Valida se um valor de saldo pode ser atribuído ao papel semântico desejado.
+ */
+function certifyFinancialColumn(key: keyof BSDadosRow, value: number, row: RowLike): boolean {
+  const v = Math.abs(value);
+  if (v === 0) return true; // Zeros são neutros
+
+  // Regra 1: Contas de Resultado (DRE) não podem ter saldos astronômicos típicos de Ativo Total em meses intermediários
+  // (Detecta erro de importação onde Ativo é jogado em Receita)
+  if (key === "receita_liquida" && v > 1000000000000) return false; 
+  
+  // Regra 2: Role Collision Detector. Uma conta já vinculada a um papel P1 não pode ser "roubada" por outro.
+  const accountCode = (row.conta || "").trim();
+  if (accountCode && SEMANTIC_ROLE_REGISTRY[accountCode] && SEMANTIC_ROLE_REGISTRY[accountCode] !== key) {
+    return false;
+  }
+
+  return true;
+}
+
 function applyValue(
   target: BSDadosRow,
   key: keyof BSDadosRow,
@@ -494,17 +515,26 @@ function applyValue(
   buckets: ComponentBuckets,
   isGroupTotal: boolean = false,
   parentGTPresent: boolean = false,
+  sourceRow?: RowLike
 ) {
   const v = Number(value);
   if (!Number.isFinite(v)) return;
 
-  // MD-BEX-CANONICAL-HIERARCHICAL-AGGREGATION: Detector de dupla contagem.
-  // Se um totalizador de grupo (GT) pai está presente no mês, as contas analíticas
-  // descendentes NÃO devem somar no campo principal (MainAgg).
+  // MD-BEX-CANONICAL-RUNTIME-LINEAGE: Proteção de Coluna Errada
+  if (sourceRow && !certifyFinancialColumn(key, v, sourceRow)) {
+    target.errors.push(`Bloqueio de colisão de papel/coluna: conta ${sourceRow.conta} tentou assumir ${key}`);
+    return;
+  }
+
   const isMainAgg = MAIN_AGG_KEYS.has(key);
   const skipMain = isMainAgg && parentGTPresent && !isGroupTotal;
 
   if (!skipMain) {
+    // Registra que o dado está disponível (Missing Data Contract)
+    if (target.facts_status && key in target.facts_status) {
+       target.facts_status[key as keyof typeof target.facts_status] = "AVAILABLE";
+    }
+
     switch (key) {
       case "receita_liquida": {
         const refU = toUpperNoAccent(ref1 || "");
@@ -568,15 +598,11 @@ function applyValue(
       case "outras_obrigacoes":
         (target as any)[key] = (target[key] as number) + Math.abs(v); break;
       case "fornecedores": {
-        // MD-BEX-CANONICAL-CRITICAL-FACT-REGISTRY: Differentiation between suppliers and advances.
-        // Adiantamentos (Ativo) do NOT count as financial.suppliers.current.
         const descN = toUpperNoAccent(ref1 || "");
         const codePrefix = String(ref1 || "").substring(0, 1);
         const isAtivo = codePrefix === "1" || (parentGTPresent && buckets.groupTotalsPresent.has("11"));
         if (!isAtivo) {
            (target as any)[key] = (target[key] as number) + Math.abs(v);
-        } else if (descN.includes("ADIANTAMENTO")) {
-           // FACT 13/14: supplier_advances (ignored in suppliers Passivo)
         }
         break;
       }
@@ -586,7 +612,7 @@ function applyValue(
     }
   }
 
-  // Acumuladores por Ref Capital + readouts ortogonais — SEMPRE atualizados
+  // Acumuladores e readouts ortogonais
   const refUp = ref1 ? toUpperNoAccent(ref1) : "";
   if (refUp) {
     if (AC_REFS.has(refUp)) buckets.ac += Math.abs(v);
@@ -594,12 +620,21 @@ function applyValue(
     else if (PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
     else if (PNC_REFS.has(refUp)) buckets.pnc += Math.abs(v);
     else if (PL_REFS.has(refUp)) buckets.pl += v;
-    if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") target.contas_receber += Math.abs(v);
-    if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") target.imobilizado += Math.abs(v);
-    if (RLP_REFS.has(refUp)) target.realizavel_longo_prazo += Math.abs(v);
+    
+    if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") {
+       target.contas_receber += Math.abs(v);
+       target.facts_status.contas_receber = "AVAILABLE";
+    }
+    if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") {
+       target.imobilizado += Math.abs(v);
+       target.facts_status.imobilizado = "AVAILABLE";
+    }
+    if (RLP_REFS.has(refUp)) {
+       target.realizavel_longo_prazo += Math.abs(v);
+       target.facts_status.realizavel_longo_prazo = "AVAILABLE";
+    }
   }
 
-  // Diagnóstico — valor declarado pelo GT por campo principal
   if (isGroupTotal && isMainAgg) {
     const cur = buckets.declared[key] ?? 0;
     buckets.declared[key] = cur + (key === "patrimonio_liquido" || key === "outras_nao_operacionais" || key === "resultado" ? v : Math.abs(v));
