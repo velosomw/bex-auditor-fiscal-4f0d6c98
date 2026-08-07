@@ -176,7 +176,7 @@ const UserDashboard = () => {
     navigate(`/audit?company=${company.id}`);
   };
 
-  const handleNovaAuditoriaClick = () => {
+  const handleNovaTécnicaClick = () => {
     if (limitReached) { setLimitDialogOpen(true); return; }
     navigate("/user/empresas");
   };
@@ -309,7 +309,7 @@ const UserDashboard = () => {
   );
 
   const kpis = [
-    { label: "Total de Auditorias", value: history.length, icon: FileText, bgClass: "bg-[hsl(217,91%,50%)]/10", colorClass: "text-[hsl(217,91%,50%)]" },
+    { label: "Total de Técnicas", value: history.length, icon: FileText, bgClass: "bg-[hsl(217,91%,50%)]/10", colorClass: "text-[hsl(217,91%,50%)]" },
     { label: "Concluídas", value: completed, icon: CheckCircle2, bgClass: "bg-[hsl(142,76%,36%)]/10", colorClass: "text-[hsl(142,76%,36%)]" },
     { label: "Em Andamento", value: inProgress, icon: Clock, bgClass: "bg-[hsl(38,92%,50%)]/10", colorClass: "text-[hsl(38,92%,50%)]" },
     { label: "Achados Totais", value: totalRiscos, icon: AlertTriangle, bgClass: "bg-[hsl(0,84%,60%)]/10", colorClass: "text-[hsl(0,84%,60%)]" },
@@ -348,7 +348,7 @@ const UserDashboard = () => {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Minha Área de Auditoria</h1>
+            <h1 className="text-2xl font-bold text-foreground">Minha Área de Técnica</h1>
             <p className="text-muted-foreground">Resumo das suas auditorias e documentos analisados</p>
           </div>
           <div className="flex items-center gap-2">
@@ -356,7 +356,7 @@ const UserDashboard = () => {
               <>
                 <Button
                   size="sm"
-                  onClick={handleNovaAuditoriaClick}
+                  onClick={handleNovaTécnicaClick}
                   disabled={limitLoading}
                   title={limitReached ? `Limite mensal atingido (${monthlyUsed}/${monthlyLimit}). Clique para saber como liberar.` : undefined}
                   className={
@@ -365,7 +365,7 @@ const UserDashboard = () => {
                       : "bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,45%)] text-white gap-1.5"
                   }
                 >
-                  <Plus className="w-4 h-4" /> Nova Auditoria
+                  <Plus className="w-4 h-4" /> Nova Técnica
                   {limitReached && monthlyLimit !== null && (
                     <span className="text-[10px] opacity-80 ml-1">({monthlyUsed}/{monthlyLimit})</span>
                   )}
@@ -416,7 +416,7 @@ const UserDashboard = () => {
         {/* Section header */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Última Auditoria — Documentos & Relatório Correspondente</h2>
+            <h2 className="text-lg font-semibold text-foreground">Última Técnica — Documentos & Relatório Correspondente</h2>
             <p className="text-xs text-muted-foreground">
               Exibimos apenas a auditoria mais recente. Para visualizar o histórico completo, acesse{" "}
               <button onClick={() => navigate("/user/empresas")} className="text-[hsl(217,91%,50%)] hover:underline font-medium">
@@ -443,7 +443,7 @@ const UserDashboard = () => {
           <Card>
             <CardContent className="text-center py-16">
               <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">Nenhuma auditoria encontrada. Clique em "Nova Auditoria" para começar.</p>
+              <p className="text-sm text-muted-foreground">Nenhuma auditoria encontrada. Clique em "Nova Técnica" para começar.</p>
             </CardContent>
           </Card>
         ) : (
@@ -857,7 +857,7 @@ const UserDashboard = () => {
                 <p className="text-2xl font-bold text-[hsl(217,91%,50%)]">{selectedDoc?.conformidade}%</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Status da Auditoria</p>
+                <p className="text-xs text-muted-foreground">Status da Técnica</p>
                 <Badge variant="outline" className={selectedDoc ? statusConfig[selectedDoc.status].className : ""}>
                   {selectedDoc ? statusConfig[selectedDoc.status].label : ""}
                 </Badge>

@@ -2609,7 +2609,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
         ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
         ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
-        lajir: ind._resultado + ind._despFin, despFin: ind._despFin, kanitzAplicavel: kAplic, isg: isgValue
+        lajir: ind._resultado + Math.abs(ind._despFin), despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
       });
     });
   }
@@ -3840,13 +3840,13 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const cpv = ind._cmv;
       const fornecedores = ind._fornecedores;
       const despFin = ind._despFin;
-      const lajir = ind._resultado + ind._despFin;
+      const lajir = ind._resultado + Math.abs(ind._despFin);
       const caixa = ind._caixa;
       const pt = pc + pnc;
       const at = ac + anc;
       const ebitda = ind.ebitda || 0;
 
-      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin, lajir, caixa, kanitzAplicavel, ebitda: 0 });
+      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin: Math.abs(despFin), lajir, caixa, kanitzAplicavel, ebitda });
     }
     if (kanitzResults.length > 0) {
       const fiValues = kanitzResults.map(r => r.fi);
