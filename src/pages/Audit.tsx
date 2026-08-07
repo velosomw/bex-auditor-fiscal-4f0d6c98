@@ -2602,7 +2602,16 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const scoreColor = "text-slate-400";
   const scoreBg = "bg-slate-100 border-slate-200";
   const scoreLabel = "Score Desativado";
-  const riskIcon = "📋";
+  const computedInd = useMemo(() => computeIndicatorsFromParsed(parsedData || null), [parsedData, computeIndicatorsFromParsed]);
+
+  const years = Object.keys(computedInd).sort((a, b) => {
+    const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
+    const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
+    return pa.localeCompare(pb);
+  });
+  const latestYear = years[years.length - 1];
+  const indForDashboard = latestYear ? computedInd[latestYear] : null;
+
 
 
 
