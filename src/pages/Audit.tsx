@@ -50,7 +50,7 @@ import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 
 /* ── Helpers ── */
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
-const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
+const fmtPct = (n: number) => `${((n ?? 0) * 100).toFixed(1)}%`;
 const fmtDays = (n: number) => `${Math.round(n)} dias`;
 
 /** Padroniza nomes de arquivos baixados/impressos da plataforma (sempre "BEx_..."). */
@@ -2651,7 +2651,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     risco: { icon: "🟠", label: "Zona de Risco", color: "text-orange-600" },
     insolvente: { icon: "🔴", label: "Alta Probabilidade de Insolvência", color: "text-red-600" },
   };
-  const fmtKDec = (n: number) => n.toFixed(4);
+  const fmtKDec = (n: number) => (n ?? 0).toFixed(4);
 
   const SectionTitle = ({ num, title }: { num: string; title: string }) => (
     <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
@@ -3913,7 +3913,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
     </div>
   );
 
-  const fmtDec = (n: number) => n.toFixed(4);
+  const fmtDec = (n: number) => (n ?? 0).toFixed(4);
   const fmtOrNA = (n: number | null | undefined, suffix = "", isApplicable = true) =>
     !isApplicable ? "N/A" : (typeof n === "number" && isFinite(n) ? `${n.toFixed(2)}${suffix}` : "N/A");
 
@@ -4390,7 +4390,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"}`}>
                   <div className="flex justify-between text-[10px]">
                     <span className="font-medium text-foreground">{item.label}</span>
-                    <span className="font-mono font-bold">{item.value.toFixed(item.suffix === "x" ? 2 : 1)}{item.suffix}</span>
+                    <span className="font-mono font-bold">{(item.value ?? 0).toFixed(item.suffix === "x" ? 2 : 1)}{item.suffix}</span>
                   </div>
                   <p className="text-[9px] text-muted-foreground">{item.desc}</p>
                 </div>
