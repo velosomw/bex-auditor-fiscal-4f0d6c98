@@ -3669,82 +3669,37 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   };
   const kanitzResults: KanitzRow[] = [];
 
-  if (reportDataset) {
-    const computed = reportDataset.history;
-    const years = Object.keys(computed).sort((a, b) => {
-      const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
-      const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
-      return pa.localeCompare(pb);
-    });
-    for (const year of years) {
-      const ind = computed[year];
-      if (!ind) continue;
-
-      const kanitzAplicavel = ind._pl > 0;
-      const rpl = kanitzAplicavel ? ind.roe / 12 : 0;
-      const lg = ind.liquidezGeral;
-      const ls = ind.liquidezSeca;
-      const lc = ind.liquidezCorrente;
-      const ge = kanitzAplicavel ? ind.grauEndividamentoPL : (ind._pc + ind._pnc) / (Math.abs(ind._pl) || 1);
-      const fi = kanitzAplicavel ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * (ind._pt / Math.abs(ind._pl))) : 0;
-      const isg = (ind._ac + ind._anc) / (ind._pc + ind._pnc || 1);
-      const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
-        : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-
-      const ac = ind._ac;
-      const anc = ind._anc;
-      const pc = ind._pc;
-      const pnc = ind._pnc;
-      const pl = ind._pl;
-      const ll = ind._resultado;
-      const estoque = ind._estoque;
-      const rlp = 0; // Fallback para RLP se necessário
-      const rl = ind._receita;
-      const cpv = ind._cmv;
-      const fornecedores = ind._fornecedores;
-      const despFin = ind._despFin;
-      const lajir = ind._resultado + Math.abs(ind._despFin);
-      const caixa = ind._caixa;
-      const pt = pc + pnc;
-      const at = ac + anc;
-      const ebitda = ind.ebitda || 0;
-
-      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin: Math.abs(despFin), lajir, caixa, kanitzAplicavel, ebitda });
+  /* MD-CUTOVER-001 §20/§21 — Kanitz standalone consome o MESMO CanonicalKanitzReportModel
+     do Kanitz embutido. Nenhum builder próprio, nenhum fallback aiAnalysis. */
+  const snap = reportDataset?.snapshot;
+  if (snap) {
+    for (const year of snap.competencies) {
+      const cs = snap.byCompetency[year];
+      if (!cs) continue;
+      const ind = cs.ratios;
+      const f = cs.facts;
+      const k = cs.kanitz;
+      kanitzResults.push({
+        year,
+        rpl: k.rpl, lg: k.lg, ls: k.ls, lc: k.lc, ge: k.ge, fi: k.fi, isg: k.isg,
+        classificacao: k.classificacao, riskScoreNormalized: 0,
+        ac: f.ativo_circulante, anc: f.ativo_nao_circulante, pc: f.passivo_circulante, pnc: f.passivo_nao_circulante,
+        pl: f.patrimonio_liquido, estoque: f.estoques, rlp: f.realizavel_longo_prazo,
+        pt: f.passivo_total, ll: f.resultado_liquido, at: f.ativo_total, rl: f.receita_liquida,
+        cpv: ind._cmv, fornecedores: f.fornecedores, despFin: Math.abs(ind._despFin),
+        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin),
+        caixa: f.disponivel, kanitzAplicavel: k.applicable, ebitda: ind.ebitda,
+      });
     }
-    if (kanitzResults.length > 0) {
-      const fiValues = kanitzResults.map(r => r.fi);
+    const fiValues = kanitzResults.map(r => r.fi).filter(v => Number.isFinite(v));
+    if (fiValues.length > 0) {
       const fiMin = Math.min(...fiValues);
       const fiMax = Math.max(...fiValues);
       const range = fiMax - fiMin || 1;
-      kanitzResults.forEach(r => { r.riskScoreNormalized = Math.round(((r.fi - fiMin) / range) * 100); });
+      kanitzResults.forEach(r => { r.riskScoreNormalized = Number.isFinite(r.fi) ? Math.round(((r.fi - fiMin) / range) * 100) : 0; });
     }
   }
 
-  // Fallback: use AI analysis kanitz data
-  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
-    const aiK = aiAnalysis.kanitz;
-    const comp = aiK.componentes || {};
-    const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
-    const fi = aiK.fatorInsolvencia || 0;
-    const ac = aiStruct.ativo_circulante || 0;
-    const anc = aiStruct.ativo_nao_circulante || 0;
-    const pc = aiStruct.passivo_circulante || 0;
-    const pnc = aiStruct.passivo_nao_circulante || 0;
-    const pl = aiStruct.patrimonio_liquido || 0;
-    const pt = pc + pnc;
-    const at = ac + anc;
-    const kanitzAplicavel = pl > 0;
-    const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
-      : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-    const isg = pt !== 0 ? at / pt : 0;
-    kanitzResults.push({
-      year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
-      fi, isg, classificacao, riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
-      ac, anc, pc, pnc, pl, estoque: aiStruct.estoques || 0, rlp: 0, pt, ll: aiStruct.lucro_liquido || 0, at,
-      rl: aiStruct.receita_liquida || 0, cpv: 0, fornecedores: aiStruct.fornecedores || 0, despFin: 0, lajir: 0, caixa: aiStruct.caixa || 0,
-      kanitzAplicavel, ebitda: 0,
-    });
-  }
 
   const latest = kanitzResults[kanitzResults.length - 1];
   const previous = kanitzResults.length > 1 ? kanitzResults[kanitzResults.length - 2] : null;
