@@ -3293,9 +3293,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             return d === normalizedW || d.startsWith(normalizedW + " ");
           });
         };
-        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && _inList(r, ATIVO_WHITELIST));
-        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && _inList(r, PASSIVO_WHITELIST));
-        const maxRows = Math.max(ativoRows.length, passivoRows.length);
+        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && (r.isGroup || _inList(r, ATIVO_WHITELIST)));
+        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && (r.isGroup || _inList(r, PASSIVO_WHITELIST)));
+        const maxRows = Math.max(ativoRows.length, passivoRows.length, 1);
 
         const isParent = (conta: string) => {
           const parts = conta.replace(/\./g, "").length;
