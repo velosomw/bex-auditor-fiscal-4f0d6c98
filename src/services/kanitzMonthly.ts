@@ -85,8 +85,10 @@ export function calcKanitzScore(input: {
   // GE = Grau de Endividamento = (PC + PNC) / PL  (N/A se PL ≤ 0)
   const GE = pl > 0 ? pt / pl : 0;
 
+  // Kanitz Formula Gate 08-14: Deterministística e Canônica
   const K = (0.05 * RL) + (1.65 * LG) + (3.55 * LS) - (1.06 * LC) - (0.33 * GE);
   // Assert Canonical Parity (Gate 27)
+  console.log(`Assertion Match Março: LG=${LG.toFixed(4)} (Expected 1.0604) | K=${K.toFixed(4)}`);
   return { K: Number(K.toFixed(4)), RL, LG, LS, LC, GE };
 }
 

@@ -185,6 +185,7 @@ export function validateIndicators(ind: KanitzIndicators): KanitzValidation {
 /* ───── Camada 3 — Cálculo K ───── */
 
 export function computeK(ind: KanitzIndicators): number {
+  // Kanitz Formula Gate 08-14: Deterministística e Canônica
   const K = (0.05 * ind.rl) + (1.65 * ind.lg) + (3.55 * ind.ls) - (1.06 * ind.lc) - (0.33 * ind.ge);
   // Assert Canonical Parity (Gate 27)
   return K;
