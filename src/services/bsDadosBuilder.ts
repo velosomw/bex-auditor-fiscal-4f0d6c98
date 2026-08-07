@@ -231,12 +231,19 @@ export interface BSDadosRow {
   divida_total: number;
   ebitda: number;
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
-  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco'>, FinancialFact['status']>;
+  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
   grupos?: GroupMappingEntry[];
+  /** MD-P1-001 — Ativo Total autoritativo (conta sintética "1"), quando disponível. */
+  ativo_total?: number;
+  /** MD-P1-001 — trilha de resolução por canonical role (P1/P2/P3 + descartados). */
+  p1_facts?: Record<string, CertifiedFact>;
+  /** MD-P1-001 — resultado dos integrity gates desta competência. */
+  integrity_gates?: IntegrityGateResult[];
 }
+
 
 /** Rótulo humano para cada código de grupo (2 dígitos). */
 export const GROUP_LABELS: Record<string, { rotulo: string; campo: keyof BSDadosRow }> = {
