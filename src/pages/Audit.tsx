@@ -4673,7 +4673,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
-  const activePendencias = filterStalePendencias(aiAnalysis?.pendencias || pendencias, reportDataset?.facts);
+  const rawPendencias = aiAnalysis?.pendencias || pendencias;
   const activeScoreRJ = aiAnalysis?.scoreRJ || scoreRJData;
 
   const bsRows = useMemo(() => {
@@ -4726,6 +4726,12 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       snapshot: snap,
     } as CanonicalReportDataset;
   }, [parsedData, company, balanceteEntries, uploadedFiles, sourceDocs]);
+
+  /* MD-FINAL-RESIDUAL-001 §9/§38 — pendências publicadas somente após a certificação do snapshot. */
+  const activePendencias = useMemo(
+    () => filterStalePendencias(rawPendencias, reportDataset?.facts),
+    [rawPendencias, reportDataset]
+  );
 
 
   const persistReport = (variant: "resumido" | "completo") => {
