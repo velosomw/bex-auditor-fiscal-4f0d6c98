@@ -48,6 +48,7 @@ import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename
 import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 import { buildCertifiedFinancialSnapshot, type CertifiedFinancialSnapshot } from "@/services/canonicalFinancialSnapshotService";
+import { filterStalePendencias } from "@/services/residualFactsResolver";
 
 /* ── MD-BEX-CANONICAL-RUNTIME-BINDING Interfaces ── */
 export interface CanonicalReportDataset {
@@ -2561,8 +2562,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   /* MD-CUTOVER-001 §37 — snapshot materializado por serviço dedicado (sem assembly na UI). */
   const snapshot = useMemo(
-    () => buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], { companyId: company?.id }),
-    [parsedData, balanceteEntries, company]
+    () => buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], {
+      companyId: company?.id,
+      fileName: uploadedFiles?.[0]?.name || sourceDocs?.[0]?.fileName || (balanceteEntries || [])[0]?.fileName || null,
+      fileSize: uploadedFiles?.[0]?.size ?? sourceDocs?.[0]?.fileSize ?? null,
+    }),
+    [parsedData, balanceteEntries, company, uploadedFiles, sourceDocs]
   );
 
   /* MD-CUTOVER-001 §19/§21 — Kanitz embutido consome o CanonicalKanitzReportModel do snapshot. */
@@ -4685,7 +4690,11 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
   /* MD-CUTOVER-001 — mesmo serviço de snapshot usado pelo BEx (fonte única). */
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
-    const snap = buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], { companyId: company?.id });
+    const snap = buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], {
+      companyId: company?.id,
+      fileName: uploadedFiles?.[0]?.name || sourceDocs?.[0]?.fileName || (balanceteEntries || [])[0]?.fileName || null,
+      fileSize: uploadedFiles?.[0]?.size ?? sourceDocs?.[0]?.fileSize ?? null,
+    });
     if (!snap) return null;
     return {
       runtime_trace_id: snap.runtime_trace_id,
@@ -4713,7 +4722,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       limitations: snap.limitations,
       snapshot: snap,
     } as CanonicalReportDataset;
-  }, [parsedData, company, balanceteEntries]);
+  }, [parsedData, company, balanceteEntries, uploadedFiles, sourceDocs]);
 
 
   const persistReport = (variant: "resumido" | "completo") => {
