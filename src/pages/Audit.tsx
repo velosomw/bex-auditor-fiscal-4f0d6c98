@@ -4404,9 +4404,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </p>
           <div className="grid sm:grid-cols-4 gap-3">
             {[
-              { label: "EBITDA (proxy)", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + 10% × Desp.Fin (R$ ${fmt(l.despFin)})` },
-              { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
-              { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
+              { label: "EBITDA Certificado", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.resultado + Math.abs(l._despFin) - Math.abs(l._recFin))}) + Depr/Amort (R$ ${fmt(Math.abs(l._depreciacao) + Math.abs(l._amortizacao))})` },
+              { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.resultado + Math.abs(l._despFin) - Math.abs(l._recFin))} / ${fmt(l.despFin)}` },
+              { label: "Índice Geração Caixa", value: ebitda / (l._receita || 1), format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l._receita)}` },
               { label: "Margem Líquida", value: margemLiquida, format: "pct", alert: margemLiquida < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
