@@ -219,7 +219,7 @@ export function calcKanitz(input: KanitzNormalizedInput, kExcel?: number): Kanit
   const block = checkBlocks(input);
   const indicators = computeIndicators(input);
   const validation = validateIndicators(indicators);
-  const k = block.blocked ? 0 : computeK(indicators);
+  const k = block.blocked ? NaN : computeK(indicators);
   const classificacao: KanitzClassification = block.blocked ? "bloqueado" : classifyK(k);
   const cmp = compareWithExcel(k, kExcel);
   return { periodo: input.periodo, input, indicators, validation, k, classificacao, block, kExcel, diff: cmp.diff, diffStatus: cmp.status };
