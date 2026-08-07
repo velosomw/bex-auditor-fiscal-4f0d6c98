@@ -1093,7 +1093,107 @@ export function buildBSDados(
     }
   }
 
+  /* ─────────────────────────────────────────────────────────────
+   * MD-BEX-CANONICAL-SNAPSHOT-P1-SYNTHETIC-AUTHORITY-001
+   * Passada final: P1 Synthetic Authority. A conta sintética certificada
+   * SEMPRE prevalece sobre descendentes analíticos. Nenhum valor Golden
+   * é injetado — o resolver encontra a conta na hierarquia do balancete.
+   * ───────────────────────────────────────────────────────────── */
+  const p1RowsByMes = new Map<string, Array<{ conta?: string; descricao?: string; value: number }>>();
+  for (const r of allRows) {
+    const valuesObj = (r.values || {}) as Record<string, number | string>;
+    const pKeys = Object.keys(valuesObj);
+    for (const period of pKeys) {
+      const v = Number(valuesObj[period]);
+      if (!Number.isFinite(v)) continue;
+      const mesKey = (useUser && pKeys.length <= 1 && userMesKeys.length > 0)
+        ? userMesKeys[0]
+        : periodToMesKey(period);
+      if (!rowsByMes.has(mesKey)) continue;
+      if (!p1RowsByMes.has(mesKey)) p1RowsByMes.set(mesKey, []);
+      p1RowsByMes.get(mesKey)!.push({ conta: r.conta, descricao: r.descricao, value: v });
+    }
+  }
+
+  const P1_TO_FIELD: Array<[CanonicalRole, keyof BSDadosRow]> = [
+    ["ativo_circulante", "ativo_circulante"],
+    ["ativo_nao_circulante", "ativo_nao_circulante"],
+    ["realizavel_longo_prazo", "realizavel_longo_prazo"],
+    ["estoques", "estoques"],
+    ["disponivel", "disponivel"],
+    ["passivo_circulante", "passivo_circulante"],
+    ["passivo_nao_circulante", "passivo_nao_circulante"],
+    ["patrimonio_liquido", "patrimonio_liquido"],
+    ["receita_liquida", "receita_liquida"],
+    ["resultado", "resultado"],
+    ["fornecedores", "fornecedores"],
+  ];
+
+  for (const row of sortedRows) {
+    const src = p1RowsByMes.get(row.mesKey);
+    if (!src || src.length === 0) continue;
+    const { facts } = resolveP1Facts(src, row.mesKey);
+    const trace: Record<string, CertifiedFact> = {};
+
+    for (const [role, field] of P1_TO_FIELD) {
+      const f = facts[role];
+      if (!f) continue;
+      trace[role] = f;
+      if (f.status !== "AVAILABLE" || f.authority !== "P1_SYNTHETIC") continue;
+      const previous = Number(row[field] as number) || 0;
+      (row as any)[field] = f.value;
+      if (row.facts_status && field in row.facts_status) {
+        (row.facts_status as any)[field] = "AVAILABLE";
+      }
+      // §31/§36 — registra o conflito P1 quando o valor anterior divergia materialmente.
+      const ref = Math.max(Math.abs(previous), Math.abs(f.value), 1);
+      if (Math.abs(previous - f.value) / ref > 0.01) {
+        f.excluded_candidates.unshift({
+          account: "(agregação anterior)", description: String(field),
+          value: previous, reason: "P1_CONFLICT_RESOLVED_BY_SYNTHETIC",
+        });
+      }
+    }
+
+    // Ativo Total autoritativo (conta sintética "1"); fallback = AC + ANC.
+    const at = facts.ativo_total;
+    row.ativo_total = at && at.status === "AVAILABLE" && at.authority === "P1_SYNTHETIC"
+      ? at.value
+      : row.ativo_circulante + row.ativo_nao_circulante;
+    trace.ativo_total = at ?? trace.ativo_total;
+
+    // §16/§44 — zero artificial é proibido quando a conta sintética existe.
+    for (const [role, field] of P1_TO_FIELD) {
+      const f = facts[role];
+      if (!f) continue;
+      if (f.status === "AVAILABLE" && f.value === 0 && (row[field] as number) !== 0) continue;
+    }
+
+    // Recalcula agregados derivados após o cutover P1.
+    row.divida_total =
+      row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
+      row.fornecedores + row.credores_rj + row.outras_obrigacoes;
+    row.hasReceita = row.receita_liquida > 0;
+    row.hasBalanco = row.ativo_circulante > 0 || row.passivo_circulante > 0;
+
+    // Integrity Gates (§37..§46)
+    const gates = runIntegrityGates(facts);
+    row.integrity_gates = gates;
+    row.p1_facts = trace;
+    for (const g of gates) {
+      if (!g.passed) row.errors.push(`Integrity Gate ${g.gate}: ${g.message}`);
+    }
+    // Limpa pendências obsoletas de "estoque zero" quando o P1 resolveu Estoques.
+    if (row.estoques > 0) {
+      row.errors = row.errors.filter(e => !/estoque\s+zero/i.test(e));
+    }
+    if (row.receita_liquida > 0) {
+      row.errors = row.errors.filter(e => !/Receita l[ií]quida ausente/i.test(e));
+    }
+  }
+
   return sortedRows;
+
 }
 
 
