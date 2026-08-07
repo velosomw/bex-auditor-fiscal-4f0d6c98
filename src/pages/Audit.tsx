@@ -2936,6 +2936,36 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                         "LIQUIDEZ GERAL": yInd?.liquidezGeral != null ? parseFloat(((yInd.liquidezGeral) ?? 0).toFixed(2)) : 0,
                       };
                     })} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                      <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => v.toLocaleString('pt-BR')} />
+                      <Tooltip formatter={(v: number) => (v ?? 0).toFixed(2)} />
+                      <Legend wrapperStyle={{ fontSize: 9 }} />
+                      <Line type="monotone" dataKey="LIQUIDEZ IMEDIATA" stroke="#5b9bd5" strokeWidth={2} dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="LIQUIDEZ CORRENTE" stroke="#ed7d31" strokeWidth={2} dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="LIQUIDEZ SECA" stroke="#a5a5a5" strokeWidth={2} dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="LIQUIDEZ GERAL" stroke="#70ad47" strokeWidth={2} dot={{ r: 3 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {/* Gráfico Evolução do Endividamento (estilo gr2) — barras empilhadas + linha de total */}
+            {years.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-xs font-semibold text-foreground mb-2 text-center">EVOLUÇÃO DO ENDIVIDAMENTO<br /><span className="font-normal text-[9px]">(Em milhares de reais)</span></h4>
+                <div className="h-[260px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={years.map(y => {
+                      const yInd = computedInd[y];
+                      const tributarias = Math.abs(yInd?._tributos || 0);
+                      const trabalhistas = Math.abs(yInd?._trabalhistas || 0);
+                      const emprestimos = Math.abs(yInd?._emprestimos || 0);
+                      const fornecedores = Math.abs(yInd?._fornecedores || 0);
+                      const credoresRJ = Math.abs(yInd?._credoresRJ || 0);
+                      const outras = Math.abs(yInd?._outrasObrig || ((yInd?._pc || 0) + (yInd?._pnc || 0) - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ)) || 0;
+                      const total = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
                       return {
                         name: y,
                         "OBRIG. TRIBUTÁRIAS": tributarias / 1000,
