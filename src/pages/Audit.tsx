@@ -2583,44 +2583,42 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return results;
   }, [parsedData, computeIndicatorsFromParsed]);
 
+  /* MD-CUTOVER-001 §37 — snapshot materializado por serviço dedicado (sem assembly na UI). */
+  const snapshot = useMemo(
+    () => buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], { companyId: company?.id }),
+    [parsedData, balanceteEntries, company]
+  );
+
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
-    if (!parsedData || !company) return null;
-    const computed = computeIndicatorsFromParsed(parsedData);
-    const years = Object.keys(computed).sort();
-    const latestYear = years[years.length - 1];
-    if (!latestYear) return null;
-    
-    const rows = buildBSDados(parsedData, balanceteEntries || []);
-    const latestRow = rows.find(r => r.mesKey === latestYear);
-    if (!latestRow) return null;
-
-    const traceId = `BEX-RUNTIME-${latestYear.replace("-", "")}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-
+    if (!snapshot) return null;
     return {
-      runtime_trace_id: traceId,
-      canonical_snapshot_id: `SNAP-${traceId}`,
-      competency: latestYear,
-      company_id: company.id || "manual",
-      generated_at: new Date().toISOString(),
+      runtime_trace_id: snapshot.runtime_trace_id,
+      canonical_snapshot_id: snapshot.snapshot_id,
+      competency: snapshot.competency,
+      company_id: snapshot.company_id,
+      generated_at: snapshot.processing_timestamp,
       facts: {
-        ativo_circulante: latestRow.ativo_circulante,
-        ativo_nao_circulante: latestRow.ativo_nao_circulante,
-        passivo_circulante: latestRow.passivo_circulante,
-        passivo_nao_circulante: latestRow.passivo_nao_circulante,
-        patrimonio_liquido: latestRow.patrimonio_liquido,
-        receita_liquida: latestRow.receita_liquida,
-        resultado_liquido: latestRow.resultado,
-        estoques: latestRow.estoques,
-        fornecedores: latestRow.fornecedores,
-        disponivel: latestRow.disponivel
-      },
-      ratios: computed[latestYear],
-      history: computed,
-      kanitz: kanitzResultsRaw[kanitzResultsRaw.length - 1] || null,
+        ativo_circulante: snapshot.facts.ativo_circulante,
+        ativo_nao_circulante: snapshot.facts.ativo_nao_circulante,
+        passivo_circulante: snapshot.facts.passivo_circulante,
+        passivo_nao_circulante: snapshot.facts.passivo_nao_circulante,
+        patrimonio_liquido: snapshot.facts.patrimonio_liquido,
+        receita_liquida: snapshot.facts.receita_liquida,
+        resultado_liquido: snapshot.facts.resultado_liquido,
+        estoques: snapshot.facts.estoques,
+        fornecedores: snapshot.facts.fornecedores,
+        disponivel: snapshot.facts.disponivel,
+        realizavel_longo_prazo: snapshot.facts.realizavel_longo_prazo,
+      } as any,
+      ratios: snapshot.ratios,
+      history: snapshot.history,
+      kanitz: snapshot.kanitz,
       narratives: {},
-      limitations: latestRow.errors || [],
-    };
-  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed, kanitzResultsRaw]);
+      limitations: snapshot.limitations,
+      snapshot,
+    } as CanonicalReportDataset;
+  }, [snapshot]);
+
 
   const activeYear = reportDataset?.competency || "";
   const d = reportDataset?.facts;
