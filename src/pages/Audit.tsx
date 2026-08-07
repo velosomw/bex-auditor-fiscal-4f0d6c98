@@ -3326,9 +3326,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         // Add validations to the last page
         const validations = [
           { check: "Ativo = Passivo + PL", status: true, detail: `Ativo Total: R$ ${fmt(ac + anc)} | Passivo + PL: R$ ${fmt(pc + pnc)}` },
-          { check: "Passivo a Descoberto", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
-          { check: "PL Negativo", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl || d?.patrimonioLiquido || 0))}` : "PL NEGATIVO identificado" },
-          { check: "Descasamento Estrutural", status: ac > pc, detail: "Capital de giro líquido " + (ac > pc ? "positivo" : "negativo") },
+          { check: "Passivo a Descoberto", status: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0, detail: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
+          { check: "PL Negativo", status: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0, detail: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl ?? d?.patrimonioLiquido ?? 0))}` : "PL NEGATIVO identificado" },
+          { check: "Descasamento Estrutural", status: (ac ?? 0) > (pc ?? 0), detail: "Capital de giro líquido " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
         ];
 
         // Check if validations fit on the last page (need ~6 rows worth of space)
