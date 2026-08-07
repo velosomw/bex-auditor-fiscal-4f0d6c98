@@ -1,4 +1,7 @@
-// Enterprise Balance Sheet Extraction Engine - Core Logic v1.0
+// Enterprise Business Facts and Canonical Financial Model - Knowledge Engine v1.0
+// Este componente representa a camada oficial de conhecimento da Plataforma BEx.
+// Ele transforma o Workspace em fatos financeiros certificados (Business Facts).
+
 export interface InputLinha {
   conta?: string;
   descricao?: string;
