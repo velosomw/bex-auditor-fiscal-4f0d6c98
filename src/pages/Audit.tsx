@@ -4027,8 +4027,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <span className="text-lg">{classColors[l.classificacao]?.icon}</span>
             <span className="text-sm font-semibold text-foreground">
               {kAplic
-                ? `${classColors[l.classificacao]?.label} — FI: ${l.fi.toFixed(2)}`
-                : `Kanitz Não Aplicável — ISG: ${l.isg.toFixed(2)} (${isgClass.label})`}
+                ? `${classColors[l.classificacao]?.label} — FI: ${(l.fi ?? 0).toFixed(2)}`
+                : `Kanitz Não Aplicável — ISG: ${(l.isg ?? 0).toFixed(2)} (${isgClass.label})`}
+
             </span>
           </div>
           <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
@@ -4077,21 +4078,22 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 <>
                   A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(l.pl)} (Ativo Total R$ {fmt(l.at)} vs Passivo Total R$ {fmt(l.pt)}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
                   <br /><br />
-                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{l.isg.toFixed(2)}</strong> — {isgClass.label}. {l.isg < 1
+                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(l.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {l.isg < 1
                     ? "O ativo total não cobre as obrigações totais, caracterizando insolvência técnica e demandando reestruturação patrimonial (Lei 11.101/2005) ou aporte de capital."
                     : l.isg < 1.5
                     ? "Cobertura patrimonial estreita: cada R$ 1,00 de dívida é lastreada por menos de R$ 1,50 de ativos."
                     : "Cobertura patrimonial adequada apesar do PL negativo."}
                 </>
               ) : l.classificacao === "saudavel"
-                ? `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)}, classificando-se como SAUDÁVEL segundo o modelo Kanitz. Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações.`
+                ? `A empresa apresenta Fator de Insolvência de ${(l.fi ?? 0).toFixed(2)}, classificando-se como SAUDÁVEL segundo o modelo Kanitz. Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações.`
                 : l.classificacao === "estavel"
-                ? `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)}, classificando-se como ESTÁVEL. A estrutura financeira é adequada, com indicadores dentro de parâmetros aceitáveis. Recomenda-se manutenção das políticas financeiras atuais.`
+                ? `A empresa apresenta Fator de Insolvência de ${(l.fi ?? 0).toFixed(2)}, classificando-se como ESTÁVEL. A estrutura financeira é adequada, com indicadores dentro de parâmetros aceitáveis. Recomenda-se manutenção das políticas financeiras atuais.`
                 : l.classificacao === "atencao"
-                ? `A empresa encontra-se em ZONA DE ATENÇÃO com FI de ${l.fi.toFixed(2)}. Indicadores de liquidez e endividamento apresentam fragilidades que requerem monitoramento contínuo.`
+                ? `A empresa encontra-se em ZONA DE ATENÇÃO com FI de ${(l.fi ?? 0).toFixed(2)}. Indicadores de liquidez e endividamento apresentam fragilidades que requerem monitoramento contínuo.`
                 : l.classificacao === "risco"
-                ? `A empresa está em ZONA DE RISCO com FI de ${l.fi.toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(l.ls)} e Grau de Endividamento de ${fmtDec(l.ge)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
-                : `A empresa apresenta ALTA PROBABILIDADE DE INSOLVÊNCIA com FI de ${l.fi.toFixed(2)}. A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005.`}
+                ? `A empresa está em ZONA DE RISCO com FI de ${(l.fi ?? 0).toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(l.ls)} e Grau de Endividamento de ${fmtDec(l.ge)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
+                : `A empresa apresenta ALTA PROBABILIDADE DE INSOLVÊNCIA com FI de ${(l.fi ?? 0).toFixed(2)}. A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005.`}
+
             </p>
           </div>
           <div className="grid sm:grid-cols-4 gap-3">
@@ -4188,7 +4190,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   </>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold font-mono text-slate-600">ISG {r.isg.toFixed(2)}</p>
+                    <p className="text-2xl font-bold font-mono text-slate-600">ISG {(r.isg ?? 0).toFixed(2)}</p>
                     <p className="text-[10px] font-semibold text-slate-600">⛔ PL negativo — usar ISG</p>
                   </>
                 )}
@@ -4242,14 +4244,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   <TableCell className="text-[10px] font-mono text-muted-foreground">AT / PT</TableCell>
                   <TableCell className="text-xs font-mono">—</TableCell>
                   {kanitzResults.map(r => (
-                    <TableCell key={r.year} className="text-right text-xs font-mono font-bold">{r.isg.toFixed(2)}</TableCell>
+                    <TableCell key={r.year} className="text-right text-xs font-mono font-bold">{(r.isg ?? 0).toFixed(2)}</TableCell>
                   ))}
                 </TableRow>
                 <TableRow className="border-t-2 border-foreground/20">
                   <TableCell className="text-xs font-bold" colSpan={4}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
                   {kanitzResults.map(r => (
                     <TableCell key={r.year} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>
-                      {r.kanitzAplicavel ? r.fi.toFixed(2) : <span className="text-slate-500 line-through">{r.fi.toFixed(2)}</span>}
+                      {r.kanitzAplicavel ? (r.fi ?? 0).toFixed(2) : <span className="text-slate-500 line-through">{(r.fi ?? 0).toFixed(2)}</span>}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -4583,11 +4585,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="space-y-4">
             {[
               { title: "Diagnóstico Financeiro", text: !kAplic
-                ? `A empresa apresenta Patrimônio Líquido de R$ ${fmt(l.pl)} (negativo), Ativo Total de R$ ${fmt(l.at)} e Passivo Total de R$ ${fmt(l.pt)}. Nessas condições, o modelo Kanitz não se aplica: substitui-se pelo Índice de Solvência Geral (ISG = AT/PT) = ${l.isg.toFixed(2)} — ${isgClass.label}. O Endividamento Total é de ${fmtPct(endivTotal)}, configurando estrutura patrimonial ${endivTotal > 0.9 ? "criticamente alavancada" : endivTotal > 0.7 ? "altamente dependente de capital de terceiros" : "moderadamente alavancada"}.`
-                : `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)} (${classColors[l.classificacao]?.label}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}. ISG = ${l.isg.toFixed(2)}.` },
+                ? `A empresa apresenta Patrimônio Líquido de R$ ${fmt(l.pl)} (negativo), Ativo Total de R$ ${fmt(l.at)} e Passivo Total de R$ ${fmt(l.pt)}. Nessas condições, o modelo Kanitz não se aplica: substitui-se pelo Índice de Solvência Geral (ISG = AT/PT) = ${(l.isg ?? 0).toFixed(2)} — ${isgClass.label}. O Endividamento Total é de ${fmtPct(endivTotal)}, configurando estrutura patrimonial ${endivTotal > 0.9 ? "criticamente alavancada" : endivTotal > 0.7 ? "altamente dependente de capital de terceiros" : "moderadamente alavancada"}.`
+                : `A empresa apresenta Fator de Insolvência de ${(l.fi ?? 0).toFixed(2)} (${classColors[l.classificacao]?.label}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}. ISG = ${(l.isg ?? 0).toFixed(2)}.` },
+
 
               { title: "Causas de Deterioração", text: previous
-                ? `Comparativo com período anterior (${previous.year}): FI variou de ${previous.fi.toFixed(2)} para ${l.fi.toFixed(2)} (${fiDelta > 0 ? "melhora" : "piora"} de ${Math.abs(fiDelta).toFixed(2)} pontos), ISG variou de ${previous.isg.toFixed(2)} para ${l.isg.toFixed(2)}. Principais vetores: ${!kAplic ? "PL passou a território negativo, invalidando RPL e GE. " : ""}${l.ls < (previous.ls || 0) ? "redução da liquidez seca; " : ""}${l.lc < (previous.lc || 0) ? "queda da liquidez corrente; " : ""}${l.pt > (previous.pt || 0) ? "expansão do passivo total; " : ""}${l.pl < (previous.pl || 0) ? "erosão do patrimônio líquido." : ""}`
+                ? `Comparativo com período anterior (${previous.year}): FI variou de ${(previous.fi ?? 0).toFixed(2)} para ${(l.fi ?? 0).toFixed(2)} (${fiDelta > 0 ? "melhora" : "piora"} de ${Math.abs(fiDelta).toFixed(2)} pontos), ISG variou de ${(previous.isg ?? 0).toFixed(2)} para ${(l.isg ?? 0).toFixed(2)}. Principais vetores: ${!kAplic ? "PL passou a território negativo, invalidando RPL e GE. " : ""}${l.ls < (previous.ls || 0) ? "redução da liquidez seca; " : ""}${l.lc < (previous.lc || 0) ? "queda da liquidez corrente; " : ""}${l.pt > (previous.pt || 0) ? "expansão do passivo total; " : ""}${l.pl < (previous.pl || 0) ? "erosão do patrimônio líquido." : ""}`
                 : "Análise evolutiva indisponível — apenas um período carregado no relatório." },
 
               { title: "Probabilidade de Insolvência", text: !kAplic
