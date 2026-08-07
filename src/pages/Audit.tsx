@@ -2658,7 +2658,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
   const latestInd = reportDataset?.ratios;
-  const emprestimos = latestInd?._dividaFinanceira || 0;
+  const emprestimos = latestInd?._dividaFinanceira || 0; // §15..§17 — somente saldo patrimonial
   const caixa = (reportDataset?.facts as any)?.disponivel || 0;
   const dividaOnerosa = emprestimos;
 
@@ -2668,8 +2668,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const anc = d?.ativo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
 
-  const tributos = latestInd?._dividaTributaria || 0;
-  const trabalhista = latestInd?._dividaTrabalhista || 0;
+  /* MD-FINAL-RESIDUAL-001 §10..§20 — dívidas com composição certificada e memória de cálculo. */
+  const residual = snapshot?.residual;
+  const taxAvail = residual?.tax.total_exposure.status === "AVAILABLE";
+  const laborAvail = residual?.labor.total_current.status === "AVAILABLE";
+  const borrowAvail = residual?.borrowings.status === "AVAILABLE";
+  const tributos = taxAvail ? residual!.tax.total_exposure.value : 0;
+  const trabalhista = laborAvail ? residual!.labor.total_current.value : 0;
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
   const result = d?.resultado_liquido || 0;
@@ -2681,7 +2686,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Liquidez Corrente", result: fmtDec(latestInd.liquidezCorrente), param: "> 1,5", classification: latestInd.liquidezCorrente > 1.5 ? "Adequada" : latestInd.liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
     { name: "Liquidez Seca", result: fmtDec(latestInd.liquidezSeca), param: "> 1,0", classification: latestInd.liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
     { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
-    { name: "Cobertura de Juros", result: `${latestInd.coberturaJuros.toFixed(2)}x`, param: "> 3,0x", classification: latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
+    { name: "Cobertura de Juros", result: latestInd.coberturaJurosStatus === "AVAILABLE" ? `${latestInd.coberturaJuros.toFixed(2)}x` : "N/D", param: "> 3,0x", classification: latestInd.coberturaJurosStatus !== "AVAILABLE" ? "Não disponível" : latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: latestInd.coberturaJurosStatus === "AVAILABLE" ? `LAJIR / Despesas Financeiras` : "LAJIR não certificável a partir do balancete" },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: (ac - pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
     { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,0", classification: latestInd.isg > 1.0 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
@@ -2942,7 +2947,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     : "Indicador não disponível para esta análise." },
                 { title: "Probabilidade Estrutural de RJ", text: !latestInd ? "Indicador não disponível para esta análise." : latestInd.liquidezCorrente > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : latestInd.liquidezCorrente > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
-                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30">
+                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30 break-inside-avoid" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                   <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
                 </div>
@@ -3241,10 +3246,19 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           {reportDataset && (
             <div>
-              <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA Estimado ({latestYear})</h3>
-              <div className="p-4 rounded-lg bg-muted/30 text-center">
-                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios?.ebitda || 0)}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Despesas Financeiras</p>
+              <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA ({activeYear || latestYear})</h3>
+              <div className="p-4 rounded-lg bg-muted/30 text-center break-inside-avoid">
+                {reportDataset.ratios?.ebitdaStatus === "AVAILABLE" ? (
+                  <>
+                    <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Depreciação + Amortização (componentes certificados)</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-foreground">EBITDA não disponível com segurança a partir do balancete analisado</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados."}</p>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -3260,16 +3274,20 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { label: "Empréstimos e Financiamentos", value: emprestimos },
-                { label: "Dívida Tributária", value: tributos },
-                { label: "Dívida Trabalhista", value: trabalhista },
-                { label: "Fornecedores", value: fornec },
-                { label: "Passivo Circulante", value: pc },
-                { label: "Passivo Não Circulante", value: pnc },
+                { label: "Empréstimos e Financiamentos (saldo do passivo)", value: emprestimos, available: !!borrowAvail, scope: residual?.borrowings.calculation_scope },
+                { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
+                { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
+                { label: "Obrigações Tributárias LP", value: residual?.tax.noncurrent_obligations.value ?? 0, available: residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: residual?.tax.noncurrent_obligations.calculation_scope },
+                { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
+                { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
+                { label: "Fornecedores", value: fornec, available: true, scope: "Conta sintética de fornecedores (curto prazo)" },
+                { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
+                { label: "Passivo Não Circulante", value: pnc, available: true, scope: "Grupo sintético 2.2" },
               ].map(item => (
-                <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30">
+                <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                  <p className="text-sm font-bold font-mono text-foreground">R$ {fmt(item.value)}</p>
+                  <p className="text-sm font-bold font-mono text-foreground">{item.available ? `R$ ${fmt(item.value)}` : "Não disponível no balancete"}</p>
+                  {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
                 </div>
               ))}
             </div>
@@ -3279,9 +3297,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">5.2 Concentração de Risco</h3>
             <div className="space-y-2">
               {[
-                { label: "% Dívida Onerosa / Passivo Total", value: ptotal ? fmtPct(dividaOnerosa / ptotal) : "N/A", risk: dividaOnerosa / ptotal > 0.5 },
-                { label: "Dependência Bancária", value: fmtPct(dividaOnerosa / (ac + anc || 1)), risk: false },
-                { label: "Pressão no Fluxo de Caixa (Emp / Caixa)", value: caixa ? `${(emprestimos / caixa).toFixed(1)}x` : "N/A", risk: caixa ? emprestimos / caixa > 1 : false },
+                { label: "% Dívida Onerosa / Passivo Total", value: borrowAvail && ptotal ? fmtPct(dividaOnerosa / ptotal) : "N/A", risk: !!borrowAvail && dividaOnerosa / ptotal > 0.5 },
+                { label: "Dependência Bancária", value: borrowAvail ? fmtPct(dividaOnerosa / (ac + anc || 1)) : "N/A", risk: false },
+                { label: "Pressão no Fluxo de Caixa (Emp / Caixa)", value: borrowAvail && caixa ? `${(emprestimos / caixa).toFixed(1)}x` : "N/A", risk: !!borrowAvail && caixa ? emprestimos / caixa > 1 : false },
               ].map(item => (
                 <div key={item.label} className={`flex justify-between p-3 rounded-lg ${item.risk ? "bg-orange-500/5 border border-orange-500/20" : "bg-muted/20"}`}>
                   <span className="text-xs text-foreground">{item.label}</span>
@@ -3363,7 +3381,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações de Integridade</h3>
             <div className="grid sm:grid-cols-2 gap-3">
               {[
-                { check: "Ativo = Passivo + PL", status: Math.abs((ac + anc) - (pc + pnc + (d?.patrimonio_liquido || 0))) < 100, detail: `Equilíbrio Patrimonial mantido` },
+                { check: snapshot?.closure.mode === "RESULT_OUTSIDE_EQUITY" ? "Ativo = Passivo + PL + Resultado" : "Ativo = Passivo + PL", status: !!snapshot?.closure.reconciled, detail: snapshot?.closure.message || "Fechamento não avaliado" },
                 { check: "Passivo a Descoberto", status: (d?.patrimonio_liquido ?? 0) > 0, detail: (d?.patrimonio_liquido ?? 0) > 0 ? "Patrimônio Líquido Positivo" : "IDENTIFICADO — PL negativo" },
 
                 { check: "Capital de Giro Líquido", status: (ac ?? 0) > (pc ?? 0), detail: "CGL " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
