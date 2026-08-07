@@ -42,18 +42,18 @@ export interface IndicatorRow {
   liquidezGeral: number;
   // Endividamento
   endividamentoTotal: number;
-  grauEndividamentoPL: number;           // GE = (PC + PNC) / PL — Kanitz X5 (N/A se PL ≤ 0)
-  composicaoEndividamento: number;       // PC / PT (CECP)
-  composicaoEndividamentoLP: number;     // PNC / PT (CELP) — NOVO
+  grauEndividamentoPL: number;
+  composicaoEndividamento: number;
+  composicaoEndividamentoLP: number;
   imobilizacaoPL: number;
   coberturaJuros: number;
-  // Atividade (anualizado ×360 conforme planilha BEX)
+  // Atividade
   giroAtivo: number;
-  pmr: number;                           // PMC — Período Médio de Cobrança
-  pmp: number;                           // Período Médio de Pagamento
-  idadeMediaEstoque: number;             // IME
-  cicloOperacional: number;              // CO = IME + PMC — NOVO
-  cicloCaixa: number;                    // CC = CO − PMP — NOVO
+  pmr: number;
+  pmp: number;
+  idadeMediaEstoque: number;
+  cicloOperacional: number;
+  cicloCaixa: number;
   // Rentabilidade
   margemLiquida: number;
   margemOperacional: number;
@@ -80,16 +80,17 @@ export interface IndicatorRow {
   _recFin: number;
   _depreciacao: number;
   _amortizacao: number;
-    _resultado: number;
-    // Bases de dívida detalhadas
-    _dividaTributaria: number;
-    _dividaTrabalhista: number;
-    _dividaFinanceira: number;
-    _credoresRJ: number;
-    // Readouts diretos
-    isg: number;
-    endividamentoGeral: number; // pt / at
-  // Flags
+  _resultado: number;
+  // Bases de dívida detalhadas
+  _dividaTributaria: number;
+  _dividaTrabalhista: number;
+  _dividaFinanceira: number;
+  _credoresRJ: number;
+  // Readouts diretos
+  isg: number;
+  endividamentoGeral: number; // pt / at
+  // Metadata & Status
+  indicators_status: Record<string, "AVAILABLE" | "NOT_AVAILABLE">;
   naROE: boolean;
   naImobilizacao: boolean;
   naCobertura: boolean;
