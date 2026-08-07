@@ -337,30 +337,65 @@ const IMOBILIZADO_REFS = new Set(["C1","D1"]);
 // Refs P..Z conforme plano BEX — usado em Liquidez Geral conforme planilha Kanitz Giannini.
 const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
 
-// ─── GRUPO-FIRST (ENTERPRISE EXTRACTION ENGINE 2.0) ──────────
+// ─── GRUPO-FIRST (ENTERPRISE EXTRACTION ENGINE 3.0) ──────────
 // Códigos de TOTALIZADORES DE GRUPO no plano contábil brasileiro padrão.
-// Quando essas linhas existem no balancete, elas são SOBERANAS para o
-// grupo correspondente. Folhas descendentes servem apenas para análise
-// e composição de sub-detalhes, mas NÃO são somadas ao total do grupo
-// para evitar dupla contagem.
-//
-// Regras de Agregação Hierárquica (MD-BEX-001):
-// P1: Se a conta sintética certificada (11, 21, 23, etc.) existe -> valor direto.
+// Regras de Agregação Hierárquica (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001):
+// P1: Se a conta sintética certificada (1, 1.1, 1.01, 2, 2.1, 2.3, etc.) existe -> valor direto (AUTORIDADE SOBERANA).
 // P2: Se P1 não existe -> Agrega filhos imediatos não sobrepostos.
 // P3: Nunca somar pai e filho no mesmo fato canônico.
+
+/**
+ * Registrador de Papéis Semânticos (Semantic Role Registry).
+ * Uma conta contábil deve possuir exatamente UM papel semântico para evitar ROLE_COLLISION.
+ */
+export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
+  "1": "ativo_total" as any,
+  "1.1": "ativo_circulante",
+  "1.01": "ativo_circulante",
+  "1.2": "ativo_nao_circulante",
+  "1.02": "ativo_nao_circulante",
+  "2": "passivo_total" as any,
+  "2.1": "passivo_circulante",
+  "2.01": "passivo_circulante",
+  "2.2": "passivo_nao_circulante",
+  "2.02": "passivo_nao_circulante",
+  "2.3": "patrimonio_liquido",
+  "2.03": "patrimonio_liquido",
+  "3": "receita_liquida",
+  "3.1": "receita_liquida",
+  "3.01": "receita_liquida",
+  "4": "cmv",
+  "5": "cmv",
+  "6": "despesas",
+  "7": "despesas_financeiras",
+  "8": "outras_nao_operacionais",
+};
+
+/**
+ * Detecta se um código de conta é um totalizador sintético (P1 Authority).
+ * Suporta formatos 1, 1.1, 1.01, 1.001, etc.
+ */
+export function isSyntheticAuthority(code: string): boolean {
+  if (!code) return false;
+  const clean = code.replace(/[^\d.]/g, "");
+  // Padroniza: códigos com 1 ou 2 níveis (ex: "1", "1.1", "1.01", "2.3") são geralmente sintéticos
+  const levels = clean.split(".");
+  if (levels.length <= 2) return true;
+  // Fallback para códigos conhecidos no registro
+  return !!SEMANTIC_ROLE_REGISTRY[clean];
+}
+
 export const GROUP_TOTAL_CODES = new Set([
-  "1", "1.1", "1.2", "11", "12", "1.01", "1.02",      // Ativo, AC, ANC
-  "2", "2.1", "2.2", "2.3", "21", "22", "23", "2.01", "2.02", "2.03", // Passivo, PC, PNC, PL
-  "231", "232", "2.03.01", "2.03.02",         // Sub-PL
-  "3", "3.1", "3.2", "3.3", "31", "32", "33", "3.01", "3.02", "3.03", // DRE
-  "4", "5", "6", "7", "8", "4.1", "5.1", "6.1", "7.1", "8.1", // CMV, Custo Ind, Desp Op, Financeiras, Não Op
+  "1", "1.1", "1.2", "11", "12", "1.01", "1.02",
+  "2", "2.1", "2.2", "2.3", "21", "22", "23", "2.01", "2.02", "2.03",
+  "3", "3.1", "3.2", "3.3", "31", "32", "33", "3.01", "3.02", "3.03",
+  "4", "5", "6", "7", "8",
 ]);
 
 /** Refs1 textuais que indicam a linha é um totalizador de grupo declarado. */
-const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL","ATIVO_TOTAL","PASSIVO_TOTAL","RECEITA"]);
+const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL","ATIVO_TOTAL","PASSIVO_TOTAL","RECEITA","RECEITA_LIQUIDA"]);
 
-// Chaves que representam AGREGADOS PRINCIPAIS — folhas só devem alimentar
-// estes campos quando o totalizador de grupo NÃO está presente para o mês.
+// Chaves que representam AGREGADOS PRINCIPAIS.
 const MAIN_AGG_KEYS = new Set<(keyof BSDadosRow) | "ignore">([
   "ativo_circulante","ativo_nao_circulante",
   "passivo_circulante","passivo_nao_circulante",
