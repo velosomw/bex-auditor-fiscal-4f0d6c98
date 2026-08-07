@@ -336,24 +336,23 @@ const IMOBILIZADO_REFS = new Set(["C1","D1"]);
 // Refs P..Z conforme plano BEX — usado em Liquidez Geral conforme planilha Kanitz Giannini.
 const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
 
-// ─── GRUPO-FIRST ────────────────────────────────────────
+// ─── GRUPO-FIRST (ENTERPRISE EXTRACTION ENGINE 1.0) ──────────
 // Códigos de TOTALIZADORES DE GRUPO no plano contábil brasileiro padrão.
 // Quando essas linhas existem no balancete, são AUTORITATIVAS para o
 // campo principal (AC/PC/ANC/PNC/PL e DRE). Folhas descendentes só
 // alimentam sub-componentes (disponivel, estoques, fornecedores, etc.).
-// Nota: "13" (Ativo Permanente) intencionalmente fora — plano não-padrão
-// pode emitir essa linha como sintética agregadora dentro de "12", o que
-// gera dupla contagem. Quando presente como grupo de fato, é capturado
-// via ref1=ANC_TOTAL pelo dicionário textual.
+//
+// Princípio de Imutabilidade e Fonte Única: O motor nunca complementa
+// ou presume valores; o balancete é a única fonte primária de verdade.
 export const GROUP_TOTAL_CODES = new Set([
-  "11","12",         // AC, ANC
-  "21","22","23",    // PC, PNC, PL
+  "1","11","12",      // Ativo, AC, ANC
+  "2","21","22","23", // Passivo, PC, PNC, PL
   "31","32","33",    // Receita bruta, Devoluções, Impostos sobre vendas
   "4","5","6","7","8", // CMV, Custo Industrial, Despesas Op, Desp.Fin, Não Op
 ]);
 
 /** Refs1 textuais que indicam a linha é um totalizador de grupo declarado. */
-const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL"]);
+const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL","ATIVO_TOTAL","PASSIVO_TOTAL"]);
 
 // Chaves que representam AGREGADOS PRINCIPAIS — folhas só devem alimentar
 // estes campos quando o totalizador de grupo NÃO está presente para o mês.
