@@ -50,7 +50,7 @@ import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 
 /* ── Helpers ── */
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
-const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
+const fmtPct = (n: number) => `${((n ?? 0) * 100).toFixed(1)}%`;
 const fmtDays = (n: number) => `${Math.round(n)} dias`;
 
 /** Padroniza nomes de arquivos baixados/impressos da plataforma (sempre "BEx_..."). */
@@ -2581,10 +2581,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const latestInd = ind[latestYear];
   const solvencyIndicators = latestInd ? [
-    { name: "Liquidez Corrente", result: fmtPct(latestInd.liquidezCorrente), param: "> 1,5", classification: latestInd.liquidezCorrente > 1.5 ? "Adequada" : latestInd.liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
-    { name: "Liquidez Seca", result: fmtPct(latestInd.liquidezSeca), param: "> 1,0", classification: latestInd.liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
-    { name: "Liquidez Geral", result: fmtPct(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
-    { name: "Cobertura de Juros", result: `${latestInd.coberturaJuros.toFixed(1)}x`, param: "> 3,0x", classification: latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
+    { name: "Liquidez Corrente", result: fmtPct(latestInd.liquidezCorrente), param: "> 1,5", classification: (latestInd.liquidezCorrente ?? 0) > 1.5 ? "Adequada" : (latestInd.liquidezCorrente ?? 0) > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
+    { name: "Liquidez Seca", result: fmtPct(latestInd.liquidezSeca), param: "> 1,0", classification: (latestInd.liquidezSeca ?? 0) > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
+    { name: "Liquidez Geral", result: fmtPct(latestInd.liquidezGeral), param: "> 1,0", classification: (latestInd.liquidezGeral ?? 0) > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
+    { name: "Cobertura de Juros", result: `${(latestInd.coberturaJuros ?? 0).toFixed(1)}x`, param: "> 3,0x", classification: (latestInd.coberturaJuros ?? 0) > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: ac - pc > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
     { name: "Solvência Total", result: fmtPct((ac + anc) / ptotal), param: "> 1,0", classification: (ac + anc) / ptotal > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
@@ -2651,7 +2651,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     risco: { icon: "🟠", label: "Zona de Risco", color: "text-orange-600" },
     insolvente: { icon: "🔴", label: "Alta Probabilidade de Insolvência", color: "text-red-600" },
   };
-  const fmtKDec = (n: number) => n.toFixed(4);
+  const fmtKDec = (n: number) => (n ?? 0).toFixed(4);
 
   const SectionTitle = ({ num, title }: { num: string; title: string }) => (
     <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
@@ -3524,7 +3524,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <p className="text-sm text-muted-foreground mt-3 italic">Relatório Financeiro de Inteligência de Risco</p>
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-500/30 bg-amber-500/5 mt-8">
               <span className="text-lg">{kanitzClassColors[latestKanitz.classificacao]?.icon}</span>
-              <span className="text-sm font-semibold text-foreground">{kanitzClassColors[latestKanitz.classificacao]?.label} — FI: {latestKanitz.fi.toFixed(2)}</span>
+              <span className="text-sm font-semibold text-foreground">{kanitzClassColors[latestKanitz.classificacao]?.label} — FI: {(latestKanitz.fi ?? 0).toFixed(2)}</span>
             </div>
             <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">Empresa Analisada S.A.</p></div>
@@ -3565,13 +3565,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">
-                A empresa apresenta Fator de Insolvência de {latestKanitz.fi.toFixed(2)}, classificando-se como {kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. {latestKanitz.fi > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : latestKanitz.fi > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}
+                A empresa apresenta Fator de Insolvência de {(latestKanitz.fi ?? 0).toFixed(2)}, classificando-se como {kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. {(latestKanitz.fi ?? 0) > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : (latestKanitz.fi ?? 0) > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}
               </p>
             </div>
             <div className="grid sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-muted/20 text-center">
                 <p className="text-[10px] text-muted-foreground">Pontuação Kanitz</p>
-                <p className={`text-2xl font-bold font-mono ${kanitzClassColors[latestKanitz.classificacao]?.color}`}>{latestKanitz.fi.toFixed(2)}</p>
+                <p className={`text-2xl font-bold font-mono ${kanitzClassColors[latestKanitz.classificacao]?.color}`}>{(latestKanitz.fi ?? 0).toFixed(2)}</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/20 text-center">
                 <p className="text-[10px] text-muted-foreground">Classificação</p>
@@ -3718,7 +3718,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 Os indicadores de liquidez {latestInd?.liquidezCorrente && latestInd.liquidezCorrente > 1 ? "apontam capacidade adequada para honrar compromissos de curto prazo" : "indicam fragilidade na capacidade de pagamento de curto prazo"}, {latestInd?.liquidezGeral && latestInd.liquidezGeral < 1 ? "embora a liquidez geral permaneça inferior à unidade, refletindo elevada dependência de capital de terceiros." : "com liquidez geral compatível com a operação."}
               </p>
               <p className="text-sm text-foreground leading-relaxed">
-                {latestKanitz ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${latestKanitz.fi.toFixed(2)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : ""}
+                {latestKanitz ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${(latestKanitz.fi ?? 0).toFixed(2)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : ""}
               </p>
             </div>
           </div>
@@ -3913,7 +3913,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
     </div>
   );
 
-  const fmtDec = (n: number) => n.toFixed(4);
+  const fmtDec = (n: number) => (n ?? 0).toFixed(4);
   const fmtOrNA = (n: number | null | undefined, suffix = "", isApplicable = true) =>
     !isApplicable ? "N/A" : (typeof n === "number" && isFinite(n) ? `${n.toFixed(2)}${suffix}` : "N/A");
 
@@ -4027,8 +4027,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <span className="text-lg">{classColors[l.classificacao]?.icon}</span>
             <span className="text-sm font-semibold text-foreground">
               {kAplic
-                ? `${classColors[l.classificacao]?.label} — FI: ${l.fi.toFixed(2)}`
-                : `Kanitz Não Aplicável — ISG: ${l.isg.toFixed(2)} (${isgClass.label})`}
+                ? `${classColors[l.classificacao]?.label} — FI: ${(l.fi ?? 0).toFixed(2)}`
+                : `Kanitz Não Aplicável — ISG: ${(l.isg ?? 0).toFixed(2)} (${isgClass.label})`}
+
             </span>
           </div>
           <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
@@ -4077,32 +4078,33 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 <>
                   A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(l.pl)} (Ativo Total R$ {fmt(l.at)} vs Passivo Total R$ {fmt(l.pt)}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
                   <br /><br />
-                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{l.isg.toFixed(2)}</strong> — {isgClass.label}. {l.isg < 1
+                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(l.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {l.isg < 1
                     ? "O ativo total não cobre as obrigações totais, caracterizando insolvência técnica e demandando reestruturação patrimonial (Lei 11.101/2005) ou aporte de capital."
                     : l.isg < 1.5
                     ? "Cobertura patrimonial estreita: cada R$ 1,00 de dívida é lastreada por menos de R$ 1,50 de ativos."
                     : "Cobertura patrimonial adequada apesar do PL negativo."}
                 </>
               ) : l.classificacao === "saudavel"
-                ? `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)}, classificando-se como SAUDÁVEL segundo o modelo Kanitz. Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações.`
+                ? `A empresa apresenta Fator de Insolvência de ${(l.fi ?? 0).toFixed(2)}, classificando-se como SAUDÁVEL segundo o modelo Kanitz. Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações.`
                 : l.classificacao === "estavel"
-                ? `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)}, classificando-se como ESTÁVEL. A estrutura financeira é adequada, com indicadores dentro de parâmetros aceitáveis. Recomenda-se manutenção das políticas financeiras atuais.`
+                ? `A empresa apresenta Fator de Insolvência de ${(l.fi ?? 0).toFixed(2)}, classificando-se como ESTÁVEL. A estrutura financeira é adequada, com indicadores dentro de parâmetros aceitáveis. Recomenda-se manutenção das políticas financeiras atuais.`
                 : l.classificacao === "atencao"
-                ? `A empresa encontra-se em ZONA DE ATENÇÃO com FI de ${l.fi.toFixed(2)}. Indicadores de liquidez e endividamento apresentam fragilidades que requerem monitoramento contínuo.`
+                ? `A empresa encontra-se em ZONA DE ATENÇÃO com FI de ${(l.fi ?? 0).toFixed(2)}. Indicadores de liquidez e endividamento apresentam fragilidades que requerem monitoramento contínuo.`
                 : l.classificacao === "risco"
-                ? `A empresa está em ZONA DE RISCO com FI de ${l.fi.toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(l.ls)} e Grau de Endividamento de ${fmtDec(l.ge)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
-                : `A empresa apresenta ALTA PROBABILIDADE DE INSOLVÊNCIA com FI de ${l.fi.toFixed(2)}. A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005.`}
+                ? `A empresa está em ZONA DE RISCO com FI de ${(l.fi ?? 0).toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(l.ls)} e Grau de Endividamento de ${fmtDec(l.ge)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
+                : `A empresa apresenta ALTA PROBABILIDADE DE INSOLVÊNCIA com FI de ${(l.fi ?? 0).toFixed(2)}. A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005.`}
+
             </p>
           </div>
           <div className="grid sm:grid-cols-4 gap-3">
             <div className="p-3 rounded-lg bg-muted/20 text-center">
               <p className="text-[10px] text-muted-foreground">{kAplic ? "Score Kanitz" : "Score Kanitz (referência)"}</p>
-              <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{l.fi.toFixed(2)}</p>
+              <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{(l.fi ?? 0).toFixed(2)}</p>
               {!kAplic && <p className="text-[9px] text-red-600 font-semibold">Inválido (PL &lt; 0)</p>}
             </div>
             <div className="p-3 rounded-lg bg-muted/20 text-center">
               <p className="text-[10px] text-muted-foreground">ISG (AT/PT)</p>
-              <p className={`text-2xl font-bold font-mono ${isgClass.color}`}>{l.isg.toFixed(2)}</p>
+              <p className={`text-2xl font-bold font-mono ${isgClass.color}`}>{(l.isg ?? 0).toFixed(2)}</p>
               <p className={`text-[9px] font-semibold ${isgClass.color}`}>{isgClass.icon} {isgClass.label}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/20 text-center">
@@ -4127,14 +4129,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <div className="p-4 rounded-lg border border-red-500/40 bg-red-500/5">
               <p className="text-xs font-bold text-red-600 mb-1">⛔ KANITZ NÃO APLICÁVEL</p>
               <p className="text-xs text-foreground leading-relaxed">
-                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({l.fi.toFixed(2)}) é mostrado apenas como referência. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
+                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({(l.fi ?? 0).toFixed(2)}) é mostrado apenas como referência. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
               </p>
             </div>
           )}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="text-center py-6 rounded-lg bg-muted/20">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Kanitz {kAplic ? "" : "(referência)"}</p>
-              <p className={`text-5xl font-bold ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{l.fi.toFixed(2)}</p>
+              <p className={`text-5xl font-bold ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{(l.fi ?? 0).toFixed(2)}</p>
               <p className={`text-sm font-semibold mt-2 ${kAplic ? classColors[l.classificacao]?.color : "text-slate-500"}`}>
                 {classColors[l.classificacao]?.icon} {classColors[l.classificacao]?.label}
               </p>
@@ -4142,7 +4144,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             </div>
             <div className="text-center py-6 rounded-lg bg-amber-500/5 border border-amber-500/30">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Índice de Solvência Geral</p>
-              <p className={`text-5xl font-bold ${isgClass.color}`}>{l.isg.toFixed(2)}</p>
+              <p className={`text-5xl font-bold ${isgClass.color}`}>{(l.isg ?? 0).toFixed(2)}</p>
               <p className={`text-sm font-semibold mt-2 ${isgClass.color}`}>{isgClass.icon} {isgClass.label}</p>
               <p className="text-xs text-muted-foreground mt-1">ISG = Ativo Total (R$ {fmt(l.at)}) / Passivo Total (R$ {fmt(l.pt)})</p>
             </div>
@@ -4155,7 +4157,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               {kanitzResults.filter(r => r.kanitzAplicavel).map(r => {
                 const pos = Math.max(0, Math.min(100, ((r.fi + 7) / 14) * 100));
                 return (
-                  <div key={r.year} className="absolute top-0 bottom-0 w-1 bg-foreground rounded-full shadow-lg" style={{ left: `${pos}%`, transform: "translateX(-50%)" }} title={`${r.year}: FI = ${r.fi.toFixed(2)}`}>
+                  <div key={r.year} className="absolute top-0 bottom-0 w-1 bg-foreground rounded-full shadow-lg" style={{ left: `${pos}%`, transform: "translateX(-50%)" }} title={`${r.year}: FI = ${(r.fi ?? 0).toFixed(2)}`}>
                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold whitespace-nowrap bg-foreground text-background px-1.5 py-0.5 rounded">{r.year}</div>
                   </div>
                 );
@@ -4183,12 +4185,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 <p className="text-xs text-muted-foreground font-semibold">{r.year}</p>
                 {r.kanitzAplicavel ? (
                   <>
-                    <p className="text-2xl font-bold font-mono">{r.fi.toFixed(2)}</p>
+                    <p className="text-2xl font-bold font-mono">{(r.fi ?? 0).toFixed(2)}</p>
                     <p className={`text-xs font-semibold ${classColors[r.classificacao]?.color}`}>{classColors[r.classificacao]?.icon} {classColors[r.classificacao]?.label}</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold font-mono text-slate-600">ISG {r.isg.toFixed(2)}</p>
+                    <p className="text-2xl font-bold font-mono text-slate-600">ISG {(r.isg ?? 0).toFixed(2)}</p>
                     <p className="text-[10px] font-semibold text-slate-600">⛔ PL negativo — usar ISG</p>
                   </>
                 )}
@@ -4242,14 +4244,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   <TableCell className="text-[10px] font-mono text-muted-foreground">AT / PT</TableCell>
                   <TableCell className="text-xs font-mono">—</TableCell>
                   {kanitzResults.map(r => (
-                    <TableCell key={r.year} className="text-right text-xs font-mono font-bold">{r.isg.toFixed(2)}</TableCell>
+                    <TableCell key={r.year} className="text-right text-xs font-mono font-bold">{(r.isg ?? 0).toFixed(2)}</TableCell>
                   ))}
                 </TableRow>
                 <TableRow className="border-t-2 border-foreground/20">
                   <TableCell className="text-xs font-bold" colSpan={4}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
                   {kanitzResults.map(r => (
                     <TableCell key={r.year} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>
-                      {r.kanitzAplicavel ? r.fi.toFixed(2) : <span className="text-slate-500 line-through">{r.fi.toFixed(2)}</span>}
+                      {r.kanitzAplicavel ? (r.fi ?? 0).toFixed(2) : <span className="text-slate-500 line-through">{(r.fi ?? 0).toFixed(2)}</span>}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -4330,7 +4332,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </div>
           {!kAplic && (
             <p className="text-[10px] text-red-600 italic">
-              ⛔ Com PL = R$ {fmt(l.pl)} (negativo), alavancagem e KT/PL retornariam valores negativos ou distorcidos — por isso apresentados como N/A. Use o ISG ({l.isg.toFixed(2)}) e o Endividamento Total ({fmtPct(endivTotal)}) como referência.
+              ⛔ Com PL = R$ {fmt(l.pl)} (negativo), alavancagem e KT/PL retornariam valores negativos ou distorcidos — por isso apresentados como N/A. Use o ISG ({(l.isg ?? 0).toFixed(2)}) e o Endividamento Total ({fmtPct(endivTotal)}) como referência.
             </p>
           )}
           <div className="space-y-1.5">
@@ -4390,7 +4392,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"}`}>
                   <div className="flex justify-between text-[10px]">
                     <span className="font-medium text-foreground">{item.label}</span>
-                    <span className="font-mono font-bold">{item.value.toFixed(item.suffix === "x" ? 2 : 1)}{item.suffix}</span>
+                    <span className="font-mono font-bold">{(item.value ?? 0).toFixed(item.suffix === "x" ? 2 : 1)}{item.suffix}</span>
                   </div>
                   <p className="text-[9px] text-muted-foreground">{item.desc}</p>
                 </div>
@@ -4417,7 +4419,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
                 <p className="text-[10px] text-muted-foreground">{item.label}</p>
                 <p className="text-lg font-bold font-mono text-foreground">
-                  {item.isCurrency ? `R$ ${fmt(item.value)}` : item.format === "pct" ? fmtPct(item.value) : `${item.value.toFixed(2)}${item.suffix || ""}`}
+                  {item.isCurrency ? `R$ ${fmt(item.value)}` : item.format === "pct" ? fmtPct(item.value) : `${(item.value ?? 0).toFixed(2)}${item.suffix || ""}`}
                 </p>
                 <p className="text-[9px] font-mono text-muted-foreground/70 leading-tight">{item.formula}</p>
                 {item.alert && <p className="text-[9px] text-red-600 font-semibold">⚠ Abaixo do mínimo</p>}
@@ -4487,9 +4489,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   {giroAtivo < 0.5 && <Badge className="bg-red-500/15 text-red-600 text-[9px]">Detectado</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Giro do Ativo: <strong>{giroAtivo.toFixed(2)}x</strong> — {giroAtivo < 0.5 ? "baixa utilização" : giroAtivo < 1 ? "utilização moderada" : "nível aceitável"}.
+                  Giro do Ativo: <strong>{(giroAtivo ?? 0).toFixed(2)}x</strong> — {giroAtivo < 0.5 ? "baixa utilização" : giroAtivo < 1 ? "utilização moderada" : "nível aceitável"}.
                 </p>
-                <p className="text-[10px] font-mono text-muted-foreground/80 mt-1">Cálculo: Receita Líquida / Ativo Total = {fmt(l.rl)} / {fmt(l.at)} = {giroAtivo.toFixed(2)}</p>
+                <p className="text-[10px] font-mono text-muted-foreground/80 mt-1">Cálculo: Receita Líquida / Ativo Total = {fmt(l.rl)} / {fmt(l.at)} = {(giroAtivo ?? 0).toFixed(2)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 italic">
                   Interpretação: quantas vezes por período o ativo se converte em receita. Valores abaixo de 0,5 indicam ativos subutilizados que pressionam a rentabilidade e o GE.
                 </p>
@@ -4549,9 +4551,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   return (
                     <TableRow key={sim.cenario}>
                       <TableCell className="text-xs font-medium">{sim.cenario}</TableCell>
-                      <TableCell className="text-right text-xs font-mono">{l.fi.toFixed(2)}</TableCell>
-                      <TableCell className={`text-right text-xs font-mono font-bold ${classColors[newClass]?.color}`}>{sim.fi.toFixed(2)}</TableCell>
-                      <TableCell className={`text-right text-xs font-mono ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{delta > 0 ? "+" : ""}{delta.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-xs font-mono">{(l.fi ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className={`text-right text-xs font-mono font-bold ${classColors[newClass]?.color}`}>{(sim.fi ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className={`text-right text-xs font-mono ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{delta > 0 ? "+" : ""}{(delta ?? 0).toFixed(2)}</TableCell>
                       <TableCell className="text-xs">
                         <Badge className={`text-[9px] ${
                           newClass === "saudavel" ? "bg-emerald-500/15 text-emerald-600" :
@@ -4583,15 +4585,16 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="space-y-4">
             {[
               { title: "Diagnóstico Financeiro", text: !kAplic
-                ? `A empresa apresenta Patrimônio Líquido de R$ ${fmt(l.pl)} (negativo), Ativo Total de R$ ${fmt(l.at)} e Passivo Total de R$ ${fmt(l.pt)}. Nessas condições, o modelo Kanitz não se aplica: substitui-se pelo Índice de Solvência Geral (ISG = AT/PT) = ${l.isg.toFixed(2)} — ${isgClass.label}. O Endividamento Total é de ${fmtPct(endivTotal)}, configurando estrutura patrimonial ${endivTotal > 0.9 ? "criticamente alavancada" : endivTotal > 0.7 ? "altamente dependente de capital de terceiros" : "moderadamente alavancada"}.`
-                : `A empresa apresenta Fator de Insolvência de ${l.fi.toFixed(2)} (${classColors[l.classificacao]?.label}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}. ISG = ${l.isg.toFixed(2)}.` },
+                ? `A empresa apresenta Patrimônio Líquido de R$ ${fmt(l.pl)} (negativo), Ativo Total de R$ ${fmt(l.at)} e Passivo Total de R$ ${fmt(l.pt)}. Nessas condições, o modelo Kanitz não se aplica: substitui-se pelo Índice de Solvência Geral (ISG = AT/PT) = ${(l.isg ?? 0).toFixed(2)} — ${isgClass.label}. O Endividamento Total é de ${fmtPct(endivTotal)}, configurando estrutura patrimonial ${endivTotal > 0.9 ? "criticamente alavancada" : endivTotal > 0.7 ? "altamente dependente de capital de terceiros" : "moderadamente alavancada"}.`
+                : `A empresa apresenta Fator de Insolvência de ${(l.fi ?? 0).toFixed(2)} (${classColors[l.classificacao]?.label}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}. ISG = ${(l.isg ?? 0).toFixed(2)}.` },
+
 
               { title: "Causas de Deterioração", text: previous
-                ? `Comparativo com período anterior (${previous.year}): FI variou de ${previous.fi.toFixed(2)} para ${l.fi.toFixed(2)} (${fiDelta > 0 ? "melhora" : "piora"} de ${Math.abs(fiDelta).toFixed(2)} pontos), ISG variou de ${previous.isg.toFixed(2)} para ${l.isg.toFixed(2)}. Principais vetores: ${!kAplic ? "PL passou a território negativo, invalidando RPL e GE. " : ""}${l.ls < (previous.ls || 0) ? "redução da liquidez seca; " : ""}${l.lc < (previous.lc || 0) ? "queda da liquidez corrente; " : ""}${l.pt > (previous.pt || 0) ? "expansão do passivo total; " : ""}${l.pl < (previous.pl || 0) ? "erosão do patrimônio líquido." : ""}`
+                ? `Comparativo com período anterior (${previous.year}): FI variou de ${(previous.fi ?? 0).toFixed(2)} para ${(l.fi ?? 0).toFixed(2)} (${fiDelta > 0 ? "melhora" : "piora"} de ${Math.abs(fiDelta).toFixed(2)} pontos), ISG variou de ${(previous.isg ?? 0).toFixed(2)} para ${(l.isg ?? 0).toFixed(2)}. Principais vetores: ${!kAplic ? "PL passou a território negativo, invalidando RPL e GE. " : ""}${l.ls < (previous.ls || 0) ? "redução da liquidez seca; " : ""}${l.lc < (previous.lc || 0) ? "queda da liquidez corrente; " : ""}${l.pt > (previous.pt || 0) ? "expansão do passivo total; " : ""}${l.pl < (previous.pl || 0) ? "erosão do patrimônio líquido." : ""}`
                 : "Análise evolutiva indisponível — apenas um período carregado no relatório." },
 
               { title: "Probabilidade de Insolvência", text: !kAplic
-                ? `INSOLVÊNCIA TÉCNICA CONFIGURADA. PL negativo (R$ ${fmt(l.pl)}) significa que as obrigações totais superam os ativos livres de compromisso com terceiros. Pelo ISG (${l.isg.toFixed(2)}), ${l.isg < 1 ? "os ativos não são suficientes para cobrir o passivo total — risco crítico" : l.isg < 1.5 ? "a cobertura é estreita — risco elevado" : "a cobertura é adequada, mas a reconstituição do PL é imperativa"}. Recomenda-se avaliação de reestruturação nos moldes da Lei 11.101/2005.`
+                ? `INSOLVÊNCIA TÉCNICA CONFIGURADA. PL negativo (R$ ${fmt(l.pl)}) significa que as obrigações totais superam os ativos livres de compromisso com terceiros. Pelo ISG (${(l.isg ?? 0).toFixed(2)}), ${l.isg < 1 ? "os ativos não são suficientes para cobrir o passivo total — risco crítico" : l.isg < 1.5 ? "a cobertura é estreita — risco elevado" : "a cobertura é adequada, mas a reconstituição do PL é imperativa"}. Recomenda-se avaliação de reestruturação nos moldes da Lei 11.101/2005.`
                 : l.fi < -3 ? "ALTA. O FI abaixo de -3 indica alta probabilidade estatística de insolvência segundo o modelo Kanitz. A empresa deve buscar reestruturação imediata."
                 : l.fi < 0 ? "MODERADA. O FI na zona de atenção/risco requer monitoramento contínuo e medidas preventivas."
                 : "BAIXA. O FI positivo indica solvência segundo o modelo Kanitz. Recomenda-se manutenção das boas práticas financeiras." },
@@ -4601,7 +4604,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 !kAplic ? "Renegociar dívidas com bancos e fornecedores para alongar prazos e reduzir juros — foco em melhorar o ISG." : null,
                 endivTotal > 0.7 ? "Implementar plano de desalavancagem — priorizar quitação de dívidas onerosas." : null,
                 l.ls < 1 ? "Reduzir dependência de estoques para liquidez — otimizar gestão de recebíveis e giro de estoque." : null,
-                coberturaJuros < 2 ? "Renegociar condições de dívida bancária — melhorar cobertura de juros (atual: " + coberturaJuros.toFixed(2) + "x)." : null,
+                coberturaJuros < 2 ? "Renegociar condições de dívida bancária — melhorar cobertura de juros (atual: " + (coberturaJuros ?? 0).toFixed(2) + "x)." : null,
                 margemLiquida < 0.1 ? `Revisar estrutura de custos — margem líquida de ${fmtPct(margemLiquida)} está abaixo do saudável.` : null,
                 despFinSobreReceita > 0.1 ? `Reduzir peso das despesas financeiras (atualmente ${fmtPct(despFinSobreReceita)} da RL) — foco em capital próprio ou linhas mais baratas.` : null,
                 "Monitorar mensalmente FI e ISG combinados; o ISG é o indicador de curto prazo para empresas com PL comprometido.",
@@ -4668,12 +4671,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   <TableCell className="text-xs font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
                   {kanitzResults.map(r => <TableCell key={r.year} className="text-right" />)}
                   {kanitzResults.map(r => (
-                    <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>{r.fi.toFixed(2)}</TableCell>
+                    <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>{(r.fi ?? 0).toFixed(2)}</TableCell>
                   ))}
                 </TableRow>
                 <TableRow className="bg-amber-500/5">
                   <TableCell className="text-xs font-bold" colSpan={2}>ISG (AT / PT)</TableCell>
-                  {kanitzResults.map(r => <TableCell key={`isg-v-${r.year}`} className="text-right text-xs font-mono">{r.isg.toFixed(2)}</TableCell>)}
+                  {kanitzResults.map(r => <TableCell key={`isg-v-${r.year}`} className="text-right text-xs font-mono">{(r.isg ?? 0).toFixed(2)}</TableCell>)}
                   {kanitzResults.map(r => <TableCell key={`isg-w-${r.year}`} className="text-right" />)}
                 </TableRow>
               </TableBody>
