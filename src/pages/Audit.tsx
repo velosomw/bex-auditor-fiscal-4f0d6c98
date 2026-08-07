@@ -3541,8 +3541,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                           <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.ls)}</TableCell>
                           <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.lc)}</TableCell>
                           <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.ge)}</TableCell>
-                          <TableCell className={`text-right text-[11px] font-mono font-bold ${kanitzClassColors[r.classificacao]?.color}`}>
-                            {(r.fi ?? 0).toFixed(2)}
+                          <TableCell className={`text-right text-[11px] font-mono font-bold ${kanitzClassColors[r.classificacao]?.color || "text-muted-foreground"}`}>
+                            {!r.kanitzAplicavel ? "N/A" : (r.fi ?? 0).toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))}
