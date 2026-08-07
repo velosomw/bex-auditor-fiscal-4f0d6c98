@@ -72,6 +72,8 @@ export interface CanonicalReportDataset {
   kanitz: any;
   narratives: Record<string, { text: string; fact_ids_used: string[] }>;
   limitations: string[];
+  /** MD-CUTOVER-001 — snapshot certificado imutável (fonte única de todos os consumers). */
+  snapshot?: CertifiedFinancialSnapshot;
 }
 
 
