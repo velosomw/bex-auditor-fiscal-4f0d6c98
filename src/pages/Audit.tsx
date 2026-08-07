@@ -2521,7 +2521,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[] }) => {
+export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs, company }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const reportContainerRef = useRef<HTMLDivElement>(null);
@@ -2726,9 +2726,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
 
           <div className="mt-10 space-y-1.5 text-sm text-muted-foreground">
-            <p className="font-semibold text-foreground text-base">Empresa Analisada: Empresa Demonstração S.A.</p>
-            <p>CNPJ: 12.345.678/0001-90</p>
-            <p>Data-base do Balancete: 31/12/2023</p>
+            <p className="font-semibold text-foreground text-base">Empresa Analisada: {company?.name || "Empresa Demonstração S.A."}</p>
+            <p>CNPJ: {company?.cnpj || "12.345.678/0001-90"}</p>
+            <p>Data-base do Balancete: {latestYear || "31/12/2023"}</p>
             <p>Data de Emissão: {today}</p>
           </div>
 
@@ -3266,37 +3266,36 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         const allRows = parsedData?.balanco || state.balancoRows;
         // Whitelist de contas analíticas consolidadas (subtopicos em negrito da planilha)
         const ATIVO_WHITELIST = [
-          "ativo circulante",
-          "bens e numerários", "bens e numerarios",
-          "outros valores a receber",
-          "valores a recuperar",
+          "ativo circulante", "ativo nao circulante", "ativo não circulante",
+          "caixa e equivalentes", "disponibilidades", "bens e numerários", "bens e numerarios",
+          "estoques", "contas a receber", "clientes",
+          "outros valores a receber", "valores a recuperar",
+          "realizavel a longo prazo", "realizável a longo prazo",
           "outros créditos a longo prazo", "outros creditos a longo prazo",
-          "ativo permanente",
+          "ativo permanente", "imobilizado", "intangivel", "intangível", "investimentos",
         ];
         const PASSIVO_WHITELIST = [
-          "passivo circulante",
-          "fornecedores",
-          "contas a pagar",
+          "passivo circulante", "passivo nao circulante", "passivo não circulante",
+          "fornecedores", "contas a pagar",
           "salarios e encargos sociais", "salários e encargos sociais",
           "tributos e contribuições a recolher", "tributos e contribuicoes a recolher",
-          "instituições financeiras", "instituicoes financeiras",
+          "instituições financeiras", "instituicoes financeiras", "emprestimos e financiamentos", "empréstimos e financiamentos",
           "outras contas a pagar",
           "nao circulante - longo prazo", "não circulante - longo prazo",
-          "patrimonio liquido", "patrimônio líquido",
+          "patrimonio liquido", "patrimônio líquido", "capital social", "lucros ou prejuizos acumulados", "lucros ou prejuízos acumulados",
         ];
-        const _norm = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
+        const _norm = (s: string) => (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
         const _inList = (r: any, list: string[]) => {
           const d = _norm(r?.descricao || "");
           if (!d) return false;
-          // Matches exactly or starts with the word, but avoids partial mid-word matches
           return list.some(w => {
             const normalizedW = _norm(w);
             return d === normalizedW || d.startsWith(normalizedW + " ");
           });
         };
-        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && _inList(r, ATIVO_WHITELIST));
-        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && _inList(r, PASSIVO_WHITELIST));
-        const maxRows = Math.max(ativoRows.length, passivoRows.length);
+        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && (r.isGroup || _inList(r, ATIVO_WHITELIST)));
+        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && (r.isGroup || _inList(r, PASSIVO_WHITELIST)));
+        const maxRows = Math.max(ativoRows.length, passivoRows.length, 1);
 
         const isParent = (conta: string) => {
           const parts = conta.replace(/\./g, "").length;
@@ -3327,9 +3326,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         // Add validations to the last page
         const validations = [
           { check: "Ativo = Passivo + PL", status: true, detail: `Ativo Total: R$ ${fmt(ac + anc)} | Passivo + PL: R$ ${fmt(pc + pnc)}` },
-          { check: "Passivo a Descoberto", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
-          { check: "PL Negativo", status: (d?._pl || d?.patrimonioLiquido || 0) > 0, detail: (d?._pl || d?.patrimonioLiquido || 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl || d?.patrimonioLiquido || 0))}` : "PL NEGATIVO identificado" },
-          { check: "Descasamento Estrutural", status: ac > pc, detail: "Capital de giro líquido " + (ac > pc ? "positivo" : "negativo") },
+          { check: "Passivo a Descoberto", status: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0, detail: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
+          { check: "PL Negativo", status: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0, detail: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl ?? d?.patrimonioLiquido ?? 0))}` : "PL NEGATIVO identificado" },
+          { check: "Descasamento Estrutural", status: (ac ?? 0) > (pc ?? 0), detail: "Capital de giro líquido " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
         ];
 
         // Check if validations fit on the last page (need ~6 rows worth of space)
@@ -3785,7 +3784,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
    TAB: RELATÓRIO KANITZ EXPANDIDO v2.0
    Risk Intelligence Financial Report — 11 Módulos
    ══════════════════════════════════════════════════════ */
-const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, uploadedFiles, sourceDocs }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[] }) => {
+const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, uploadedFiles, sourceDocs, company }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null }) => {
   const today = new Date().toLocaleDateString("pt-BR");
   const kanitzContainerRef = useRef<HTMLDivElement>(null);
   const [totalPagesKanitz, setTotalPagesKanitz] = useState(0);
@@ -3915,7 +3914,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
   const fmtDec = (n: number) => (n ?? 0).toFixed(4);
   const fmtOrNA = (n: number | null | undefined, suffix = "", isApplicable = true) =>
-    !isApplicable ? "N/A" : (typeof n === "number" && isFinite(n) ? `${n.toFixed(2)}${suffix}` : "N/A");
+    !isApplicable ? "N/A" : (typeof n === "number" && isFinite(n) ? `${(n ?? 0).toFixed(2)}${suffix}` : "N/A");
 
   if (kanitzResults.length === 0) {
     return (
@@ -4035,7 +4034,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p>
-              <p className="font-semibold text-foreground">Empresa Analisada S.A.</p>
+              <p className="font-semibold text-foreground">{company?.name || "Empresa Analisada S.A."}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p>
@@ -4078,9 +4077,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 <>
                   A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(l.pl)} (Ativo Total R$ {fmt(l.at)} vs Passivo Total R$ {fmt(l.pt)}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
                   <br /><br />
-                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(l.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {l.isg < 1
+                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(l.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(l.isg ?? 0) < 1
                     ? "O ativo total não cobre as obrigações totais, caracterizando insolvência técnica e demandando reestruturação patrimonial (Lei 11.101/2005) ou aporte de capital."
-                    : l.isg < 1.5
+                    : (l.isg ?? 0) < 1.5
                     ? "Cobertura patrimonial estreita: cada R$ 1,00 de dívida é lastreada por menos de R$ 1,50 de ativos."
                     : "Cobertura patrimonial adequada apesar do PL negativo."}
                 </>
@@ -5190,9 +5189,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             </div>
           )}
           {reportType === "bex" ? (
-            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} />
           ) : reportType === "kanitz" ? (
-            <TabRelatorioKanitz onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
+            <TabRelatorioKanitz onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} />
           ) : (
             <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} selectedDepth={selectedDepth} />
           )}
