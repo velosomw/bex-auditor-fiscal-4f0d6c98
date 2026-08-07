@@ -337,7 +337,7 @@ const IMOBILIZADO_REFS = new Set(["C1","D1"]);
 // Refs P..Z conforme plano BEX — usado em Liquidez Geral conforme planilha Kanitz Giannini.
 const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
 
-// ─── GRUPO-FIRST (ENTERPRISE EXTRACTION ENGINE 1.0) ──────────
+// ─── GRUPO-FIRST (ENTERPRISE EXTRACTION ENGINE 2.0) ──────────
 // Códigos de TOTALIZADORES DE GRUPO no plano contábil brasileiro padrão.
 // Quando essas linhas existem no balancete, elas são SOBERANAS para o
 // grupo correspondente. Folhas descendentes servem apenas para análise
@@ -357,7 +357,7 @@ export const GROUP_TOTAL_CODES = new Set([
 ]);
 
 /** Refs1 textuais que indicam a linha é um totalizador de grupo declarado. */
-const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL","ATIVO_TOTAL","PASSIVO_TOTAL"]);
+const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL","ATIVO_TOTAL","PASSIVO_TOTAL","RECEITA"]);
 
 // Chaves que representam AGREGADOS PRINCIPAIS — folhas só devem alimentar
 // estes campos quando o totalizador de grupo NÃO está presente para o mês.
