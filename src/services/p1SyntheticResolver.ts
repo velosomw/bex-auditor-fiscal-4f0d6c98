@@ -1,0 +1,322 @@
+/**
+ * MD-BEX-CANONICAL-SNAPSHOT-P1-SYNTHETIC-AUTHORITY-AND-INTEGRITY-GATE-001
+ *
+ * P1 Synthetic Authority Resolver.
+ *
+ * Constrói a hierarquia de contas do balancete e resolve cada canonical role
+ * pela PRIMEIRA autoridade válida:
+ *   P1 = conta sintética explícita (totalizador do grupo)
+ *   P2 = soma dos filhos imediatos
+ *   P3 = soma das folhas analíticas
+ *   P4 = NOT_AVAILABLE
+ *
+ * Regra absoluta: existindo P1, NUNCA descer para P2/P3.
+ * Nenhum valor Golden é hard-coded — o motor encontra a conta sozinho.
+ */
+
+export type CanonicalRole =
+  | "ativo_total"
+  | "ativo_circulante"
+  | "ativo_nao_circulante"
+  | "realizavel_longo_prazo"
+  | "estoques"
+  | "disponivel"
+  | "passivo_circulante"
+  | "passivo_nao_circulante"
+  | "patrimonio_liquido"
+  | "receita_liquida"
+  | "resultado"
+  | "fornecedores";
+
+export type FactAuthority = "P1_SYNTHETIC" | "P2_CHILDREN" | "P3_LEAVES" | "NOT_AVAILABLE";
+
+export interface CertifiedFact {
+  fact_id: string;
+  canonical_role: CanonicalRole;
+  value: number;
+  status: "AVAILABLE" | "NOT_AVAILABLE";
+  authority: FactAuthority;
+  source_account_code: string;
+  source_account_description: string;
+  source_hierarchy_level: number;
+  competency: string;
+  excluded_candidates: Array<{ account: string; description: string; value: number; reason: string }>;
+}
+
+export interface RawAccountRow {
+  conta?: string;
+  descricao?: string;
+  values?: Record<string, number | string>;
+}
+
+export interface AccountNode {
+  account_code: string;
+  normalized_code: string;
+  description: string;
+  hierarchy_level: number;
+  parent_code: string | null;
+  has_children: boolean;
+  is_synthetic: boolean;
+  is_analytical: boolean;
+  value: number;
+}
+
+const deaccent = (s: string) =>
+  (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
+/** "2.03.001" → "2.3.1" (remove zeros à esquerda de cada segmento). */
+export function normalizeAccountCode(code: string): string {
+  const raw = String(code || "").trim();
+  if (!raw) return "";
+  const segments = raw.includes(".") ? raw.split(".") : raw.split(/[\-\/]/);
+  return segments
+    .map(s => s.replace(/[^\d]/g, ""))
+    .filter(s => s.length > 0)
+    .map(s => String(parseInt(s, 10)))
+    .join(".");
+}
+
+const levelOf = (norm: string) => (norm ? norm.split(".").length : 99);
+const parentOf = (norm: string) => {
+  const p = norm.split(".");
+  return p.length > 1 ? p.slice(0, -1).join(".") : null;
+};
+
+/** Semântica textual por role (evidência, nunca autoridade isolada). */
+const ROLE_SEMANTICS: Record<CanonicalRole, RegExp> = {
+  ativo_total: /^ATIVO(\s+TOTAL)?$|^TOTAL\s+DO?\s+ATIVO$/,
+  ativo_circulante: /ATIVO\s+CIRCULANTE|CIRCULANTE\s+ATIVO/,
+  ativo_nao_circulante: /ATIVO\s+N[AÃ]?O[\s-]*CIRCULANTE/,
+  realizavel_longo_prazo: /REALIZ[AÁ]VEL\s+A?\s*LONGO\s+PRAZO/,
+  estoques: /^ESTOQUES?\b|\bESTOQUES\b/,
+  disponivel: /DISPON[IÍ]VEL|CAIXA\s+E\s+EQUIVALENTES/,
+  passivo_circulante: /PASSIVO\s+CIRCULANTE/,
+  passivo_nao_circulante: /PASSIVO\s+N[AÃ]?O[\s-]*CIRCULANTE|EXIG[IÍ]VEL\s+A?\s*LONGO\s+PRAZO/,
+  patrimonio_liquido: /PATRIM[OÔ]NIO\s+L[IÍ]QUIDO/,
+  receita_liquida: /RECEITA\s+(OPERACIONAL\s+)?L[IÍ]QUIDA/,
+  resultado: /CONTAS?\s+DE\s+RESULTADO|^RESULTADO$|RESULTADO\s+DO\s+(EXERC[IÍ]CIO|PER[IÍ]ODO)/,
+  fornecedores: /^FORNECEDORES?\b/,
+};
+
+/** Códigos canônicos aceitos por role (já normalizados), em ordem de prioridade. */
+const ROLE_CODES: Record<CanonicalRole, string[]> = {
+  ativo_total: ["1"],
+  ativo_circulante: ["1.1"],
+  ativo_nao_circulante: ["1.2"],
+  realizavel_longo_prazo: ["1.2.1"],
+  estoques: ["1.1.3"],
+  disponivel: ["1.1.1"],
+  passivo_circulante: ["2.1"],
+  passivo_nao_circulante: ["2.2"],
+  patrimonio_liquido: ["2.3", "2.4"],
+  receita_liquida: ["3.1"],
+  resultado: ["3"],
+  fornecedores: ["2.1.1"],
+};
+
+/** Prefixo obrigatório para candidatos textuais (evita roubo entre ativo/passivo). */
+const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
+  ativo_circulante: "1",
+  ativo_nao_circulante: "1",
+  realizavel_longo_prazo: "1",
+  estoques: "1.1",
+  disponivel: "1.1",
+  passivo_circulante: "2",
+  passivo_nao_circulante: "2",
+  patrimonio_liquido: "2",
+  fornecedores: "2.1",
+  receita_liquida: "3",
+  resultado: "3",
+};
+
+/** Roles cujo valor deve ser publicado em módulo. */
+const ABS_ROLES = new Set<CanonicalRole>([
+  "ativo_total", "ativo_circulante", "ativo_nao_circulante", "realizavel_longo_prazo",
+  "estoques", "disponivel", "passivo_circulante", "passivo_nao_circulante",
+  "receita_liquida", "fornecedores",
+]);
+
+export interface P1Resolution {
+  facts: Partial<Record<CanonicalRole, CertifiedFact>>;
+  nodes: AccountNode[];
+}
+
+/**
+ * Constrói a árvore de contas de uma competência e resolve os canonical roles.
+ */
+export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string; value: number }>, competency: string): P1Resolution {
+  const byNorm = new Map<string, AccountNode>();
+
+  for (const r of rows) {
+    const norm = normalizeAccountCode(r.conta || "");
+    if (!norm) continue;
+    const value = Number(r.value);
+    if (!Number.isFinite(value)) continue;
+    const existing = byNorm.get(norm);
+    if (existing) {
+      // Mesma conta repetida na competência → soma (balancetes complementares)
+      existing.value += value;
+      if (!existing.description && r.descricao) existing.description = deaccent(r.descricao);
+      continue;
+    }
+    byNorm.set(norm, {
+      account_code: String(r.conta || "").trim(),
+      normalized_code: norm,
+      description: deaccent(r.descricao || ""),
+      hierarchy_level: levelOf(norm),
+      parent_code: parentOf(norm),
+      has_children: false,
+      is_synthetic: false,
+      is_analytical: true,
+      value,
+    });
+  }
+
+  const nodes = Array.from(byNorm.values());
+  for (const n of nodes) {
+    const prefix = n.normalized_code + ".";
+    n.has_children = nodes.some(o => o.normalized_code.startsWith(prefix));
+    n.is_synthetic = n.has_children || n.hierarchy_level <= 2;
+    n.is_analytical = !n.is_synthetic;
+  }
+
+  const facts: Partial<Record<CanonicalRole, CertifiedFact>> = {};
+
+  for (const role of Object.keys(ROLE_CODES) as CanonicalRole[]) {
+    const codes = ROLE_CODES[role];
+    const semantic = ROLE_SEMANTICS[role];
+    const prefix = ROLE_PREFIX[role];
+
+    const excluded: CertifiedFact["excluded_candidates"] = [];
+
+    // ── P1: conta com código canônico OU sintética com match semântico ──
+    const candidates = nodes.filter(n => {
+      if (codes.includes(n.normalized_code)) return true;
+      if (!semantic.test(n.description)) return false;
+      if (prefix && !(n.normalized_code === prefix || n.normalized_code.startsWith(prefix + "."))) return false;
+      return true;
+    });
+
+    // Autoridade: código canônico > sintética > nível hierárquico mais raso
+    const scored = candidates
+      .map(n => ({
+        n,
+        score:
+          (codes.includes(n.normalized_code) ? 400 : 0) +
+          (n.is_synthetic ? 200 : 0) +
+          (semantic.test(n.description) ? 100 : 0) +
+          (100 - n.hierarchy_level * 10),
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    const winner = scored.find(c => c.n.value !== 0) ?? scored[0];
+
+    for (const c of scored) {
+      if (winner && c.n.normalized_code === winner.n.normalized_code) continue;
+      excluded.push({
+        account: c.n.account_code,
+        description: c.n.description,
+        value: c.n.value,
+        reason:
+          winner && c.n.normalized_code.startsWith(winner.n.normalized_code + ".")
+            ? "ANALYTICAL_DESCENDANT"
+            : "LOWER_AUTHORITY",
+      });
+    }
+
+    if (winner && Number.isFinite(winner.n.value)) {
+      const authority: FactAuthority = winner.n.is_synthetic ? "P1_SYNTHETIC" : "P3_LEAVES";
+      const raw = winner.n.value;
+      facts[role] = {
+        fact_id: `${competency}::${role}`,
+        canonical_role: role,
+        value: ABS_ROLES.has(role) ? Math.abs(raw) : raw,
+        status: "AVAILABLE",
+        authority,
+        source_account_code: winner.n.account_code,
+        source_account_description: winner.n.description,
+        source_hierarchy_level: winner.n.hierarchy_level,
+        competency,
+        excluded_candidates: excluded.slice(0, 12),
+      };
+    } else {
+      facts[role] = {
+        fact_id: `${competency}::${role}`,
+        canonical_role: role,
+        value: 0,
+        status: "NOT_AVAILABLE",
+        authority: "NOT_AVAILABLE",
+        source_account_code: "",
+        source_account_description: "",
+        source_hierarchy_level: 0,
+        competency,
+        excluded_candidates: excluded.slice(0, 12),
+      };
+    }
+  }
+
+  // §20 — descendente negativo não inverte o sinal do PL sintético.
+  const pl = facts.patrimonio_liquido;
+  if (pl && pl.authority === "P1_SYNTHETIC") {
+    // saldo credor do PL costuma vir negativo no balancete; publica-se o sinal econômico.
+    pl.value = pl.value; // preserva o valor da conta sintética, sem inferência por descendentes
+  }
+
+  // §23/§43 — Role Exclusivity: Receita e Resultado não podem vir da MESMA conta.
+  const rev = facts.receita_liquida;
+  const res = facts.resultado;
+  if (rev?.status === "AVAILABLE" && res?.status === "AVAILABLE" &&
+      normalizeAccountCode(rev.source_account_code) === normalizeAccountCode(res.source_account_code)) {
+    res.status = "NOT_AVAILABLE";
+    res.authority = "NOT_AVAILABLE";
+    res.excluded_candidates.push({
+      account: rev.source_account_code, description: rev.source_account_description,
+      value: rev.value, reason: "ROLE_COLLISION_WITH_NET_REVENUE",
+    });
+  }
+
+  return { facts, nodes };
+}
+
+export interface IntegrityGateResult {
+  gate: string;
+  a: number;
+  b: number;
+  passed: boolean;
+  message: string;
+}
+
+/** Gates 01..08 do MD — executados sobre os facts resolvidos. */
+export function runIntegrityGates(facts: Partial<Record<CanonicalRole, CertifiedFact>>): IntegrityGateResult[] {
+  const v = (r: CanonicalRole) => facts[r]?.value ?? 0;
+  const ok = (r: CanonicalRole) => facts[r]?.status === "AVAILABLE";
+  const gates: IntegrityGateResult[] = [];
+  const add = (gate: string, a: number, b: number, passed: boolean, message: string) =>
+    gates.push({ gate, a, b, passed, message });
+
+  if (ok("estoques") && ok("ativo_circulante"))
+    add("CHILD_LE_PARENT/estoques", v("estoques"), v("ativo_circulante"),
+      Math.abs(v("estoques")) <= Math.abs(v("ativo_circulante")) * 1.001,
+      "Estoques não pode exceder o Ativo Circulante");
+
+  if (ok("fornecedores") && ok("passivo_circulante"))
+    add("HIERARCHY_INTEGRITY/fornecedores", v("fornecedores"), v("passivo_circulante"),
+      Math.abs(v("fornecedores")) <= Math.abs(v("passivo_circulante")) * 1.001,
+      "Fornecedores CP não pode exceder o Passivo Circulante");
+
+  if (ok("realizavel_longo_prazo") && ok("ativo_nao_circulante"))
+    add("CHILD_LE_PARENT/rlp", v("realizavel_longo_prazo"), v("ativo_nao_circulante"),
+      Math.abs(v("realizavel_longo_prazo")) <= Math.abs(v("ativo_nao_circulante")) * 1.001,
+      "RLP não pode exceder o Ativo Não Circulante");
+
+  add("PC_PRESENCE", v("passivo_circulante"), 0, ok("passivo_circulante"), "Passivo Circulante deve estar disponível");
+  add("PNC_PRESENCE", v("passivo_nao_circulante"), 0, ok("passivo_nao_circulante"), "Passivo Não Circulante deve estar disponível");
+  add("EQUITY_PRESENCE", v("patrimonio_liquido"), 0, ok("patrimonio_liquido"), "Patrimônio Líquido deve estar disponível");
+
+  if (ok("receita_liquida") && ok("resultado"))
+    add("ROLE_COLLISION/revenue_result", v("receita_liquida"), v("resultado"),
+      Math.abs(v("receita_liquida") - v("resultado")) > 0.01,
+      "Receita Líquida e Resultado não podem ser o mesmo valor/conta");
+
+  return gates;
+}

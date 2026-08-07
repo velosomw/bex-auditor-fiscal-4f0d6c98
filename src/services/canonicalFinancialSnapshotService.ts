@@ -108,8 +108,10 @@ function factsFromRow(r: BSDadosRow): CanonicalFacts {
   return {
     ativo_circulante: ac,
     ativo_nao_circulante: anc,
-    ativo_total: ac + anc,
+    // MD-P1-001: Ativo Total autoritativo (conta sintética "1") quando disponível.
+    ativo_total: Number.isFinite(r.ativo_total as number) ? (r.ativo_total as number) : ac + anc,
     realizavel_longo_prazo: r.realizavel_longo_prazo,
+
     estoques: r.estoques,
     disponivel: r.disponivel,
     passivo_circulante: pc,
@@ -197,7 +199,10 @@ export function buildCertifiedFinancialSnapshot(
   const critical: (keyof CanonicalFacts)[] = [
     "ativo_circulante", "passivo_circulante", "patrimonio_liquido",
   ];
-  const failed = critical.some(k => !Number.isFinite(num(latest.facts[k])));
+  const latestRow = rows.find(r => r.mesKey === latestKey);
+  const gateFailures = (latestRow?.integrity_gates || []).filter(g => !g.passed);
+  const failed = critical.some(k => !Number.isFinite(num(latest.facts[k]))) || gateFailures.length > 0;
+
 
   const snapshot: CertifiedFinancialSnapshot = {
     snapshot_id: `SNAP-${traceId}`,

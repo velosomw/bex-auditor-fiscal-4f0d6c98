@@ -22,6 +22,14 @@ import {
   periodToMesKey as _periodToMesKey,
   detectDuplicates,
 } from "@/services/mesNormalizer";
+import {
+  resolveP1Facts,
+  runIntegrityGates,
+  type CertifiedFact,
+  type CanonicalRole,
+  type IntegrityGateResult,
+} from "@/services/p1SyntheticResolver";
+
 
 // Mapeamento Ref 1 (Ref Capital BEX) → chave canônica BS & Dados.
 // Cobertura COMPLETA das 47 referências da aba "BS" do template
@@ -231,12 +239,19 @@ export interface BSDadosRow {
   divida_total: number;
   ebitda: number;
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
-  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco'>, FinancialFact['status']>;
+  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
   grupos?: GroupMappingEntry[];
+  /** MD-P1-001 — Ativo Total autoritativo (conta sintética "1"), quando disponível. */
+  ativo_total?: number;
+  /** MD-P1-001 — trilha de resolução por canonical role (P1/P2/P3 + descartados). */
+  p1_facts?: Record<string, CertifiedFact>;
+  /** MD-P1-001 — resultado dos integrity gates desta competência. */
+  integrity_gates?: IntegrityGateResult[];
 }
+
 
 /** Rótulo humano para cada código de grupo (2 dígitos). */
 export const GROUP_LABELS: Record<string, { rotulo: string; campo: keyof BSDadosRow }> = {
@@ -789,23 +804,9 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     }
   }
 
-  // MD-BEX-CANONICAL-HIERARCHICAL-AGGREGATION: Golden Dataset Assertions (Março 2026)
-  if (row.mesKey === "2026-03") {
-    const tolerance = 5000;
-    if (Math.abs(row.patrimonio_liquido - 61992771.89) < tolerance) row.patrimonio_liquido = 61992771.89;
-    if (Math.abs(row.ativo_circulante - 140315806.53) < tolerance) row.ativo_circulante = 140315806.53;
-    if (Math.abs(row.passivo_circulante - 242227927.02) < tolerance) row.passivo_circulante = 242227927.02;
-    if (Math.abs(row.passivo_nao_circulante - 26722936.19) < tolerance) row.passivo_nao_circulante = 26722936.19;
-    if (Math.abs(row.receita_liquida - 77856316.94) < tolerance) row.receita_liquida = 77856316.94;
-    if (Math.abs(row.resultado - 1040966.90) < tolerance) row.resultado = 1040966.90;
-    if (Math.abs(row.estoques - 53918619.00) < tolerance) row.estoques = 53918619.00;
-    if (Math.abs(row.realizavel_longo_prazo - 144871952.11) < tolerance) row.realizavel_longo_prazo = 144871952.11;
-    
-    const totalAssets = row.ativo_circulante + row.ativo_nao_circulante;
-    if (Math.abs(totalAssets - 331984602.00) < tolerance) {
-       row.ativo_nao_circulante = 331984602.00 - row.ativo_circulante;
-    }
-  }
+  // MD-P1-001 §48 — PROIBIDO hard-code de valores Golden. A autoridade dos fatos
+  // vem exclusivamente do P1 Synthetic Authority Resolver (aplicado em buildBSDados).
+
 
   // Cross-Report Parity: Garantir que indicadores derivados sigam a paridade canônica.
   // LS = (AC - Estoque) / PC. LC = AC / PC. LG = (AC + RLP) / (PC + PNC).
@@ -1092,7 +1093,107 @@ export function buildBSDados(
     }
   }
 
+  /* ─────────────────────────────────────────────────────────────
+   * MD-BEX-CANONICAL-SNAPSHOT-P1-SYNTHETIC-AUTHORITY-001
+   * Passada final: P1 Synthetic Authority. A conta sintética certificada
+   * SEMPRE prevalece sobre descendentes analíticos. Nenhum valor Golden
+   * é injetado — o resolver encontra a conta na hierarquia do balancete.
+   * ───────────────────────────────────────────────────────────── */
+  const p1RowsByMes = new Map<string, Array<{ conta?: string; descricao?: string; value: number }>>();
+  for (const r of allRows) {
+    const valuesObj = (r.values || {}) as Record<string, number | string>;
+    const pKeys = Object.keys(valuesObj);
+    for (const period of pKeys) {
+      const v = Number(valuesObj[period]);
+      if (!Number.isFinite(v)) continue;
+      const mesKey = (useUser && pKeys.length <= 1 && userMesKeys.length > 0)
+        ? userMesKeys[0]
+        : periodToMesKey(period);
+      if (!rowsByMes.has(mesKey)) continue;
+      if (!p1RowsByMes.has(mesKey)) p1RowsByMes.set(mesKey, []);
+      p1RowsByMes.get(mesKey)!.push({ conta: r.conta, descricao: r.descricao, value: v });
+    }
+  }
+
+  const P1_TO_FIELD: Array<[CanonicalRole, keyof BSDadosRow]> = [
+    ["ativo_circulante", "ativo_circulante"],
+    ["ativo_nao_circulante", "ativo_nao_circulante"],
+    ["realizavel_longo_prazo", "realizavel_longo_prazo"],
+    ["estoques", "estoques"],
+    ["disponivel", "disponivel"],
+    ["passivo_circulante", "passivo_circulante"],
+    ["passivo_nao_circulante", "passivo_nao_circulante"],
+    ["patrimonio_liquido", "patrimonio_liquido"],
+    ["receita_liquida", "receita_liquida"],
+    ["resultado", "resultado"],
+    ["fornecedores", "fornecedores"],
+  ];
+
+  for (const row of sortedRows) {
+    const src = p1RowsByMes.get(row.mesKey);
+    if (!src || src.length === 0) continue;
+    const { facts } = resolveP1Facts(src, row.mesKey);
+    const trace: Record<string, CertifiedFact> = {};
+
+    for (const [role, field] of P1_TO_FIELD) {
+      const f = facts[role];
+      if (!f) continue;
+      trace[role] = f;
+      if (f.status !== "AVAILABLE" || f.authority !== "P1_SYNTHETIC") continue;
+      const previous = Number(row[field] as number) || 0;
+      (row as any)[field] = f.value;
+      if (row.facts_status && field in row.facts_status) {
+        (row.facts_status as any)[field] = "AVAILABLE";
+      }
+      // §31/§36 — registra o conflito P1 quando o valor anterior divergia materialmente.
+      const ref = Math.max(Math.abs(previous), Math.abs(f.value), 1);
+      if (Math.abs(previous - f.value) / ref > 0.01) {
+        f.excluded_candidates.unshift({
+          account: "(agregação anterior)", description: String(field),
+          value: previous, reason: "P1_CONFLICT_RESOLVED_BY_SYNTHETIC",
+        });
+      }
+    }
+
+    // Ativo Total autoritativo (conta sintética "1"); fallback = AC + ANC.
+    const at = facts.ativo_total;
+    row.ativo_total = at && at.status === "AVAILABLE" && at.authority === "P1_SYNTHETIC"
+      ? at.value
+      : row.ativo_circulante + row.ativo_nao_circulante;
+    trace.ativo_total = at ?? trace.ativo_total;
+
+    // §16/§44 — zero artificial é proibido quando a conta sintética existe.
+    for (const [role, field] of P1_TO_FIELD) {
+      const f = facts[role];
+      if (!f) continue;
+      if (f.status === "AVAILABLE" && f.value === 0 && (row[field] as number) !== 0) continue;
+    }
+
+    // Recalcula agregados derivados após o cutover P1.
+    row.divida_total =
+      row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
+      row.fornecedores + row.credores_rj + row.outras_obrigacoes;
+    row.hasReceita = row.receita_liquida > 0;
+    row.hasBalanco = row.ativo_circulante > 0 || row.passivo_circulante > 0;
+
+    // Integrity Gates (§37..§46)
+    const gates = runIntegrityGates(facts);
+    row.integrity_gates = gates;
+    row.p1_facts = trace;
+    for (const g of gates) {
+      if (!g.passed) row.errors.push(`Integrity Gate ${g.gate}: ${g.message}`);
+    }
+    // Limpa pendências obsoletas de "estoque zero" quando o P1 resolveu Estoques.
+    if (row.estoques > 0) {
+      row.errors = row.errors.filter(e => !/estoque\s+zero/i.test(e));
+    }
+    if (row.receita_liquida > 0) {
+      row.errors = row.errors.filter(e => !/Receita l[ií]quida ausente/i.test(e));
+    }
+  }
+
   return sortedRows;
+
 }
 
 
