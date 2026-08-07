@@ -14,6 +14,7 @@
 import { buildBSDados, type BalanceteEntry, type BSDadosRow } from "@/services/bsDadosBuilder";
 import { computeIndicatorsForRow, type IndicatorRow } from "@/services/indicatorsEngine";
 import type { ParsedFinancialData } from "@/services/auditAIService";
+import { detectBalanceClosure, type BalanceClosure, type ResidualFacts } from "@/services/residualFactsResolver";
 
 export type FactStatus = "AVAILABLE" | "NOT_AVAILABLE";
 
@@ -58,6 +59,10 @@ export interface CanonicalCompetencySnapshot {
   facts_status: Record<string, FactStatus>;
   ratios: IndicatorRow;
   kanitz: CanonicalKanitzModel;
+  /** MD-FINAL-RESIDUAL-001 — tributos, trabalhistas, empréstimos, despesas financeiras, EBITDA. */
+  residual?: ResidualFacts;
+  /** MD-FINAL-RESIDUAL-001 §34..§37 — modo de fechamento patrimonial. */
+  closure: BalanceClosure;
 }
 
 export interface CertifiedFinancialSnapshot {
@@ -73,6 +78,8 @@ export interface CertifiedFinancialSnapshot {
   facts_status: Record<string, FactStatus>;
   ratios: IndicatorRow;
   kanitz: CanonicalKanitzModel;
+  residual?: ResidualFacts;
+  closure: BalanceClosure;
   /** Séries por competência — Balance History, gráficos e tabelas consomem daqui. */
   byCompetency: Record<string, CanonicalCompetencySnapshot>;
   competencies: string[];
@@ -182,6 +189,14 @@ export function buildCertifiedFinancialSnapshot(
       facts_status: (r.facts_status as Record<string, FactStatus>) || {},
       ratios: ind,
       kanitz: buildCanonicalKanitz(r.mesKey, facts, ind),
+      residual: r.residual_facts,
+      closure: detectBalanceClosure({
+        ativo_total: facts.ativo_total,
+        passivo_circulante: facts.passivo_circulante,
+        passivo_nao_circulante: facts.passivo_nao_circulante,
+        patrimonio_liquido: facts.patrimonio_liquido,
+        resultado_liquido: facts.resultado_liquido,
+      }),
     };
     history[r.mesKey] = ind;
   }
@@ -217,6 +232,8 @@ export function buildCertifiedFinancialSnapshot(
     facts_status: latest.facts_status,
     ratios: latest.ratios,
     kanitz: latest.kanitz,
+    residual: latest.residual,
+    closure: latest.closure,
     byCompetency,
     competencies,
     history,
