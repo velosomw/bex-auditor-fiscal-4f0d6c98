@@ -3466,8 +3466,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <ReportPage>
           <div className="space-y-4">
             <SectionTitle num="9" title="CONCLUSÃO TÉCNICA" />
-
-            </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
               <p className="text-sm text-foreground leading-relaxed">
                 {aiAnalysis?.diagnostico?.resumo || "A análise das demonstrações contábeis evidencia a estrutura financeira da empresa no período analisado, com base nos dados do balancete processado."}
@@ -3522,13 +3520,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </button>
           </div>
         </div>
-        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
-        <Button variant="outline" className="gap-1.5 hidden" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
-          <FileText className="w-4 h-4" /> Exportar .doc
-        </Button>
-        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
         <Button variant="outline" onClick={onBack} className="gap-1.5">
@@ -3538,6 +3533,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     </div>
   );
 };
+
 
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO KANITZ EXPANDIDO v2.0
