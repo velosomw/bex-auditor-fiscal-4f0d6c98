@@ -2594,35 +2594,24 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
   }> = [];
 
-  const indicatorSeries = bsRows ? _buildIndicatorSeries(bsRows) : {};
-
-  if (bsRows && bsRows.length > 0) {
-    const sorted = [...bsRows].sort((a, b) => a.mesKey.localeCompare(b.mesKey));
-    for (const r of sorted) {
-      const ind = indicatorSeries[r.mesKey];
-      if (!ind) continue;
-      const rpl = ind.roe / 12; // Mensal
-      const lg = ind.liquidezGeral;
-      const ls = ind.liquidezSeca;
-      const lc = ind.liquidezCorrente;
-      const ge = ind.grauEndividamentoPL;
+  const kanitzIndMap: Record<string, any> = {};
+  if (parsedData) {
+    const computed = computeIndicatorsFromParsed(parsedData);
+    Object.keys(computed).forEach(k => {
+      const ind = computed[k];
       const kAplic = ind._pl > 0;
-      
-      const fi = kAplic ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge) : 0;
+      const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * ind.grauEndividamentoPL) : 0;
       const isgValue = ind._at / (ind._pc + ind._pnc || 1);
-      
       const classificacao: any = !kAplic ? "na" :
         fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-        
+
       kanitzResults.push({
-        year: r.mes, rpl, lg, ls, lc, ge, fi, classificacao,
-        ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl,
-        estoque: ind._estoque, rlp: r.realizavel_longo_prazo || 0,
-        pt: ind._pc + ind._pnc, ll: ind._resultado, at: ind._at, rl: ind._receita,
-        ebitda: ind.ebitda, lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin),
-        despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
+        year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
+        ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
+        ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
+        lajir: ind._resultado + ind._despFin, despFin: ind._despFin, kanitzAplicavel: kAplic, isg: isgValue
       });
-    }
+    });
   }
 
   if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
