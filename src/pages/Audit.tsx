@@ -2618,15 +2618,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const caixa = d?.disponivel || 0;
   const dividaOnerosa = emprestimos;
 
-
   const pc = d?.passivo_circulante || 0;
   const pnc = d?.passivo_nao_circulante || 0;
   const ac = d?.ativo_circulante || 0;
   const anc = d?.ativo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
 
-  const latestInd = reportDataset?.ratios;
-  const emprestimos = Math.abs(latestInd?._dividaFinanceira || 0);
   const tributos = Math.abs(latestInd?._dividaTributaria || 0);
   const trabalhista = Math.abs(latestInd?._dividaTrabalhista || 0);
   const fornec = d?.fornecedores || 0;
