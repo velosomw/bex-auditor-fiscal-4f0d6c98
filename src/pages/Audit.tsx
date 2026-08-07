@@ -2611,6 +2611,18 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   });
   const latestYear = years[years.length - 1];
   const indForDashboard = latestYear ? computedInd[latestYear] : null;
+  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
+  const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
+  const activePend = aiAnalysis?.pendencias || pendencias;
+
+  const hasBexScore = false; 
+  const scoreColor = "text-slate-400";
+  const scoreBg = "bg-slate-100 border-slate-200";
+  const scoreLabel = "Score Desativado";
+  const riskIcon = "📋";
+  const caixa = d?.disponivel || 0;
+  const dividaOnerosa = emprestimos;
+
   const pc = d?.passivo_circulante || 0;
   const pnc = d?.passivo_nao_circulante || 0;
   const ac = d?.ativo_circulante || 0;
