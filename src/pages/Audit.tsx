@@ -2502,8 +2502,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const ind = computedInd;
   
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
-  const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
-  const activePend = aiAnalysis?.pendencias || pendencias;
 
   // Removido BEx Score conforme instrução de Hard Cutover
   const hasBexScore = false; 
@@ -2932,10 +2930,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       const yInd = ind[y];
                       return {
                         name: y,
-                        "LIQUIDEZ IMEDIATA": yInd?.liquidezImediata != null ? parseFloat(yInd.liquidezImediata.toFixed(2)) : 0,
-                        "LIQUIDEZ CORRENTE": yInd?.liquidezCorrente != null ? parseFloat(yInd.liquidezCorrente.toFixed(2)) : 0,
-                        "LIQUIDEZ SECA": yInd?.liquidezSeca != null ? parseFloat(yInd.liquidezSeca.toFixed(2)) : 0,
-                        "LIQUIDEZ GERAL": yInd?.liquidezGeral != null ? parseFloat(yInd.liquidezGeral.toFixed(2)) : 0,
+                        "LIQUIDEZ IMEDIATA": yInd?.liquidezImediata != null ? parseFloat(((yInd.liquidezImediata) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ CORRENTE": yInd?.liquidezCorrente != null ? parseFloat(((yInd.liquidezCorrente) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ SECA": yInd?.liquidezSeca != null ? parseFloat(((yInd.liquidezSeca) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ GERAL": yInd?.liquidezGeral != null ? parseFloat(((yInd.liquidezGeral) ?? 0).toFixed(2)) : 0,
                       };
                     })} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -3110,9 +3108,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       const pct = receita > 0 ? (Math.abs(cmvDesp) / receita) * 100 : 0;
                       return {
                         name: y,
-                        "Receita Líquida": parseFloat(receita.toFixed(0)),
-                        "CMV + DESPESA / RECEITA LÍQUIDA": parseFloat(cmvDesp.toFixed(0)),
-                        pct: parseFloat(pct.toFixed(2)),
+                        "Receita Líquida": parseFloat(((receita) ?? 0).toFixed(0)),
+                        "CMV + DESPESA / RECEITA LÍQUIDA": parseFloat(((cmvDesp) ?? 0).toFixed(0)),
+                        pct: parseFloat(((pct) ?? 0).toFixed(2)),
                       };
                     })} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -3535,13 +3533,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 <h3 className="text-sm font-semibold text-foreground mb-3 text-center">TERMÔMETRO DE KANITZ</h3>
                 <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(r.fi.toFixed(2)) }))} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
+                    <LineChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(((r.fi) ?? 0).toFixed(2)) }))} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} tickFormatter={(v) => v.toFixed(2)} />
-                      <Tooltip formatter={(v: number) => [v.toFixed(2), "Fator de Insolvência"]} />
+                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} tickFormatter={(v) => ((v) ?? 0).toFixed(2)} />
+                      <Tooltip formatter={(v: number) => [((v) ?? 0).toFixed(2), "Fator de Insolvência"]} />
                       <Line type="linear" dataKey="FI" stroke="#ed7d31" strokeWidth={2.5} dot={{ r: 4, fill: "#ed7d31" }}>
-                        <LabelList dataKey="FI" position="top" fontSize={10} fill="#ed7d31" formatter={(v: number) => v.toFixed(2)} />
+                        <LabelList dataKey="FI" position="top" fontSize={10} fill="#ed7d31" formatter={(v: number) => ((v) ?? 0).toFixed(2)} />
                       </Line>
                     </LineChart>
                   </ResponsiveContainer>
