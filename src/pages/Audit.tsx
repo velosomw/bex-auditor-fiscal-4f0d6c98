@@ -201,7 +201,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
           scrollY: 0,
           imageTimeout: 15000,
           onclone: (clonedDoc) => {
-            // Remove Score BEx (Gate 21) from the exported clone if it exists
+            // MD-BEX-CANONICAL-HIERARCHICAL-AGGREGATION: Remove Score BEx (Gate 21) from the exported clone
             clonedDoc.querySelectorAll('.score-bex, [class*="score-bex"], .bex-score-display').forEach(n => n.remove());
             
             const images = clonedDoc.getElementsByTagName('img');

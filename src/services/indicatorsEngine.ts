@@ -118,7 +118,6 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const resultado = r.resultado || 0;
 
   // LAJIR (proxy): resultado + despesas financeiras − receitas financeiras
-  // MD-001 Point 29: REMOÇÃO DEFINITIVA do EBITDA proxy (10% despesas financeiras).
   const lajir = resultado + despFinAbs - recFinAbs;
 
   // Prazos em DIAS sobre base mensal (×30) — bate com planilha BEX p/ meses isolados e séries
