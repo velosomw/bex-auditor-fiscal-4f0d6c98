@@ -3384,9 +3384,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
             <p className="text-sm text-muted-foreground mt-3 italic">Relatório Financeiro de Inteligência de Risco</p>
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-500/30 bg-amber-500/5 mt-8">
-              <span className="text-lg">{kanitzClassColors[latestKanitz.classificacao]?.icon}</span>
-              <span className="text-sm font-semibold text-foreground">{kanitzClassColors[latestKanitz.classificacao]?.label} — FI: {(latestKanitz.fi ?? 0).toFixed(2)}</span>
+            <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full border ${!latestKanitz.kanitzAplicavel ? "border-slate-500/30 bg-slate-500/5" : "border-amber-500/30 bg-amber-500/5"} mt-8`}>
+              <span className="text-lg">{!latestKanitz.kanitzAplicavel ? "⚠️" : kanitzClassColors[latestKanitz.classificacao]?.icon}</span>
+              <span className="text-sm font-semibold text-foreground">
+                {!latestKanitz.kanitzAplicavel ? `NÃO APLICÁVEL | PL: R$ ${fmt(latestKanitz.pl)}` : `${kanitzClassColors[latestKanitz.classificacao]?.label} — FI: ${(latestKanitz.fi ?? 0).toFixed(2)}`}
+              </span>
             </div>
             <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">Empresa Analisada S.A.</p></div>
