@@ -2890,8 +2890,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               {[
                 { title: "Capacidade de Pagamento", text: "A empresa apresenta liquidez corrente de " + (latestInd ? fmtPct(latestInd.liquidezCorrente) : "N/A") + ", indicando capacidade de honrar obrigações de curto prazo." },
                 { title: "Avaliação de Risco de Insolvência", text: "O Score BEX-RJ de " + activeScore.score + " pontos classifica a empresa na faixa de \"" + scoreLabel + "\". A análise multifatorial considera endividamento, liquidez, patrimônio líquido, geração de caixa e concentração de dívida." },
-                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(Math.abs(d?.patrimonio_liquido || 0)) + " e capital de giro líquido " + (ac - pc > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
-                { title: "Probabilidade Estrutural de RJ", text: activeScore.score <= 30 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : activeScore.score <= 60 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
+                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(latestInd?._pl || 0) + " e capital de giro líquido " + ((latestInd?._ac || 0) - (latestInd?._pc || 0) > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
+                { title: "Probabilidade Estrutural de RJ", text: (latestInd?.liquidezCorrente ?? 0) > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : (latestInd?.liquidezCorrente ?? 0) > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
                 <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30">
                   <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
@@ -2924,17 +2924,31 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {activePend.map((p: any, i: number) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="text-[10px] font-mono px-1">{i + 1}</TableCell>
-                      <TableCell className="text-[10px] px-1">{p.tipo}</TableCell>
-                      <TableCell className="text-[10px] font-mono px-1 truncate">{p.conta}</TableCell>
-                      <TableCell className="text-[10px] px-1 leading-tight">{p.problema}</TableCell>
-                      <TableCell className="px-1 text-center"><Badge className={`${severityColors[p.gravidade]?.bg} text-[9px] px-1 py-0 h-4`}>{severityColors[p.gravidade]?.label}</Badge></TableCell>
-                      <TableCell className="text-[10px] px-1 leading-tight">{p.impacto}</TableCell>
-                      <TableCell className="text-[10px] px-1 leading-tight">{p.recomendacao}</TableCell>
-                    </TableRow>
-                  ))}
+                  {activePend
+                    .filter((p: any) => {
+                      // Filter out platform-error-based pendencies
+                      const prob = (p.problema || "").toLowerCase();
+                      const impact = (p.impacto || "").toLowerCase();
+                      const isInternalError = 
+                        prob.includes("reportada como 0") || 
+                        prob.includes("reportado como zero") ||
+                        impact.includes("fatores determinísticos") ||
+                        prob.includes("não capturado") ||
+                        (prob.includes("receita líquida") && prob.includes("zero")) ||
+                        (prob.includes("estoque") && prob.includes("zero"));
+                      return !isInternalError;
+                    })
+                    .map((p: any, i: number) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="text-[10px] font-mono px-1">{i + 1}</TableCell>
+                        <TableCell className="text-[10px] px-1">{p.tipo}</TableCell>
+                        <TableCell className="text-[10px] font-mono px-1 truncate">{p.conta}</TableCell>
+                        <TableCell className="text-[10px] px-1 leading-tight">{p.problema}</TableCell>
+                        <TableCell className="px-1 text-center"><Badge className={`${severityColors[p.gravidade]?.bg} text-[9px] px-1 py-0 h-4`}>{severityColors[p.gravidade]?.label}</Badge></TableCell>
+                        <TableCell className="text-[10px] px-1 leading-tight">{p.impacto}</TableCell>
+                        <TableCell className="text-[10px] px-1 leading-tight">{p.recomendacao}</TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </div>
@@ -2997,7 +3011,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
                       <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
-                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtPct(item.value) : "—"}</TableCell>
+                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtDec(item.value) : "—"}</TableCell>
                       <TableCell className="text-[10px] text-muted-foreground">{item.interp}</TableCell>
                     </TableRow>
                   ))}
