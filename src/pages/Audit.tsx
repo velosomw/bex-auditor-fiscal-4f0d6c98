@@ -3892,7 +3892,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 : l.classificacao === "atencao"
                 ? `A empresa encontra-se em ZONA DE ATENÇÃO com FI de ${(l.fi ?? 0).toFixed(2)}. Indicadores de liquidez e endividamento apresentam fragilidades que requerem monitoramento contínuo.`
                 : l.classificacao === "risco"
-                ? `A empresa está em ZONA DE RISCO com FI de ${(l.fi ?? 0).toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(reportDataset?.ratios.liquidezSeca || 0)} e Grau de Endividamento de ${fmtDec(reportDataset?.ratios.grauEndividamento || 0)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
+                ? `A empresa está em ZONA DE RISCO com FI de ${(l.fi ?? 0).toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(reportDataset?.ratios.liquidezSeca || 0)} e Grau de Endividamento de ${fmtDec(reportDataset?.ratios.endividamentoTotal || 0)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
                 : `A empresa apresenta ALTA PROBABILIDADE DE INSOLVÊNCIA com FI de ${(l.fi ?? 0).toFixed(2)}. A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005.`}
 
             </p>
