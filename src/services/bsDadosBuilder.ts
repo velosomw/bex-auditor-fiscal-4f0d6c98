@@ -488,10 +488,21 @@ function applyValue(
       case "divida_tributaria":
       case "divida_trabalhista":
       case "divida_financeira":
-      case "fornecedores":
       case "credores_rj":
       case "outras_obrigacoes":
         (target as any)[key] = (target[key] as number) + Math.abs(v); break;
+      case "fornecedores": {
+        // MD-001 Point 13: Resolução semântica obrigatória.
+        // Se a conta for Ativo (grupo 1), é "Adiantamento a Fornecedores" (ignora aqui ou move p/ AC).
+        // Somente se for Passivo (grupo 2) é considerado financial.suppliers.
+        const codePrefix = String(ref1 || "").substring(0, 1);
+        if (codePrefix === "1" || parentGTPresent && buckets.groupTotalsPresent.has("11")) {
+           // É adiantamento (Ativo) -> ignora no passivo exigível "fornecedores"
+        } else {
+           (target as any)[key] = (target[key] as number) + Math.abs(v);
+        }
+        break;
+      }
       case "outras_nao_operacionais":
         target.outras_nao_operacionais += v; break;
       default: break;
