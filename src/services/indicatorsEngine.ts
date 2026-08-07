@@ -172,12 +172,14 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   };
 
   // Mapeia status dos indicadores baseado na disponibilidade dos fatos
-  const s = r.facts_status || {};
-  res.indicators_status.liquidezCorrente = (s.ativo_circulante === "AVAILABLE" && s.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
-  res.indicators_status.liquidezSeca = (s.ativo_circulante === "AVAILABLE" && s.estoques === "AVAILABLE" && s.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
-  res.indicators_status.endividamentoTotal = (s.passivo_circulante === "AVAILABLE" && s.ativo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
-  res.indicators_status.margemLiquida = (s.resultado === "AVAILABLE" && s.receita_liquida === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
-  res.indicators_status.ebitda = (s.resultado === "AVAILABLE" && s.despesas_financeiras === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+  const s = r.facts_status;
+  if (s) {
+    res.indicators_status.liquidezCorrente = (s.ativo_circulante === "AVAILABLE" && s.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+    res.indicators_status.liquidezSeca = (s.ativo_circulante === "AVAILABLE" && s.estoques === "AVAILABLE" && s.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+    res.indicators_status.endividamentoTotal = (s.passivo_circulante === "AVAILABLE" && s.ativo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+    res.indicators_status.margemLiquida = (s.resultado === "AVAILABLE" && s.receita_liquida === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+    res.indicators_status.ebitda = (s.resultado === "AVAILABLE" && s.despesas_financeiras === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+  }
   
   return res;
 }
