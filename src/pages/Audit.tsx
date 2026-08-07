@@ -2806,8 +2806,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">1.2 Principais Pontos Identificados</h3>
+            {/* MD-CUTOVER-001 §6/§9 — Narrative Number Gate: pontos derivados exclusivamente do snapshot. */}
             <div className="space-y-2">
-              {(activeDiag.pontosChave || []).map((p: any) => (
+              {canonicalKeyPoints.map((p) => (
                 <div key={p.item} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/30">
                   <div className="flex items-center gap-3">
                     <div className={`w-2.5 h-2.5 rounded-full ${
@@ -2821,6 +2822,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               ))}
             </div>
           </div>
+
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Técnico IA</h3>
