@@ -303,6 +303,21 @@ function emptyRow(mesKey: string): BSDadosRow {
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0,
+    facts_status: {
+      receita_liquida: "NOT_AVAILABLE", cmv: "NOT_AVAILABLE", despesas: "NOT_AVAILABLE",
+      despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
+      outras_nao_operacionais: "NOT_AVAILABLE", depreciacao: "NOT_AVAILABLE",
+      amortizacao: "NOT_AVAILABLE", resultado: "NOT_AVAILABLE",
+      ativo_circulante: "NOT_AVAILABLE", ativo_nao_circulante: "NOT_AVAILABLE",
+      realizavel_longo_prazo: "NOT_AVAILABLE", investimentos: "NOT_AVAILABLE",
+      intangivel: "NOT_AVAILABLE", estoques: "NOT_AVAILABLE", disponivel: "NOT_AVAILABLE",
+      contas_receber: "NOT_AVAILABLE", imobilizado: "NOT_AVAILABLE",
+      passivo_circulante: "NOT_AVAILABLE", passivo_nao_circulante: "NOT_AVAILABLE",
+      patrimonio_liquido: "NOT_AVAILABLE", divida_tributaria: "NOT_AVAILABLE",
+      divida_trabalhista: "NOT_AVAILABLE", divida_financeira: "NOT_AVAILABLE",
+      fornecedores: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
+      outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE",
+    },
     hasReceita: false, hasBalanco: false, errors: [],
   };
 }
