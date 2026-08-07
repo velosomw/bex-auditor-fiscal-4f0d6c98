@@ -2618,7 +2618,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const latestInd = reportDataset?.ratios;
   const emprestimos = latestInd?._dividaFinanceira || 0;
-  const caixa = reportDataset?.facts.disponivel || 0;
+  const caixa = (reportDataset?.facts as any)?.disponivel || 0;
   const dividaOnerosa = emprestimos;
 
   const pc = d?.passivo_circulante || 0;
