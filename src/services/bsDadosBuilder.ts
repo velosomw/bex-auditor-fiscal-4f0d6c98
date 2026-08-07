@@ -195,47 +195,51 @@ export interface GroupMappingEntry {
   campo: keyof BSDadosRow | "ignore";
 }
 
+export interface FinancialFact {
+  value: number;
+  status: "AVAILABLE" | "NOT_AVAILABLE" | "NOT_CERTIFIED" | "NOT_APPLICABLE";
+}
+
 export interface BSDadosRow {
   mes: string;            // "Março 2024"
   mesKey: string;         // "2024-03"
-  // DRE (variação mensal após detecção YTD)
+  // DRE
   receita_liquida: number;
   cmv: number;
-  despesas: number;             // despesas operacionais (administrativas, comerciais)
-  despesas_financeiras: number; // grupo 7 — separado das operacionais
-  receitas_financeiras: number; // grupo 7+ / DRE 50.B — usado em EBITDA (subtrai)
-  outras_nao_operacionais: number; // grupo 8 — não operacionais (signed)
+  despesas: number;
+  despesas_financeiras: number;
+  receitas_financeiras: number;
+  outras_nao_operacionais: number;
   depreciacao: number;
   amortizacao: number;
   resultado: number;
-  // BALANÇO — Ativos
+  // BALANÇO
   ativo_circulante: number;
   ativo_nao_circulante: number;
-  realizavel_longo_prazo: number; // RLP (Refs P..T) — subset de ANC, usado em Liquidez Geral
-  investimentos: number;          // Ref B1 — subgrupo ANC (Onda 2)
-  intangivel: number;             // Ref D1 — subgrupo ANC (Onda 2, separado do imobilizado)
+  realizavel_longo_prazo: number;
+  investimentos: number;
+  intangivel: number;
   estoques: number;
   disponivel: number;
   contas_receber: number;
-  imobilizado: number;            // Ref C1
-  // BALANÇO — Passivos & PL
+  imobilizado: number;
   passivo_circulante: number;
   passivo_nao_circulante: number;
   patrimonio_liquido: number;
-  // Componentes de dívida (sempre positivos)
+  // Componentes de dívida
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
   fornecedores: number;
   credores_rj: number;
-  outras_obrigacoes: number;    // resíduo do PC (Ref JJ)
-  divida_total: number; // (PC + PNC)
-  ebitda: number;       // EBITDA Certificado
-  // Flags
+  outras_obrigacoes: number;
+  divida_total: number;
+  ebitda: number;
+  // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
+  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
-  /** Trilha de auditoria explicável — mapeamento por grupo (2 dígitos). */
   grupos?: GroupMappingEntry[];
 }
 
