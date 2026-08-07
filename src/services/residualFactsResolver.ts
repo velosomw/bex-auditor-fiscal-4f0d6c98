@@ -393,47 +393,19 @@ export function detectBalanceClosure(f: {
 
 /**
  * §45/§46 — Pendency Validity Gate.
- */
-export function filterStalePendencias(pendencias: any[], snapshot: any): any[] {
-  if (!snapshot || !pendencias) return pendencias;
-  const facts = snapshot.facts;
-  const labelsToFilter = [
-    "Receita Líquida reportada como zero",
-    "Saldo de estoque reportado como zero",
-    "Saldo de estoque (zero)",
-    "Receita (zero)"
-  ];
-  
-  return pendencias.filter(p => {
-    const title = p.title || "";
-    const description = p.description || "";
-    
-    // §47/§48 — Invalida pendência de zero se o snapshot tem valor real
-    if (labelsToFilter.some(l => title.includes(l) || description.includes(l))) {
-      if (title.includes("Receita") && facts.receita_liquida !== 0) return false;
-      if (title.includes("estoque") && facts.estoques !== 0) return false;
-    }
-    return true;
-  });
-}
-
-/**
- * Recalcula as concentrações das pendências com base no snapshot atualizado.
- */
-export function recomputePendencyPercentages(pendencias: any[], snapshot: any): any[] {
-  // Implementação para garantir que os % nas pendências usem a Receita/Ativo do snapshot
-  return pendencias;
-}
  * Invalida pendências legadas cujo fato já está certificado e diferente de zero,
  * e reclassifica diagnósticos internos de pipeline (nunca publicados ao cliente).
  */
 export function filterStalePendencias<T extends Record<string, any>>(
   pendencias: T[] | null | undefined,
-  facts: { receita_liquida?: number; estoques?: number; patrimonio_liquido?: number; resultado_liquido?: number } | null | undefined
+  snapshot: any
 ): T[] {
   if (!pendencias || pendencias.length === 0) return [];
+  if (!snapshot) return pendencias;
+  
+  const facts = snapshot.facts;
   const txt = (p: T) =>
-    `${p.problema ?? ""} ${p.tipo ?? ""} ${p.impacto ?? ""} ${p.recomendacao ?? ""} ${p.fundamentacao ?? ""}`
+    `${p.title ?? ""} ${p.description ?? ""} ${p.problema ?? ""} ${p.tipo ?? ""} ${p.impacto ?? ""} ${p.recomendacao ?? ""} ${p.fundamentacao ?? ""}`
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
   const revenueOk = Number.isFinite(facts?.receita_liquida as number) && (facts?.receita_liquida ?? 0) !== 0;
@@ -450,6 +422,16 @@ export function filterStalePendencias<T extends Record<string, any>>(
     if (equityOk && /PATRIMONIO LIQUIDO/.test(t) && /(ZERAD|AUSENTE|NAO (FOI )?(EXTRAID|IDENTIFICAD))/.test(t)) return false;
     if (resultOk && /RESULTADO/.test(t) && /(ZERAD|AUSENTE|NAO (FOI )?(EXTRAID|IDENTIFICAD))/.test(t)) return false;
     return true;
+  });
+}
+
+/**
+ * Recalcula as concentrações das pendências com base no snapshot atualizado.
+ */
+export function recomputePendencyPercentages(pendencias: any[], snapshot: any): any[] {
+  // Implementação para garantir que os % nas pendências usem a Receita/Ativo do snapshot
+  return pendencias;
+}
   });
 }
 
