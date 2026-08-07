@@ -3817,15 +3817,15 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const ind = computed[year];
       if (!ind) continue;
 
-      const kAplic = ind._pl > 0;
-      const rpl = kAplic ? ind.roe / 12 : 0;
+      const kanitzAplicavel = ind._pl > 0;
+      const rpl = kanitzAplicavel ? ind.roe / 12 : 0;
       const lg = ind.liquidezGeral;
       const ls = ind.liquidezSeca;
       const lc = ind.liquidezCorrente;
-      const ge = kAplic ? ind.grauEndividamentoPL : 0;
-      const fi = kAplic ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge) : 0;
+      const ge = kanitzAplicavel ? ind.grauEndividamentoPL : 0;
+      const fi = kanitzAplicavel ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge) : 0;
       const isg = ind._at / (ind._pc + ind._pnc || 1);
-      const classificacao: KanitzRow["classificacao"] = !kAplic ? "na"
+      const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
         : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
 
       const ac = ind._ac;
