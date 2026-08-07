@@ -3058,12 +3058,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={years.map(y => {
                       const yInd = computedInd[y];
-                      const tributarias = Math.abs(yInd?._pt || 0) * 0.1;
-                      const trabalhistas = Math.abs(yInd?._pt || 0) * 0.1;
-                      const emprestimos = Math.abs(yInd?._pt || 0) * 0.2;
+                      const tributarias = Math.abs(yInd?._divida_tributaria || 0);
+                      const trabalhistas = Math.abs(yInd?._divida_trabalhista || 0);
+                      const emprestimos = Math.abs(yInd?._divida_financeira || 0);
                       const fornecedores = Math.abs(yInd?._fornecedores || 0);
-                      const credoresRJ = Math.abs(yInd?._pt || 0) * 0.05; // Placeholder mock
-                      const outras = Math.abs(yInd?._pt || 0) - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ;
+                      const credoresRJ = Math.abs(yInd?._credores_rj || 0);
+                      const pt = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
+                      const outras = Math.max(0, pt - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ);
 
 
 
