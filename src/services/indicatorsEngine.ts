@@ -128,7 +128,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const pmr = div(contasReceber * 30, receita);
   const pmp = div(r.fornecedores * 30, cmvAbs);
   const ime = div(estoque * 30, cmvAbs);
-  const rlpEff = rlp > 0 ? rlp : anc;
+  const rlpEff = rlp; // MD-BEX-RUNTIME-CONSUMER Requirement 19: Prohibit fallback to ANC for RLP.
 
   const res: IndicatorRow = {
     mesKey: r.mesKey,
