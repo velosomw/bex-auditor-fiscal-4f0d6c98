@@ -455,5 +455,3 @@ export function recomputePendencyPercentages<T extends Record<string, any>>(
     return out as T;
   });
 }
-  });
-}
