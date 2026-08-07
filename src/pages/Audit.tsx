@@ -4479,50 +4479,67 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-[10px]">Componente</TableHead>
-                  <TableHead className="text-[10px]">Peso</TableHead>
-                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year} (Valor)</TableHead>)}
-                  {kanitzResults.map(r => <TableHead key={`w-${r.year}`} className="text-right text-[10px]">{r.year} (Ponderado)</TableHead>)}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  { name: "RPL (X1)", peso: 0.05, key: "rpl" as const },
-                  { name: "LG (X2)", peso: 1.65, key: "lg" as const },
-                  { name: "LS (X3)", peso: 3.55, key: "ls" as const },
-                  { name: "LC (X4)", peso: -1.06, key: "lc" as const },
-                  { name: "GE (X5)", peso: -0.33, key: "ge" as const },
-                ].map(c => (
-                  <TableRow key={c.name}>
-                    <TableCell className="text-xs font-mono font-bold">{c.name}</TableCell>
-                    <TableCell className="text-xs font-mono">{c.peso > 0 ? `+${c.peso}` : c.peso}</TableCell>
+          {/* MD-FINAL-RESIDUAL-001 §48..§52 — memória legível: valores e ponderações em tabelas
+              separadas, largura fixa e sem quebra letra a letra. */}
+          {[
+            { title: "Tabela A — Valores dos Componentes", weighted: false },
+            { title: "Tabela B — Contribuição Ponderada (Peso × Valor)", weighted: true },
+          ].map(tbl => (
+            <div key={tbl.title} className="mb-4 break-inside-avoid" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">{tbl.title}</h3>
+              <Table style={{ tableLayout: "fixed", width: "100%", wordBreak: "normal" }}>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="text-[10px]" style={{ width: "22%" }}>Componente</TableHead>
+                    <TableHead className="text-[10px]" style={{ width: "12%" }}>Peso</TableHead>
                     {kanitzResults.map(r => (
-                      <TableCell key={r.year} className="text-right text-xs font-mono">{fmtDec(r[c.key])}</TableCell>
-                    ))}
-                    {kanitzResults.map(r => (
-                      <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * (r[c.key] ?? 0)).toFixed(4)}</TableCell>
+                      <TableHead key={r.year} className="text-right text-[10px]" style={{ width: `${66 / Math.max(kanitzResults.length, 1)}%` }}>
+                        {fmtMonthCompact ? fmtMonthCompact(r.year) : r.year}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))}
-                <TableRow className="border-t-2 border-foreground/20">
-                  <TableCell className="text-xs font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
-                  {kanitzResults.map(r => <TableCell key={r.year} className="text-right" />)}
-                  {kanitzResults.map(r => (
-                    <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>{(r.fi ?? 0).toFixed(2)}</TableCell>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { name: "RPL (X1)", peso: 0.05, key: "rpl" as const },
+                    { name: "LG (X2)", peso: 1.65, key: "lg" as const },
+                    { name: "LS (X3)", peso: 3.55, key: "ls" as const },
+                    { name: "LC (X4)", peso: -1.06, key: "lc" as const },
+                    { name: "GE (X5)", peso: -0.33, key: "ge" as const },
+                  ].map(c => (
+                    <TableRow key={c.name}>
+                      <TableCell className="text-[10px] font-mono font-bold">{c.name}</TableCell>
+                      <TableCell className="text-[10px] font-mono">{c.peso > 0 ? `+${c.peso}` : c.peso}</TableCell>
+                      {kanitzResults.map(r => (
+                        <TableCell key={r.year} className="text-right text-[10px] font-mono">
+                          {!r.kanitzAplicavel ? "N/A" : tbl.weighted ? (c.peso * (r[c.key] ?? 0)).toFixed(4) : fmtDec(r[c.key])}
+                        </TableCell>
+                      ))}
+                    </TableRow>
                   ))}
-                </TableRow>
-                <TableRow className="bg-amber-500/5">
-                  <TableCell className="text-xs font-bold" colSpan={2}>ISG (AT / PT)</TableCell>
-                  {kanitzResults.map(r => <TableCell key={`isg-v-${r.year}`} className="text-right text-xs font-mono">{(r.isg ?? 0).toFixed(2)}</TableCell>)}
-                  {kanitzResults.map(r => <TableCell key={`isg-w-${r.year}`} className="text-right" />)}
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+                  {tbl.weighted && (
+                    <TableRow className="border-t-2 border-foreground/20">
+                      <TableCell className="text-[10px] font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
+                      {kanitzResults.map(r => (
+                        <TableCell key={`fi-${r.year}`} className={`text-right text-[11px] font-bold font-mono ${classColors[r.classificacao]?.color || ""}`}>
+                          {!r.kanitzAplicavel ? "N/A" : (r.fi ?? 0).toFixed(2)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )}
+                  {tbl.weighted && (
+                    <TableRow className="bg-amber-500/5">
+                      <TableCell className="text-[10px] font-bold" colSpan={2}>ISG (AT / PT)</TableCell>
+                      {kanitzResults.map(r => (
+                        <TableCell key={`isg-${r.year}`} className="text-right text-[10px] font-mono">{(r.isg ?? 0).toFixed(2)}</TableCell>
+                      ))}
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          ))}
+
 
           <div className="mt-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">Dados Utilizados</h3>
