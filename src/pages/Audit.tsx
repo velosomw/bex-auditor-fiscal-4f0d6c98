@@ -4660,6 +4660,45 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   }, [parsedData, balanceteEntries]);
 
 
+  const computeIndicatorsFromParsed = useCallback((parsed: ParsedFinancialData | null): Record<string, IndicatorRow> => {
+    if (!parsed) return {};
+    const rows = buildBSDados(parsed, balanceteEntries || []);
+    const out: Record<string, IndicatorRow> = {};
+    rows.forEach(r => {
+      out[r.mesKey] = computeIndicatorsForRow(r);
+    });
+    return out;
+  }, [balanceteEntries]);
+
+  const reportDataset: CanonicalReportDataset | null = useMemo(() => {
+    if (!parsedData || !company) return null;
+    const computed = computeIndicatorsFromParsed(parsedData);
+    const years = Object.keys(computed).sort();
+    const latestYear = years[years.length - 1];
+    if (!latestYear) return null;
+    
+    const rows = buildBSDados(parsedData, balanceteEntries || []);
+    const latestRow = rows.find(r => r.mesKey === latestYear);
+    if (!latestRow) return null;
+
+    return {
+      traceId: `BEX-RUNTIME-${latestYear}-${Date.now()}`,
+      facts: {
+        ativo_circulante: latestRow.ativo_circulante || 0,
+        ativo_nao_circulante: latestRow.ativo_nao_circulante || 0,
+        passivo_circulante: latestRow.passivo_circulante || 0,
+        passivo_nao_circulante: latestRow.passivo_nao_circulante || 0,
+        patrimonio_liquido: latestRow.patrimonio_liquido || 0,
+        receita_liquida: latestRow.receita_liquida || 0,
+        resultado_periodo: latestRow.resultado_periodo || 0,
+        estoques: latestRow.estoques || 0,
+        fornecedores: latestRow.fornecedores || 0,
+      },
+      ratios: computed[latestYear],
+      history: computed,
+    };
+  }, [parsedData, company, computeIndicatorsFromParsed, balanceteEntries]);
+
   const persistReport = (variant: "resumido" | "completo") => {
     // FIX #4 — SEMPRE prioriza valores DETERMINÍSTICOS do servidor.
     // Quando ausentes, registra warning para investigação (não silencia).
