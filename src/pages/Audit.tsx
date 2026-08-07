@@ -1619,7 +1619,7 @@ const computeIndicatorsFromBSRows = (rows: any[]) => {
 const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: ParsedFinancialData | ConsolidatedFinancialData | null; aiAnalysis?: any; bsRows?: any[] }) => {
   const { state } = useAudit();
   const computedInd = useMemo(
-    () => (bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromBSRows(parsedData || null)),
+    () => (bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null)),
     [bsRows, parsedData],
   );
   const hasComputed = Object.keys(computedInd).length > 0;
@@ -1795,7 +1795,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
 /* ── Tab 3: Análise de Endividamento ── */
 const TabEndividamento = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; parsedData?: ParsedFinancialData | null; bsRows?: any[] }) => {
   const computedInd = useMemo(
-    () => (bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromBSRows(parsedData || null)),
+    () => (bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null)),
     [bsRows, parsedData],
   );
   const years = Object.keys(computedInd).sort();
@@ -2491,7 +2491,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   });
   const today = new Date().toLocaleDateString("pt-BR");
   
-  const computedInd = computeIndicatorsFromBSRows(parsedData || null);
+  const computedInd = computeIndicatorsFromParsed(parsedData || null);
   const hasComputed = Object.keys(computedInd).length > 0;
   const years = hasComputed ? Object.keys(computedInd).sort() : ["2021", "2022", "2023"];
   const latestYear = years[years.length - 1];
@@ -2562,7 +2562,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const kanitzIndMap: Record<string, any> = {};
   if (parsedData) {
-    const computed = computeIndicatorsFromBSRows(parsedData);
+    const computed = computeIndicatorsFromParsed(parsedData);
     Object.keys(computed).forEach(k => {
       const ind = computed[k];
       const kAplic = ind._pl > 0;
@@ -3777,7 +3777,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
       return pa.localeCompare(pb);
     });
-    const computed = computeIndicatorsFromBSRows(parsedData);
+    const computed = computeIndicatorsFromParsed(parsedData);
     for (const year of years) {
       const ind = computed[year];
       if (!ind) continue;
