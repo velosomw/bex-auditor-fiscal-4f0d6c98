@@ -3134,7 +3134,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
                       <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
-                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtDec(item.value) : "—"}</TableCell>
+                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtPct(item.value) : "—"}</TableCell>
                       <TableCell className="text-[10px] text-muted-foreground">{item.interp}</TableCell>
                     </TableRow>
                   ))}
