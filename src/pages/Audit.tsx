@@ -49,9 +49,22 @@ import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 
 /* ── Helpers ── */
-const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
-const fmtPct = (n: number) => `${((n ?? 0) * 100).toFixed(1)}%`;
-const fmtDays = (n: number) => `${Math.round(n)} dias`;
+const fmt = (n: number) => {
+  if (n == null || isNaN(n)) return "N/A";
+  return new Intl.NumberFormat("pt-BR").format(Math.round(n));
+};
+const fmtDec = (n: number) => {
+  if (n == null || isNaN(n)) return "N/A";
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+};
+const fmtPct = (n: number) => {
+  if (n == null || isNaN(n)) return "0.0%";
+  return `${(n * 100).toFixed(1)}%`;
+};
+const fmtDays = (n: number) => {
+  if (n == null || isNaN(n)) return "0 dias";
+  return `${Math.round(n)} dias`;
+};
 
 const fmtMonthCompact = (mesKey: string) => {
   if (!mesKey) return "";
@@ -2559,11 +2572,14 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const kanitzIndMap: Record<string, any> = {};
   if (parsedData) {
-    const computed = computeIndicatorsFromParsed(parsedData);
+    const computed = computedInd; // Já computado acima
     Object.keys(computed).forEach(k => {
       const ind = computed[k];
       const kAplic = ind._pl > 0;
+      
+      // Kanitz FI (Fator de Insolvência) Canônico
       const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * ind.grauEndividamentoPL) : 0;
+      
       const isgValue = ind._at / (ind._pc + ind._pnc || 1);
       const classificacao: any = !kAplic ? "na" :
         fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
@@ -2572,7 +2588,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
         ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
         ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
-        lajir: ind._resultado + Math.abs(ind._despFin), despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
+        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin), 
+        despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
       });
     });
   }
@@ -2675,7 +2692,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[hsl(258,90%,66%)]/30 bg-[hsl(258,90%,66%)]/5 mt-8">
             <span className="text-lg">{riskIcon}</span>
-            <span className="text-sm font-semibold text-foreground">{scoreLabel} — Score BEX: {activeScore.score}/100</span>
+            <span className="text-sm font-semibold text-foreground">{scoreLabel}</span>
           </div>
 
           <div className="mt-10 space-y-1.5 text-sm text-muted-foreground">
@@ -3804,7 +3821,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="grid sm:grid-cols-4 gap-3">
             <div className="p-3 rounded-lg bg-muted/20 text-center">
               <p className="text-[10px] text-muted-foreground">{kAplic ? "Score Kanitz" : "Score Kanitz (referência)"}</p>
-              <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{(l.fi ?? 0).toFixed(2)}</p>
+              <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{kAplic ? (l.fi ?? 0).toFixed(2) : "0.00"}</p>
               {!kAplic && <p className="text-[9px] text-red-600 font-semibold">Inválido (PL &lt; 0)</p>}
             </div>
             <div className="p-3 rounded-lg bg-muted/20 text-center">
@@ -3834,14 +3851,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <div className="p-4 rounded-lg border border-red-500/40 bg-red-500/5">
               <p className="text-xs font-bold text-red-600 mb-1">⛔ KANITZ NÃO APLICÁVEL</p>
               <p className="text-xs text-foreground leading-relaxed">
-                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({(l.fi ?? 0).toFixed(2)}) é mostrado apenas como referência. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
+                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({(l.fi ?? 0).toFixed(2)}) não é aplicável. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
               </p>
             </div>
           )}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="text-center py-6 rounded-lg bg-muted/20">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Kanitz {kAplic ? "" : "(referência)"}</p>
-              <p className={`text-5xl font-bold ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{(l.fi ?? 0).toFixed(2)}</p>
+              <p className={`text-5xl font-bold ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{kAplic ? (l.fi ?? 0).toFixed(2) : "0.00"}</p>
               <p className={`text-sm font-semibold mt-2 ${kAplic ? classColors[l.classificacao]?.color : "text-slate-500"}`}>
                 {classColors[l.classificacao]?.icon} {classColors[l.classificacao]?.label}
               </p>
@@ -3913,14 +3930,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             Análise dos componentes que determinam o score Kanitz por período. Quando PL ≤ 0, RPL e GE são marcados como N/A (não aplicáveis) e o ISG passa a ser o indicador de referência.
           </p>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed w-full border-collapse">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-[10px]">Indicador</TableHead>
-                  <TableHead className="text-[10px]">Sigla</TableHead>
-                  <TableHead className="text-[10px]">Fórmula</TableHead>
-                  <TableHead className="text-[10px]">Peso</TableHead>
-                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
+                  <TableHead className="w-[20%] text-[10px] py-1 border border-border">Indicador</TableHead>
+                  <TableHead className="w-[8%] text-[10px] py-1 border border-border">Sigla</TableHead>
+                  <TableHead className="w-[22%] text-[10px] py-1 border border-border">Fórmula</TableHead>
+                  <TableHead className="w-[10%] text-[10px] py-1 border border-border">Peso</TableHead>
+                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px] py-1 border border-border">{fmtMonthCompact(r.year) || r.year}</TableHead>)}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -3931,31 +3948,31 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   { name: "Liquidez Corrente", sigla: "LC", formula: "AC / PC", peso: -1.06, key: "lc" as const, naIfNegativePL: false },
                   { name: "Grau de Endividamento", sigla: "GE", formula: "PT / PL", peso: -0.33, key: "ge" as const, naIfNegativePL: true },
                 ].map(ind => (
-                  <TableRow key={ind.sigla}>
-                    <TableCell className="text-xs font-medium">{ind.name}</TableCell>
-                    <TableCell className="text-xs font-mono font-bold">{ind.sigla}</TableCell>
-                    <TableCell className="text-[10px] font-mono text-muted-foreground">{ind.formula}</TableCell>
-                    <TableCell className="text-xs font-mono font-bold">{ind.peso > 0 ? `+${ind.peso}` : ind.peso}</TableCell>
+                  <TableRow key={ind.sigla} className="h-7">
+                    <TableCell className="text-[10px] py-0.5 border border-border truncate font-medium">{ind.name}</TableCell>
+                    <TableCell className="text-[10px] py-0.5 border border-border font-mono font-bold text-center">{ind.sigla}</TableCell>
+                    <TableCell className="text-[9px] py-0.5 border border-border font-mono text-muted-foreground truncate">{ind.formula}</TableCell>
+                    <TableCell className="text-[10px] py-0.5 border border-border font-mono font-bold text-center">{ind.peso > 0 ? `+${ind.peso}` : ind.peso}</TableCell>
                     {kanitzResults.map(r => (
-                      <TableCell key={r.year} className="text-right text-xs font-mono">
-                        {ind.naIfNegativePL && !r.kanitzAplicavel ? <span className="text-slate-500">N/A</span> : fmtDec(r[ind.key])}
+                      <TableCell key={r.year} className="text-right text-[10px] py-0.5 border border-border font-mono">
+                        {ind.naIfNegativePL && !r.kanitzAplicavel ? <span className="text-slate-500">N/A</span> : (r[ind.key] != null && !isNaN(r[ind.key]) ? fmtDec(r[ind.key]) : <span className="text-slate-500">N/A</span>)}
                       </TableCell>
                     ))}
                   </TableRow>
                 ))}
-                <TableRow className="bg-amber-500/5">
-                  <TableCell className="text-xs font-medium">Índice de Solvência Geral</TableCell>
-                  <TableCell className="text-xs font-mono font-bold">ISG</TableCell>
-                  <TableCell className="text-[10px] font-mono text-muted-foreground">AT / PT</TableCell>
-                  <TableCell className="text-xs font-mono">—</TableCell>
+                <TableRow className="bg-amber-500/5 h-7">
+                  <TableCell className="text-[10px] py-0.5 border border-border font-medium">Índice de Solvência Geral</TableCell>
+                  <TableCell className="text-[10px] py-0.5 border border-border font-mono font-bold text-center">ISG</TableCell>
+                  <TableCell className="text-[9px] py-0.5 border border-border font-mono text-muted-foreground">AT / PT</TableCell>
+                  <TableCell className="text-[10px] py-0.5 border border-border font-mono text-center">—</TableCell>
                   {kanitzResults.map(r => (
-                    <TableCell key={r.year} className="text-right text-xs font-mono font-bold">{(r.isg ?? 0).toFixed(2)}</TableCell>
+                    <TableCell key={r.year} className="text-right text-[10px] py-0.5 border border-border font-mono font-bold">{(r.isg ?? 0).toFixed(2)}</TableCell>
                   ))}
                 </TableRow>
-                <TableRow className="border-t-2 border-foreground/20">
-                  <TableCell className="text-xs font-bold" colSpan={4}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
+                <TableRow className="border-t-2 border-foreground/20 h-8">
+                  <TableCell className="text-[10px] py-1 border border-border font-bold bg-muted/20" colSpan={4}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
                   {kanitzResults.map(r => (
-                    <TableCell key={r.year} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>
+                    <TableCell key={r.year} className={`text-right text-[11px] py-1 border border-border font-bold font-mono ${classColors[r.classificacao]?.color}`}>
                       {r.kanitzAplicavel ? (r.fi ?? 0).toFixed(2) : <span className="text-slate-500 line-through">{(r.fi ?? 0).toFixed(2)}</span>}
                     </TableCell>
                   ))}
