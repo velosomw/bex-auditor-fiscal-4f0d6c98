@@ -395,14 +395,14 @@ const UserDashboard = () => {
             <Card key={kpi.label} className="bg-card/50 backdrop-blur-sm border-border/50">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${kpi.bgClass}`}>
-                    <span className="mr-2 text-[10px] font-bold uppercase tracking-wider opacity-70">
+                  <div className={`h-9 rounded-lg flex items-center px-3 ${kpi.bgClass}`}>
+                    <span className="mr-2 text-[10px] font-bold uppercase tracking-wider opacity-70 whitespace-nowrap">
                       {kpi.label === "Total de Técnicas" ? "Auditorias" :
                        kpi.label === "Concluídas" ? "Análises" :
                        kpi.label === "Em Andamento" ? "Auditorias incompletas" :
                        kpi.label === "Achados Totais" ? "Meses trabalhados" : ""}
                     </span>
-                    <kpi.icon className={`w-4 h-4 ${kpi.colorClass}`} />
+                    <kpi.icon className={`w-4 h-4 shrink-0 ${kpi.colorClass}`} />
                   </div>
                 </div>
                 <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
