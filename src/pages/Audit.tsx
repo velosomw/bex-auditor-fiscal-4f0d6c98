@@ -3284,11 +3284,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           "nao circulante - longo prazo", "não circulante - longo prazo",
           "patrimonio liquido", "patrimônio líquido", "capital social", "lucros ou prejuizos acumulados", "lucros ou prejuízos acumulados",
         ];
-        const _norm = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
+        const _norm = (s: string) => (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
         const _inList = (r: any, list: string[]) => {
           const d = _norm(r?.descricao || "");
           if (!d) return false;
-          // Matches exactly or starts with the word, but avoids partial mid-word matches
           return list.some(w => {
             const normalizedW = _norm(w);
             return d === normalizedW || d.startsWith(normalizedW + " ");
