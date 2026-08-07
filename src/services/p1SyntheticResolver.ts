@@ -182,6 +182,17 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
 
   const facts: Partial<Record<CanonicalRole, CertifiedFact>> = {};
 
+  /**
+   * MD-BEX-FINAL-MULTI-BALANCETE §6..§14 — papéis cuja composição pode estar
+   * distribuída em mais de um grupo sintético irmão (ex.: Estoques Próprios +
+   * Estoques de Terceiros líquidos de redutoras). Nestes casos soma-se apenas
+   * os grupos topo (nunca descendentes), preservando o sinal das redutoras.
+   */
+  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["estoques", "disponivel", "fornecedores"]);
+
+  const topmost = (list: AccountNode[]) =>
+    list.filter(n => !list.some(o => o !== n && n.normalized_code.startsWith(o.normalized_code + ".")));
+
   for (const role of Object.keys(ROLE_CODES) as CanonicalRole[]) {
     const codes = ROLE_CODES[role];
     const semantic = ROLE_SEMANTICS[role];
@@ -189,22 +200,61 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
 
     const excluded: CertifiedFact["excluded_candidates"] = [];
 
-    // ── P1: conta com código canônico OU sintética com match semântico ──
-    const candidates = nodes.filter(n => {
-      if (codes.includes(n.normalized_code)) return true;
-      if (!semantic.test(n.description)) return false;
-      if (prefix && !(n.normalized_code === prefix || n.normalized_code.startsWith(prefix + "."))) return false;
-      return true;
-    });
+    const inPrefix = (n: AccountNode) =>
+      !prefix || n.normalized_code === prefix || n.normalized_code.startsWith(prefix + ".");
 
-    // Autoridade: código canônico > sintética > nível hierárquico mais raso
+    // Candidatos semânticos (função contábil) — autoridade primária.
+    const semanticNodes = nodes.filter(n => semantic.test(n.description) && inPrefix(n));
+    // Candidatos por código canônico — só valem quando não contradizem a semântica.
+    const codeNodes = nodes.filter(n => codes.includes(n.normalized_code));
+
+    // §3/§11 — o código físico é apenas evidência: havendo candidato semântico,
+    // um código canônico com descrição divergente NÃO pode roubar o papel.
+    const candidates = semanticNodes.length > 0
+      ? semanticNodes
+      : codeNodes;
+
+    for (const c of codeNodes) {
+      if (semanticNodes.length > 0 && !semanticNodes.includes(c)) {
+        excluded.push({
+          account: c.account_code, description: c.description, value: c.value,
+          reason: "CODE_MATCH_REJECTED_BY_SEMANTIC_ROLE",
+        });
+      }
+    }
+
+    const groups = topmost(candidates);
+
+    // Agregação semântica (grupos irmãos) — soma com sinal, redutoras preservadas.
+    if (AGGREGABLE_ROLES.has(role) && groups.length > 1) {
+      const raw = groups.reduce((s, n) => s + n.value, 0);
+      for (const c of candidates) {
+        if (groups.includes(c)) continue;
+        excluded.push({ account: c.account_code, description: c.description, value: c.value, reason: "ANALYTICAL_DESCENDANT" });
+      }
+      facts[role] = {
+        fact_id: `${competency}::${role}`,
+        canonical_role: role,
+        value: ABS_ROLES.has(role) ? Math.abs(raw) : raw,
+        status: "AVAILABLE",
+        authority: "P2_CHILDREN",
+        source_account_code: groups.map(g => g.account_code).join(" + "),
+        source_account_description: groups.map(g => g.description).join(" + "),
+        source_hierarchy_level: Math.min(...groups.map(g => g.hierarchy_level)),
+        competency,
+        excluded_candidates: excluded.slice(0, 12),
+      };
+      continue;
+    }
+
+    // Autoridade: sintética > nível hierárquico mais raso > código canônico
     const scored = candidates
       .map(n => ({
         n,
         score:
-          (codes.includes(n.normalized_code) ? 400 : 0) +
+          (codes.includes(n.normalized_code) ? 150 : 0) +
           (n.is_synthetic ? 200 : 0) +
-          (semantic.test(n.description) ? 100 : 0) +
+          (semantic.test(n.description) ? 300 : 0) +
           (100 - n.hierarchy_level * 10),
       }))
       .sort((a, b) => b.score - a.score);
