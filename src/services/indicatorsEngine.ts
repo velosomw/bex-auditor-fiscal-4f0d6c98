@@ -164,6 +164,8 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     roe: pl !== 0 ? div(resultado, pl) * 12 : 0,
     // EBITDA = Resultado + |DespFin| + |Depreciação| + |Amortização|
     ebitda: lajir + depAbs + amortAbs,
+    isg: pt > 0 ? at / pt : 0,
+    endividamentoGeral: at > 0 ? pt / at : 0,
     // Bases
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
