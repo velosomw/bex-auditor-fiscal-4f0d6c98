@@ -2495,12 +2495,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const years = Object.keys(computedInd).sort((a, b) => {
     const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
     const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
-    return pa.localeCompare(pb);
-  });
-  const latestYear = years[years.length - 1] || "2026-03";
-  const d = computedInd[latestYear] || {};
-  const ind = computedInd;
-  
+  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
+  const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
+  const activePend = aiAnalysis?.pendencias || pendencias;
+
+  const hasBexScore = false; 
   const scoreColor = "text-slate-400";
   const hasBexScore = false; 
   const scoreColor = "text-slate-400";
