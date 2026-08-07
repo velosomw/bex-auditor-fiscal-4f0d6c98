@@ -1,5 +1,6 @@
-// Enterprise Balance Sheet Extraction Engine (Correction 001)
+// Enterprise Balance Sheet Extraction & Canonical Reconciliation Engine (MD-001)
 // Foundation Contábil da Plataforma BEx v1.0
+
 //
 // Este motor constitui o primeiro estágio da cadeia cognitiva da Plataforma BEx.
 // Nenhum componente posterior poderá alterar informações extraídas do balancete.
