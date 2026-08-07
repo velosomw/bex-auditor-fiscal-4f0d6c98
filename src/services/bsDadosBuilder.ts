@@ -95,7 +95,8 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   // ── Patrimônio Líquido ──
   "GG1": "patrimonio_liquido", // Capital Social
   "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
-  "RESULTADO": "resultado",
+  "RESULTADO": "resultado_acumulado", // MD-CUTOVER §18: separação explícita
+  "RESULTADO_MES": "resultado_competencia",
   // ── Totais de grupo (autoritativos quando linha-totalizadora existe) ──
   "AC_TOTAL":  "ativo_circulante",
   "ANC_TOTAL": "ativo_nao_circulante",
