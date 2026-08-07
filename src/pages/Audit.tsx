@@ -3134,7 +3134,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
                       <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
-                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtPct(item.value) : "—"}</TableCell>
+                      <TableCell className="text-right text-xs font-mono font-bold">{item.value != null ? fmtDec(item.value) : "—"}</TableCell>
                       <TableCell className="text-[10px] text-muted-foreground">{item.interp}</TableCell>
                     </TableRow>
                   ))}
@@ -3287,7 +3287,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
                     {years.map(y => (
-                      <TableCell key={y} className="text-right text-xs font-mono py-2">
+                      <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                         {fmt(computedInd[y]?.[row.key as keyof typeof latestInd] as number || 0)}
                       </TableCell>
                     ))}
