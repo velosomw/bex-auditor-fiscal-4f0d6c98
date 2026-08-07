@@ -3947,7 +3947,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <div className="p-3 rounded-lg bg-muted/20 text-center">
               <p className="text-[10px] text-muted-foreground">{kAplic ? "Score Kanitz" : "Score Kanitz (referência)"}</p>
               <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{fiFmt(l.fi, kAplic)}</p>
-              {!kAplic && <p className="text-[9px] text-red-600 font-semibold">Inválido (PL &lt; 0)</p>}
+              {!kAplic && <p className="text-[9px] text-red-600 font-semibold">Não aplicável (PL ≤ 0)</p>}
             </div>
             <div className="p-3 rounded-lg bg-muted/20 text-center">
               <p className="text-[10px] text-muted-foreground">ISG (AT/PT)</p>
@@ -4372,7 +4372,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <p className="text-xs text-muted-foreground">
             Cenários simulados de melhoria do FI aplicando premissas Kanitz diretamente sobre as contas do balancete (não sobre os componentes já calculados). Fórmula reaplicada: FI = 0,05·RPL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE.
           </p>
-          <div className="overflow-x-auto">
+          {!kAplic ? (
+            <div className="p-4 rounded-lg border border-slate-500/30 bg-slate-500/5 text-xs text-muted-foreground leading-relaxed">
+              Simulações do Fator Kanitz não são aplicáveis porque o modelo está indisponível para Patrimônio Líquido negativo. Cenários de reestruturação devem ser avaliados pelo impacto projetado sobre o PL, o ISG, a liquidez e o endividamento.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -4417,6 +4422,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               </TableBody>
             </Table>
           </div>
+          )}
           {!kAplic && (
             <p className="text-[10px] text-muted-foreground italic">
               Nota: com PL negativo, os FI simulados também são referenciais. O impacto real deve ser medido pelo ISG projetado — recomenda-se combinar redução de dívida com injeção de capital para restaurar PL positivo.
