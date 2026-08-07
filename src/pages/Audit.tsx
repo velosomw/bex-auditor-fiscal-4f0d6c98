@@ -2836,28 +2836,28 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">3.1 Tabela de Pendências</h3>
             <div className="overflow-x-auto">
-              <Table>
+              <Table style={{ tableLayout: 'fixed', width: '100%' }}>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-[10px]">ID</TableHead>
-                    <TableHead className="text-[10px]">Tipo</TableHead>
-                    <TableHead className="text-[10px]">Conta</TableHead>
-                    <TableHead className="text-[10px]">Descrição</TableHead>
-                    <TableHead className="text-[10px]">Gravidade</TableHead>
-                    <TableHead className="text-[10px]">Impacto</TableHead>
-                    <TableHead className="text-[10px]">Recomendação</TableHead>
+                    <TableHead style={{ width: '5%' }} className="text-[10px] px-1">ID</TableHead>
+                    <TableHead style={{ width: '11%' }} className="text-[10px] px-1">Tipo</TableHead>
+                    <TableHead style={{ width: '15%' }} className="text-[10px] px-1">Conta</TableHead>
+                    <TableHead style={{ width: '27%' }} className="text-[10px] px-1">Descrição</TableHead>
+                    <TableHead style={{ width: '10%' }} className="text-[10px] px-1 text-center">Gravidade</TableHead>
+                    <TableHead style={{ width: '15%' }} className="text-[10px] px-1">Impacto</TableHead>
+                    <TableHead style={{ width: '17%' }} className="text-[10px] px-1">Recomendação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {activePend.map((p: any, i: number) => (
                     <TableRow key={p.id}>
-                      <TableCell className="text-[10px] font-mono">{i + 1}</TableCell>
-                      <TableCell className="text-[10px]">{p.tipo}</TableCell>
-                      <TableCell className="text-[10px] font-mono">{p.conta}</TableCell>
-                      <TableCell className="text-xs max-w-[200px]">{p.problema}</TableCell>
-                      <TableCell><Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge></TableCell>
-                      <TableCell className="text-[10px]">{p.impacto}</TableCell>
-                      <TableCell className="text-[10px] max-w-[180px]">{p.recomendacao}</TableCell>
+                      <TableCell className="text-[10px] font-mono px-1">{i + 1}</TableCell>
+                      <TableCell className="text-[10px] px-1">{p.tipo}</TableCell>
+                      <TableCell className="text-[10px] font-mono px-1 truncate">{p.conta}</TableCell>
+                      <TableCell className="text-[10px] px-1 leading-tight">{p.problema}</TableCell>
+                      <TableCell className="px-1 text-center"><Badge className={`${severityColors[p.gravidade]?.bg} text-[9px] px-1 py-0 h-4`}>{severityColors[p.gravidade]?.label}</Badge></TableCell>
+                      <TableCell className="text-[10px] px-1 leading-tight">{p.impacto}</TableCell>
+                      <TableCell className="text-[10px] px-1 leading-tight">{p.recomendacao}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
