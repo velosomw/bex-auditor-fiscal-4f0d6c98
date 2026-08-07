@@ -2684,31 +2684,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return row?.values[year] || 0;
   };
 
-  const kanitzResults = useMemo(() => {
-    if (kanitzResultsRaw.length > 0) return kanitzResultsRaw;
-    return [];
-  }, [kanitzResultsRaw]);
+  /* MD-CUTOVER-001 §3 — hard cutover: sem fallback aiAnalysis. */
+  const kanitzResults = kanitzResultsRaw;
 
-  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
-    const aiK = aiAnalysis.kanitz;
-    const comp = aiK.componentes || {};
-    const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
-    const fi = aiK.fatorInsolvencia || 0;
-    const plVal = aiStruct.patrimonio_liquido || 0;
-    const kAplic = plVal > 0;
-    const isgValue = (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0) / ((aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0) || 1);
-    
-    const classificacao: any = !kAplic ? "na" :
-      fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-    kanitzResults.push({
-      year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
-      fi, classificacao, ac: aiStruct.ativo_circulante || 0, anc: aiStruct.ativo_nao_circulante || 0,
-      pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: plVal,
-      estoque: aiStruct.estoques || 0, rlp: 0, pt: (aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0),
-      ll: aiStruct.lucro_liquido || 0, at: (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0), rl: aiStruct.receita_liquida || 0,
-      ebitda: 0, lajir: 0, despFin: 0, kanitzAplicavel: kAplic, isg: isgValue
-    });
-  }
 
   const latestKanitz = kanitzResults[kanitzResults.length - 1];
   const kanitzClassColors: Record<string, { icon: string; label: string; color: string }> = {
