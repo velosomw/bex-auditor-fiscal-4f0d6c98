@@ -3302,43 +3302,48 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <SectionTitle num="6" title="BALANÇO PATRIMONIAL CONSOLIDADO" />
           <div className="text-center mb-2">
             <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">ESTRUTURA PATRIMONIAL POR GRANDES GRUPOS</h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Série Histórica Consolidada (Valores em R$)</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Série Histórica Consolidada (Valores em R$ milhões)</p>
           </div>
 
+          {/* MD-CUTOVER-001 §14–§18 — Balance History consome snapshots mensais certificados. */}
           <div className="overflow-x-auto">
             <Table style={{ tableLayout: 'fixed', width: '100%' }}>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-[10px] w-[180px]">Conta / Grupo</TableHead>
-                  {years.map(y => (
+                  {(snapshot?.competencies || []).map(y => (
                     <TableHead key={y} className="text-right text-[10px] px-1">{fmtMonthCompact(y)}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[
-                  { label: "Ativo Circulante", key: "_ac" },
-                  { label: "Ativo Não Circulante", key: "_anc" },
-                  { label: "Passivo Circulante", key: "_pc" },
-                  { label: "Passivo Não Circulante", key: "_pnc" },
-                  { label: "Patrimônio Líquido", key: "_pl" },
-                  { label: "Resultado do Período", key: "_resultado" },
-                  { label: "Estoques", key: "_estoques" },
-                  { label: "Realizável LP", key: "_rlp" },
-                  { label: "Receita Líquida", key: "_receita" },
-                ].map((row, idx) => (
+                {([
+                  { label: "Ativo Circulante", key: "ativo_circulante" },
+                  { label: "Ativo Não Circulante", key: "ativo_nao_circulante" },
+                  { label: "Realizável LP", key: "realizavel_longo_prazo" },
+                  { label: "Estoques", key: "estoques" },
+                  { label: "Passivo Circulante", key: "passivo_circulante" },
+                  { label: "Passivo Não Circulante", key: "passivo_nao_circulante" },
+                  { label: "Patrimônio Líquido", key: "patrimonio_liquido" },
+                  { label: "Receita Líquida", key: "receita_liquida" },
+                  { label: "Resultado do Período", key: "resultado_liquido" },
+                ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
-                    {years.map(y => (
-                      <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
-                        {fmt(computedInd[y]?.[row.key as keyof typeof latestInd] as number || 0)}
-                      </TableCell>
-                    ))}
+                    {(snapshot?.competencies || []).map(y => {
+                      const v = snapshot?.byCompetency[y]?.facts[row.key];
+                      return (
+                        <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
+                          {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
+
 
           <div className="mt-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações de Integridade</h3>
