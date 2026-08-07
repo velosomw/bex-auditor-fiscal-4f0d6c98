@@ -1722,10 +1722,10 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
   const sections = [
     {
       title: "Liquidez", icon: Activity, items: [
-        { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: (n: number) => n.toFixed(2), formula: "AC / PC", benchmark: "> 1,5", accounts: ["Ativo Circulante (Grupo 1.1)", "Passivo Circulante (Grupo 2.1)"] },
-        { label: "Liquidez Seca", key: "liquidezSeca", fmt: (n: number) => n.toFixed(2), formula: "(AC - EST) / PC", benchmark: "> 1,0", accounts: ["Ativo Circulante (Grupo 1.1)", "Estoques (Ref 1: D)", "Passivo Circulante (Grupo 2.1)"] },
-        { label: "Liquidez Imediata", key: "liquidezImediata", fmt: (n: number) => n.toFixed(2), formula: "Caixa / PC", benchmark: "> 0,3", accounts: ["Disponibilidades (Refs 1: A, B)", "Passivo Circulante (Grupo 2.1)"] },
-        { label: "Liquidez Geral", key: "liquidezGeral", fmt: (n: number) => n.toFixed(2), formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 0,1", accounts: ["Ativo Circulante (Grupo 1.1)", "Realizável a Longo Prazo (Grupo 1.2.1)", "Passivo Circulante (Grupo 2.1)", "Passivo Não Circulante (Grupo 2.2)"] },
+        { label: "Liquidez Corrente", key: "liquidezCorrente", fmt: (n: number) => (n ?? 0).toFixed(2), formula: "AC / PC", benchmark: "> 1,5", accounts: ["Ativo Circulante (Grupo 1.1)", "Passivo Circulante (Grupo 2.1)"] },
+        { label: "Liquidez Seca", key: "liquidezSeca", fmt: (n: number) => (n ?? 0).toFixed(2), formula: "(AC - EST) / PC", benchmark: "> 1,0", accounts: ["Ativo Circulante (Grupo 1.1)", "Estoques (Ref 1: D)", "Passivo Circulante (Grupo 2.1)"] },
+        { label: "Liquidez Imediata", key: "liquidezImediata", fmt: (n: number) => (n ?? 0).toFixed(2), formula: "Caixa / PC", benchmark: "> 0,3", accounts: ["Disponibilidades (Refs 1: A, B)", "Passivo Circulante (Grupo 2.1)"] },
+        { label: "Liquidez Geral", key: "liquidezGeral", fmt: (n: number) => (n ?? 0).toFixed(2), formula: "(AC + RLP) / (PC + PNC)", benchmark: "> 0,1", accounts: ["Ativo Circulante (Grupo 1.1)", "Realizável a Longo Prazo (Grupo 1.2.1)", "Passivo Circulante (Grupo 2.1)", "Passivo Não Circulante (Grupo 2.2)"] },
       ]
     },
     {
@@ -1733,12 +1733,12 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
         { label: "Endividamento Total", key: "endividamentoTotal", fmt: fmtPct, formula: "(PC + PNC) / AT", benchmark: "< 60%", accounts: ["Passivo Circulante", "Passivo Não Circulante", "Ativo Total"] },
         { label: "Composição Endividamento", key: "composicaoEndividamento", fmt: fmtPct, formula: "PC / PT", benchmark: "< 50%", accounts: ["Passivo Circulante (Curto Prazo)", "Passivo Total (Exigível)"] },
         { label: "Imobilização do PL", key: "imobilizacaoPL", fmt: fmtPct, formula: "Imob / PL", benchmark: "< 80%", accounts: ["Ativo Imobilizado (Ref 1: R)", "Patrimônio Líquido (Grupo 2.3)"] },
-        { label: "Cobertura de Juros", key: "coberturaJuros", fmt: (n: number) => `${n.toFixed(1)}x`, formula: "LAJIR / Juros", benchmark: "> 3,0x", accounts: ["Resultado Operacional", "Despesas Financeiras (Grupo 7)"] },
+        { label: "Cobertura de Juros", key: "coberturaJuros", fmt: (n: number) => `${(n ?? 0).toFixed(1)}x`, formula: "LAJIR / Juros", benchmark: "> 3,0x", accounts: ["Resultado Operacional", "Despesas Financeiras (Grupo 7)"] },
       ]
     },
     {
       title: "Atividade", icon: BarChart3, items: [
-        { label: "Giro do Ativo", key: "giroAtivo", fmt: (n: number) => n.toFixed(2), formula: "V / AT", benchmark: "> 0,5", accounts: ["Receita Líquida (Grupo 3)", "Ativo Total"] },
+        { label: "Giro do Ativo", key: "giroAtivo", fmt: (n: number) => (n ?? 0).toFixed(2), formula: "V / AT", benchmark: "> 0,5", accounts: ["Receita Líquida (Grupo 3)", "Ativo Total"] },
         { label: "PMR", key: "pmr", fmt: fmtDays, formula: "DR×360 / V", benchmark: "< 60d", accounts: ["Contas a Receber (Ref 1: C)", "Receita Líquida (Grupo 3)"] },
         { label: "PMP", key: "pmp", fmt: fmtDays, formula: "DP×360 / Compras", benchmark: "< 45d", accounts: ["Fornecedores (Ref 1: BB, PP)", "Custo das Mercadorias Vendidas (Grupo 4)"] },
         { label: "Idade Média Estoque", key: "idadeMediaEstoque", fmt: fmtDays, formula: "EST×360 / CMV", benchmark: "< 90d", accounts: ["Estoques (Ref 1: D)", "Custo das Mercadorias Vendidas (Grupo 4)"] },
@@ -2843,7 +2843,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
                       <YAxis tick={{ fontSize: 9 }} unit="%" />
-                      <Tooltip formatter={(v: number) => [`${v.toFixed(1)}%`, "Resultado"]} />
+                      <Tooltip formatter={(v: number) => [`${(v ?? 0).toFixed(1)}%`, "Resultado"]} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map((_, i) => (
                           <Cell key={i} fill={["hsl(258,90%,66%)", "hsl(258,70%,60%)", "hsl(258,50%,55%)", "hsl(258,90%,50%)"][i % 4]} />
@@ -2996,19 +2996,19 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
                       <YAxis tick={{ fontSize: 9 }} />
-                      <Tooltip formatter={(v: number) => v.toFixed(2)} />
+                      <Tooltip formatter={(v: number) => (v ?? 0).toFixed(2)} />
                       <Legend wrapperStyle={{ fontSize: 10 }} iconType="plainline" />
                       <Line type="linear" dataKey="LIQUIDEZ IMEDIATA" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }}>
-                        <LabelList dataKey="LIQUIDEZ IMEDIATA" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                        <LabelList dataKey="LIQUIDEZ IMEDIATA" position="top" fontSize={9} formatter={(v: number) => (v ?? 0).toFixed(2)} />
                       </Line>
                       <Line type="linear" dataKey="LIQUIDEZ CORRENTE" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }}>
-                        <LabelList dataKey="LIQUIDEZ CORRENTE" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                        <LabelList dataKey="LIQUIDEZ CORRENTE" position="top" fontSize={9} formatter={(v: number) => (v ?? 0).toFixed(2)} />
                       </Line>
                       <Line type="linear" dataKey="LIQUIDEZ SECA" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }}>
-                        <LabelList dataKey="LIQUIDEZ SECA" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                        <LabelList dataKey="LIQUIDEZ SECA" position="top" fontSize={9} formatter={(v: number) => (v ?? 0).toFixed(2)} />
                       </Line>
                       <Line type="linear" dataKey="LIQUIDEZ GERAL" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }}>
-                        <LabelList dataKey="LIQUIDEZ GERAL" position="top" fontSize={9} formatter={(v: number) => v.toFixed(2)} />
+                        <LabelList dataKey="LIQUIDEZ GERAL" position="top" fontSize={9} formatter={(v: number) => (v ?? 0).toFixed(2)} />
                       </Line>
                     </LineChart>
                   </ResponsiveContainer>
@@ -3173,7 +3173,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
                       <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => v.toLocaleString('pt-BR')} />
-                      <Tooltip formatter={(v: number, n: string) => n === "pct" ? `${v.toFixed(2)}%` : `R$ ${(v * 1000).toLocaleString('pt-BR')}`} />
+                      <Tooltip formatter={(v: number, n: string) => n === "pct" ? `${(v ?? 0).toFixed(2)}%` : `R$ ${(v * 1000).toLocaleString('pt-BR')}`} />
                       <Legend wrapperStyle={{ fontSize: 9 }} />
                       <Bar dataKey="Receita Líquida" fill="#5b9bd5">
                         <LabelList dataKey="Receita Líquida" position="top" fontSize={9} formatter={(v: number) => v.toLocaleString('pt-BR')} />
@@ -3182,7 +3182,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                         <LabelList dataKey="CMV + DESPESA / RECEITA LÍQUIDA" position="bottom" fontSize={9} formatter={(v: number) => `(${Math.abs(v).toLocaleString('pt-BR')})`} />
                       </Bar>
                       <Line type="linear" dataKey="pct" name="CMV + DESPESA / RECEITA LÍQUIDA (%)" stroke="#c00000" strokeWidth={0} dot={false}>
-                        <LabelList dataKey="pct" position="top" fontSize={9} fill="#c00000" formatter={(v: number) => `${v.toFixed(2)}%`} />
+                        <LabelList dataKey="pct" position="top" fontSize={9} fill="#c00000" formatter={(v: number) => `${(v ?? 0).toFixed(2)}%`} />
                       </Line>
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -3654,7 +3654,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                         <TableCell key={r.year} className="text-right text-xs font-mono">{fmtKDec(r[c.key])}</TableCell>
                       ))}
                       {kanitzResults.map(r => (
-                        <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * r[c.key]).toFixed(4)}</TableCell>
+                        <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{((c.peso * r[c.key]) ?? 0).toFixed(4)}</TableCell>
                       ))}
                     </TableRow>
                   ))}
@@ -3662,7 +3662,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     <TableCell className="text-xs font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
                     {kanitzResults.map(r => <TableCell key={r.year} className="text-right" />)}
                     {kanitzResults.map(r => (
-                      <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${kanitzClassColors[r.classificacao]?.color}`}>{r.fi.toFixed(2)}</TableCell>
+                      <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${kanitzClassColors[r.classificacao]?.color}`}>{(r.fi ?? 0).toFixed(2)}</TableCell>
                     ))}
                   </TableRow>
                 </TableBody>
@@ -4663,7 +4663,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                       <TableCell key={r.year} className="text-right text-xs font-mono">{fmtDec(r[c.key])}</TableCell>
                     ))}
                     {kanitzResults.map(r => (
-                      <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * r[c.key]).toFixed(4)}</TableCell>
+                      <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{((c.peso * r[c.key]) ?? 0).toFixed(4)}</TableCell>
                     ))}
                   </TableRow>
                 ))}
