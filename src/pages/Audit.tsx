@@ -2841,7 +2841,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Técnico IA</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-              <p className="text-sm text-foreground leading-relaxed">{activeDiag.resumo}</p>
+              <p className="text-sm text-foreground leading-relaxed">
+                Com base no Balancete de {latestYear}, a empresa apresenta um Ativo Total de R$ {fmt(at)} contra um Passivo Total de R$ {fmt(pt)}. 
+                O Patrimônio Líquido é de R$ {fmt(pl)}. A Receita Líquida do período atingiu R$ {fmt(rl)}, resultando em um {result >= 0 ? "Lucro" : "Prejuízo"} de R$ {fmt(Math.abs(result))}.
+                {activeDiag.resumo}
+              </p>
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {["CPC 26", "CPC 47", "IFRS 15", "NBC TA 570", "Lei 11.101/2005"].map(n => (
                   <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
@@ -3241,11 +3245,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { label: "Empréstimos e Financiamentos", value: reportDataset?.facts.divida_financeira || 0 },
-                { label: "Dívida Bancária Total", value: reportDataset?.facts.divida_financeira || 0 },
-                { label: "Fornecedores", value: reportDataset?.facts.fornecedores || 0 },
-                { label: "Passivo Circulante", value: reportDataset?.facts.passivo_circulante || 0 },
-                { label: "Passivo Não Circulante", value: reportDataset?.facts.passivo_nao_circulante || 0 },
+                { label: "Empréstimos e Financiamentos", value: emprestimos },
+                { label: "Dívida Tributária", value: tributos },
+                { label: "Dívida Trabalhista", value: trabalhista },
+                { label: "Fornecedores", value: fornec },
+                { label: "Passivo Circulante", value: pc },
+                { label: "Passivo Não Circulante", value: pnc },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
@@ -3275,8 +3280,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">5.3 Análise Estratégica</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
               <p className="text-xs text-foreground leading-relaxed">
-                A estrutura de endividamento revela passivo não circulante de R$ {fmt(pnc)}, representando {fmtPct(pnc / ptotal)} do passivo total. 
-                A dívida onerosa total de R$ {fmt(dividaOnerosa)} exige monitoramento contínuo da capacidade de refinanciamento e dos covenants ativos.
+                A estrutura de endividamento revela passivo não circulante de R$ {fmt(pnc)}, representando {ptotal ? fmtPct(pnc / ptotal) : "0,0%"} do passivo total. 
+                A dívida onerosa total (empréstimos) de R$ {fmt(emprestimos)} exige monitoramento contínuo da capacidade de refinanciamento e dos covenants ativos.
               </p>
               <div className="flex flex-wrap gap-1.5 pt-2">
                 {["Risco de vencimento concentrado", "Capacidade de renegociação limitada", "Monitorar covenants", "Avaliar necessidade de RJ"].map(t => (
