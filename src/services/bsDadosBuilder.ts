@@ -133,8 +133,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
 
 // Padrões regex usados quando o balancete extraído não traz "Ref 1" explícito.
 // ORDEM IMPORTA: resolveKey retorna no primeiro match — patterns mais específicos primeiro.
-const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
-  mes: null, mesKey: null,
+const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp | null>> = {
   // DRE — mais específicos primeiro
   despesas_financeiras: /\b(?:despesas?\s+financeir|juros\s+(?:passivo|pagos?|sobre)|encargos\s+financeir|varia[cç][oõ]es\s+monet[aá]rias?\s+passiv)/i,
   receitas_financeiras: /\b(?:receitas?\s+financeir|juros\s+(?:ativo|recebidos?|aufer)|rendimentos?\s+de\s+aplica)/i,
@@ -144,7 +143,7 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
   resultado: /\b(?:lucro|preju[ií]zo|resultado)\s+(?:l[ií]quid|do\s+exerc|do\s+per[ií]odo)/i,
   despesas: /\bdespesa|gasto\s+oper/i,
-  // BALANÇO — Ativos: NC antes de C (mais específico) e leaves antes de totais
+  // BALANÇO — Ativos
   estoques: /\bestoqu/i,
   disponivel: /\b(?:caixa|disponibilidade|disponivel|bancos?|aplica[cç][aã]o\s+financ|equivalente)/i,
   contas_receber: /\b(?:contas?\s+a\s+receber|duplicatas?\s+a\s+receber|clientes)\b/i,
@@ -163,10 +162,6 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   passivo_nao_circulante: /\bpassivo\s+n[aã]o[\s-]?circulante|exig[ií]vel\s+a?\s*longo\s+prazo\b/i,
   passivo_circulante: /\bpassivo\s+circulante\b/i,
   patrimonio_liquido: /\b(?:patrim[oô]nio\s+l[ií]quido|capital\s+social|lucros?\s+acumulad|preju[ií]zos?\s+acumulad|reservas?\s+de\s+(?:capital|lucros?))\b/i,
-  divida_total: null, ebitda: null,
-  outras_obrigacoes: null,
-  outras_nao_operacionais: null,
-  hasReceita: null, hasBalanco: null, errors: null, grupos: null,
 };
 
 
@@ -195,47 +190,51 @@ export interface GroupMappingEntry {
   campo: keyof BSDadosRow | "ignore";
 }
 
+export interface FinancialFact {
+  value: number;
+  status: "AVAILABLE" | "NOT_AVAILABLE" | "NOT_CERTIFIED" | "NOT_APPLICABLE";
+}
+
 export interface BSDadosRow {
   mes: string;            // "Março 2024"
   mesKey: string;         // "2024-03"
-  // DRE (variação mensal após detecção YTD)
+  // DRE
   receita_liquida: number;
   cmv: number;
-  despesas: number;             // despesas operacionais (administrativas, comerciais)
-  despesas_financeiras: number; // grupo 7 — separado das operacionais
-  receitas_financeiras: number; // grupo 7+ / DRE 50.B — usado em EBITDA (subtrai)
-  outras_nao_operacionais: number; // grupo 8 — não operacionais (signed)
+  despesas: number;
+  despesas_financeiras: number;
+  receitas_financeiras: number;
+  outras_nao_operacionais: number;
   depreciacao: number;
   amortizacao: number;
   resultado: number;
-  // BALANÇO — Ativos
+  // BALANÇO
   ativo_circulante: number;
   ativo_nao_circulante: number;
-  realizavel_longo_prazo: number; // RLP (Refs P..T) — subset de ANC, usado em Liquidez Geral
-  investimentos: number;          // Ref B1 — subgrupo ANC (Onda 2)
-  intangivel: number;             // Ref D1 — subgrupo ANC (Onda 2, separado do imobilizado)
+  realizavel_longo_prazo: number;
+  investimentos: number;
+  intangivel: number;
   estoques: number;
   disponivel: number;
   contas_receber: number;
-  imobilizado: number;            // Ref C1
-  // BALANÇO — Passivos & PL
+  imobilizado: number;
   passivo_circulante: number;
   passivo_nao_circulante: number;
   patrimonio_liquido: number;
-  // Componentes de dívida (sempre positivos)
+  // Componentes de dívida
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
   fornecedores: number;
   credores_rj: number;
-  outras_obrigacoes: number;    // resíduo do PC (Ref JJ)
-  divida_total: number; // (PC + PNC)
-  ebitda: number;       // EBITDA Certificado
-  // Flags
+  outras_obrigacoes: number;
+  divida_total: number;
+  ebitda: number;
+  // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
+  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
-  /** Trilha de auditoria explicável — mapeamento por grupo (2 dígitos). */
   grupos?: GroupMappingEntry[];
 }
 
@@ -304,6 +303,21 @@ function emptyRow(mesKey: string): BSDadosRow {
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0,
+    facts_status: {
+      receita_liquida: "NOT_AVAILABLE", cmv: "NOT_AVAILABLE", despesas: "NOT_AVAILABLE",
+      despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
+      outras_nao_operacionais: "NOT_AVAILABLE", depreciacao: "NOT_AVAILABLE",
+      amortizacao: "NOT_AVAILABLE", resultado: "NOT_AVAILABLE",
+      ativo_circulante: "NOT_AVAILABLE", ativo_nao_circulante: "NOT_AVAILABLE",
+      realizavel_longo_prazo: "NOT_AVAILABLE", investimentos: "NOT_AVAILABLE",
+      intangivel: "NOT_AVAILABLE", estoques: "NOT_AVAILABLE", disponivel: "NOT_AVAILABLE",
+      contas_receber: "NOT_AVAILABLE", imobilizado: "NOT_AVAILABLE",
+      passivo_circulante: "NOT_AVAILABLE", passivo_nao_circulante: "NOT_AVAILABLE",
+      patrimonio_liquido: "NOT_AVAILABLE", divida_tributaria: "NOT_AVAILABLE",
+      divida_trabalhista: "NOT_AVAILABLE", divida_financeira: "NOT_AVAILABLE",
+      fornecedores: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
+      outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE",
+    },
     hasReceita: false, hasBalanco: false, errors: [],
   };
 }
@@ -337,30 +351,65 @@ const IMOBILIZADO_REFS = new Set(["C1","D1"]);
 // Refs P..Z conforme plano BEX — usado em Liquidez Geral conforme planilha Kanitz Giannini.
 const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
 
-// ─── GRUPO-FIRST (ENTERPRISE EXTRACTION ENGINE 2.0) ──────────
+// ─── GRUPO-FIRST (ENTERPRISE EXTRACTION ENGINE 3.0) ──────────
 // Códigos de TOTALIZADORES DE GRUPO no plano contábil brasileiro padrão.
-// Quando essas linhas existem no balancete, elas são SOBERANAS para o
-// grupo correspondente. Folhas descendentes servem apenas para análise
-// e composição de sub-detalhes, mas NÃO são somadas ao total do grupo
-// para evitar dupla contagem.
-//
-// Regras de Agregação Hierárquica (MD-BEX-001):
-// P1: Se a conta sintética certificada (11, 21, 23, etc.) existe -> valor direto.
+// Regras de Agregação Hierárquica (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001):
+// P1: Se a conta sintética certificada (1, 1.1, 1.01, 2, 2.1, 2.3, etc.) existe -> valor direto (AUTORIDADE SOBERANA).
 // P2: Se P1 não existe -> Agrega filhos imediatos não sobrepostos.
 // P3: Nunca somar pai e filho no mesmo fato canônico.
+
+/**
+ * Registrador de Papéis Semânticos (Semantic Role Registry).
+ * Uma conta contábil deve possuir exatamente UM papel semântico para evitar ROLE_COLLISION.
+ */
+export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
+  "1": "ativo_total" as any,
+  "1.1": "ativo_circulante",
+  "1.01": "ativo_circulante",
+  "1.2": "ativo_nao_circulante",
+  "1.02": "ativo_nao_circulante",
+  "2": "passivo_total" as any,
+  "2.1": "passivo_circulante",
+  "2.01": "passivo_circulante",
+  "2.2": "passivo_nao_circulante",
+  "2.02": "passivo_nao_circulante",
+  "2.3": "patrimonio_liquido",
+  "2.03": "patrimonio_liquido",
+  "3": "receita_liquida",
+  "3.1": "receita_liquida",
+  "3.01": "receita_liquida",
+  "4": "cmv",
+  "5": "cmv",
+  "6": "despesas",
+  "7": "despesas_financeiras",
+  "8": "outras_nao_operacionais",
+};
+
+/**
+ * Detecta se um código de conta é um totalizador sintético (P1 Authority).
+ * Suporta formatos 1, 1.1, 1.01, 1.001, etc.
+ */
+export function isSyntheticAuthority(code: string): boolean {
+  if (!code) return false;
+  const clean = code.replace(/[^\d.]/g, "");
+  // Padroniza: códigos com 1 ou 2 níveis (ex: "1", "1.1", "1.01", "2.3") são geralmente sintéticos
+  const levels = clean.split(".");
+  if (levels.length <= 2) return true;
+  // Fallback para códigos conhecidos no registro
+  return !!SEMANTIC_ROLE_REGISTRY[clean];
+}
+
 export const GROUP_TOTAL_CODES = new Set([
-  "1", "1.1", "1.2", "11", "12", "1.01", "1.02",      // Ativo, AC, ANC
-  "2", "2.1", "2.2", "2.3", "21", "22", "23", "2.01", "2.02", "2.03", // Passivo, PC, PNC, PL
-  "231", "232", "2.03.01", "2.03.02",         // Sub-PL
-  "3", "3.1", "3.2", "3.3", "31", "32", "33", "3.01", "3.02", "3.03", // DRE
-  "4", "5", "6", "7", "8", "4.1", "5.1", "6.1", "7.1", "8.1", // CMV, Custo Ind, Desp Op, Financeiras, Não Op
+  "1", "1.1", "1.2", "11", "12", "1.01", "1.02",
+  "2", "2.1", "2.2", "2.3", "21", "22", "23", "2.01", "2.02", "2.03",
+  "3", "3.1", "3.2", "3.3", "31", "32", "33", "3.01", "3.02", "3.03",
+  "4", "5", "6", "7", "8",
 ]);
 
 /** Refs1 textuais que indicam a linha é um totalizador de grupo declarado. */
-const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL","ATIVO_TOTAL","PASSIVO_TOTAL","RECEITA"]);
+const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TOTAL","ATIVO_TOTAL","PASSIVO_TOTAL","RECEITA","RECEITA_LIQUIDA"]);
 
-// Chaves que representam AGREGADOS PRINCIPAIS — folhas só devem alimentar
-// estes campos quando o totalizador de grupo NÃO está presente para o mês.
+// Chaves que representam AGREGADOS PRINCIPAIS.
 const MAIN_AGG_KEYS = new Set<(keyof BSDadosRow) | "ignore">([
   "ativo_circulante","ativo_nao_circulante",
   "passivo_circulante","passivo_nao_circulante",
@@ -437,6 +486,27 @@ function resolveKey(row: RowLike): keyof BSDadosRow | null {
  * atualizamos buckets/sub-componentes. Elimina dupla contagem entre
  * totalizador e folhas (raiz do bug de Liquidez Corrente em planos como Giannini).
  */
+/**
+ * certifyFinancialColumn — Proteção de Coluna Errada (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001).
+ * Valida se um valor de saldo pode ser atribuído ao papel semântico desejado.
+ */
+function certifyFinancialColumn(key: keyof BSDadosRow, value: number, row: RowLike): boolean {
+  const v = Math.abs(value);
+  if (v === 0) return true; // Zeros são neutros
+
+  // Regra 1: Contas de Resultado (DRE) não podem ter saldos astronômicos típicos de Ativo Total em meses intermediários
+  // (Detecta erro de importação onde Ativo é jogado em Receita)
+  if (key === "receita_liquida" && v > 1000000000000) return false; 
+  
+  // Regra 2: Role Collision Detector. Uma conta já vinculada a um papel P1 não pode ser "roubada" por outro.
+  const accountCode = (row.conta || "").trim();
+  if (accountCode && SEMANTIC_ROLE_REGISTRY[accountCode] && SEMANTIC_ROLE_REGISTRY[accountCode] !== key) {
+    return false;
+  }
+
+  return true;
+}
+
 function applyValue(
   target: BSDadosRow,
   key: keyof BSDadosRow,
@@ -445,17 +515,26 @@ function applyValue(
   buckets: ComponentBuckets,
   isGroupTotal: boolean = false,
   parentGTPresent: boolean = false,
+  sourceRow?: RowLike
 ) {
   const v = Number(value);
   if (!Number.isFinite(v)) return;
 
-  // MD-BEX-CANONICAL-HIERARCHICAL-AGGREGATION: Detector de dupla contagem.
-  // Se um totalizador de grupo (GT) pai está presente no mês, as contas analíticas
-  // descendentes NÃO devem somar no campo principal (MainAgg).
+  // MD-BEX-CANONICAL-RUNTIME-LINEAGE: Proteção de Coluna Errada
+  if (sourceRow && !certifyFinancialColumn(key, v, sourceRow)) {
+    target.errors.push(`Bloqueio de colisão de papel/coluna: conta ${sourceRow.conta} tentou assumir ${key}`);
+    return;
+  }
+
   const isMainAgg = MAIN_AGG_KEYS.has(key);
   const skipMain = isMainAgg && parentGTPresent && !isGroupTotal;
 
   if (!skipMain) {
+    // Registra que o dado está disponível (Missing Data Contract)
+    if (target.facts_status && key in target.facts_status) {
+       target.facts_status[key as keyof typeof target.facts_status] = "AVAILABLE";
+    }
+
     switch (key) {
       case "receita_liquida": {
         const refU = toUpperNoAccent(ref1 || "");
@@ -519,15 +598,11 @@ function applyValue(
       case "outras_obrigacoes":
         (target as any)[key] = (target[key] as number) + Math.abs(v); break;
       case "fornecedores": {
-        // MD-BEX-CANONICAL-CRITICAL-FACT-REGISTRY: Differentiation between suppliers and advances.
-        // Adiantamentos (Ativo) do NOT count as financial.suppliers.current.
         const descN = toUpperNoAccent(ref1 || "");
         const codePrefix = String(ref1 || "").substring(0, 1);
         const isAtivo = codePrefix === "1" || (parentGTPresent && buckets.groupTotalsPresent.has("11"));
         if (!isAtivo) {
            (target as any)[key] = (target[key] as number) + Math.abs(v);
-        } else if (descN.includes("ADIANTAMENTO")) {
-           // FACT 13/14: supplier_advances (ignored in suppliers Passivo)
         }
         break;
       }
@@ -537,7 +612,7 @@ function applyValue(
     }
   }
 
-  // Acumuladores por Ref Capital + readouts ortogonais — SEMPRE atualizados
+  // Acumuladores e readouts ortogonais
   const refUp = ref1 ? toUpperNoAccent(ref1) : "";
   if (refUp) {
     if (AC_REFS.has(refUp)) buckets.ac += Math.abs(v);
@@ -545,12 +620,21 @@ function applyValue(
     else if (PC_REFS.has(refUp)) buckets.pc += Math.abs(v);
     else if (PNC_REFS.has(refUp)) buckets.pnc += Math.abs(v);
     else if (PL_REFS.has(refUp)) buckets.pl += v;
-    if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") target.contas_receber += Math.abs(v);
-    if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") target.imobilizado += Math.abs(v);
-    if (RLP_REFS.has(refUp)) target.realizavel_longo_prazo += Math.abs(v);
+    
+    if (CONTAS_RECEBER_REFS.has(refUp) && key !== "contas_receber") {
+       target.contas_receber += Math.abs(v);
+       target.facts_status.contas_receber = "AVAILABLE";
+    }
+    if (IMOBILIZADO_REFS.has(refUp) && key !== "imobilizado") {
+       target.imobilizado += Math.abs(v);
+       target.facts_status.imobilizado = "AVAILABLE";
+    }
+    if (RLP_REFS.has(refUp)) {
+       target.realizavel_longo_prazo += Math.abs(v);
+       target.facts_status.realizavel_longo_prazo = "AVAILABLE";
+    }
   }
 
-  // Diagnóstico — valor declarado pelo GT por campo principal
   if (isGroupTotal && isMainAgg) {
     const cur = buckets.declared[key] ?? 0;
     buckets.declared[key] = cur + (key === "patrimonio_liquido" || key === "outras_nao_operacionais" || key === "resultado" ? v : Math.abs(v));
@@ -872,7 +956,16 @@ export function buildBSDados(
         const buckets = bucketsByMes.get(mesKey);
         if (!target || !buckets) continue;
         const parentGT = !isGroupTotal && hasParentGT(conta, mesKey);
-        applyValue(target, key, Number(value) || 0, ref1, buckets, isGroupTotal, parentGT);
+        applyValue(
+          target, 
+          key, 
+          Number(value) || 0, 
+          ref1, 
+          buckets, 
+          isGroupTotal, 
+          parentGT,
+          { conta: row.conta, descricao: row.descricao, saldo: Number(value) || 0 }
+        );
 
         // ── Trilha por grupo (2 dígitos) — alimenta painel "Mapeamento por Grupo" ──
         const v = Math.abs(Number(value) || 0);

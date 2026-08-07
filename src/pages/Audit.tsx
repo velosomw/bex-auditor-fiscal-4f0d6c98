@@ -2573,15 +2573,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       company_id: company.id || "manual",
       generated_at: new Date().toISOString(),
       facts: {
-        ativo_circulante: latestRow.ativo_circulante || 0,
-        ativo_nao_circulante: latestRow.ativo_nao_circulante || 0,
-        passivo_circulante: latestRow.passivo_circulante || 0,
-        passivo_nao_circulante: latestRow.passivo_nao_circulante || 0,
-        patrimonio_liquido: latestRow.patrimonio_liquido || 0,
-        receita_liquida: latestRow.receita_liquida || 0,
-        resultado_liquido: (latestRow as any).resultado_periodo || 0,
-        estoques: latestRow.estoques || 0,
-        fornecedores: latestRow.fornecedores || 0,
+        ativo_circulante: latestRow.ativo_circulante,
+        ativo_nao_circulante: latestRow.ativo_nao_circulante,
+        passivo_circulante: latestRow.passivo_circulante,
+        passivo_nao_circulante: latestRow.passivo_nao_circulante,
+        patrimonio_liquido: latestRow.patrimonio_liquido,
+        receita_liquida: latestRow.receita_liquida,
+        resultado_liquido: latestRow.resultado,
+        estoques: latestRow.estoques,
+        fornecedores: latestRow.fornecedores,
       },
       ratios: computed[latestYear],
       history: computed,
@@ -2617,7 +2617,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
   const latestInd = reportDataset?.ratios;
-  const emprestimos = Math.abs(latestInd?._dividaFinanceira || 0);
+  const emprestimos = latestInd?._dividaFinanceira || 0;
   const caixa = d?.disponivel || 0;
   const dividaOnerosa = emprestimos;
 
@@ -2627,20 +2627,20 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const anc = d?.ativo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
 
-  const tributos = Math.abs(latestInd?._dividaTributaria || 0);
-  const trabalhista = Math.abs(latestInd?._dividaTrabalhista || 0);
+  const tributos = latestInd?._dividaTributaria || 0;
+  const trabalhista = latestInd?._dividaTrabalhista || 0;
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
-  const result = (d as any)?.resultado_liquido || 0;
+  const result = d?.resultado_liquido || 0;
   const pl = d?.patrimonio_liquido || 0;
   const at = ac + anc;
   const pt = pc + pnc;
 
   const solvencyIndicators = latestInd ? [
-    { name: "Liquidez Corrente", result: fmtDec(latestInd.liquidezCorrente), param: "> 1,5", classification: (latestInd.liquidezCorrente ?? 0) > 1.5 ? "Adequada" : (latestInd.liquidezCorrente ?? 0) > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
-    { name: "Liquidez Seca", result: fmtDec(latestInd.liquidezSeca), param: "> 1,0", classification: (latestInd.liquidezSeca ?? 0) > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
-    { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: (latestInd.liquidezGeral ?? 0) > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
-    { name: "Cobertura de Juros", result: `${(latestInd.coberturaJuros ?? 0).toFixed(2)}x`, param: "> 3,0x", classification: (latestInd.coberturaJuros ?? 0) > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
+    { name: "Liquidez Corrente", result: fmtDec(latestInd.liquidezCorrente), param: "> 1,5", classification: latestInd.liquidezCorrente > 1.5 ? "Adequada" : latestInd.liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
+    { name: "Liquidez Seca", result: fmtDec(latestInd.liquidezSeca), param: "> 1,0", classification: latestInd.liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
+    { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
+    { name: "Cobertura de Juros", result: `${latestInd.coberturaJuros.toFixed(2)}x`, param: "> 3,0x", classification: latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: (ac - pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
     { name: "Solvência Total (ISG)", result: fmtDec(at / (pt || 1)), param: "> 1,0", classification: (at / (pt || 1)) > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
@@ -4726,15 +4726,15 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       company_id: company.id || "manual",
       generated_at: new Date().toISOString(),
       facts: {
-        ativo_circulante: latestRow.ativo_circulante || 0,
-        ativo_nao_circulante: latestRow.ativo_nao_circulante || 0,
-        passivo_circulante: latestRow.passivo_circulante || 0,
-        passivo_nao_circulante: latestRow.passivo_nao_circulante || 0,
-        patrimonio_liquido: latestRow.patrimonio_liquido || 0,
-        receita_liquida: latestRow.receita_liquida || 0,
-        resultado_liquido: (latestRow as any).resultado_periodo || 0,
-        estoques: latestRow.estoques || 0,
-        fornecedores: latestRow.fornecedores || 0,
+        ativo_circulante: latestRow.ativo_circulante,
+        ativo_nao_circulante: latestRow.ativo_nao_circulante,
+        passivo_circulante: latestRow.passivo_circulante,
+        passivo_nao_circulante: latestRow.passivo_nao_circulante,
+        patrimonio_liquido: latestRow.patrimonio_liquido,
+        receita_liquida: latestRow.receita_liquida,
+        resultado_liquido: latestRow.resultado,
+        estoques: latestRow.estoques,
+        fornecedores: latestRow.fornecedores,
       },
       ratios: computed[latestYear],
       history: computed,

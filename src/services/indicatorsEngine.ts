@@ -42,18 +42,18 @@ export interface IndicatorRow {
   liquidezGeral: number;
   // Endividamento
   endividamentoTotal: number;
-  grauEndividamentoPL: number;           // GE = (PC + PNC) / PL — Kanitz X5 (N/A se PL ≤ 0)
-  composicaoEndividamento: number;       // PC / PT (CECP)
-  composicaoEndividamentoLP: number;     // PNC / PT (CELP) — NOVO
+  grauEndividamentoPL: number;
+  composicaoEndividamento: number;
+  composicaoEndividamentoLP: number;
   imobilizacaoPL: number;
   coberturaJuros: number;
-  // Atividade (anualizado ×360 conforme planilha BEX)
+  // Atividade
   giroAtivo: number;
-  pmr: number;                           // PMC — Período Médio de Cobrança
-  pmp: number;                           // Período Médio de Pagamento
-  idadeMediaEstoque: number;             // IME
-  cicloOperacional: number;              // CO = IME + PMC — NOVO
-  cicloCaixa: number;                    // CC = CO − PMP — NOVO
+  pmr: number;
+  pmp: number;
+  idadeMediaEstoque: number;
+  cicloOperacional: number;
+  cicloCaixa: number;
   // Rentabilidade
   margemLiquida: number;
   margemOperacional: number;
@@ -80,16 +80,17 @@ export interface IndicatorRow {
   _recFin: number;
   _depreciacao: number;
   _amortizacao: number;
-    _resultado: number;
-    // Bases de dívida detalhadas
-    _dividaTributaria: number;
-    _dividaTrabalhista: number;
-    _dividaFinanceira: number;
-    _credoresRJ: number;
-    // Readouts diretos
-    isg: number;
-    endividamentoGeral: number; // pt / at
-  // Flags
+  _resultado: number;
+  // Bases de dívida detalhadas
+  _dividaTributaria: number;
+  _dividaTrabalhista: number;
+  _dividaFinanceira: number;
+  _credoresRJ: number;
+  // Readouts diretos
+  isg: number;
+  endividamentoGeral: number; // pt / at
+  // Metadata & Status
+  indicators_status: Record<string, "AVAILABLE" | "NOT_AVAILABLE">;
   naROE: boolean;
   naImobilizacao: boolean;
   naCobertura: boolean;
@@ -102,89 +103,85 @@ const div = (n: number, d: number): number => {
 };
 
 export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
-  const ac = r.ativo_circulante || 0;
-  const anc = r.ativo_nao_circulante || 0;
-  const rlp = r.realizavel_longo_prazo || 0;
+  const ac = r.ativo_circulante;
+  const anc = r.ativo_nao_circulante;
+  const rlp = r.realizavel_longo_prazo;
   const at = ac + anc;
-  const pc = r.passivo_circulante || 0;
-  const pnc = r.passivo_nao_circulante || 0;
-  
-  // FACT 06: Passivo Total Exigível = PC + PNC
+  const pc = r.passivo_circulante;
+  const pnc = r.passivo_nao_circulante;
   const pt = pc + pnc;
-  
-  const pl = r.patrimonio_liquido || 0;
-  const estoque = r.estoques || 0;
-  const caixa = r.disponivel || 0;
-  const imob = r.imobilizado || 0;
-  const contasReceber = r.contas_receber || 0;
-  const receita = r.receita_liquida || 0;
-  const cmvAbs = Math.abs(r.cmv || 0);
-  const despFinAbs = Math.abs(r.despesas_financeiras || 0);
-  const recFinAbs = Math.abs(r.receitas_financeiras || 0);
-  const depAbs = Math.abs(r.depreciacao || 0);
-  const amortAbs = Math.abs(r.amortizacao || 0);
-  const resultado = r.resultado || 0;
+  const pl = r.patrimonio_liquido;
+  const estoque = r.estoques;
+  const caixa = r.disponivel;
+  const imob = r.imobilizado;
+  const contasReceber = r.contas_receber;
+  const receita = r.receita_liquida;
+  const cmvAbs = Math.abs(r.cmv);
+  const despFinAbs = Math.abs(r.despesas_financeiras);
+  const recFinAbs = Math.abs(r.receitas_financeiras);
+  const depAbs = Math.abs(r.depreciacao);
+  const amortAbs = Math.abs(r.amortizacao);
+  const resultado = r.resultado;
 
-  // LAJIR (proxy): resultado + despesas financeiras − receitas financeiras
   const lajir = resultado + despFinAbs - recFinAbs;
 
-  // Prazos em DIAS sobre base mensal (×30) — bate com planilha BEX p/ meses isolados e séries
   const pmr = div(contasReceber * 30, receita);
   const pmp = div(r.fornecedores * 30, cmvAbs);
   const ime = div(estoque * 30, cmvAbs);
-
-  // Liquidez Geral — fórmula planilha Kanitz: (AC + RLP) / (PC + PNC).
-  // RLP é subset de ANC: quando ausente (parser não populou), fallback para ANC
-  // mantém compatibilidade — mas o ideal é ter RLP discriminado via Refs P..Z.
   const rlpEff = rlp > 0 ? rlp : anc;
 
-  return {
+  const res: IndicatorRow = {
     mesKey: r.mesKey,
     mes: r.mes,
-    // Liquidez
     liquidezCorrente: div(ac, pc),
     liquidezSeca: div(ac - estoque, pc),
     liquidezImediata: div(caixa, pc),
     liquidezGeral: div(ac + rlpEff, pc + pnc),
-    // Endividamento
     endividamentoTotal: div(pt, at),
-    // Kanitz X5: exibe sinal negativo quando PL é negativo (passivo a descoberto)
-    // Grau de Endividamento (GE) = (PC + PNC) / PL
     grauEndividamentoPL: pl !== 0 ? pt / pl : 0,
     composicaoEndividamento: div(pc, pt),
     composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
     coberturaJuros: despFinAbs > 0 ? div(lajir, despFinAbs) : 0,
-    // Atividade — DIAS sobre base mensal (×30); CO=IME+PMR, CC=CO−PMP
     giroAtivo: div(receita, at),
     pmr,
     pmp,
     idadeMediaEstoque: ime,
     cicloOperacional: ime + pmr,
     cicloCaixa: ime + pmr - pmp,
-    // Rentabilidade — ROA/ROE ANUALIZADOS (×12) a partir do resultado mensal
     margemLiquida: div(resultado, receita),
     margemOperacional: div(lajir, receita),
     roa: div(resultado, at) * 12,
     roe: pl !== 0 ? div(resultado, pl) * 12 : 0,
-    // EBITDA = Resultado + |DespFin| + |Depreciação| + |Amortização|
     ebitda: lajir + depAbs + amortAbs,
     isg: pt > 0 ? at / pt : 0,
     endividamentoGeral: at > 0 ? pt / at : 0,
-    // Bases
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
-    _fornecedores: r.fornecedores || 0, _receita: receita, _cmv: cmvAbs,
+    _fornecedores: r.fornecedores, _receita: receita, _cmv: cmvAbs,
     _despFin: despFinAbs, _recFin: recFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
     _resultado: resultado,
-    _dividaTributaria: Math.abs(r.divida_tributaria || 0),
-    _dividaTrabalhista: Math.abs(r.divida_trabalhista || 0),
-    _dividaFinanceira: Math.abs(r.divida_financeira || 0),
-    _credoresRJ: Math.abs(r.credores_rj || 0),
+    _dividaTributaria: Math.abs(r.divida_tributaria),
+    _dividaTrabalhista: Math.abs(r.divida_trabalhista),
+    _dividaFinanceira: Math.abs(r.divida_financeira),
+    _credoresRJ: Math.abs(r.credores_rj),
+    indicators_status: {},
     naROE: pl <= 0,
     naImobilizacao: pl <= 0,
     naCobertura: despFinAbs === 0,
   };
+
+  // Mapeia status dos indicadores baseado na disponibilidade dos fatos
+  const s = r.facts_status;
+  if (s) {
+    res.indicators_status.liquidezCorrente = (s.ativo_circulante === "AVAILABLE" && s.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+    res.indicators_status.liquidezSeca = (s.ativo_circulante === "AVAILABLE" && s.estoques === "AVAILABLE" && s.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+    res.indicators_status.endividamentoTotal = (s.passivo_circulante === "AVAILABLE" && s.ativo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+    res.indicators_status.margemLiquida = (s.resultado === "AVAILABLE" && s.receita_liquida === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+    res.indicators_status.ebitda = (s.resultado === "AVAILABLE" && s.despesas_financeiras === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
+  }
+  
+  return res;
 }
 
 /** Constrói série indexada por mesKey, pronta para consumo pelas abas. */
