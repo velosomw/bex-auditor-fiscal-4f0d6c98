@@ -2345,8 +2345,8 @@ const reportTopicsKanitz = [
 ];
 
 /* ── Shared A4 Report Page Wrapper ── */
-const ReportPage = ({ children }: { children: React.ReactNode }) => (
-  <div className="report-a4-page" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+const ReportPage = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+  <div className={`report-a4-page ${className}`} style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
     <div className="report-page-header">
       <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
     </div>
