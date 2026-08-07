@@ -367,7 +367,7 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "1": "ativo_total" as any,
   "1.1": "ativo_circulante",
   "1.01": "ativo_circulante",
-  "1.1.03": "estoques", // MD-BEX-RUNTIME-CONSUMER: Requirement 13
+  "1.1.03": "estoques",
   "1.2": "ativo_nao_circulante",
   "1.02": "ativo_nao_circulante",
   "1.2.01": "realizavel_longo_prazo",
@@ -379,9 +379,9 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "2.02": "passivo_nao_circulante",
   "2.3": "patrimonio_liquido",
   "2.03": "patrimonio_liquido",
-  "2.4": "patrimonio_liquido", // MD-BEX-MULTI-BALANCETE: Golden 02 support
+  "2.4": "patrimonio_liquido",
   // DRE
-  "3": "resultado" as any, 
+  "3": "resultado" as any,
   "3.1": "receita_liquida",
   "3.01": "receita_liquida",
   "4": "cmv",
@@ -390,15 +390,13 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "7": "despesas_financeiras",
   "8": "outras_nao_operacionais",
 };
-  "8": "outras_nao_operacionais",
-};
 
 /**
  * Detecta se um código de conta é um totalizador sintético (P1 Authority).
  * Suporta formatos 1, 1.1, 1.01, 1.001, etc.
  */
-export function isSyntheticAuthority(code: string): boolean {
-  if (!code) return false;
+export function isSyntheticAuthority(code: string, desc?: string): keyof BSDadosRow | null {
+  if (!code) return null;
   // MD-BEX-RUNTIME-CONSUMER Requirement 14: normalizeAccountCode
   const clean = code.replace(/[^\d]/g, "");
   
@@ -406,18 +404,34 @@ export function isSyntheticAuthority(code: string): boolean {
   // Semantic comparison for 2.3 vs 2.03 vs 2.003
   for (const registryCode of Object.keys(SEMANTIC_ROLE_REGISTRY)) {
     const regClean = registryCode.replace(/[^\d]/g, "");
-    if (clean === regClean) return true;
+    if (clean === regClean) return SEMANTIC_ROLE_REGISTRY[registryCode];
     
     // Handled leading zero normalization (e.g., 2.3 vs 2.03)
     const normClean = clean.replace(/^0+/, "");
     const normReg = regClean.replace(/^0+/, "");
-    if (normClean === normReg) return true;
+    if (normClean === normReg) return SEMANTIC_ROLE_REGISTRY[registryCode];
+  }
+
+  // Generalização Semântica (MD-BEX-MULTI-BALANCETE Requirement 15)
+  const d = (desc || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  
+  // ESTOQUES Generalizado
+  if (/\bestoques?\b|\bestoques? pr[oó]prios?\b|\bmercadorias? para revenda\b|\bprodutos? acabados?\b|\bmat[eé]ria-prima\b/i.test(d)) {
+    if (code.startsWith("1.1") || code.startsWith("1.01")) return "estoques";
+  }
+
+  // FORNECEDORES Generalizado
+  if (/\bfornecedores?\b/i.test(d) && !/\badiantamento\b|\bfinanceir\b/i.test(d)) {
+    if (code.startsWith("2.1") || code.startsWith("2.01")) return "fornecedores";
   }
 
   const parts = code.split(".");
-  if (parts.length <= 2) return true;
+  if (parts.length <= 2) {
+    if (code.startsWith("1")) return "ativo_total" as any;
+    if (code.startsWith("2")) return "passivo_total" as any;
+  }
   
-  return false;
+  return null;
 }
 
 export const GROUP_TOTAL_CODES = new Set([
