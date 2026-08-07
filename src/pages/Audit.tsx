@@ -173,8 +173,11 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
       ]);
       const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       for (let i = 0; i < pages.length; i++) {
+        // Força scroll no topo do elemento para garantir captura correta
+        pages[i].scrollTop = 0;
+        
         const canvas = await html2canvas(pages[i], {
-          scale: 2.5, // Aumento de escala para maior nitidez
+          scale: 2.2, // Equilíbrio entre performance e nitidez
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
