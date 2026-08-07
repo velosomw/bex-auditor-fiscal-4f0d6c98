@@ -61,6 +61,9 @@ export interface IndicatorRow {
   roe: number;
   // EBITDA
   ebitda: number;
+  /** Status de certificação (MD-FINAL-RESIDUAL-001). */
+  ebitdaStatus: "AVAILABLE" | "NOT_AVAILABLE";
+  coberturaJurosStatus: "AVAILABLE" | "NOT_AVAILABLE";
   // Bases (para drill-down / memória de cálculo)
   _ac: number;
   _anc: number;
@@ -126,6 +129,12 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
 
   const lajir = resultado + despFinAbs - recFinAbs;
 
+  /* MD-FINAL-RESIDUAL-001 §21..§29 — EBITDA e Cobertura de Juros só são publicados
+     quando certificados pelo resolver residual; caso contrário NaN (nunca zero artificial). */
+  const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE" && Number.isFinite(r.residual_facts.ebitda.value);
+  const coberturaCertificada =
+    r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 0 && Number.isFinite(lajir);
+
   const pmr = div(contasReceber * 30, receita);
   const pmp = div(r.fornecedores * 30, cmvAbs);
   const ime = div(estoque * 30, cmvAbs);
@@ -143,7 +152,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     composicaoEndividamento: div(pc, pt),
     composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
-    coberturaJuros: despFinAbs > 0 ? div(lajir, despFinAbs) : 0,
+    coberturaJuros: coberturaCertificada ? lajir / despFinAbs : NaN,
     giroAtivo: div(receita, at),
     pmr,
     pmp,
@@ -154,7 +163,9 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     margemOperacional: div(lajir, receita),
     roa: div(resultado, at) * 12,
     roe: pl !== 0 ? div(resultado, pl) * 12 : 0,
-    ebitda: lajir + depAbs + amortAbs,
+    ebitda: ebitdaCertificado ? (r.residual_facts!.ebitda.value) : NaN,
+    ebitdaStatus: ebitdaCertificado ? "AVAILABLE" : "NOT_AVAILABLE",
+    coberturaJurosStatus: coberturaCertificada ? "AVAILABLE" : "NOT_AVAILABLE",
     isg: pt > 0 ? at / pt : 0,
     endividamentoGeral: at > 0 ? pt / at : 0,
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl, _rlp: rlpEff,
@@ -169,7 +180,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     indicators_status: {},
     naROE: pl <= 0,
     naImobilizacao: pl <= 0,
-    naCobertura: despFinAbs === 0,
+    naCobertura: !coberturaCertificada,
   };
 
   // Mapeia status dos indicadores baseado na disponibilidade dos fatos
