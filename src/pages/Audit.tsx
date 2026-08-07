@@ -2612,8 +2612,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const scoreBg = "bg-slate-100 border-slate-200";
   const scoreLabel = "Score Desativado";
   const riskIcon = "📋";
+
+  const latestInd = reportDataset?.ratios;
+  const emprestimos = Math.abs(latestInd?._dividaFinanceira || 0);
   const caixa = d?.disponivel || 0;
   const dividaOnerosa = emprestimos;
+
 
   const pc = d?.passivo_circulante || 0;
   const pnc = d?.passivo_nao_circulante || 0;
