@@ -1,14 +1,19 @@
-// Audit Pipeline Process — Pré-processamento inteligente de balancetes
-// Stack: Lovable AI Gateway (chat/JSON) + Supabase Postgres.
+// Enterprise Balance Sheet Extraction Engine (Correction 001)
+// Foundation Contábil da Plataforma BEx v1.0
 //
-// Otimizações v4 (foco: extração 100% estrutural + IA livre para insights):
-//   #1 Paralelismo:             CHUNK_SIZE 120, MAX_PARALLEL 12 (≤ 1 onda em casos típicos)
-//   #2 Cache persistente em DB: contabil_dictionary (lookup O(1) entre auditorias)
-//   #3 Fast-path AGRESSIVO:     código BR sozinho é autoridade → ~100% extração sem LLM
-//   #4 Timeout LLM (45s) + retry com modelo diferente (evita travar 148s em 503 do upstream)
-//   #5 Tool calling rígido:     prompt firme + validação de tamanho + retry com modelo maior
-//   #6 Progresso em tempo real: pipeline_documents.progress atualizado por estágio
-//   #7 Insights com gemini-2.5-pro + few-shot de dataset_validated (capacidade liberada)
+// Este motor constitui o primeiro estágio da cadeia cognitiva da Plataforma BEx.
+// Nenhum componente posterior poderá alterar informações extraídas do balancete.
+// O balancete constitui a única fonte primária de verdade.
+//
+// Otimizações v4:
+//   #1 Paralelismo:             CHUNK_SIZE 120, MAX_PARALLEL 12
+//   #2 Cache persistente em DB: contabil_dictionary (lookup O(1))
+//   #3 Fast-path AGRESSIVO:     código BR sozinho é autoridade
+//   #4 Timeout LLM (45s) + retry com modelo diferente
+//   #5 Tool calling rígido:     validação de tamanho + retry
+//   #6 Progresso em tempo real: pipeline_documents.progress
+//   #7 Insights com gemini-2.5-pro + few-shot
+
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";

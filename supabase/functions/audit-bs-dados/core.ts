@@ -1,4 +1,4 @@
-// ─── Tipos ───────────────────────────────────────────────
+// Enterprise Balance Sheet Extraction Engine - Core Logic v1.0
 export interface InputLinha {
   conta?: string;
   descricao?: string;
