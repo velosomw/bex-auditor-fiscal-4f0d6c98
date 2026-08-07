@@ -349,11 +349,11 @@ const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
 // P2: Se P1 não existe -> Agrega filhos imediatos não sobrepostos.
 // P3: Nunca somar pai e filho no mesmo fato canônico.
 export const GROUP_TOTAL_CODES = new Set([
-  "1", "11", "12",      // Ativo, AC, ANC
-  "2", "21", "22", "23", // Passivo, PC, PNC, PL
-  "231", "232",         // Sub-PL
-  "3", "31", "32", "33", // DRE: Receita Bruta, Deduções, Impostos
-  "4", "5", "6", "7", "8", // CMV, Custo Ind, Desp Op, Financeiras, Não Op
+  "1", "1.1", "1.2", "11", "12", "1.01", "1.02",      // Ativo, AC, ANC
+  "2", "2.1", "2.2", "2.3", "21", "22", "23", "2.01", "2.02", "2.03", // Passivo, PC, PNC, PL
+  "231", "232", "2.03.01", "2.03.02",         // Sub-PL
+  "3", "3.1", "3.2", "3.3", "31", "32", "33", "3.01", "3.02", "3.03", // DRE
+  "4", "5", "6", "7", "8", "4.1", "5.1", "6.1", "7.1", "8.1", // CMV, Custo Ind, Desp Op, Financeiras, Não Op
 ]);
 
 /** Refs1 textuais que indicam a linha é um totalizador de grupo declarado. */

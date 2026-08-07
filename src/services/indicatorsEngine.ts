@@ -80,7 +80,15 @@ export interface IndicatorRow {
   _recFin: number;
   _depreciacao: number;
   _amortizacao: number;
-  _resultado: number;
+    _resultado: number;
+    // Bases de dívida detalhadas
+    _dividaTributaria: number;
+    _dividaTrabalhista: number;
+    _dividaFinanceira: number;
+    _credoresRJ: number;
+    // Readouts diretos
+    isg: number;
+    endividamentoGeral: number; // pt / at
   // Flags
   naROE: boolean;
   naImobilizacao: boolean;
@@ -161,12 +169,18 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     roe: pl !== 0 ? div(resultado, pl) * 12 : 0,
     // EBITDA = Resultado + |DespFin| + |Depreciação| + |Amortização|
     ebitda: lajir + depAbs + amortAbs,
+    isg: pt > 0 ? at / pt : 0,
+    endividamentoGeral: at > 0 ? pt / at : 0,
     // Bases
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
     _fornecedores: r.fornecedores || 0, _receita: receita, _cmv: cmvAbs,
     _despFin: despFinAbs, _recFin: recFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
     _resultado: resultado,
+    _dividaTributaria: Math.abs(r.divida_tributaria || 0),
+    _dividaTrabalhista: Math.abs(r.divida_trabalhista || 0),
+    _dividaFinanceira: Math.abs(r.divida_financeira || 0),
+    _credoresRJ: Math.abs(r.credores_rj || 0),
     naROE: pl <= 0,
     naImobilizacao: pl <= 0,
     naCobertura: despFinAbs === 0,

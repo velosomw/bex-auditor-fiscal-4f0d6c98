@@ -55,8 +55,19 @@ export interface CanonicalReportDataset {
   competency: string;
   company_id: string;
   generated_at: string;
-  facts: BSDadosRow;
+  facts: Partial<BSDadosRow> & { 
+    ativo_circulante: number;
+    ativo_nao_circulante: number;
+    passivo_circulante: number;
+    passivo_nao_circulante: number;
+    patrimonio_liquido: number;
+    receita_liquida: number;
+    resultado_liquido: number;
+    estoques: number;
+    fornecedores: number;
+  };
   ratios: IndicatorRow;
+  history: Record<string, IndicatorRow>;
   kanitz: any;
   narratives: Record<string, { text: string; fact_ids_used: string[] }>;
   limitations: string[];
@@ -2030,9 +2041,12 @@ const TabPatrimonial = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; 
 /* ── Tab 5: Risco de Recuperação Judicial ── */
 const TabRiscoRJ = ({ aiAnalysis }: { aiAnalysis?: any }) => {
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
-  const scoreColor = activeScore.score <= 30 ? "text-emerald-500" :
-                     activeScore.score <= 60 ? "text-yellow-500" :
-                     activeScore.score <= 80 ? "text-orange-500" : "text-red-500";
+  const scoreVal = activeScore.score;
+  const computedScoreColor = scoreVal <= 30 ? "text-emerald-500" :
+                             scoreVal <= 60 ? "text-yellow-500" :
+                             scoreVal <= 80 ? "text-orange-500" : "text-red-500";
+
+
 
   return (
     <div className="space-y-4">
@@ -2044,8 +2058,8 @@ const TabRiscoRJ = ({ aiAnalysis }: { aiAnalysis?: any }) => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center py-6">
-              <p className={`text-6xl font-bold ${scoreColor}`}>{activeScore.score}</p>
-              <p className={`text-lg font-semibold mt-2 ${scoreColor}`}>{activeScore.classificacao}</p>
+              <p className={`text-6xl font-bold ${computedScoreColor}`}>{activeScore.score}</p>
+              <p className={`text-lg font-semibold mt-2 ${computedScoreColor}`}>{activeScore.classificacao}</p>
               <p className="text-xs text-muted-foreground mt-1">de 100 pontos</p>
             </div>
             <div className="space-y-2">
@@ -2556,19 +2570,39 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       runtime_trace_id: traceId,
       canonical_snapshot_id: `SNAP-${traceId}`,
       competency: latestYear,
-      company_id: company.id,
+      company_id: company.id || "manual",
       generated_at: new Date().toISOString(),
-      facts: latestRow,
+      facts: {
+        ativo_circulante: latestRow.ativo_circulante || 0,
+        ativo_nao_circulante: latestRow.ativo_nao_circulante || 0,
+        passivo_circulante: latestRow.passivo_circulante || 0,
+        passivo_nao_circulante: latestRow.passivo_nao_circulante || 0,
+        patrimonio_liquido: latestRow.patrimonio_liquido || 0,
+        receita_liquida: latestRow.receita_liquida || 0,
+        resultado_liquido: (latestRow as any).resultado_periodo || 0,
+        estoques: latestRow.estoques || 0,
+        fornecedores: latestRow.fornecedores || 0,
+      },
       ratios: computed[latestYear],
+      history: computed,
       kanitz: null,
       narratives: {},
-      limitations: latestRow.errors,
+      limitations: latestRow.errors || [],
     };
   }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
 
   const activeYear = reportDataset?.competency || "";
   const d = reportDataset?.facts;
   
+  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
+  const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
+  const activePend = aiAnalysis?.pendencias || pendencias;
+
+  const hasBexScore = false; 
+  const scoreColor = "text-slate-400";
+  const scoreBg = "bg-slate-100 border-slate-200";
+  const scoreLabel = "Score Desativado";
+  const riskIcon = "📋";
   const computedInd = useMemo(() => computeIndicatorsFromParsed(parsedData || null), [parsedData, computeIndicatorsFromParsed]);
 
   const years = Object.keys(computedInd).sort((a, b) => {
@@ -2579,15 +2613,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const latestYear = years[years.length - 1];
   const indForDashboard = latestYear ? computedInd[latestYear] : null;
 
-  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
-  const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
-  const activePend = aiAnalysis?.pendencias || pendencias;
 
-  const hasBexScore = false; 
-  const scoreColor = "text-slate-400";
-  const scoreBg = "bg-slate-100 border-slate-200";
-  const scoreLabel = "Score Desativado";
-  const riskIcon = "📋";
+
+
+  const latestInd = reportDataset?.ratios;
+  const emprestimos = Math.abs(latestInd?._dividaFinanceira || 0);
+  const caixa = d?.disponivel || 0;
+  const dividaOnerosa = emprestimos;
 
   const pc = d?.passivo_circulante || 0;
   const pnc = d?.passivo_nao_circulante || 0;
@@ -2595,22 +2627,22 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const anc = d?.ativo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
 
-  const caixa = d?.disponivel || 0;
-  const emprestimos = d?.divida_financeira || 0;
-
-
-  const dividaOnerosa = emprestimos;
+  const tributos = Math.abs(latestInd?._dividaTributaria || 0);
+  const trabalhista = Math.abs(latestInd?._dividaTrabalhista || 0);
   const fornec = d?.fornecedores || 0;
-
-  const latestInd = computedInd[latestYear];
+  const rl = d?.receita_liquida || 0;
+  const result = (d as any)?.resultado_liquido || 0;
+  const pl = d?.patrimonio_liquido || 0;
+  const at = ac + anc;
+  const pt = pc + pnc;
 
   const solvencyIndicators = latestInd ? [
-    { name: "Liquidez Corrente", result: fmtDec(latestInd.liquidezCorrente), param: "> 1,5", classification: (latestInd.liquidezCorrente ?? 0) > 1.5 ? "Adequada" : (latestInd.liquidezCorrente ?? 0) > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(latestInd._ac)} / PC R$ ${fmt(latestInd._pc)}` },
+    { name: "Liquidez Corrente", result: fmtDec(latestInd.liquidezCorrente), param: "> 1,5", classification: (latestInd.liquidezCorrente ?? 0) > 1.5 ? "Adequada" : (latestInd.liquidezCorrente ?? 0) > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
     { name: "Liquidez Seca", result: fmtDec(latestInd.liquidezSeca), param: "> 1,0", classification: (latestInd.liquidezSeca ?? 0) > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
     { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: (latestInd.liquidezGeral ?? 0) > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
     { name: "Cobertura de Juros", result: `${(latestInd.coberturaJuros ?? 0).toFixed(2)}x`, param: "> 3,0x", classification: (latestInd.coberturaJuros ?? 0) > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
-    { name: "Capital de Giro Líquido", result: `R$ ${fmt(latestInd._ac - latestInd._pc)}`, param: "> 0", classification: (latestInd._ac - latestInd._pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
-    { name: "Solvência Total (ISG)", result: fmtDec(latestInd._at / (latestInd._pt || 1)), param: "> 1,0", classification: (latestInd._at / (latestInd._pt || 1)) > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
+    { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: (ac - pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
+    { name: "Solvência Total (ISG)", result: fmtDec(at / (pt || 1)), param: "> 1,0", classification: (at / (pt || 1)) > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
 
   /* ── Kanitz computation for abbreviated section ── */
@@ -2621,28 +2653,28 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return row?.values[year] || 0;
   };
 
-  const kanitzResults: Array<{
-    year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
-    classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
-    ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
-    ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
-  }> = [];
+  const kanitzResults = useMemo(() => {
+    if (!reportDataset) return [];
+    
+    const results: Array<{
+      year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
+      classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
+      ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
+      ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
+    }> = [];
 
-  const kanitzIndMap: Record<string, any> = {};
-  if (parsedData) {
-    const computed = computedInd; // Já computado acima
-    Object.keys(computed).forEach(k => {
+    const computed = reportDataset.history;
+    Object.keys(computed).sort().forEach(k => {
       const ind = computed[k];
       const kAplic = ind._pl > 0;
       
-      // Kanitz FI (Fator de Insolvência) Canônico
       const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * ind.grauEndividamentoPL) : 0;
       
       const isgValue = ind._at / (ind._pc + ind._pnc || 1);
       const classificacao: any = !kAplic ? "na" :
         fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
 
-      kanitzResults.push({
+      results.push({
         year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
         ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
         ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
@@ -2650,7 +2682,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
       });
     });
-  }
+    return results;
+  }, [reportDataset]);
 
   if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
     const aiK = aiAnalysis.kanitz;
@@ -2808,7 +2841,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Técnico IA</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-              <p className="text-sm text-foreground leading-relaxed">{activeDiag.resumo}</p>
+              <p className="text-sm text-foreground leading-relaxed">
+                Com base no Balancete de {latestYear}, a empresa apresenta um Ativo Total de R$ {fmt(at)} contra um Passivo Total de R$ {fmt(pt)}. 
+                O Patrimônio Líquido é de R$ {fmt(pl)}. A Receita Líquida do período atingiu R$ {fmt(rl)}, resultando em um {result >= 0 ? "Lucro" : "Prejuízo"} de R$ {fmt(Math.abs(result))}.
+                {activeDiag.resumo}
+              </p>
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {["CPC 26", "CPC 47", "IFRS 15", "NBC TA 570", "Lei 11.101/2005"].map(n => (
                   <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
@@ -3058,12 +3095,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={years.map(y => {
                       const yInd = computedInd[y];
-                      const tributarias = Math.abs(yInd?._pt || 0) * 0.1;
-                      const trabalhistas = Math.abs(yInd?._pt || 0) * 0.1;
-                      const emprestimos = Math.abs(yInd?._pt || 0) * 0.2;
+                      const tributarias = Math.abs(yInd?._dividaTributaria || 0);
+                      const trabalhistas = Math.abs(yInd?._dividaTrabalhista || 0);
+                      const emprestimos = Math.abs(yInd?._dividaFinanceira || 0);
                       const fornecedores = Math.abs(yInd?._fornecedores || 0);
-                      const credoresRJ = Math.abs(yInd?._pt || 0) * 0.05; // Placeholder mock
-                      const outras = Math.abs(yInd?._pt || 0) - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ;
+                      const credoresRJ = Math.abs(yInd?._credoresRJ || 0);
+                      const pt = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
+                      const outras = Math.max(0, pt - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ);
 
 
 
@@ -3207,11 +3245,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { label: "Empréstimos e Financiamentos", value: reportDataset?.facts.divida_financeira || 0 },
-                { label: "Dívida Bancária Total", value: reportDataset?.facts.divida_financeira || 0 },
-                { label: "Fornecedores", value: reportDataset?.facts.fornecedores || 0 },
-                { label: "Passivo Circulante", value: reportDataset?.facts.passivo_circulante || 0 },
-                { label: "Passivo Não Circulante", value: reportDataset?.facts.passivo_nao_circulante || 0 },
+                { label: "Empréstimos e Financiamentos", value: emprestimos },
+                { label: "Dívida Tributária", value: tributos },
+                { label: "Dívida Trabalhista", value: trabalhista },
+                { label: "Fornecedores", value: fornec },
+                { label: "Passivo Circulante", value: pc },
+                { label: "Passivo Não Circulante", value: pnc },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
@@ -3241,8 +3280,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">5.3 Análise Estratégica</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
               <p className="text-xs text-foreground leading-relaxed">
-                A estrutura de endividamento revela passivo não circulante de R$ {fmt(pnc)}, representando {fmtPct(pnc / ptotal)} do passivo total. 
-                A dívida onerosa total de R$ {fmt(dividaOnerosa)} exige monitoramento contínuo da capacidade de refinanciamento e dos covenants ativos.
+                A estrutura de endividamento revela passivo não circulante de R$ {fmt(pnc)}, representando {ptotal ? fmtPct(pnc / ptotal) : "0,0%"} do passivo total. 
+                A dívida onerosa total (empréstimos) de R$ {fmt(emprestimos)} exige monitoramento contínuo da capacidade de refinanciamento e dos covenants ativos.
               </p>
               <div className="flex flex-wrap gap-1.5 pt-2">
                 {["Risco de vencimento concentrado", "Capacidade de renegociação limitada", "Monitorar covenants", "Avaliar necessidade de RJ"].map(t => (
@@ -3584,7 +3623,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
    TAB: RELATÓRIO KANITZ EXPANDIDO v2.0
    Risk Intelligence Financial Report — 11 Módulos
    ══════════════════════════════════════════════════════ */
-const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, uploadedFiles, sourceDocs, company }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null }) => {
+const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, uploadedFiles, sourceDocs, company, reportDataset }: { onBack: () => void; parsedData?: ParsedFinancialData | null; onSwitchToBex?: () => void; aiAnalysis?: any; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null; reportDataset?: CanonicalReportDataset | null }) => {
   const today = new Date().toLocaleDateString("pt-BR");
   const kanitzContainerRef = useRef<HTMLDivElement>(null);
   const [totalPagesKanitz, setTotalPagesKanitz] = useState(0);
@@ -3614,14 +3653,13 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   };
   const kanitzResults: KanitzRow[] = [];
 
-  if (parsedData) {
-    // Ordena cronologicamente (formatos "MM/AAAA" ou "AAAA")
-    const years = [...parsedData.years].sort((a, b) => {
+  if (reportDataset) {
+    const computed = reportDataset.history;
+    const years = Object.keys(computed).sort((a, b) => {
       const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
       const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
       return pa.localeCompare(pb);
     });
-    const computed = computeIndicatorsFromParsed(parsedData);
     for (const year of years) {
       const ind = computed[year];
       if (!ind) continue;
@@ -3877,11 +3915,11 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <p className="text-sm text-foreground leading-relaxed">
               {!kAplic ? (
                 <>
-                  A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(l.pl)} (Ativo Total R$ {fmt(l.at)} vs Passivo Total R$ {fmt(l.pt)}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
+                  A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(reportDataset?.facts.patrimonio_liquido || 0)} (Ativo Total R$ {fmt((reportDataset?.facts.ativo_circulante || 0) + (reportDataset?.facts.ativo_nao_circulante || 0))} vs Passivo Total R$ {fmt((reportDataset?.facts.passivo_circulante || 0) + (reportDataset?.facts.passivo_nao_circulante || 0))}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
                   <br /><br />
-                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(l.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(l.isg ?? 0) < 1
+                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(reportDataset?.ratios.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(reportDataset?.ratios.isg ?? 0) < 1
                     ? "O ativo total não cobre as obrigações totais, caracterizando insolvência técnica e demandando reestruturação patrimonial (Lei 11.101/2005) ou aporte de capital."
-                    : (l.isg ?? 0) < 1.5
+                    : (reportDataset?.ratios.isg ?? 0) < 1.5
                     ? "Cobertura patrimonial estreita: cada R$ 1,00 de dívida é lastreada por menos de R$ 1,50 de ativos."
                     : "Cobertura patrimonial adequada apesar do PL negativo."}
                 </>
@@ -3892,7 +3930,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 : l.classificacao === "atencao"
                 ? `A empresa encontra-se em ZONA DE ATENÇÃO com FI de ${(l.fi ?? 0).toFixed(2)}. Indicadores de liquidez e endividamento apresentam fragilidades que requerem monitoramento contínuo.`
                 : l.classificacao === "risco"
-                ? `A empresa está em ZONA DE RISCO com FI de ${(l.fi ?? 0).toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(l.ls)} e Grau de Endividamento de ${fmtDec(l.ge)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
+                ? `A empresa está em ZONA DE RISCO com FI de ${(l.fi ?? 0).toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(reportDataset?.ratios.liquidezSeca || 0)} e Grau de Endividamento de ${fmtDec(reportDataset?.ratios.endividamentoTotal || 0)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
                 : `A empresa apresenta ALTA PROBABILIDADE DE INSOLVÊNCIA com FI de ${(l.fi ?? 0).toFixed(2)}. A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005.`}
 
             </p>
@@ -4659,6 +4697,53 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   }, [parsedData, balanceteEntries]);
 
 
+  const computeIndicatorsFromParsed = useCallback((parsed: ParsedFinancialData | null): Record<string, IndicatorRow> => {
+    if (!parsed) return {};
+    const rows = buildBSDados(parsed, balanceteEntries || []);
+    const out: Record<string, IndicatorRow> = {};
+    rows.forEach(r => {
+      out[r.mesKey] = computeIndicatorsForRow(r);
+    });
+    return out;
+  }, [balanceteEntries]);
+
+  const reportDataset: CanonicalReportDataset | null = useMemo(() => {
+    if (!parsedData || !company) return null;
+    const computed = computeIndicatorsFromParsed(parsedData);
+    const years = Object.keys(computed).sort();
+    const latestYear = years[years.length - 1];
+    if (!latestYear) return null;
+    
+    const rows = buildBSDados(parsedData, balanceteEntries || []);
+    const latestRow = rows.find(r => r.mesKey === latestYear);
+    if (!latestRow) return null;
+
+    const traceId = `BEX-RUNTIME-${latestYear}-${Date.now()}`;
+    return {
+      runtime_trace_id: traceId,
+      canonical_snapshot_id: `SNAP-${traceId}`,
+      competency: latestYear,
+      company_id: company.id || "manual",
+      generated_at: new Date().toISOString(),
+      facts: {
+        ativo_circulante: latestRow.ativo_circulante || 0,
+        ativo_nao_circulante: latestRow.ativo_nao_circulante || 0,
+        passivo_circulante: latestRow.passivo_circulante || 0,
+        passivo_nao_circulante: latestRow.passivo_nao_circulante || 0,
+        patrimonio_liquido: latestRow.patrimonio_liquido || 0,
+        receita_liquida: latestRow.receita_liquida || 0,
+        resultado_liquido: (latestRow as any).resultado_periodo || 0,
+        estoques: latestRow.estoques || 0,
+        fornecedores: latestRow.fornecedores || 0,
+      },
+      ratios: computed[latestYear],
+      history: computed,
+      kanitz: null,
+      narratives: {},
+      limitations: latestRow.errors || [],
+    };
+  }, [parsedData, company, computeIndicatorsFromParsed, balanceteEntries]);
+
   const persistReport = (variant: "resumido" | "completo") => {
     // FIX #4 — SEMPRE prioriza valores DETERMINÍSTICOS do servidor.
     // Quando ausentes, registra warning para investigação (não silencia).
@@ -4991,9 +5076,9 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             </div>
           )}
           {reportType === "bex" ? (
-            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} />
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} balanceteEntries={balanceteEntries} />
           ) : reportType === "kanitz" ? (
-            <TabRelatorioKanitz onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} />
+            <TabRelatorioKanitz onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} reportDataset={reportDataset} />
           ) : (
             <TabRelatorioPreview onGerarBex={handleGerarBex} onGerarKanitz={handleGerarKanitz} selectedDepth={selectedDepth} />
           )}
