@@ -28,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
-import { computeIndicatorsForRow as _computeIndicatorRow } from "@/services/indicatorsEngine";
+import { computeIndicatorsForRow as _computeIndicatorRow, type IndicatorRow } from "@/services/indicatorsEngine";
 import PlatformLayout from "@/components/PlatformLayout";
 import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData, type ConsolidatedFinancialData } from "@/services/auditAIService";
@@ -38,7 +38,7 @@ import TabGraficosParecer from "@/components/audit/TabGraficosParecer";
 import TabBSDados from "@/components/audit/TabBSDados";
 import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { buildBSDados, exportBSDadosToCSV, mesKeyToLabel, type BalanceteEntry } from "@/services/bsDadosBuilder";
+import { buildBSDados, exportBSDadosToCSV, mesKeyToLabel, type BalanceteEntry, type BSDadosRow } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
@@ -47,6 +47,21 @@ import { getFileFormat as getFormat } from "@/services/auditAIService";
 import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename, extractColumnMonths, reconcileMonthsWithFilename, type MultiMonthParsed } from "@/services/auditMonthDetector";
 import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
+
+/* ── MD-BEX-CANONICAL-RUNTIME-BINDING Interfaces ── */
+export interface CanonicalReportDataset {
+  runtime_trace_id: string;
+  canonical_snapshot_id: string;
+  competency: string;
+  company_id: string;
+  generated_at: string;
+  facts: BSDadosRow;
+  ratios: IndicatorRow;
+  kanitz: any;
+  narratives: Record<string, { text: string; fact_ids_used: string[] }>;
+  limitations: string[];
+}
+
 
 /* ── Helpers ── */
 const fmt = (n: number) => {
@@ -2514,7 +2529,47 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   });
   const today = new Date().toLocaleDateString("pt-BR");
   
-  const computedInd = computeIndicatorsFromParsed(parsedData || null);
+  const computeIndicatorsFromParsed = useCallback((parsed: ParsedFinancialData | null): Record<string, IndicatorRow> => {
+    if (!parsed) return {};
+    // Garantir que buildBSDados usa o motor P1 Synthetic Authority
+    const rows = buildBSDados(parsed, balanceteEntries || []);
+    const out: Record<string, IndicatorRow> = {};
+    rows.forEach(r => {
+      out[r.mesKey] = _computeIndicatorRow(r);
+    });
+    return out;
+  }, [balanceteEntries]);
+  
+  const reportDataset: CanonicalReportDataset | null = useMemo(() => {
+    if (!parsedData || !company) return null;
+    const computed = computeIndicatorsFromParsed(parsedData);
+    const years = Object.keys(computed).sort();
+    const latestYear = years[years.length - 1];
+    if (!latestYear) return null;
+    
+    const rows = buildBSDados(parsedData, balanceteEntries || []);
+    const latestRow = rows.find(r => r.mesKey === latestYear);
+    if (!latestRow) return null;
+
+    const traceId = `BEX-RUNTIME-${latestYear.replace("-", "")}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+
+    // MD-BEX-CANONICAL-RUNTIME-BINDING: Create frozen snapshot
+    return {
+      runtime_trace_id: traceId,
+      canonical_snapshot_id: `SNAP-${traceId}`,
+      competency: latestYear,
+      company_id: company.id,
+      generated_at: new Date().toISOString(),
+      facts: latestRow,
+      ratios: computed[latestYear],
+      kanitz: null, // Será preenchido se necessário
+      narratives: {},
+      limitations: latestRow.errors,
+    };
+  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
+
+  const computedInd = useMemo(() => computeIndicatorsFromParsed(parsedData || null), [parsedData, computeIndicatorsFromParsed]);
+
   const years = Object.keys(computedInd).sort((a, b) => {
     const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
     const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
