@@ -3385,99 +3385,88 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm font-bold">8</div>
               <h2 className="text-lg font-bold text-foreground font-serif">MEMÓRIA DE CÁLCULO</h2>
             </div>
-            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
-              <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
-              <code className="block text-[11px] font-mono leading-relaxed text-foreground">
-                Z = 0,05×X1 + 1,65×X2 + 3,55×X3 − 1,06×X4 − 0,33×X5
-              </code>
-              <div className="mt-2 text-[10px] text-muted-foreground space-y-0.5">
-                <p>X1 = Lucro Líquido / Patrimônio Líquido (RPL)</p>
-                <p>X2 = (Ativo Circulante + Realizável LP) / (Passivo Circulante + Exigível LP) (LG)</p>
-                <p>X3 = (Ativo Circulante − Estoques) / Passivo Circulante (LS)</p>
-                <p>X4 = Passivo Total / Patrimônio Líquido (GE)</p>
-                <p>X5 = Passivo Circulante / Passivo Total</p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-[10px]">Componente</TableHead>
-                    <TableHead className="text-[10px]">Peso</TableHead>
-                    {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year} (Valor)</TableHead>)}
-                    {kanitzResults.map(r => <TableHead key={`w-${r.year}`} className="text-right text-[10px]">{r.year} (Ponderado)</TableHead>)}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[
-                    { name: "RPL (X1)", peso: 0.05, key: "rpl" as const },
-                    { name: "LG (X2)", peso: 1.65, key: "lg" as const },
-                    { name: "LS (X3)", peso: 3.55, key: "ls" as const },
-                    { name: "LC (X4)", peso: -1.06, key: "lc" as const },
-                    { name: "GE (X5)", peso: -0.33, key: "ge" as const },
-                  ].map(c => (
-                    <TableRow key={c.name}>
-                      <TableCell className="text-xs font-mono font-bold">{c.name}</TableCell>
-                      <TableCell className="text-xs font-mono">{c.peso > 0 ? `+${c.peso}` : c.peso}</TableCell>
-                      {kanitzResults.map(r => (
-                        <TableCell key={r.year} className="text-right text-xs font-mono">{fmtKDec(r[c.key])}</TableCell>
-                      ))}
-                      {kanitzResults.map(r => (
-                        <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * (r[c.key] ?? 0)).toFixed(4)}</TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                  <TableRow className="border-t-2 border-foreground/20">
-                    <TableCell className="text-xs font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
-                    {kanitzResults.map(r => <TableCell key={r.year} className="text-right" />)}
-                    {kanitzResults.map(r => (
-                      <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${kanitzClassColors[r.classificacao]?.color}`}>{(r.fi ?? 0).toFixed(2)}</TableCell>
-                    ))}
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">8.1 Dados Utilizados</h3>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-[10px]">Variável</TableHead>
-                      {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[
-                      { label: "Ativo Circulante", key: "ac" }, { label: "Ativo Não Circulante", key: "anc" },
-                      { label: "Realizável a LP", key: "rlp" }, { label: "Estoques", key: "estoque" },
-                      { label: "Passivo Circulante", key: "pc" }, { label: "Passivo Não Circulante", key: "pnc" },
-                      { label: "Passivo Total", key: "pt" }, { label: "Patrimônio Líquido", key: "pl" },
-                      { label: "Lucro Líquido", key: "ll" }, { label: "Receita Líquida", key: "rl" },
-                    ].map(v => (
-                      <TableRow key={v.label}>
-                        <TableCell className="text-xs font-medium">{v.label}</TableCell>
-                        {kanitzResults.map(r => (
-                          <TableCell key={r.year} className="text-right text-xs font-mono">R$ {fmt((r as any)[v.key])}</TableCell>
-                        ))}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Tabela A — Fórmulas e Pesos</h3>
+                <div className="overflow-x-auto">
+                  <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-[10px] w-[120px]">Componente</TableHead>
+                        <TableHead className="text-[10px] w-[200px]">Fórmula</TableHead>
+                        <TableHead className="text-right text-[10px]">Peso</TableHead>
+                        <TableHead className="text-[10px] pl-4">Significado</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        { name: "RPL (X1)", formula: "Lucro Líquido / Patrimônio Líquido", peso: "+0,05", desc: "Rentabilidade do PL" },
+                        { name: "LG (X2)", formula: "(AC + RLP) / (PC + PNC)", peso: "+1,65", desc: "Solvência de Longo Prazo" },
+                        { name: "LS (X3)", formula: "(AC - Estoques) / PC", peso: "+3,55", desc: "Liquidez Sem Estoques" },
+                        { name: "LC (X4)", formula: "Ativo Circulante / Passivo Circulante", peso: "-1,06", desc: "Capacidade de Pagamento" },
+                        { name: "GE (X5)", formula: "Passivo Total / Patrimônio Líquido", peso: "-0,33", desc: "Grau de Endividamento" },
+                      ].map((item) => (
+                        <TableRow key={item.name}>
+                          <TableCell className="text-xs font-bold">{item.name}</TableCell>
+                          <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
+                          <TableCell className="text-right text-xs font-mono font-bold">{item.peso}</TableCell>
+                          <TableCell className="text-[10px] text-muted-foreground pl-4">{item.desc}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Tabela B — Série Histórica Kanitz (Ponderada)</h3>
+                <div className="overflow-x-auto">
+                  <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-[10px] w-[80px]">Mês/Ano</TableHead>
+                        <TableHead className="text-right text-[10px]">RPL</TableHead>
+                        <TableHead className="text-right text-[10px]">LG</TableHead>
+                        <TableHead className="text-right text-[10px]">LS</TableHead>
+                        <TableHead className="text-right text-[10px]">LC</TableHead>
+                        <TableHead className="text-right text-[10px]">GE</TableHead>
+                        <TableHead className="text-right text-[10px] font-bold text-foreground">FI (Z)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {kanitzResults.map((r) => (
+                        <TableRow key={r.year}>
+                          <TableCell className="text-[10px] font-semibold">{fmtMonthCompact(r.year)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.rpl)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.lg)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.ls)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.lc)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.ge)}</TableCell>
+                          <TableCell className={`text-right text-[11px] font-mono font-bold ${kanitzClassColors[r.classificacao]?.color}`}>
+                            {(r.fi ?? 0).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="mt-4 p-3 rounded bg-muted/20 border border-border/50">
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    <strong>Nota:</strong> O Fator de Insolvência (FI) é o resultado da soma ponderada dos indicadores. Valores de FI acima de 0 indicam solvência, entre 0 e -3 zona de penumbra, e abaixo de -3 insolvência crítica.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </ReportPage>
       )}
 
-      {/* ── 9. CONCLUSÃO (apenas Completo) ── */}
+      {/* ── 9. CONCLUSÃO ── */}
       {variant === "completo" && (
         <ReportPage>
           <div className="space-y-4">
-            <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)] text-white flex items-center justify-center text-sm font-bold">9</div>
-              <h2 className="text-lg font-bold text-foreground font-serif">CONCLUSÃO TÉCNICA</h2>
+            <SectionTitle num="9" title="CONCLUSÃO TÉCNICA" />
+
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
               <p className="text-sm text-foreground leading-relaxed">
