@@ -3225,57 +3225,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       </ReportPage>
 
 
-      {/* ── SCORE FINAL ── */}
-      <ReportPage>
-        <div className="space-y-4">
-          <SectionTitle num="★" title="CLASSIFICAÇÃO FINAL — SCORE BEX DE SOLVÊNCIA" />
-          
-          <div className="text-center py-6">
-            <p className={`text-6xl font-bold ${scoreColor}`}>{activeScore.score}</p>
-            <p className={`text-xl font-semibold mt-2 ${scoreColor}`}>{scoreLabel}</p>
-            <p className="text-xs text-muted-foreground mt-1">Score BEX de Solvência — de 100 pontos</p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-3">
-            {(activeScore.componentes || []).map((c: any) => (
-              <div key={c.nome} className="p-3 rounded-lg bg-muted/20 space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="font-medium text-foreground">{c.nome} ({(c.peso * 100)}%)</span>
-                  <span className="font-mono font-bold">{c.valor}/100</span>
-                </div>
-                <Progress value={c.valor} className="h-1.5" />
-                <p className="text-[10px] text-muted-foreground">{c.nota}</p>
-              </div>
-            ))}
-          </div>
-
-          <code className="block bg-muted/50 p-4 rounded-lg text-[11px] font-mono leading-relaxed">
-            Score Solvência ={"\n"}
-            {"  "}(Liquidez × 0.25) +{"\n"}
-            {"  "}(Endividamento × 0.25) +{"\n"}
-            {"  "}(PL × 0.20) +{"\n"}
-            {"  "}(Geração Caixa × 0.15) +{"\n"}
-            {"  "}(Pressão CP × 0.15)
-          </code>
-
-          <div className="space-y-2">
-            {[
-              { range: "0 – 30", label: "Saudável", color: "bg-emerald-500/10 text-emerald-600", active: activeScore.score <= 30 },
-              { range: "31 – 60", label: "Atenção", color: "bg-yellow-500/10 text-yellow-600", active: activeScore.score > 30 && activeScore.score <= 60 },
-              { range: "61 – 80", label: "Alto Risco", color: "bg-orange-500/10 text-orange-600", active: activeScore.score > 60 && activeScore.score <= 80 },
-              { range: "81 – 100", label: "Risco Estrutural", color: "bg-red-500/10 text-red-600", active: activeScore.score > 80 },
-            ].map(item => (
-              <div key={item.range} className={`flex items-center justify-between p-3 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-accent" : ""}`}>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-mono font-bold px-2 py-1 rounded ${item.color}`}>{item.range}</span>
-                  <span className="text-sm font-medium text-foreground">{item.label}</span>
-                </div>
-                {item.active && <CheckCircle2 className="w-4 h-4 text-accent" />}
-              </div>
-            ))}
-          </div>
-        </div>
-      </ReportPage>
 
       {/* ── 7. RELATÓRIO KANITZ — CAPA ── */}
       {latestKanitz && (
