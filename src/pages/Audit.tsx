@@ -3915,7 +3915,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
   const fmtDec = (n: number) => (n ?? 0).toFixed(4);
   const fmtOrNA = (n: number | null | undefined, suffix = "", isApplicable = true) =>
-    !isApplicable ? "N/A" : (typeof n === "number" && isFinite(n) ? `${n.toFixed(2)}${suffix}` : "N/A");
+    !isApplicable ? "N/A" : (typeof n === "number" && isFinite(n) ? `${(n ?? 0).toFixed(2)}${suffix}` : "N/A");
 
   if (kanitzResults.length === 0) {
     return (
@@ -4035,7 +4035,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p>
-              <p className="font-semibold text-foreground">Empresa Analisada S.A.</p>
+              <p className="font-semibold text-foreground">{company?.name || "Empresa Analisada S.A."}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p>
