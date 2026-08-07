@@ -2613,6 +2613,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const scoreLabel = "Score Desativado";
   const riskIcon = "📋";
 
+
   const latestInd = reportDataset?.ratios;
   const emprestimos = Math.abs(latestInd?._dividaFinanceira || 0);
   const caixa = d?.disponivel || 0;
