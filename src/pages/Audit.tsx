@@ -48,7 +48,7 @@ import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename
 import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 import { buildCertifiedFinancialSnapshot, type CertifiedFinancialSnapshot } from "@/services/canonicalFinancialSnapshotService";
-import { filterStalePendencias } from "@/services/residualFactsResolver";
+import { filterStalePendencias, recomputePendencyPercentages } from "@/services/residualFactsResolver";
 
 /* ── MD-BEX-CANONICAL-RUNTIME-BINDING Interfaces ── */
 export interface CanonicalReportDataset {
@@ -2637,7 +2637,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
   /* MD-FINAL-RESIDUAL-001 §6..§9/§38 — Pendency Validity Gate: pendências legadas cujo
      fato já está certificado no snapshot são invalidadas antes da publicação. */
-  const activePend = filterStalePendencias(aiAnalysis?.pendencias || pendencias, snapshot?.facts);
+  const activePend = recomputePendencyPercentages(
+    filterStalePendencias(aiAnalysis?.pendencias || pendencias, snapshot?.facts),
+    snapshot?.facts?.ativo_total
+  );
 
   const hasBexScore = false; 
   const scoreColor = "text-slate-400";
@@ -4764,7 +4767,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
   /* MD-FINAL-RESIDUAL-001 §9/§38 — pendências publicadas somente após a certificação do snapshot. */
   const activePendencias = useMemo(
-    () => filterStalePendencias(rawPendencias, reportDataset?.facts),
+    () => recomputePendencyPercentages(filterStalePendencias(rawPendencias, reportDataset?.facts), reportDataset?.facts?.ativo_total),
     [rawPendencias, reportDataset]
   );
 
