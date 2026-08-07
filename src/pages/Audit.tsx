@@ -3287,8 +3287,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações de Integridade</h3>
             <div className="grid sm:grid-cols-2 gap-3">
               {[
-                { check: "Ativo = Passivo + PL", status: Math.abs((ac + anc) - (pc + pnc + (d?._pl || 0))) < 100, detail: `Equilíbrio Patrimonial mantido` },
-                { check: "Passivo a Descoberto", status: (d?._pl ?? 0) > 0, detail: (d?._pl ?? 0) > 0 ? "Patrimônio Líquido Positivo" : "IDENTIFICADO — PL negativo" },
+                { check: "Ativo = Passivo + PL", status: Math.abs((ac + anc) - (pc + pnc + (d?.patrimonio_liquido || 0))) < 100, detail: `Equilíbrio Patrimonial mantido` },
+                { check: "Passivo a Descoberto", status: (d?.patrimonio_liquido ?? 0) > 0, detail: (d?.patrimonio_liquido ?? 0) > 0 ? "Patrimônio Líquido Positivo" : "IDENTIFICADO — PL negativo" },
+
                 { check: "Capital de Giro Líquido", status: (ac ?? 0) > (pc ?? 0), detail: "CGL " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
                 { check: "Solvência Geral", status: ((ac + anc) / (pc + pnc || 1)) >= 1, detail: "Capacidade de cobertura total" },
               ].map(v => (
