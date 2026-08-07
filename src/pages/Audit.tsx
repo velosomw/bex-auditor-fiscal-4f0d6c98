@@ -4330,7 +4330,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </div>
           {!kAplic && (
             <p className="text-[10px] text-red-600 italic">
-              ⛔ Com PL = R$ {fmt(l.pl)} (negativo), alavancagem e KT/PL retornariam valores negativos ou distorcidos — por isso apresentados como N/A. Use o ISG ({l.isg.toFixed(2)}) e o Endividamento Total ({fmtPct(endivTotal)}) como referência.
+              ⛔ Com PL = R$ {fmt(l.pl)} (negativo), alavancagem e KT/PL retornariam valores negativos ou distorcidos — por isso apresentados como N/A. Use o ISG ({(l.isg ?? 0).toFixed(2)}) e o Endividamento Total ({fmtPct(endivTotal)}) como referência.
             </p>
           )}
           <div className="space-y-1.5">
@@ -4417,7 +4417,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
                 <p className="text-[10px] text-muted-foreground">{item.label}</p>
                 <p className="text-lg font-bold font-mono text-foreground">
-                  {item.isCurrency ? `R$ ${fmt(item.value)}` : item.format === "pct" ? fmtPct(item.value) : `${item.value.toFixed(2)}${item.suffix || ""}`}
+                  {item.isCurrency ? `R$ ${fmt(item.value)}` : item.format === "pct" ? fmtPct(item.value) : `${(item.value ?? 0).toFixed(2)}${item.suffix || ""}`}
                 </p>
                 <p className="text-[9px] font-mono text-muted-foreground/70 leading-tight">{item.formula}</p>
                 {item.alert && <p className="text-[9px] text-red-600 font-semibold">⚠ Abaixo do mínimo</p>}
@@ -4487,7 +4487,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   {giroAtivo < 0.5 && <Badge className="bg-red-500/15 text-red-600 text-[9px]">Detectado</Badge>}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Giro do Ativo: <strong>{giroAtivo.toFixed(2)}x</strong> — {giroAtivo < 0.5 ? "baixa utilização" : giroAtivo < 1 ? "utilização moderada" : "nível aceitável"}.
+                  Giro do Ativo: <strong>{(giroAtivo ?? 0).toFixed(2)}x</strong> — {giroAtivo < 0.5 ? "baixa utilização" : giroAtivo < 1 ? "utilização moderada" : "nível aceitável"}.
                 </p>
                 <p className="text-[10px] font-mono text-muted-foreground/80 mt-1">Cálculo: Receita Líquida / Ativo Total = {fmt(l.rl)} / {fmt(l.at)} = {giroAtivo.toFixed(2)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 italic">
@@ -4549,9 +4549,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   return (
                     <TableRow key={sim.cenario}>
                       <TableCell className="text-xs font-medium">{sim.cenario}</TableCell>
-                      <TableCell className="text-right text-xs font-mono">{l.fi.toFixed(2)}</TableCell>
-                      <TableCell className={`text-right text-xs font-mono font-bold ${classColors[newClass]?.color}`}>{sim.fi.toFixed(2)}</TableCell>
-                      <TableCell className={`text-right text-xs font-mono ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{delta > 0 ? "+" : ""}{delta.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-xs font-mono">{(l.fi ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className={`text-right text-xs font-mono font-bold ${classColors[newClass]?.color}`}>{(sim.fi ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className={`text-right text-xs font-mono ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{delta > 0 ? "+" : ""}{(delta ?? 0).toFixed(2)}</TableCell>
                       <TableCell className="text-xs">
                         <Badge className={`text-[9px] ${
                           newClass === "saudavel" ? "bg-emerald-500/15 text-emerald-600" :
