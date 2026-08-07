@@ -144,33 +144,63 @@
   background: hsl(220, 10%, 92%);
   padding: 40px 0;
   border-radius: 8px;
+  overflow-x: hidden; /* Evita scroll lateral no preview */
 }
 
-/* ── A4 Report Styles ── */
+/* ── PDF Global Print/Export Styles ── */
+@media screen {
+  .report-a4-page, .report-a4-cover {
+    box-shadow: 0 4px 20px hsla(0, 0%, 0%, 0.1);
+    margin-bottom: 40px !important;
+  }
+}
+
+.report-a4-page *, .report-a4-cover * {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+table {
+  table-layout: fixed;
+  width: 100% !important;
+}
+
+td, th {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 .report-a4-page {
   width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto 40px;
+  height: 297mm;
+  margin: 0 auto;
   background: white;
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 3px hsla(0, 0%, 0%, 0.08);
-  border: 1px solid hsl(220, 15%, 85%);
+  box-shadow: none;
+  border: none;
   color: hsl(220, 25%, 14%);
+  overflow: hidden;
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
 }
 
 .report-a4-cover {
   width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto 40px;
+  height: 297mm;
+  margin: 0 auto;
   background: white;
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 3px hsla(0, 0%, 0%, 0.08);
-  border: 1px solid hsl(220, 15%, 85%);
+  box-shadow: none;
+  border: none;
   color: hsl(220, 25%, 14%);
+  overflow: hidden;
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
 }
 
 .report-a4-cover > * {
@@ -187,9 +217,10 @@
 
 .report-page-body {
   flex: 1;
-  margin: 3mm 16mm 0;
-  padding: 4mm 2mm;
+  margin: 0 16mm;
+  padding: 4mm 0 18mm 0; /* Padding inferior reserva espaço para o footer */
   position: relative;
+  overflow: hidden;
 }
 
 .report-page-body::before {
@@ -202,14 +233,19 @@
 }
 
 .report-footer-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 18mm;
   border-top: 3px solid hsl(195, 53%, 50%);
   padding: 3mm 8mm;
   text-align: center;
   font-size: 9px;
   color: hsl(220, 10%, 46%);
   line-height: 1.5;
-  flex-shrink: 0;
-  margin-top: auto;
+  background: white;
+  z-index: 10;
 }
 
 @media print {

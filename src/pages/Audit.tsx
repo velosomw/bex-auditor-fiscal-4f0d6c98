@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -110,8 +111,8 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
   clone.style.margin = '0';
   clone.style.width = `${A4_W}px`;
 
-  // Remove elementos ocultos na impressão
-  clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"], .no-export').forEach(n => n.remove());
+  // Remove elementos ocultos na impressão e debug
+  clone.querySelectorAll('.print\\:hidden, [class*="print:hidden"], .no-export, button, .ui-btn').forEach(n => n.remove());
 
   // Neutraliza o "desk effect" do container (padding/fundo cinza)
   clone.querySelectorAll<HTMLElement>('.report-pages-container').forEach(n => {
@@ -146,6 +147,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.maxHeight = `${A4_H}px`;
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
+    p.style.contain = 'layout paint'; // Otimização de renderização
     p.style.position = 'relative';
     p.style.transform = 'none';
     p.style.display = 'block'; // Garante que seja block
@@ -171,8 +173,11 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
       ]);
       const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       for (let i = 0; i < pages.length; i++) {
+        // Força scroll no topo do elemento para garantir captura correta
+        pages[i].scrollTop = 0;
+        
         const canvas = await html2canvas(pages[i], {
-          scale: 2,
+          scale: 2.2, // Equilíbrio entre performance e nitidez
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
@@ -257,6 +262,11 @@ const exportDocx = (containerId: string, reportTitle: string) => {
       const span = document.createElement('span');
       span.textContent = '';
       svg.replaceWith(span);
+    });
+    
+    // Suporte a quebra de página automática em DOCX (experimental)
+    clone.querySelectorAll('.report-a4-page, .report-a4-cover').forEach(el => {
+      (el as HTMLElement).style.pageBreakAfter = 'always';
     });
 
     const pageHtml = clone.innerHTML;
