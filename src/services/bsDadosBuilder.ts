@@ -349,7 +349,7 @@ export const GROUP_TOTAL_CODES = new Set([
   "1","11","12",      // Ativo, AC, ANC
   "2","21","22","23", // Passivo, PC, PNC, PL
   "231", "232",       // Sub-PL
-  "31","32","33",    // Receita bruta, Devoluções, Impostos sobre vendas
+  "3","31","32","33", // Receita bruta, Devoluções, Impostos sobre vendas
   "4","5","6","7","8", // CMV, Custo Industrial, Despesas Op, Desp.Fin, Não Op
 ]);
 

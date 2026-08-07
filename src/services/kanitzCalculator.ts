@@ -149,6 +149,7 @@ export function extractFromAiAnalysis(aiAnalysis: any, periodo = "Análise IA"):
 
 export function checkBlocks(input: KanitzNormalizedInput): KanitzBlock {
   const reasons: string[] = [];
+  // FACT 21: Applicability is mandatory if PL > 0
   if (input.pl <= 0) reasons.push("PL ≤ 0 (patrimônio líquido nulo ou negativo)");
   if (input.pc === 0) reasons.push("PC = 0 (passivo circulante ausente)");
   const pctFaltante = input.totalContasEsperadas > 0
