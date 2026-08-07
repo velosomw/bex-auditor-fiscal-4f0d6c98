@@ -2349,14 +2349,13 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
    TAB: RELATÓRIO FINAL — PREVIEW (antes de gerar)
    ══════════════════════════════════════════════════════ */
 const reportTopicsBex = [
-  { num: "1", title: "Capa", desc: "Logo BEX, título, empresa, CNPJ, data-base, responsável técnico e classificação de risco", icon: Shield },
-  { num: "2", title: "Diagnóstico Executivo", desc: "Situação geral, classificação de risco, pontos-chave e conclusão técnica com fundamentação CPC/IFRS/NBC TA", icon: Activity },
+  { num: "1", title: "Capa", desc: "Logo BEX, título, empresa, CNPJ, data-base, responsável técnico e diagnóstico técnico-contábil", icon: Shield },
+  { num: "2", title: "Diagnóstico Técnico-Contábil", desc: "Situação geral, classificação de risco, achados relevantes e conclusão técnica com fundamentação CPC/IFRS/NBC TA", icon: Activity },
   { num: "3", title: "Solvência", desc: "Liquidez Corrente, Seca, Geral, Solvência Total, Capital de Giro, Cobertura de Juros — com interpretação técnica", icon: Scale },
   { num: "4", title: "Análise Técnica — Pendências", desc: "Tabela consolidada com tipo, gravidade, impacto, fundamentação normativa e recomendações corretivas", icon: AlertTriangle },
-  { num: "5", title: "Indicadores Econômico-Financeiros", desc: "Liquidez, Endividamento, Rentabilidade e EBITDA estimado com fórmulas e interpretação", icon: BarChart3 },
+  { num: "5", title: "Indicadores Econômico-Financeiros", desc: "Liquidez, Endividamento, Rentabilidade e EBITDA Certificado com fórmulas e interpretação", icon: BarChart3 },
   { num: "6", title: "Endividamento", desc: "Estrutura da dívida, concentração de risco, dependência bancária e análise estratégica", icon: Landmark },
   { num: "7", title: "Balanço Patrimonial", desc: "Ativo, Passivo, PL com análise horizontal e validações de consistência", icon: Layers },
-  { num: "★", title: "Score BEX de Solvência", desc: "Classificação final ponderada: Liquidez (25%), Endividamento (25%), PL (20%), Geração Caixa (15%), Pressão CP (15%)", icon: Target },
 ];
 
 const reportTopicsKanitz = [
@@ -2590,33 +2589,29 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const kanitzResults: Array<{
     year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
-    classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente";
+    classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
     ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
+    ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
   }> = [];
 
+  const kanitzIndMap: Record<string, any> = {};
   if (parsedData) {
-    for (const year of parsedData.years) {
-      const kAc = Math.abs(kanitzFindValue("total do ativo circulante", year) || kanitzFindValue("ativo circulante", year));
-      const kAnc = Math.abs(kanitzFindValue("total do ativo não circulante", year) || kanitzFindValue("ativo nao circulante", year) || kanitzFindValue("ativo não circulante", year));
-      const kPc = Math.abs(kanitzFindValue("total do passivo circulante", year) || kanitzFindValue("passivo circulante", year));
-      const kPnc = Math.abs(kanitzFindValue("total do passivo não circulante", year) || kanitzFindValue("passivo nao circulante", year) || kanitzFindValue("passivo não circulante", year));
-      const kPl = Math.abs(kanitzFindValue("total do patrimônio", year) || kanitzFindValue("patrimonio líquido", year) || kanitzFindValue("patrimônio líquido", year));
-      const kEstoque = Math.abs(kanitzFindValue("estoque", year));
-      const kLl = kanitzFindValue("resultado do exercício", year) || kanitzFindValue("lucro líquido", year);
-      const kRlp = Math.abs(kanitzFindValue("realizável a longo prazo", year) || kanitzFindValue("realizavel", year));
-      const kRl = Math.abs(kanitzFindValue("receita líquida", year) || kanitzFindValue("receita", year));
-      const kPt = kPc + kPnc;
-      const kAt = kAc + kAnc;
-      const rpl = kPl !== 0 ? kLl / kPl : 0;
-      const lg = kPt !== 0 ? (kAc + kRlp) / kPt : 0;
-      const ls = kPc !== 0 ? (kAc - kEstoque) / kPc : 0;
-      const lc = kPc !== 0 ? kAc / kPc : 0;
-      const ge = kPl > 0 ? (kPt / kPl) : 0; // GE positivo conforme MD
-      const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
-      const classificacao: typeof kanitzResults[0]["classificacao"] =
+    const computed = computeIndicatorsFromParsed(parsedData);
+    Object.keys(computed).forEach(k => {
+      const ind = computed[k];
+      const kAplic = ind._pl > 0;
+      const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * ind.grauEndividamentoPL) : 0;
+      const isgValue = ind._at / (ind._pc + ind._pnc || 1);
+      const classificacao: any = !kAplic ? "na" :
         fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, classificacao, ac: kAc, anc: kAnc, pc: kPc, pnc: kPnc, pl: kPl, estoque: kEstoque, rlp: kRlp, pt: kPt, ll: kLl, at: kAt, rl: kRl });
-    }
+
+      kanitzResults.push({
+        year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
+        ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
+        ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
+        lajir: ind._resultado + Math.abs(ind._despFin), despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
+      });
+    });
   }
 
   if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
@@ -2624,7 +2619,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     const comp = aiK.componentes || {};
     const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
     const fi = aiK.fatorInsolvencia || 0;
-    const classificacao: typeof kanitzResults[0]["classificacao"] =
+    const pl = aiStruct.patrimonio_liquido || 0;
+    const kAplic = pl > 0;
+    const classificacao: any = !kAplic ? "na" :
       fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
     kanitzResults.push({
       year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
@@ -2632,6 +2629,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: aiStruct.patrimonio_liquido || 0,
       estoque: aiStruct.estoques || 0, rlp: 0, pt: (aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0),
       ll: aiStruct.lucro_liquido || 0, at: (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0), rl: aiStruct.receita_liquida || 0,
+      ebitda: 0, lajir: 0, despFin: 0, kanitzAplicavel: kAplic, isg: 0
     });
   }
 
@@ -3803,7 +3801,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
     classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na"; riskScoreNormalized: number;
     ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number;
     rl: number; cpv: number; fornecedores: number; despFin: number; lajir: number; caixa: number;
-    kanitzAplicavel: boolean;
+    kanitzAplicavel: boolean; ebitda: number;
   };
   const kanitzResults: KanitzRow[] = [];
 
@@ -3814,45 +3812,41 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
       return pa.localeCompare(pb);
     });
+    const computed = computeIndicatorsFromParsed(parsedData);
     for (const year of years) {
-      const ac = Math.abs(findValue("total do ativo circulante", year) || findValue("ativo circulante", year));
-      const anc = Math.abs(findValue("total do ativo não circulante", year) || findValue("ativo nao circulante", year) || findValue("ativo não circulante", year));
-      const pc = Math.abs(findValue("total do passivo circulante", year) || findValue("passivo circulante", year));
-      const pnc = Math.abs(
-        findValue("total do passivo não circulante", year) ||
-        findValue("total do passivo nao circulante", year) ||
-        findValue("passivo nao circulante", year) ||
-        findValue("passivo não circulante", year) ||
-        findValue("exigível a longo prazo", year) ||
-        findValue("exigivel a longo prazo", year)
-      );
-      // PL e LL preservam sinal — essenciais para detectar PL negativo
-      const pl = findValue("total do patrimônio", year) || findValue("patrimonio líquido", year) || findValue("patrimônio líquido", year);
-      const ll = findValue("resultado do exercício", year) || findValue("lucro líquido", year);
-      const estoque = Math.abs(findValue("estoque", year));
-      const rlp = Math.abs(findValue("realizável a longo prazo", year) || findValue("realizavel a longo prazo", year));
-      const rl = Math.abs(findValue("receita líquida", year) || findValue("receita", year));
-      const cpv = Math.abs(findValue("custo dos produtos", year) || findValue("custo", year));
-      const fornecedores = Math.abs(findValue("fornecedores", year));
-      const despFin = Math.abs(findValue("despesas financeiras", year) || findValue("resultado financeiro", year));
-      const lajir = Math.abs(findValue("lajir", year) || findValue("resultado operacional", year));
-      const caixa = Math.abs(findValue("caixa", year));
-      const pt = pc + pnc;
-      const at = ac + anc;
+      const ind = computed[year];
+      if (!ind) continue;
 
-      const kanitzAplicavel = pl > 0;
-      const rpl = kanitzAplicavel ? ll / pl : 0;
-      const lg = pt !== 0 ? (ac + rlp) / pt : 0;
-      const ls = pc !== 0 ? (ac - estoque) / pc : 0;
-      const lc = pc !== 0 ? ac / pc : 0;
-      const ge = kanitzAplicavel ? pt / pl : 0;
-      const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
-      const isg = pt !== 0 ? at / pt : 0;
-
+      const kanitzAplicavel = ind._pl > 0;
+      const rpl = kanitzAplicavel ? ind.roe / 12 : 0;
+      const lg = ind.liquidezGeral;
+      const ls = ind.liquidezSeca;
+      const lc = ind.liquidezCorrente;
+      const ge = kanitzAplicavel ? ind.grauEndividamentoPL : 0;
+      const fi = kanitzAplicavel ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge) : 0;
+      const isg = ind._at / (ind._pc + ind._pnc || 1);
       const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
         : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
 
-      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin, lajir, caixa, kanitzAplicavel });
+      const ac = ind._ac;
+      const anc = ind._anc;
+      const pc = ind._pc;
+      const pnc = ind._pnc;
+      const pl = ind._pl;
+      const ll = ind._resultado;
+      const estoque = ind._estoque;
+      const rlp = 0; // Fallback para RLP se necessário
+      const rl = ind._receita;
+      const cpv = ind._cmv;
+      const fornecedores = ind._fornecedores;
+      const despFin = ind._despFin;
+      const lajir = ind._resultado + Math.abs(ind._despFin);
+      const caixa = ind._caixa;
+      const pt = pc + pnc;
+      const at = ac + anc;
+      const ebitda = ind.ebitda || 0;
+
+      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin: Math.abs(despFin), lajir, caixa, kanitzAplicavel, ebitda });
     }
     if (kanitzResults.length > 0) {
       const fiValues = kanitzResults.map(r => r.fi);
@@ -3885,7 +3879,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       fi, isg, classificacao, riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
       ac, anc, pc, pnc, pl, estoque: aiStruct.estoques || 0, rlp: 0, pt, ll: aiStruct.lucro_liquido || 0, at,
       rl: aiStruct.receita_liquida || 0, cpv: 0, fornecedores: aiStruct.fornecedores || 0, despFin: 0, lajir: 0, caixa: aiStruct.caixa || 0,
-      kanitzAplicavel,
+      kanitzAplicavel, ebitda: 0,
     });
   }
 
@@ -3930,7 +3924,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const endivTotal = l.at !== 0 ? l.pt / l.at : 0; // PT/AT — Endividamento Geral (motor contábil)
   const alavancagem = kAplic ? l.at / l.pl : null;
   const participacaoTerceiros = kAplic ? l.pt / l.pl : null;
-  const ebitda = l.lajir + (l.despFin * 0.1); // proxy (LAJIR + amortização estimada)
+  // MD-001 Point 29: EBITDA Certificado (Somente se componentes SSOT disponíveis)
+  const ebitda = l.ebitda; 
   const coberturaJuros = l.despFin !== 0 ? l.lajir / l.despFin : 0;
   const indiceGeracaoCaixa = l.rl !== 0 ? ebitda / l.rl : 0;
   const margemLiquida = l.rl !== 0 ? l.ll / l.rl : 0;
@@ -4404,9 +4399,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </p>
           <div className="grid sm:grid-cols-4 gap-3">
             {[
-              { label: "EBITDA (proxy)", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + 10% × Desp.Fin (R$ ${fmt(l.despFin)})` },
+              { label: "EBITDA Certificado", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
               { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
-              { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
+              { label: "Índice Geração Caixa", value: l.rl !== 0 ? ebitda / l.rl : 0, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
               { label: "Margem Líquida", value: margemLiquida, format: "pct", alert: margemLiquida < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
