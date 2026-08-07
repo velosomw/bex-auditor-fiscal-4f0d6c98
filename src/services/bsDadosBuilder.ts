@@ -363,6 +363,7 @@ const RLP_REFS = new Set(["P","Q","R","S","T","U","V","W","X","Y","Z"]);
  * Uma conta contábil deve possuir exatamente UM papel semântico para evitar ROLE_COLLISION.
  */
 export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
+  // ATIVO
   "1": "ativo_total" as any,
   "1.1": "ativo_circulante",
   "1.01": "ativo_circulante",
@@ -370,6 +371,7 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "1.2": "ativo_nao_circulante",
   "1.02": "ativo_nao_circulante",
   "1.2.01": "realizavel_longo_prazo",
+  // PASSIVO
   "2": "passivo_total" as any,
   "2.1": "passivo_circulante",
   "2.01": "passivo_circulante",
@@ -377,7 +379,9 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "2.02": "passivo_nao_circulante",
   "2.3": "patrimonio_liquido",
   "2.03": "patrimonio_liquido",
-  "3": "resultado",
+  "2.4": "patrimonio_liquido",
+  // DRE
+  "3": "resultado" as any,
   "3.1": "receita_liquida",
   "3.01": "receita_liquida",
   "4": "cmv",
@@ -391,8 +395,8 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
  * Detecta se um código de conta é um totalizador sintético (P1 Authority).
  * Suporta formatos 1, 1.1, 1.01, 1.001, etc.
  */
-export function isSyntheticAuthority(code: string): boolean {
-  if (!code) return false;
+export function isSyntheticAuthority(code: string, desc?: string): keyof BSDadosRow | null {
+  if (!code) return null;
   // MD-BEX-RUNTIME-CONSUMER Requirement 14: normalizeAccountCode
   const clean = code.replace(/[^\d]/g, "");
   
@@ -400,18 +404,34 @@ export function isSyntheticAuthority(code: string): boolean {
   // Semantic comparison for 2.3 vs 2.03 vs 2.003
   for (const registryCode of Object.keys(SEMANTIC_ROLE_REGISTRY)) {
     const regClean = registryCode.replace(/[^\d]/g, "");
-    if (clean === regClean) return true;
+    if (clean === regClean) return SEMANTIC_ROLE_REGISTRY[registryCode];
     
     // Handled leading zero normalization (e.g., 2.3 vs 2.03)
     const normClean = clean.replace(/^0+/, "");
     const normReg = regClean.replace(/^0+/, "");
-    if (normClean === normReg) return true;
+    if (normClean === normReg) return SEMANTIC_ROLE_REGISTRY[registryCode];
+  }
+
+  // Generalização Semântica (MD-BEX-MULTI-BALANCETE Requirement 15)
+  const d = (desc || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  
+  // ESTOQUES Generalizado
+  if (/\bestoques?\b|\bestoques? pr[oó]prios?\b|\bmercadorias? para revenda\b|\bprodutos? acabados?\b|\bmat[eé]ria-prima\b/i.test(d)) {
+    if (code.startsWith("1.1") || code.startsWith("1.01")) return "estoques";
+  }
+
+  // FORNECEDORES Generalizado
+  if (/\bfornecedores?\b/i.test(d) && !/\badiantamento\b|\bfinanceir\b/i.test(d)) {
+    if (code.startsWith("2.1") || code.startsWith("2.01")) return "fornecedores";
   }
 
   const parts = code.split(".");
-  if (parts.length <= 2) return true;
+  if (parts.length <= 2) {
+    if (code.startsWith("1")) return "ativo_total" as any;
+    if (code.startsWith("2")) return "passivo_total" as any;
+  }
   
-  return false;
+  return null;
 }
 
 export const GROUP_TOTAL_CODES = new Set([
@@ -471,6 +491,10 @@ function resolveDotDRERef(ref: string): string | null {
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
+  // MD-BEX-MULTI-BALANCETE: Priority 0 — P1 Authority (Direct Mapping)
+  const p1Key = isSyntheticAuthority(row.conta || "", row.descricao || "");
+  if (p1Key) return p1Key;
+
   let ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
   // FIX (A): sentinel para raízes DRE bare ("3".."8") — descarta a linha
   // antes do fallback por descrição (impede dupla contagem na receita_liquida).

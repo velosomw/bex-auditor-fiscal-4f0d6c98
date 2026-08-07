@@ -2553,6 +2553,36 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return out;
   }, [balanceteEntries]);
 
+  const kanitzResultsRaw = useMemo(() => {
+    const computed = computeIndicatorsFromParsed(parsedData || null);
+    const results: Array<{
+      year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
+      classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
+      ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
+      ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
+    }> = [];
+
+    Object.keys(computed).sort().forEach(k => {
+      const ind = computed[k];
+      const kAplic = ind._pl > 0;
+      
+      const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * (ind._pt / Math.abs(ind._pl))) : 0;
+      
+      const isgValue = ind._at / (ind._pc + ind._pnc || 1);
+      const classificacao: any = !kAplic ? "na" :
+        fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
+
+      results.push({
+        year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
+        ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
+        ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
+        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin), 
+        despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
+      });
+    });
+    return results;
+  }, [parsedData, computeIndicatorsFromParsed]);
+
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
     if (!parsedData || !company) return null;
     const computed = computeIndicatorsFromParsed(parsedData);
@@ -2582,14 +2612,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         resultado_liquido: latestRow.resultado,
         estoques: latestRow.estoques,
         fornecedores: latestRow.fornecedores,
+        disponivel: latestRow.disponivel
       },
       ratios: computed[latestYear],
       history: computed,
-      kanitz: null,
+      kanitz: kanitzResultsRaw[kanitzResultsRaw.length - 1] || null,
       narratives: {},
       limitations: latestRow.errors || [],
     };
-  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
+  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed, kanitzResultsRaw]);
 
   const activeYear = reportDataset?.competency || "";
   const d = reportDataset?.facts;
@@ -2654,53 +2685,28 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   };
 
   const kanitzResults = useMemo(() => {
-    if (!reportDataset) return [];
-    
-    const results: Array<{
-      year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
-      classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
-      ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
-      ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
-    }> = [];
-
-    const computed = reportDataset.history;
-    Object.keys(computed).sort().forEach(k => {
-      const ind = computed[k];
-      const kAplic = ind._pl > 0;
-      
-      const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * (ind._pt / Math.abs(ind._pl))) : 0;
-      
-      const isgValue = ind._at / (ind._pc + ind._pnc || 1);
-      const classificacao: any = !kAplic ? "na" :
-        fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-
-      results.push({
-        year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
-        ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
-        ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
-        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin), 
-        despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
-      });
-    });
-    return results;
-  }, [reportDataset]);
+    if (kanitzResultsRaw.length > 0) return kanitzResultsRaw;
+    return [];
+  }, [kanitzResultsRaw]);
 
   if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
     const aiK = aiAnalysis.kanitz;
     const comp = aiK.componentes || {};
     const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
     const fi = aiK.fatorInsolvencia || 0;
-    const pl = aiStruct.patrimonio_liquido || 0;
-    const kAplic = pl > 0;
+    const plVal = aiStruct.patrimonio_liquido || 0;
+    const kAplic = plVal > 0;
+    const isgValue = (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0) / ((aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0) || 1);
+    
     const classificacao: any = !kAplic ? "na" :
       fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
     kanitzResults.push({
       year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
       fi, classificacao, ac: aiStruct.ativo_circulante || 0, anc: aiStruct.ativo_nao_circulante || 0,
-      pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: aiStruct.patrimonio_liquido || 0,
+      pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: plVal,
       estoque: aiStruct.estoques || 0, rlp: 0, pt: (aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0),
       ll: aiStruct.lucro_liquido || 0, at: (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0), rl: aiStruct.receita_liquida || 0,
-      ebitda: 0, lajir: 0, despFin: 0, kanitzAplicavel: kAplic, isg: 0
+      ebitda: 0, lajir: 0, despFin: 0, kanitzAplicavel: kAplic, isg: isgValue
     });
   }
 
@@ -3224,11 +3230,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             )}
           </div>
 
-          {d && (
+          {reportDataset && (
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA Estimado ({latestYear})</h3>
               <div className="p-4 rounded-lg bg-muted/30 text-center">
-                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(latestInd?.ebitda || 0)}</p>
+                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios?.ebitda || 0)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Despesas Financeiras</p>
               </div>
             </div>
@@ -3378,9 +3384,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               RELATÓRIO KANITZ EXPANDIDO<br />TERMÔMETRO DE INSOLVÊNCIA v2.0
             </h1>
             <p className="text-sm text-muted-foreground mt-3 italic">Relatório Financeiro de Inteligência de Risco</p>
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-500/30 bg-amber-500/5 mt-8">
-              <span className="text-lg">{kanitzClassColors[latestKanitz.classificacao]?.icon}</span>
-              <span className="text-sm font-semibold text-foreground">{kanitzClassColors[latestKanitz.classificacao]?.label} — FI: {(latestKanitz.fi ?? 0).toFixed(2)}</span>
+            <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full border ${!latestKanitz.kanitzAplicavel ? "border-slate-500/30 bg-slate-500/5" : "border-amber-500/30 bg-amber-500/5"} mt-8`}>
+              <span className="text-lg">{!latestKanitz.kanitzAplicavel ? "⚠️" : kanitzClassColors[latestKanitz.classificacao]?.icon}</span>
+              <span className="text-sm font-semibold text-foreground">
+                {!latestKanitz.kanitzAplicavel ? `NÃO APLICÁVEL | PL: R$ ${fmt(latestKanitz.pl)}` : `${kanitzClassColors[latestKanitz.classificacao]?.label} — FI: ${(latestKanitz.fi ?? 0).toFixed(2)}`}
+              </span>
             </div>
             <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">Empresa Analisada S.A.</p></div>
@@ -3421,7 +3429,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">
-                A empresa apresenta Fator de Insolvência de {(latestKanitz.fi ?? 0).toFixed(2)}, classificando-se como {kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. {(latestKanitz.fi ?? 0) > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : (latestKanitz.fi ?? 0) > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}
+                {!latestKanitz.kanitzAplicavel ? (
+                  `O modelo Kanitz não é aplicável para o período selecionado, pois o Patrimônio Líquido (R$ ${fmt(latestKanitz.pl)}) é nulo ou negativo. Nestes casos, o indicador FI perde a validade estatística. Recomenda-se a análise via Solvência Total (ISG: ${latestKanitz.isg.toFixed(2)}).`
+                ) : (
+                  `A empresa apresenta Fator de Insolvência de ${(latestKanitz.fi ?? 0).toFixed(2)}, classificando-se como ${kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. ${(latestKanitz.fi ?? 0) > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : (latestKanitz.fi ?? 0) > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}`
+                )}
               </p>
             </div>
             <div className="grid sm:grid-cols-3 gap-3">
@@ -3529,8 +3541,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                           <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.ls)}</TableCell>
                           <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.lc)}</TableCell>
                           <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.ge)}</TableCell>
-                          <TableCell className={`text-right text-[11px] font-mono font-bold ${kanitzClassColors[r.classificacao]?.color}`}>
-                            {(r.fi ?? 0).toFixed(2)}
+                          <TableCell className={`text-right text-[11px] font-mono font-bold ${kanitzClassColors[r.classificacao]?.color || "text-muted-foreground"}`}>
+                            {!r.kanitzAplicavel ? "N/A" : (r.fi ?? 0).toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))}
