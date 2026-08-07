@@ -1141,11 +1141,19 @@ export function buildBSDados(
 
     const trace: Record<string, CertifiedFact> = {};
 
+    // §11/§18 — papéis semânticos cuja resolução encerra a busca mesmo quando a
+    // conta vencedora é analítica (planos de contas variam de profundidade).
+    const SEMANTIC_TERMINAL = new Set<CanonicalRole>(["estoques", "fornecedores", "receita_liquida"]);
+
     for (const [role, field] of P1_TO_FIELD) {
       const f = facts[role];
       if (!f) continue;
       trace[role] = f;
-      if (f.status !== "AVAILABLE" || f.authority !== "P1_SYNTHETIC") continue;
+      const acceptable =
+        f.authority === "P1_SYNTHETIC" ||
+        f.authority === "P2_CHILDREN" ||
+        (f.authority === "P3_LEAVES" && SEMANTIC_TERMINAL.has(role));
+      if (f.status !== "AVAILABLE" || !acceptable) continue;
       const previous = Number(row[field] as number) || 0;
       (row as any)[field] = f.value;
       if (row.facts_status && field in row.facts_status) {
