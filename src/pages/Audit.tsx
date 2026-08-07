@@ -2349,14 +2349,13 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
    TAB: RELATÓRIO FINAL — PREVIEW (antes de gerar)
    ══════════════════════════════════════════════════════ */
 const reportTopicsBex = [
-  { num: "1", title: "Capa", desc: "Logo BEX, título, empresa, CNPJ, data-base, responsável técnico e classificação de risco", icon: Shield },
-  { num: "2", title: "Diagnóstico Executivo", desc: "Situação geral, classificação de risco, pontos-chave e conclusão técnica com fundamentação CPC/IFRS/NBC TA", icon: Activity },
+  { num: "1", title: "Capa", desc: "Logo BEX, título, empresa, CNPJ, data-base, responsável técnico e diagnóstico técnico-contábil", icon: Shield },
+  { num: "2", title: "Diagnóstico Técnico-Contábil", desc: "Situação geral, classificação de risco, achados relevantes e conclusão técnica com fundamentação CPC/IFRS/NBC TA", icon: Activity },
   { num: "3", title: "Solvência", desc: "Liquidez Corrente, Seca, Geral, Solvência Total, Capital de Giro, Cobertura de Juros — com interpretação técnica", icon: Scale },
   { num: "4", title: "Análise Técnica — Pendências", desc: "Tabela consolidada com tipo, gravidade, impacto, fundamentação normativa e recomendações corretivas", icon: AlertTriangle },
-  { num: "5", title: "Indicadores Econômico-Financeiros", desc: "Liquidez, Endividamento, Rentabilidade e EBITDA estimado com fórmulas e interpretação", icon: BarChart3 },
+  { num: "5", title: "Indicadores Econômico-Financeiros", desc: "Liquidez, Endividamento, Rentabilidade e EBITDA Certificado com fórmulas e interpretação", icon: BarChart3 },
   { num: "6", title: "Endividamento", desc: "Estrutura da dívida, concentração de risco, dependência bancária e análise estratégica", icon: Landmark },
   { num: "7", title: "Balanço Patrimonial", desc: "Ativo, Passivo, PL com análise horizontal e validações de consistência", icon: Layers },
-  { num: "★", title: "Score BEX de Solvência", desc: "Classificação final ponderada: Liquidez (25%), Endividamento (25%), PL (20%), Geração Caixa (15%), Pressão CP (15%)", icon: Target },
 ];
 
 const reportTopicsKanitz = [
@@ -3930,7 +3929,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const endivTotal = l.at !== 0 ? l.pt / l.at : 0; // PT/AT — Endividamento Geral (motor contábil)
   const alavancagem = kAplic ? l.at / l.pl : null;
   const participacaoTerceiros = kAplic ? l.pt / l.pl : null;
-  const ebitda = l.lajir + (l.despFin * 0.1); // proxy (LAJIR + amortização estimada)
+  // MD-001 Point 29: EBITDA Certificado (Somente se componentes SSOT disponíveis)
+  const ebitda = l.ebitda; 
   const coberturaJuros = l.despFin !== 0 ? l.lajir / l.despFin : 0;
   const indiceGeracaoCaixa = l.rl !== 0 ? ebitda / l.rl : 0;
   const margemLiquida = l.rl !== 0 ? l.ll / l.rl : 0;
@@ -4404,9 +4404,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </p>
           <div className="grid sm:grid-cols-4 gap-3">
             {[
-              { label: "EBITDA Certificado", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.resultado + Math.abs(l._despFin) - Math.abs(l._recFin))}) + Depr/Amort (R$ ${fmt(Math.abs(l._depreciacao) + Math.abs(l._amortizacao))})` },
-              { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.resultado + Math.abs(l._despFin) - Math.abs(l._recFin))} / ${fmt(l.despFin)}` },
-              { label: "Índice Geração Caixa", value: ebitda / (l._receita || 1), format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l._receita)}` },
+              { label: "EBITDA Certificado", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
+              { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
+              { label: "Índice Geração Caixa", value: l.rl !== 0 ? ebitda / l.rl : 0, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
               { label: "Margem Líquida", value: margemLiquida, format: "pct", alert: margemLiquida < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
