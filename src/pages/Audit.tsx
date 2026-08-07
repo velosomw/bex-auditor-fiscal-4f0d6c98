@@ -3894,11 +3894,13 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
   // Simulações (Módulo 9) — aplicadas sobre premissas Kanitz
   const simCompute = (pl2: number, pt2: number, ac2: number, pc2: number, est2: number, rlp2: number, ll2: number) => {
-    const rpl2 = pl2 > 0 ? ll2 / pl2 : 0;
-    const lg2 = pt2 !== 0 ? (ac2 + rlp2) / pt2 : 0;
-    const ls2 = pc2 !== 0 ? (ac2 - est2) / pc2 : 0;
-    const lc2 = pc2 !== 0 ? ac2 / pc2 : 0;
-    const ge2 = pl2 > 0 ? pt2 / pl2 : 0;
+    const kAplic2 = pl2 > 0;
+    if (!kAplic2) return 0;
+    const rpl2 = (ll2 ?? 0) / (pl2 || 1);
+    const lg2 = (ac2 + rlp2) / (pt2 || 1);
+    const ls2 = (ac2 - est2) / (pc2 || 1);
+    const lc2 = ac2 / (pc2 || 1);
+    const ge2 = pt2 / (pl2 || 1);
     return (0.05 * rpl2) + (1.65 * lg2) + (3.55 * ls2) - (1.06 * lc2) - (0.33 * ge2);
   };
   // Cenário 1: Reduzir passivo total em 20% (PC também cai proporcionalmente)
