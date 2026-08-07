@@ -1513,14 +1513,14 @@ const FormulaInfo = ({
 
 const TabDiagnostico = ({ data }: { data?: any }) => {
   const d = data || diagnosticoData;
-  const r = riskBadge[d.riskLevel] || riskBadge["moderado"];
+  const r = riskBadge["moderado"];
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2"><Activity className="w-4 h-4 text-accent" /> Diagnóstico Financeiro</CardTitle>
-            <Badge className={`${r.bg} border text-xs`}>{r.label}</Badge>
+            <Badge className={`${r.bg} border text-xs`}>Diagnóstico Certificado</Badge>
           </div>
           <CardDescription>Resumo executivo automatizado — Avaliação Empresarial</CardDescription>
         </CardHeader>
@@ -1617,7 +1617,7 @@ const computeIndicatorsFromBSRows = (rows: any[]) => {
       liquidezSeca: ind.liquidezSeca,
       liquidezImediata: ind.liquidezImediata,
       liquidezGeral: ind.liquidezGeral,
-      endividamentoGeral: ind.endividamentoGeral,
+      endividamentoTotal: ind.endividamentoTotal,
       composicaoEndividamento: ind.composicaoEndividamento,
       imobilizacaoPL: ind.imobilizacaoPL,
       coberturaJuros: ind.coberturaJuros,
@@ -1681,7 +1681,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
         liquidezSeca: aiInd.liquidezSeca || 0,
         liquidezImediata: aiInd.liquidezImediata || 0,
         liquidezGeral: aiInd.liquidezGeral || 0,
-        endividamentoGeral: aiInd.endividamentoTotal || 0,
+        endividamentoTotal: aiInd.endividamentoTotal || 0,
         composicaoEndividamento: aiInd.composicaoEndividamento || 0,
         imobilizacaoPL: aiInd.imobilizacaoPL || 0,
         coberturaJuros: aiInd.coberturaJuros || 0,
@@ -1718,7 +1718,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
     },
     {
       title: "Endividamento", icon: PieChart, items: [
-        { label: "Endividamento Total", key: "endividamentoGeral", fmt: fmtPct, formula: "PT / AT", benchmark: "< 60%", accounts: ["Passivo Total (Exigível PC + PNC)", "Ativo Total"] },
+        { label: "Endividamento Total", key: "endividamentoTotal", fmt: fmtPct, formula: "(PC + PNC) / AT", benchmark: "< 60%", accounts: ["Passivo Circulante", "Passivo Não Circulante", "Ativo Total"] },
         { label: "Composição Endividamento", key: "composicaoEndividamento", fmt: fmtPct, formula: "PC / PT", benchmark: "< 50%", accounts: ["Passivo Circulante (Curto Prazo)", "Passivo Total (Exigível)"] },
         { label: "Imobilização do PL", key: "imobilizacaoPL", fmt: fmtPct, formula: "Imob / PL", benchmark: "< 80%", accounts: ["Ativo Imobilizado (Ref 1: R)", "Patrimônio Líquido (Grupo 2.3)"] },
         { label: "Cobertura de Juros", key: "coberturaJuros", fmt: (n: number) => `${n.toFixed(1)}x`, formula: "LAJIR / Juros", benchmark: "> 3,0x", accounts: ["Resultado Operacional", "Despesas Financeiras (Grupo 7)"] },
@@ -1807,7 +1807,7 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
               {years.map(y => {
                 const d = computedInd[y];
                 if (!d) return null;
-                const ebitda = (d._resOp || 0) + (d._despFin || 0);
+                const ebitda = d.ebitda || (d._resOp || 0) + (d._despFin || 0);
                 return (
                   <div key={y} className="p-4 rounded-lg bg-muted/30 text-center">
                     <p className="text-xs text-muted-foreground">{/^\d{4}-\d{1,2}$/.test(y) ? mesKeyToLabel(y) : y}</p>
