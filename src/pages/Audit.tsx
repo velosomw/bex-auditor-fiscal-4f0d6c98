@@ -4099,12 +4099,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="grid sm:grid-cols-4 gap-3">
             <div className="p-3 rounded-lg bg-muted/20 text-center">
               <p className="text-[10px] text-muted-foreground">{kAplic ? "Score Kanitz" : "Score Kanitz (referência)"}</p>
-              <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{l.fi.toFixed(2)}</p>
+              <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{(l.fi ?? 0).toFixed(2)}</p>
               {!kAplic && <p className="text-[9px] text-red-600 font-semibold">Inválido (PL &lt; 0)</p>}
             </div>
             <div className="p-3 rounded-lg bg-muted/20 text-center">
               <p className="text-[10px] text-muted-foreground">ISG (AT/PT)</p>
-              <p className={`text-2xl font-bold font-mono ${isgClass.color}`}>{l.isg.toFixed(2)}</p>
+              <p className={`text-2xl font-bold font-mono ${isgClass.color}`}>{(l.isg ?? 0).toFixed(2)}</p>
               <p className={`text-[9px] font-semibold ${isgClass.color}`}>{isgClass.icon} {isgClass.label}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/20 text-center">
