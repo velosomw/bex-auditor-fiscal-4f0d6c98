@@ -29,6 +29,8 @@ import {
   type CanonicalRole,
   type IntegrityGateResult,
 } from "@/services/p1SyntheticResolver";
+import { resolveResidualFacts, type ResidualFacts } from "@/services/residualFactsResolver";
+
 
 
 // Mapeamento Ref 1 (Ref Capital BEX) → chave canônica BS & Dados.
@@ -239,7 +241,7 @@ export interface BSDadosRow {
   divida_total: number;
   ebitda: number;
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
-  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates'>, FinancialFact['status']>;
+  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
@@ -250,7 +252,10 @@ export interface BSDadosRow {
   p1_facts?: Record<string, CertifiedFact>;
   /** MD-P1-001 — resultado dos integrity gates desta competência. */
   integrity_gates?: IntegrityGateResult[];
+  /** MD-FINAL-RESIDUAL-001 — tributos, trabalhistas, empréstimos, despesas financeiras, EBITDA. */
+  residual_facts?: ResidualFacts;
 }
+
 
 
 /** Rótulo humano para cada código de grupo (2 dígitos). */
@@ -1132,7 +1137,8 @@ export function buildBSDados(
   for (const row of sortedRows) {
     const src = p1RowsByMes.get(row.mesKey);
     if (!src || src.length === 0) continue;
-    const { facts } = resolveP1Facts(src, row.mesKey);
+    const { facts, nodes: p1Nodes } = resolveP1Facts(src, row.mesKey);
+
     const trace: Record<string, CertifiedFact> = {};
 
     for (const [role, field] of P1_TO_FIELD) {
@@ -1169,8 +1175,34 @@ export function buildBSDados(
       if (f.status === "AVAILABLE" && f.value === 0 && (row[field] as number) !== 0) continue;
     }
 
+    /* MD-FINAL-RESIDUAL-001 §10..§28 — fatos residuais certificados
+       (tributos, trabalhistas, empréstimos SOMENTE do passivo, despesas financeiras). */
+    const residual = resolveResidualFacts(p1Nodes, row.mesKey, { resultado: row.resultado });
+    row.residual_facts = residual;
+
+    if (residual.tax.total_exposure.status === "AVAILABLE") {
+      row.divida_tributaria = residual.tax.total_exposure.value;
+      (row.facts_status as any).divida_tributaria = "AVAILABLE";
+    }
+    if (residual.labor.total_current.status === "AVAILABLE") {
+      row.divida_trabalhista = residual.labor.total_current.value;
+      (row.facts_status as any).divida_trabalhista = "AVAILABLE";
+    }
+    // §15..§17 — Borrowing Semantic Gate: sem saldo patrimonial ⇒ NOT_AVAILABLE (nunca despesa financeira).
+    row.divida_financeira = residual.borrowings.status === "AVAILABLE" ? residual.borrowings.value : 0;
+    (row.facts_status as any).divida_financeira =
+      residual.borrowings.status === "AVAILABLE" ? "AVAILABLE" : "NOT_AVAILABLE";
+
+    if (residual.financial_expenses.status === "AVAILABLE") {
+      row.despesas_financeiras = residual.financial_expenses.accounting_value;
+      (row.facts_status as any).despesas_financeiras = "AVAILABLE";
+    }
+    // §21..§25 — EBITDA só existe quando certificável; nunca igual ao Resultado do Período.
+    row.ebitda = residual.ebitda.status === "AVAILABLE" ? residual.ebitda.value : NaN;
+
     // Recalcula agregados derivados após o cutover P1.
     row.divida_total =
+
       row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
       row.fornecedores + row.credores_rj + row.outras_obrigacoes;
     row.hasReceita = row.receita_liquida > 0;
