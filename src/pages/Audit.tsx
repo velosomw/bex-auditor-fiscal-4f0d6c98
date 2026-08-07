@@ -3654,7 +3654,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                         <TableCell key={r.year} className="text-right text-xs font-mono">{fmtKDec(r[c.key])}</TableCell>
                       ))}
                       {kanitzResults.map(r => (
-                        <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{((c.peso * r[c.key]) ?? 0).toFixed(4)}</TableCell>
+                        <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * (r[c.key] ?? 0)).toFixed(4)}</TableCell>
                       ))}
                     </TableRow>
                   ))}
@@ -4663,7 +4663,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                       <TableCell key={r.year} className="text-right text-xs font-mono">{fmtDec(r[c.key])}</TableCell>
                     ))}
                     {kanitzResults.map(r => (
-                      <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{((c.peso * r[c.key]) ?? 0).toFixed(4)}</TableCell>
+                      <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * (r[c.key] ?? 0)).toFixed(4)}</TableCell>
                     ))}
                   </TableRow>
                 ))}
