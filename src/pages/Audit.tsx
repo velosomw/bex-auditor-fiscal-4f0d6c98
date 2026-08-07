@@ -2909,10 +2909,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
             <div className="space-y-3">
               {[
-                { title: "Capacidade de Pagamento", text: "A empresa apresenta liquidez corrente de " + (latestInd ? fmtPct(latestInd.liquidezCorrente) : "N/A") + ", indicando capacidade de honrar obrigações de curto prazo." },
-                { title: "Avaliação de Risco de Insolvência", text: "O Score BEX-RJ de " + activeScore.score + " pontos classifica a empresa na faixa de \"" + scoreLabel + "\". A análise multifatorial considera endividamento, liquidez, patrimônio líquido, geração de caixa e concentração de dívida." },
-                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(latestInd?._pl || 0) + " e capital de giro líquido " + ((latestInd?._ac || 0) - (latestInd?._pc || 0) > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
-                { title: "Probabilidade Estrutural de RJ", text: (latestInd?.liquidezCorrente ?? 0) > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : (latestInd?.liquidezCorrente ?? 0) > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
+                { title: "Capacidade de Pagamento", text: latestInd
+                    ? `A empresa apresenta liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)}, ${latestInd.liquidezCorrente >= 1 ? "indicando capacidade de honrar obrigações de curto prazo" : "indicando insuficiência de ativos circulantes para cobrir obrigações de curto prazo"} (AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}).`
+                    : "Indicador não disponível para esta análise." },
+                { title: "Continuidade Operacional (Going Concern)", text: latestInd
+                    ? `Com PL de R$ ${fmt(pl)} e capital de giro líquido ${(ac - pc) > 0 ? "positivo" : "negativo"} de R$ ${fmt(Math.abs(ac - pc))}, a premissa de continuidade requer monitoramento contínuo.`
+                    : "Indicador não disponível para esta análise." },
+                { title: "Probabilidade Estrutural de RJ", text: !latestInd ? "Indicador não disponível para esta análise." : latestInd.liquidezCorrente > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : latestInd.liquidezCorrente > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
                 <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30">
                   <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
