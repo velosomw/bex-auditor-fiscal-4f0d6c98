@@ -2581,10 +2581,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const latestInd = ind[latestYear];
   const solvencyIndicators = latestInd ? [
-    { name: "Liquidez Corrente", result: fmtPct(latestInd.liquidezCorrente), param: "> 1,5", classification: latestInd.liquidezCorrente > 1.5 ? "Adequada" : latestInd.liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
-    { name: "Liquidez Seca", result: fmtPct(latestInd.liquidezSeca), param: "> 1,0", classification: latestInd.liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
-    { name: "Liquidez Geral", result: fmtPct(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
-    { name: "Cobertura de Juros", result: `${latestInd.coberturaJuros.toFixed(1)}x`, param: "> 3,0x", classification: latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
+    { name: "Liquidez Corrente", result: fmtPct(latestInd.liquidezCorrente), param: "> 1,5", classification: (latestInd.liquidezCorrente ?? 0) > 1.5 ? "Adequada" : (latestInd.liquidezCorrente ?? 0) > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
+    { name: "Liquidez Seca", result: fmtPct(latestInd.liquidezSeca), param: "> 1,0", classification: (latestInd.liquidezSeca ?? 0) > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
+    { name: "Liquidez Geral", result: fmtPct(latestInd.liquidezGeral), param: "> 1,0", classification: (latestInd.liquidezGeral ?? 0) > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
+    { name: "Cobertura de Juros", result: `${(latestInd.coberturaJuros ?? 0).toFixed(1)}x`, param: "> 3,0x", classification: (latestInd.coberturaJuros ?? 0) > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: ac - pc > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
     { name: "Solvência Total", result: fmtPct((ac + anc) / ptotal), param: "> 1,0", classification: (ac + anc) / ptotal > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
@@ -3524,7 +3524,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <p className="text-sm text-muted-foreground mt-3 italic">Relatório Financeiro de Inteligência de Risco</p>
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-500/30 bg-amber-500/5 mt-8">
               <span className="text-lg">{kanitzClassColors[latestKanitz.classificacao]?.icon}</span>
-              <span className="text-sm font-semibold text-foreground">{kanitzClassColors[latestKanitz.classificacao]?.label} — FI: {latestKanitz.fi.toFixed(2)}</span>
+              <span className="text-sm font-semibold text-foreground">{kanitzClassColors[latestKanitz.classificacao]?.label} — FI: {(latestKanitz.fi ?? 0).toFixed(2)}</span>
             </div>
             <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">Empresa Analisada S.A.</p></div>
@@ -3565,13 +3565,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">
-                A empresa apresenta Fator de Insolvência de {latestKanitz.fi.toFixed(2)}, classificando-se como {kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. {latestKanitz.fi > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : latestKanitz.fi > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}
+                A empresa apresenta Fator de Insolvência de {(latestKanitz.fi ?? 0).toFixed(2)}, classificando-se como {kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. {(latestKanitz.fi ?? 0) > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : (latestKanitz.fi ?? 0) > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}
               </p>
             </div>
             <div className="grid sm:grid-cols-3 gap-3">
               <div className="p-3 rounded-lg bg-muted/20 text-center">
                 <p className="text-[10px] text-muted-foreground">Pontuação Kanitz</p>
-                <p className={`text-2xl font-bold font-mono ${kanitzClassColors[latestKanitz.classificacao]?.color}`}>{latestKanitz.fi.toFixed(2)}</p>
+                <p className={`text-2xl font-bold font-mono ${kanitzClassColors[latestKanitz.classificacao]?.color}`}>{(latestKanitz.fi ?? 0).toFixed(2)}</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/20 text-center">
                 <p className="text-[10px] text-muted-foreground">Classificação</p>
@@ -4127,14 +4127,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <div className="p-4 rounded-lg border border-red-500/40 bg-red-500/5">
               <p className="text-xs font-bold text-red-600 mb-1">⛔ KANITZ NÃO APLICÁVEL</p>
               <p className="text-xs text-foreground leading-relaxed">
-                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({l.fi.toFixed(2)}) é mostrado apenas como referência. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
+                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({(l.fi ?? 0).toFixed(2)}) é mostrado apenas como referência. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
               </p>
             </div>
           )}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="text-center py-6 rounded-lg bg-muted/20">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Kanitz {kAplic ? "" : "(referência)"}</p>
-              <p className={`text-5xl font-bold ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{l.fi.toFixed(2)}</p>
+              <p className={`text-5xl font-bold ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{(l.fi ?? 0).toFixed(2)}</p>
               <p className={`text-sm font-semibold mt-2 ${kAplic ? classColors[l.classificacao]?.color : "text-slate-500"}`}>
                 {classColors[l.classificacao]?.icon} {classColors[l.classificacao]?.label}
               </p>
@@ -4142,7 +4142,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             </div>
             <div className="text-center py-6 rounded-lg bg-amber-500/5 border border-amber-500/30">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Índice de Solvência Geral</p>
-              <p className={`text-5xl font-bold ${isgClass.color}`}>{l.isg.toFixed(2)}</p>
+              <p className={`text-5xl font-bold ${isgClass.color}`}>{(l.isg ?? 0).toFixed(2)}</p>
               <p className={`text-sm font-semibold mt-2 ${isgClass.color}`}>{isgClass.icon} {isgClass.label}</p>
               <p className="text-xs text-muted-foreground mt-1">ISG = Ativo Total (R$ {fmt(l.at)}) / Passivo Total (R$ {fmt(l.pt)})</p>
             </div>
