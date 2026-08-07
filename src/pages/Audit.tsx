@@ -77,6 +77,9 @@ export interface CanonicalReportDataset {
 }
 
 
+/* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
+const BEX_INCLUDE_KANITZ = false;
+
 /* ── Helpers ── */
 const fmt = (n: number) => {
   if (n == null || isNaN(n)) return "N/A";
@@ -3371,7 +3374,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
       {/* ── 7. RELATÓRIO KANITZ — CAPA ── */}
-      {latestKanitz && (
+      {BEX_INCLUDE_KANITZ && latestKanitz && (
         <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
           <div className="report-page-header">
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
@@ -3420,7 +3423,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       )}
 
       {/* ── 7. SUMÁRIO EXECUTIVO KANITZ + TERMÔMETRO ── */}
-      {latestKanitz && (
+      {BEX_INCLUDE_KANITZ && latestKanitz && (
         <ReportPage>
           <div className="space-y-4">
             <div className="flex items-center gap-3 py-3 border-b-2 border-amber-500/30 mb-4">
@@ -3477,7 +3480,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       )}
 
       {/* ── 8. MEMÓRIA DE CÁLCULO KANITZ ── */}
-      {latestKanitz && (
+      {BEX_INCLUDE_KANITZ && latestKanitz && (
         <ReportPage>
           <div className="space-y-4">
             <div className="flex items-center gap-3 py-3 border-b-2 border-amber-500/30 mb-4">
