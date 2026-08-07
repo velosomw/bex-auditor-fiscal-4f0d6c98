@@ -496,12 +496,13 @@ function applyValue(
       case "fornecedores": {
         // MD-BEX-CANONICAL-CRITICAL-FACT-REGISTRY: Differentiation between suppliers and advances.
         // Adiantamentos (Ativo) do NOT count as financial.suppliers.current.
-        const descN = toUpperNoAccent(r.descricao || "");
-        const side = inferSide(r.conta, ref1, r.descricao);
-        if (side === "PASSIVO") {
+        const descN = toUpperNoAccent(ref1 || "");
+        const codePrefix = String(ref1 || "").substring(0, 1);
+        const isAtivo = codePrefix === "1" || (parentGTPresent && buckets.groupTotalsPresent.has("11"));
+        if (!isAtivo) {
            (target as any)[key] = (target[key] as number) + Math.abs(v);
-        } else if (descN.includes("ADIANTAMENTO") && side === "ATIVO") {
-           // FACT 13/14: supplier_advances (we can use other field or just ignore for suppliers)
+        } else if (descN.includes("ADIANTAMENTO")) {
+           // FACT 13/14: supplier_advances (ignored in suppliers Passivo)
         }
         break;
       }
