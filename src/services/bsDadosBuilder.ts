@@ -331,6 +331,7 @@ function emptyRow(mesKey: string): BSDadosRow {
       despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
       outras_nao_operacionais: "NOT_AVAILABLE", depreciacao: "NOT_AVAILABLE",
       amortizacao: "NOT_AVAILABLE", resultado: "NOT_AVAILABLE",
+      resultado_acumulado: "NOT_AVAILABLE", resultado_competencia: "NOT_AVAILABLE",
       ativo_circulante: "NOT_AVAILABLE", ativo_nao_circulante: "NOT_AVAILABLE",
       realizavel_longo_prazo: "NOT_AVAILABLE", investimentos: "NOT_AVAILABLE",
       intangivel: "NOT_AVAILABLE", estoques: "NOT_AVAILABLE", disponivel: "NOT_AVAILABLE",
