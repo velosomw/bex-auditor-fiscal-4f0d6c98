@@ -428,11 +428,31 @@ export function filterStalePendencias<T extends Record<string, any>>(
 /**
  * Recalcula as concentrações das pendências com base no snapshot atualizado.
  */
-export function recomputePendencyPercentages(pendencias: any[], snapshot: any): any[] {
-  // Implementação para garantir que os % nas pendências usem a Receita/Ativo do snapshot
-  return pendencias;
-}
-  });
+export function recomputePendencyPercentages<T extends Record<string, any>>(
+  pendencias: T[] | null | undefined,
+  ativoTotal: number | undefined | null
+): T[] {
+  if (!pendencias || pendencias.length === 0) return [];
+  const at = Number(ativoTotal);
+  if (!Number.isFinite(at) || at === 0) return pendencias;
+
+  const parseBRL = (raw: string) => Number(raw.replace(/\./g, "").replace(",", "."));
+  const fixField = (text: unknown): unknown => {
+    if (typeof text !== "string" || !/ATIVO TOTAL/i.test(text)) return text;
+    const money = text.match(/R\$\s*([\d.]+,\d{2})/);
+    if (!money) return text;
+    const valor = parseBRL(money[1]);
+    if (!Number.isFinite(valor) || valor === 0) return text;
+    const pct = (Math.abs(valor) / Math.abs(at)) * 100;
+    return text.replace(/(\d{1,3}(?:[.,]\d+)?)\s?%/g, `${pct.toFixed(1).replace(".", ",")}%`);
+  };
+
+  return pendencias.map(p => ({
+    ...p,
+    problema: fixField(p.problema),
+    impacto: fixField(p.impacto),
+    recomendacao: fixField(p.recomendacao),
+  }));
 }
 
 /**
