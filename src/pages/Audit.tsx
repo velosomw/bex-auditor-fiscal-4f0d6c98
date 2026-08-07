@@ -2576,7 +2576,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         passivo_nao_circulante: latestRow.passivo_nao_circulante || 0,
         patrimonio_liquido: latestRow.patrimonio_liquido || 0,
         receita_liquida: latestRow.receita_liquida || 0,
-        resultado_liquido: latestRow.resultado_periodo || 0,
+        resultado_liquido: (latestRow as any).resultado_periodo || 0,
         estoques: latestRow.estoques || 0,
         fornecedores: latestRow.fornecedores || 0,
       },
