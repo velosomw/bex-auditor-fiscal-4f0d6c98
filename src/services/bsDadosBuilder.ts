@@ -1175,8 +1175,34 @@ export function buildBSDados(
       if (f.status === "AVAILABLE" && f.value === 0 && (row[field] as number) !== 0) continue;
     }
 
+    /* MD-FINAL-RESIDUAL-001 §10..§28 — fatos residuais certificados
+       (tributos, trabalhistas, empréstimos SOMENTE do passivo, despesas financeiras). */
+    const residual = resolveResidualFacts(p1Nodes, row.mesKey, { resultado: row.resultado });
+    row.residual_facts = residual;
+
+    if (residual.tax.total_exposure.status === "AVAILABLE") {
+      row.divida_tributaria = residual.tax.total_exposure.value;
+      (row.facts_status as any).divida_tributaria = "AVAILABLE";
+    }
+    if (residual.labor.total_current.status === "AVAILABLE") {
+      row.divida_trabalhista = residual.labor.total_current.value;
+      (row.facts_status as any).divida_trabalhista = "AVAILABLE";
+    }
+    // §15..§17 — Borrowing Semantic Gate: sem saldo patrimonial ⇒ NOT_AVAILABLE (nunca despesa financeira).
+    row.divida_financeira = residual.borrowings.status === "AVAILABLE" ? residual.borrowings.value : 0;
+    (row.facts_status as any).divida_financeira =
+      residual.borrowings.status === "AVAILABLE" ? "AVAILABLE" : "NOT_AVAILABLE";
+
+    if (residual.financial_expenses.status === "AVAILABLE") {
+      row.despesas_financeiras = residual.financial_expenses.accounting_value;
+      (row.facts_status as any).despesas_financeiras = "AVAILABLE";
+    }
+    // §21..§25 — EBITDA só existe quando certificável; nunca igual ao Resultado do Período.
+    row.ebitda = residual.ebitda.status === "AVAILABLE" ? residual.ebitda.value : NaN;
+
     // Recalcula agregados derivados após o cutover P1.
     row.divida_total =
+
       row.divida_tributaria + row.divida_trabalhista + row.divida_financeira +
       row.fornecedores + row.credores_rj + row.outras_obrigacoes;
     row.hasReceita = row.receita_liquida > 0;
