@@ -15,7 +15,7 @@ import {
   Target, Scale, Layers, Building2, Loader2, FileSpreadsheet,
   DollarSign, Landmark, AlertOctagon, Search, ChevronDown, ChevronUp,
   Settings, ClipboardCheck, FileSearch, BookOpen, Database, Info,
-  ChevronLeft, ChevronRight, Clock
+  ChevronLeft, ChevronRight, Clock, FileCheck
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1521,7 +1521,7 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2"><Activity className="w-4 h-4 text-accent" /> Diagnóstico Financeiro</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><FileCheck className="w-4 h-4 text-emerald-500" /> Diagnóstico Técnico-Contábil</CardTitle>
             <Badge className={`${r.bg} border text-xs`}>Diagnóstico Certificado</Badge>
           </div>
           <CardDescription>Diagnóstico Executivo Certificado — Avaliação Contábil e Financeira</CardDescription>
@@ -1540,7 +1540,7 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
                       p.status === "positivo" ? "bg-emerald-500" :
                       p.status === "atencao" ? "bg-yellow-500" : "bg-red-500"
                     }`} />
-                    <span className="text-sm font-medium text-foreground">{p.item.replace(/\s+\d+%.*$/, "")}</span>
+                    <span className="text-sm font-medium text-foreground">{p.item.replace(/\s+\d+%.*$/, "").replace(/Pontos-chave/i, "Achado relevante")}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">{p.detail.replace(/(\b\w+\b)(?:\s+\1)+/gi, "$1")}</span>
                 </div>
