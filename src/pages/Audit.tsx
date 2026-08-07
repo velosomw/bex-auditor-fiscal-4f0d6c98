@@ -2674,9 +2674,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     });
     return results;
   }, [reportDataset]);
-      });
-    });
-  }
 
   if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
     const aiK = aiAnalysis.kanitz;
