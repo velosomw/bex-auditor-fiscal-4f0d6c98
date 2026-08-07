@@ -23,8 +23,10 @@ const Index = () => {
     // Enterprise Gemini Accounting Interpretation Engine (MD-001) Active
     // Enterprise Business Facts & Canonical Model (MD-001) Active
     // Enterprise Financial Calculation & Mathematical Certification Engine (MD-001) Active
+    // Enterprise Living Financial Report Engine (MD-001) Active
     console.log("BEx Cognitive Foundation: Knowledge Engine 1.0 Active");
     console.log("Enterprise Financial Calculation & Mathematical Certification Engine 1.0 Active");
+    console.log("Enterprise Living Financial Report Engine 1.0 Active");
   }, []);
 
 
