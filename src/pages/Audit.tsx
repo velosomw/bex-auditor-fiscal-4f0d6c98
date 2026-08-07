@@ -53,6 +53,16 @@ const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${((n ?? 0) * 100).toFixed(1)}%`;
 const fmtDays = (n: number) => `${Math.round(n)} dias`;
 
+const fmtMonthCompact = (mesKey: string) => {
+  if (!mesKey) return "";
+  const parts = mesKey.split("-");
+  if (parts.length < 2) return mesKey;
+  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const mIdx = parseInt(parts[1], 10) - 1;
+  return `${months[mIdx] || parts[1]}/${parts[0].slice(-2)}`;
+};
+
+
 /** Padroniza nomes de arquivos baixados/impressos da plataforma (sempre "BEx_..."). */
 import { bexFileName } from "@/lib/bexFileName";
 
