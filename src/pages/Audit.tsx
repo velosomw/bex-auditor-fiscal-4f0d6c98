@@ -2582,14 +2582,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         resultado_liquido: latestRow.resultado,
         estoques: latestRow.estoques,
         fornecedores: latestRow.fornecedores,
+        disponivel: latestRow.disponivel
       },
       ratios: computed[latestYear],
       history: computed,
-      kanitz: null,
+      kanitz: kRes,
       narratives: {},
       limitations: latestRow.errors || [],
     };
-  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
+  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed, kanitzResults]);
 
   const activeYear = reportDataset?.competency || "";
   const d = reportDataset?.facts;
@@ -2692,6 +2693,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     const fi = aiK.fatorInsolvencia || 0;
     const pl = aiStruct.patrimonio_liquido || 0;
     const kAplic = pl > 0;
+    const isgValue = (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0) / ((aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0) || 1);
+    
     const classificacao: any = !kAplic ? "na" :
       fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
     kanitzResults.push({
@@ -2700,7 +2703,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: aiStruct.patrimonio_liquido || 0,
       estoque: aiStruct.estoques || 0, rlp: 0, pt: (aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0),
       ll: aiStruct.lucro_liquido || 0, at: (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0), rl: aiStruct.receita_liquida || 0,
-      ebitda: 0, lajir: 0, despFin: 0, kanitzAplicavel: kAplic, isg: 0
+      ebitda: 0, lajir: 0, despFin: 0, kanitzAplicavel: kAplic, isg: isgValue
     });
   }
 
