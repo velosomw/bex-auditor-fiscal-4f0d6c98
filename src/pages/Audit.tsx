@@ -4504,18 +4504,23 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "RPL (X1)", peso: 0.05, key: "rpl" as const },
-                    { name: "LG (X2)", peso: 1.65, key: "lg" as const },
-                    { name: "LS (X3)", peso: 3.55, key: "ls" as const },
-                    { name: "LC (X4)", peso: -1.06, key: "lc" as const },
-                    { name: "GE (X5)", peso: -0.33, key: "ge" as const },
+                    { name: "RPL (X1)", peso: 0.05, key: "rpl" as const, dependsOnPL: true },
+                    { name: "LG (X2)", peso: 1.65, key: "lg" as const, dependsOnPL: false },
+                    { name: "LS (X3)", peso: 3.55, key: "ls" as const, dependsOnPL: false },
+                    { name: "LC (X4)", peso: -1.06, key: "lc" as const, dependsOnPL: false },
+                    { name: "GE (X5)", peso: -0.33, key: "ge" as const, dependsOnPL: true },
                   ].map(c => (
                     <TableRow key={c.name}>
                       <TableCell className="text-[10px] font-mono font-bold">{c.name}</TableCell>
                       <TableCell className="text-[10px] font-mono">{c.peso > 0 ? `+${c.peso}` : c.peso}</TableCell>
                       {kanitzResults.map(r => (
                         <TableCell key={r.year} className="text-right text-[10px] font-mono">
-                          {!r.kanitzAplicavel ? "N/A" : tbl.weighted ? (c.peso * (r[c.key] ?? 0)).toFixed(4) : fmtDec(r[c.key])}
+                          {/* §50/§61 — apenas componentes dependentes do PL viram N/A; liquidez permanece publicada. */}
+                          {(!r.kanitzAplicavel && c.dependsOnPL) || !Number.isFinite(r[c.key] as number)
+                            ? "N/A"
+                            : tbl.weighted
+                              ? (!r.kanitzAplicavel ? "N/A" : (c.peso * (r[c.key] as number)).toFixed(4))
+                              : fmtDec(r[c.key])}
                         </TableCell>
                       ))}
                     </TableRow>
