@@ -3437,7 +3437,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               <div className="pt-2 mt-2 border-t border-dashed border-border/50">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Metadados do Upload (Rastreabilidade)</p>
                 <div className="grid grid-cols-1 gap-1 text-[10px]">
-                  <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {snap?.source_file_name || (uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "Não identificado no balancete")}</p>
+                  <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {snapshot?.source_file_name || (uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "Não identificado no balancete")}</p>
                   <p className="text-muted-foreground"><span className="font-medium text-foreground">Processamento:</span> {today}</p>
                   <p className="text-muted-foreground"><span className="font-medium text-foreground">Intervalo Analisado:</span> {kanitzResults.map(r => r.year).join(" / ")}</p>
                 </div>
