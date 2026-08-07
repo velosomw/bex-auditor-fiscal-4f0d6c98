@@ -2515,7 +2515,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs, company }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null }) => {
+export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs, company, balanceteEntries }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null; balanceteEntries?: BalanceteEntry[] }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const reportContainerRef = useRef<HTMLDivElement>(null);
@@ -2595,7 +2595,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const ptotal = pc + pnc || 1;
 
   const caixa = d?._caixa || 0;
-  const emprestimos = d?._divida_financeira || 0;
+  const emprestimos = d?._divida_financeira || d?._divida_financeira || 0;
+
   const dividaOnerosa = emprestimos;
   const fornec = d?._fornecedores || 0;
 
@@ -2887,7 +2888,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               {[
                 { title: "Capacidade de Pagamento", text: "A empresa apresenta liquidez corrente de " + (latestInd ? fmtPct(latestInd.liquidezCorrente) : "N/A") + ", indicando capacidade de honrar obrigações de curto prazo." },
                 { title: "Avaliação de Risco de Insolvência", text: "O Score BEX-RJ de " + activeScore.score + " pontos classifica a empresa na faixa de \"" + scoreLabel + "\". A análise multifatorial considera endividamento, liquidez, patrimônio líquido, geração de caixa e concentração de dívida." },
-                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(Math.abs(d?._pl || d?.patrimonioLiquido || 0)) + " e capital de giro líquido " + (ac - pc > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
+                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(Math.abs(d?._pl || 0)) + " e capital de giro líquido " + (ac - pc > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
                 { title: "Probabilidade Estrutural de RJ", text: activeScore.score <= 30 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : activeScore.score <= 60 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
                 <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30">
@@ -3041,12 +3042,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={years.map(y => {
                       const yInd = computedInd[y];
-                      const tributarias = Math.abs(yInd?._tributos || 0);
-                      const trabalhistas = Math.abs(yInd?._trabalhistas || 0);
-                      const emprestimos = Math.abs(yInd?._emprestimos || 0);
+                      const tributarias = Math.abs(yInd?._divida_tributaria || 0);
+                      const trabalhistas = Math.abs(yInd?._divida_trabalhista || 0);
+                      const emprestimos = Math.abs(yInd?._divida_financeira || 0);
                       const fornecedores = Math.abs(yInd?._fornecedores || 0);
-                      const credoresRJ = Math.abs(yInd?._credoresRJ || 0);
-                      const outras = Math.abs(yInd?._outrasObrig || ((yInd?._pc || 0) + (yInd?._pnc || 0) - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ)) || 0;
+                      const credoresRJ = Math.abs(yInd?._credores_rj || 0);
+                      const outras = Math.abs(yInd?._outras_obrigacoes || ((yInd?._pc || 0) + (yInd?._pnc || 0) - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ)) || 0;
+
                       const total = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
                       return {
                         name: y,
