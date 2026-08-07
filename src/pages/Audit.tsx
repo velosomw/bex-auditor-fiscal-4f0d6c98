@@ -49,9 +49,22 @@ import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
 
 /* ── Helpers ── */
-const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
-const fmtPct = (n: number) => `${((n ?? 0) * 100).toFixed(1)}%`;
-const fmtDays = (n: number) => `${Math.round(n)} dias`;
+const fmt = (n: number) => {
+  if (n == null || isNaN(n)) return "N/A";
+  return new Intl.NumberFormat("pt-BR").format(Math.round(n));
+};
+const fmtDec = (n: number) => {
+  if (n == null || isNaN(n)) return "N/A";
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+};
+const fmtPct = (n: number) => {
+  if (n == null || isNaN(n)) return "0.0%";
+  return `${(n * 100).toFixed(1)}%`;
+};
+const fmtDays = (n: number) => {
+  if (n == null || isNaN(n)) return "0 dias";
+  return `${Math.round(n)} dias`;
+};
 
 const fmtMonthCompact = (mesKey: string) => {
   if (!mesKey) return "";
@@ -2559,11 +2572,14 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const kanitzIndMap: Record<string, any> = {};
   if (parsedData) {
-    const computed = computeIndicatorsFromParsed(parsedData);
+    const computed = computedInd; // Já computado acima
     Object.keys(computed).forEach(k => {
       const ind = computed[k];
       const kAplic = ind._pl > 0;
+      
+      // Kanitz FI (Fator de Insolvência) Canônico
       const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * ind.grauEndividamentoPL) : 0;
+      
       const isgValue = ind._at / (ind._pc + ind._pnc || 1);
       const classificacao: any = !kAplic ? "na" :
         fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
@@ -2572,7 +2588,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
         ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
         ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
-        lajir: ind._resultado + Math.abs(ind._despFin), despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
+        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin), 
+        despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
       });
     });
   }
@@ -2675,7 +2692,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[hsl(258,90%,66%)]/30 bg-[hsl(258,90%,66%)]/5 mt-8">
             <span className="text-lg">{riskIcon}</span>
-            <span className="text-sm font-semibold text-foreground">{scoreLabel} — Score BEX: {activeScore.score}/100</span>
+            <span className="text-sm font-semibold text-foreground">{scoreLabel}</span>
           </div>
 
           <div className="mt-10 space-y-1.5 text-sm text-muted-foreground">
@@ -3834,7 +3851,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <div className="p-4 rounded-lg border border-red-500/40 bg-red-500/5">
               <p className="text-xs font-bold text-red-600 mb-1">⛔ KANITZ NÃO APLICÁVEL</p>
               <p className="text-xs text-foreground leading-relaxed">
-                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({(l.fi ?? 0).toFixed(2)}) é mostrado apenas como referência. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
+                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({(l.fi ?? 0).toFixed(2)}) não é aplicável. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
               </p>
             </div>
           )}
@@ -3938,7 +3955,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                     <TableCell className="text-xs font-mono font-bold">{ind.peso > 0 ? `+${ind.peso}` : ind.peso}</TableCell>
                     {kanitzResults.map(r => (
                       <TableCell key={r.year} className="text-right text-xs font-mono">
-                        {ind.naIfNegativePL && !r.kanitzAplicavel ? <span className="text-slate-500">N/A</span> : fmtDec(r[ind.key])}
+                        {ind.naIfNegativePL && !r.kanitzAplicavel ? <span className="text-slate-500">N/A</span> : (r[ind.key] != null && !isNaN(r[ind.key]) ? fmtDec(r[ind.key]) : <span className="text-slate-500">N/A</span>)}
                       </TableCell>
                     ))}
                   </TableRow>

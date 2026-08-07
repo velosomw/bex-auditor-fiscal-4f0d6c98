@@ -755,30 +755,36 @@ export function buildBSDados(
   // ── Prune de contas sintéticas (pais) para evitar dupla contagem ─────
   // GRUPO-FIRST: PRESERVAMOS os totalizadores de grupo (11/12/13/21/22/23/31/32/33/4/5/6/7/8)
   // mesmo que tenham folhas — eles são autoritativos.
-  // Normaliza códigos contábeis removendo espaços E TODOS os pontos
-  // (ex.: "1.1" → "11", "2.1" → "21") — necessário para que o conjunto
-  // GROUP_TOTAL_CODES (que usa códigos sem ponto: "11","21",…) reconheça
-  // os totais de grupo em planos com numeração pontuada. Sem isso, contas
-  // como "1.1 ATIVO CIRCULANTE" eram tratadas como "pais sintéticos" e
-  // podadas em `leafRows`, zerando AC/PC/ANC/PNC/PL e todos os indicadores
-  // dependentes (Liquidez, Endividamento, etc.).
   const normCode = (c?: string) => String(c || "").replace(/\s+/g, "").replace(/\./g, "");
   const allCodes = new Set(allRows.map(r => normCode(r.conta)).filter(Boolean));
   const parentCodes = new Set<string>();
+  
+  // Regra P1 (MD-BEX-001): Identificar pais reais para podar Analytical Double Counting
   for (const c of allCodes) {
     if (GROUP_TOTAL_CODES.has(c)) continue; // GT nunca entra em parentCodes
     for (const other of allCodes) {
       if (other.length > c.length && other.startsWith(c)) {
         const next = other.charAt(c.length);
-        if (/[0-9.]/.test(next) || c.endsWith(".")) { parentCodes.add(c); break; }
+        if (/[0-9.]/.test(next) || c.endsWith(".")) { 
+          parentCodes.add(c); 
+          break; 
+        }
       }
     }
   }
+
+  // Regra P1 (MD-BEX-001): Se existe GT ("11", "21", etc), ele é a fonte única.
+  // Filtramos todas as contas que possuem um GT como ancestral no mesmo mês, 
+  // exceto se a própria conta for o GT.
   const leafRows = allRows.filter(r => {
     const c = normCode(r.conta);
     if (!c) return true;
-    if (GROUP_TOTAL_CODES.has(c)) return true; // sempre preserva GT
-    return !parentCodes.has(c);
+    if (GROUP_TOTAL_CODES.has(c)) return true; // Sempre preserva o GT
+    
+    // Se a conta for sintética (tem filhos) e não é um GT, descarta (Camada B/C cuidará disso)
+    if (parentCodes.has(c)) return false;
+
+    return true; 
   });
 
   // ── 1ª passada: detecta GTs presentes por mesKey ──
