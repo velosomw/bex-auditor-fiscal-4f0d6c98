@@ -2643,33 +2643,37 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return row?.values[year] || 0;
   };
 
-  const kanitzResults: Array<{
-    year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
-    classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
-    ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
-    ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
-  }> = [];
+  const kanitzResults = useMemo(() => {
+    if (!reportDataset) return [];
+    
+    const results: Array<{
+      year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
+      classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
+      ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
+      ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
+    }> = [];
 
-  const kanitzIndMap: Record<string, any> = {};
-  if (parsedData) {
-    const computed = computedInd; // Já computado acima
-    Object.keys(computed).forEach(k => {
+    const computed = reportDataset.history;
+    Object.keys(computed).sort().forEach(k => {
       const ind = computed[k];
       const kAplic = ind._pl > 0;
       
-      // Kanitz FI (Fator de Insolvência) Canônico
       const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * ind.grauEndividamentoPL) : 0;
       
       const isgValue = ind._at / (ind._pc + ind._pnc || 1);
       const classificacao: any = !kAplic ? "na" :
         fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
 
-      kanitzResults.push({
+      results.push({
         year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
         ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
         ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
         lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin), 
         despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
+      });
+    });
+    return results;
+  }, [reportDataset]);
       });
     });
   }
