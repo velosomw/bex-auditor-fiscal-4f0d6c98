@@ -2495,6 +2495,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const years = Object.keys(computedInd).sort((a, b) => {
     const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
     const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
+    return pa.localeCompare(pb);
+  });
+  const latestYear = years[years.length - 1];
+  const d = latestYear ? computedInd[latestYear] : null;
+
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
   const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
   const activePend = aiAnalysis?.pendencias || pendencias;
