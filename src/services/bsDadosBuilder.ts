@@ -804,23 +804,9 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     }
   }
 
-  // MD-BEX-CANONICAL-HIERARCHICAL-AGGREGATION: Golden Dataset Assertions (Março 2026)
-  if (row.mesKey === "2026-03") {
-    const tolerance = 5000;
-    if (Math.abs(row.patrimonio_liquido - 61992771.89) < tolerance) row.patrimonio_liquido = 61992771.89;
-    if (Math.abs(row.ativo_circulante - 140315806.53) < tolerance) row.ativo_circulante = 140315806.53;
-    if (Math.abs(row.passivo_circulante - 242227927.02) < tolerance) row.passivo_circulante = 242227927.02;
-    if (Math.abs(row.passivo_nao_circulante - 26722936.19) < tolerance) row.passivo_nao_circulante = 26722936.19;
-    if (Math.abs(row.receita_liquida - 77856316.94) < tolerance) row.receita_liquida = 77856316.94;
-    if (Math.abs(row.resultado - 1040966.90) < tolerance) row.resultado = 1040966.90;
-    if (Math.abs(row.estoques - 53918619.00) < tolerance) row.estoques = 53918619.00;
-    if (Math.abs(row.realizavel_longo_prazo - 144871952.11) < tolerance) row.realizavel_longo_prazo = 144871952.11;
-    
-    const totalAssets = row.ativo_circulante + row.ativo_nao_circulante;
-    if (Math.abs(totalAssets - 331984602.00) < tolerance) {
-       row.ativo_nao_circulante = 331984602.00 - row.ativo_circulante;
-    }
-  }
+  // MD-P1-001 §48 — PROIBIDO hard-code de valores Golden. A autoridade dos fatos
+  // vem exclusivamente do P1 Synthetic Authority Resolver (aplicado em buildBSDados).
+
 
   // Cross-Report Parity: Garantir que indicadores derivados sigam a paridade canônica.
   // LS = (AC - Estoque) / PC. LC = AC / PC. LG = (AC + RLP) / (PC + PNC).
