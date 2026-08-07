@@ -3162,198 +3162,68 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
 
 
-      {(() => {
-        const allRows = parsedData?.balanco || state.balancoRows;
-        // Whitelist de contas analíticas consolidadas (subtopicos em negrito da planilha)
-        const ATIVO_WHITELIST = [
-          "ativo circulante", "ativo nao circulante", "ativo não circulante",
-          "caixa e equivalentes", "disponibilidades", "bens e numerários", "bens e numerarios",
-          "estoques", "contas a receber", "clientes",
-          "outros valores a receber", "valores a recuperar",
-          "realizavel a longo prazo", "realizável a longo prazo",
-          "outros créditos a longo prazo", "outros creditos a longo prazo",
-          "ativo permanente", "imobilizado", "intangivel", "intangível", "investimentos",
-        ];
-        const PASSIVO_WHITELIST = [
-          "passivo circulante", "passivo nao circulante", "passivo não circulante",
-          "fornecedores", "contas a pagar",
-          "salarios e encargos sociais", "salários e encargos sociais",
-          "tributos e contribuições a recolher", "tributos e contribuicoes a recolher",
-          "instituições financeiras", "instituicoes financeiras", "emprestimos e financiamentos", "empréstimos e financiamentos",
-          "outras contas a pagar",
-          "nao circulante - longo prazo", "não circulante - longo prazo",
-          "patrimonio liquido", "patrimônio líquido", "capital social", "lucros ou prejuizos acumulados", "lucros ou prejuízos acumulados",
-        ];
-        const _norm = (s: string) => (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
-        const _inList = (r: any, list: string[]) => {
-          const d = _norm(r?.descricao || "");
-          if (!d) return false;
-          return list.some(w => {
-            const normalizedW = _norm(w);
-            return d === normalizedW || d.startsWith(normalizedW + " ");
-          });
-        };
-        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && (r.isGroup || _inList(r, ATIVO_WHITELIST)));
-        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && (r.isGroup || _inList(r, PASSIVO_WHITELIST)));
-        const maxRows = Math.max(ativoRows.length, passivoRows.length, 1);
+      <ReportPage className={years.length > 6 ? "landscape" : ""}>
+        <div className="space-y-4">
+          <SectionTitle num="6" title="BALANÇO PATRIMONIAL CONSOLIDADO" />
+          <div className="text-center mb-2">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">ESTRUTURA PATRIMONIAL POR GRANDES GRUPOS</h3>
+            <p className="text-[10px] text-muted-foreground mt-1">Série Histórica Consolidada (Valores em R$)</p>
+          </div>
 
-        const isParent = (conta: string) => {
-          const parts = conta.replace(/\./g, "").length;
-          return conta === "1" || conta === "2" || conta === "1.01" || conta === "1.02" || conta === "2.01" || conta === "2.02" || conta === "2.03" || parts <= 3;
-        };
-
-        const getIndent = (conta: string) => {
-          const depth = (conta.match(/\./g) || []).length;
-          return depth > 0 ? `${depth * 12}px` : "0px";
-        };
-
-        // Rows per page: first page has title+header so fewer rows, continuation pages have more
-        const ROWS_FIRST_PAGE = 38;
-        const ROWS_PER_PAGE = 44;
-
-        // Build array of pages with row ranges
-        const pages: Array<{ startIdx: number; endIdx: number; isFirst: boolean }> = [];
-        let cursor = 0;
-        let isFirst = true;
-        while (cursor < maxRows) {
-          const capacity = isFirst ? ROWS_FIRST_PAGE : ROWS_PER_PAGE;
-          const endIdx = Math.min(cursor + capacity, maxRows);
-          pages.push({ startIdx: cursor, endIdx, isFirst });
-          cursor = endIdx;
-          isFirst = false;
-        }
-
-        // Add validations to the last page
-        const validations = [
-          { check: "Ativo = Passivo + PL", status: true, detail: `Ativo Total: R$ ${fmt(ac + anc)} | Passivo + PL: R$ ${fmt(pc + pnc)}` },
-          { check: "Passivo a Descoberto", status: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0, detail: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
-          { check: "PL Negativo", status: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0, detail: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl ?? d?.patrimonioLiquido ?? 0))}` : "PL NEGATIVO identificado" },
-          { check: "Descasamento Estrutural", status: (ac ?? 0) > (pc ?? 0), detail: "Capital de giro líquido " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
-        ];
-
-        // Check if validations fit on the last page (need ~6 rows worth of space)
-        const lastPage = pages[pages.length - 1];
-        const lastPageRows = lastPage.endIdx - lastPage.startIdx;
-        const lastPageCapacity = lastPage.isFirst ? ROWS_FIRST_PAGE : ROWS_PER_PAGE;
-        const validationsFitOnLastPage = (lastPageCapacity - lastPageRows) >= 8;
-
-        const renderTableHeader = () => (
-          <thead>
-            <tr className="border-b-2 border-border">
-              <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
-              <th className="text-left p-1.5 text-muted-foreground font-semibold">ATIVO</th>
-              {years.map(y => <th key={`a-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
-              <th className="w-[16px]"></th>
-              <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
-              <th className="text-left p-1.5 text-muted-foreground font-semibold">PASSIVO + PL</th>
-              {years.map(y => <th key={`p-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
-            </tr>
-          </thead>
-        );
-
-        const renderRows = (startIdx: number, endIdx: number) => (
-          <tbody>
-            {Array.from({ length: endIdx - startIdx }).map((_, i) => {
-              const idx = startIdx + i;
-              const aRow = ativoRows[idx];
-              const pRow = passivoRows[idx];
-              const aParent = aRow && isParent(aRow.conta);
-              const pParent = pRow && isParent(pRow.conta);
-
-              return (
-                <tr key={idx} className="border-b border-border/40 hover:bg-muted/30 break-inside-avoid">
-                  <td className={`p-1.5 font-mono text-muted-foreground ${aParent ? "font-bold" : ""}`}>
-                    {aRow?.conta || ""}
-                  </td>
-                  <td className={`p-1.5 ${aParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: aRow ? `calc(6px + ${getIndent(aRow.conta)})` : "6px" }}>
-                    {aRow?.descricao || ""}
-                  </td>
+          <div className="overflow-x-auto">
+            <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px] w-[180px]">Conta / Grupo</TableHead>
                   {years.map(y => (
-                    <td key={`a-${y}-${idx}`} className={`p-1.5 text-right font-mono ${aParent ? "font-bold text-foreground" : "text-foreground"}`}>
-                      {aRow ? fmt(aRow.values[y] || 0) : ""}
-                    </td>
+                    <TableHead key={y} className="text-right text-[10px] px-1">{fmtMonthCompact(y)}</TableHead>
                   ))}
-                  <td className="bg-border/20"></td>
-                  <td className={`p-1.5 font-mono text-muted-foreground ${pParent ? "font-bold" : ""}`}>
-                    {pRow?.conta || ""}
-                  </td>
-                  <td className={`p-1.5 ${pParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: pRow ? `calc(6px + ${getIndent(pRow.conta)})` : "6px" }}>
-                    {pRow?.descricao || ""}
-                  </td>
-                  {years.map(y => (
-                    <td key={`p-${y}-${idx}`} className={`p-1.5 text-right font-mono ${pParent ? "font-bold text-foreground" : "text-foreground"}`}>
-                      {pRow ? fmt(pRow.values[y] || 0) : ""}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        );
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { label: "Ativo Circulante", key: "_ac" },
+                  { label: "Ativo Não Circulante", key: "_anc" },
+                  { label: "Passivo Circulante", key: "_pc" },
+                  { label: "Passivo Não Circulante", key: "_pnc" },
+                  { label: "Patrimônio Líquido", key: "_pl" },
+                  { label: "Resultado do Período", key: "_resultado" },
+                ].map((row, idx) => (
+                  <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
+                    <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
+                    {years.map(y => (
+                      <TableCell key={y} className="text-right text-xs font-mono py-2">
+                        {fmt(computedInd[y]?.[row.key as keyof typeof latestInd] as number || 0)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-        const renderValidations = () => (
           <div className="mt-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Validações</h3>
-            <div className="space-y-2">
-              {validations.map(v => (
-                <div key={v.check} className={`flex items-center justify-between p-3 rounded-lg ${v.status ? "bg-emerald-500/5 border border-emerald-500/20" : "bg-red-500/5 border border-red-500/20"}`}>
+            <h3 className="text-sm font-semibold text-foreground mb-2">Validações de Integridade</h3>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {[
+                { check: "Ativo = Passivo + PL", status: Math.abs((ac + anc) - (pc + pnc + (d?._pl || 0))) < 100, detail: `Equilíbrio Patrimonial mantido` },
+                { check: "Passivo a Descoberto", status: (d?._pl ?? 0) > 0, detail: (d?._pl ?? 0) > 0 ? "Patrimônio Líquido Positivo" : "IDENTIFICADO — PL negativo" },
+                { check: "Capital de Giro Líquido", status: (ac ?? 0) > (pc ?? 0), detail: "CGL " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
+                { check: "Solvência Geral", status: ((ac + anc) / (pc + pnc || 1)) >= 1, detail: "Capacidade de cobertura total" },
+              ].map(v => (
+                <div key={v.check} className={`flex items-center justify-between p-3 rounded-lg border ${v.status ? "bg-emerald-500/5 border-emerald-500/20" : "bg-red-500/5 border-red-500/20"}`}>
                   <div className="flex items-center gap-2">
                     {v.status ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertTriangle className="w-4 h-4 text-red-500" />}
-                    <span className="text-xs font-medium text-foreground">{v.check}</span>
+                    <span className="text-[11px] font-medium text-foreground">{v.check}</span>
                   </div>
                   <span className="text-[10px] text-muted-foreground">{v.detail}</span>
                 </div>
               ))}
             </div>
           </div>
-        );
+        </div>
+      </ReportPage>
 
-        return (
-          <>
-            {pages.map((page, pageIdx) => (
-              <ReportPage key={`bp-page-${pageIdx}`}>
-                <div className="space-y-2">
-                  {page.isFirst ? (
-                    <>
-                      <SectionTitle num="6" title="BALANÇO PATRIMONIAL" />
-                      <div className="text-center mb-2">
-                        <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">DEMONSTRATIVOS FINANCEIROS CONSOLIDADOS</h3>
-                        <p className="text-[10px] text-muted-foreground mt-1">Balanço Patrimonial</p>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">6. Balanço Patrimonial — continuação ({pageIdx + 1}/{pages.length})</p>
-                    </div>
-                  )}
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[10px] border-collapse">
-                      {renderTableHeader()}
-                      {renderRows(page.startIdx, page.endIdx)}
-                    </table>
-                  </div>
-
-                  {/* Render validations on last page if they fit, otherwise they go on a separate page */}
-                  {pageIdx === pages.length - 1 && validationsFitOnLastPage && renderValidations()}
-                </div>
-              </ReportPage>
-            ))}
-
-            {/* Separate page for validations if they don't fit */}
-            {!validationsFitOnLastPage && (
-              <ReportPage>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">6. Balanço Patrimonial — Validações</p>
-                  </div>
-                  {renderValidations()}
-                </div>
-              </ReportPage>
-            )}
-          </>
-        );
-      })()}
 
       {/* ── SCORE FINAL ── */}
       <ReportPage>
