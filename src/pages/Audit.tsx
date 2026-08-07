@@ -4723,42 +4723,38 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     return out;
   }, [balanceteEntries]);
 
+  /* MD-CUTOVER-001 — mesmo serviço de snapshot usado pelo BEx (fonte única). */
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
-    if (!parsedData || !company) return null;
-    const computed = computeIndicatorsFromParsed(parsedData);
-    const years = Object.keys(computed).sort();
-    const latestYear = years[years.length - 1];
-    if (!latestYear) return null;
-    
-    const rows = buildBSDados(parsedData, balanceteEntries || []);
-    const latestRow = rows.find(r => r.mesKey === latestYear);
-    if (!latestRow) return null;
-
-    const traceId = `BEX-RUNTIME-${latestYear}-${Date.now()}`;
+    const snap = buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], { companyId: company?.id });
+    if (!snap) return null;
     return {
-      runtime_trace_id: traceId,
-      canonical_snapshot_id: `SNAP-${traceId}`,
-      competency: latestYear,
-      company_id: company.id || "manual",
-      generated_at: new Date().toISOString(),
+      runtime_trace_id: snap.runtime_trace_id,
+      canonical_snapshot_id: snap.snapshot_id,
+      competency: snap.competency,
+      company_id: snap.company_id,
+      generated_at: snap.processing_timestamp,
       facts: {
-        ativo_circulante: latestRow.ativo_circulante,
-        ativo_nao_circulante: latestRow.ativo_nao_circulante,
-        passivo_circulante: latestRow.passivo_circulante,
-        passivo_nao_circulante: latestRow.passivo_nao_circulante,
-        patrimonio_liquido: latestRow.patrimonio_liquido,
-        receita_liquida: latestRow.receita_liquida,
-        resultado_liquido: latestRow.resultado,
-        estoques: latestRow.estoques,
-        fornecedores: latestRow.fornecedores,
-      },
-      ratios: computed[latestYear],
-      history: computed,
-      kanitz: null,
+        ativo_circulante: snap.facts.ativo_circulante,
+        ativo_nao_circulante: snap.facts.ativo_nao_circulante,
+        passivo_circulante: snap.facts.passivo_circulante,
+        passivo_nao_circulante: snap.facts.passivo_nao_circulante,
+        patrimonio_liquido: snap.facts.patrimonio_liquido,
+        receita_liquida: snap.facts.receita_liquida,
+        resultado_liquido: snap.facts.resultado_liquido,
+        estoques: snap.facts.estoques,
+        fornecedores: snap.facts.fornecedores,
+        disponivel: snap.facts.disponivel,
+        realizavel_longo_prazo: snap.facts.realizavel_longo_prazo,
+      } as any,
+      ratios: snap.ratios,
+      history: snap.history,
+      kanitz: snap.kanitz,
       narratives: {},
-      limitations: latestRow.errors || [],
-    };
-  }, [parsedData, company, computeIndicatorsFromParsed, balanceteEntries]);
+      limitations: snap.limitations,
+      snapshot: snap,
+    } as CanonicalReportDataset;
+  }, [parsedData, company, balanceteEntries]);
+
 
   const persistReport = (variant: "resumido" | "completo") => {
     // FIX #4 — SEMPRE prioriza valores DETERMINÍSTICOS do servidor.
