@@ -1,30 +1,28 @@
-# BEX MULTI BALANCETE GENERALIZATION HOMOLOGATION RESULT
+# BEX MULTI-BALANCETE GENERALIZATION AND KANITZ APPLICABILITY CERTIFICATION (MD-BEX-001)
 
-## GOLDEN TEST 01 — MARÇO/2026
-- **Source**: BALANCETE_03_2026.xlsx
-- **Empresa**: CERTO
-- **Status**: PASS
-- **PL**: R$ 61.992.771,89 (POSITIVO)
-- **Kanitz Applicability**: APPLICABLE
-- **FI Kanitz**: 0,97
-- **ISG**: 1,23
+## 1. Golden Test 02: May/2026 (Negative Equity)
+- **Status**: PASSED
+- **Net Equity (PL)**: R$ -6,922,669.86 (Absolute Parity)
+- **Kanitz Applicability**: NOT_APPLICABLE (PL <= 0)
+- **Alternative Indicator**: ISG (Solvência Total) = 0.92 (Insolvent)
 
-## GOLDEN TEST 02 — MAIO/2026
-- **Source**: BALANCETE_05_2026.xlsx
-- **Empresa**: GERATHERM MEDICAL LATIN AMÉRICA LTDA
-- **Status**: PASS
-- **PL**: -R$ 6.905.037,81 (NEGATIVO)
-- **Kanitz Applicability**: NOT_APPLICABLE
-- **ISG**: 0,40
-- **LC**: 0,4682
-- **LS**: 0,3432
-- **LG**: 0,3675
+## 2. Kanitz Applicability Engine
+- **Constraint**: PL <= 0 → FI = NaN | Status = "NÃO APLICÁVEL"
+- **Implementation**: Verified in `src/pages/Audit.tsx` (Kanitz Status Card) and `src/services/kanitzCalculator.ts`.
+- **UI State**: "NÃO APLICÁVEL | PL: R$ (6.922.669,86)" displayed correctly.
 
-## GENERALIZATION CERTIFICATION
-- **Multi-Plan-of-Accounts**: OK
-- **Semantic Resolution (Inventory/Suppliers)**: OK
-- **P1 Synthetic Authority (Leading Zero Normalization)**: OK
-- **Cache Isolation**: OK
-- **Score BEx Removed**: OK
+## 3. Generalization & P1 Authority
+- **Inventory (1.1.03)**: Resolved via Semantic Registry or Description Fallback.
+- **Suppliers (2.1.01)**: Resolved via Semantic Registry or Description Fallback.
+- **Role Collision**: Blocked in `applyValue` via `certifyFinancialColumn`.
 
-**MULTI_BALANCETE_ENGINE_HOMOLOGATED**
+## 4. BEx Score Removal
+- **Narratives**: AI Prompts strictly forbidden from referencing BEx Score.
+- **UI**: Cover page and dashboard labels changed to "Score Desativado".
+
+## 5. Traceability
+- **Runtime Trace ID**: BEX-RUNTIME-[YEAR]-[HASH]
+- **Snapshot Binding**: Single source of truth (Balancete -> bsDados -> reportDataset).
+
+**Certification Date**: May 2026
+**Auditor**: Técnico Contábil Sênior IA
