@@ -241,7 +241,7 @@ export interface BSDadosRow {
   divida_total: number;
   ebitda: number;
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
-  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates'>, FinancialFact['status']>;
+  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
   errors: string[];
@@ -252,7 +252,10 @@ export interface BSDadosRow {
   p1_facts?: Record<string, CertifiedFact>;
   /** MD-P1-001 — resultado dos integrity gates desta competência. */
   integrity_gates?: IntegrityGateResult[];
+  /** MD-FINAL-RESIDUAL-001 — tributos, trabalhistas, empréstimos, despesas financeiras, EBITDA. */
+  residual_facts?: ResidualFacts;
 }
+
 
 
 /** Rótulo humano para cada código de grupo (2 dígitos). */
