@@ -144,9 +144,31 @@
   background: hsl(220, 10%, 92%);
   padding: 40px 0;
   border-radius: 8px;
+  overflow-x: hidden; /* Evita scroll lateral no preview */
 }
 
-/* ── A4 Report Styles ── */
+/* ── PDF Global Print/Export Styles ── */
+@media screen {
+  .report-a4-page, .report-a4-cover {
+    box-shadow: 0 4px 20px hsla(0, 0%, 0%, 0.1);
+    margin-bottom: 40px !important;
+  }
+}
+
+.report-a4-page *, .report-a4-cover * {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+table {
+  table-layout: fixed;
+  width: 100% !important;
+}
+
+td, th {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 .report-a4-page {
   width: 210mm;
   height: 297mm;
