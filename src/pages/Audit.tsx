@@ -1564,58 +1564,14 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
 };
 
 /* ── Helper: compute indicators from parsed data (legacy OCR) ── */
-const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => {
-  if (!parsedData) return {};
-  const findValue = (rows: any[], keyword: string, year: string) => {
-    const row = rows.find(r => (r.conta || "").toLowerCase().includes(keyword) || (r.descricao || "").toLowerCase().includes(keyword));
-    return row?.values[year] || 0;
-  };
-
-  const result: Record<string, any> = {};
-  for (const year of parsedData.years) {
-    const allRows = [...parsedData.balanco, ...parsedData.dre];
-    const ac = Math.abs(findValue(allRows, "total do ativo circulante", year) || findValue(allRows, "ativo circulante", year));
-    const anc = Math.abs(findValue(allRows, "total do ativo não circulante", year) || findValue(allRows, "ativo nao circulante", year));
-    const pc = Math.abs(findValue(allRows, "total do passivo circulante", year) || findValue(allRows, "passivo circulante", year));
-    const pnc = Math.abs(findValue(allRows, "total do passivo não circulante", year) || findValue(allRows, "passivo nao circulante", year));
-    const pl = findValue(allRows, "total do patrimônio", year) || findValue(allRows, "patrimonio líquido", year) || findValue(allRows, "patrimônio líquido", year);
-    const estoque = Math.abs(findValue(allRows, "estoque", year));
-    const caixa = Math.abs(findValue(allRows, "caixa", year));
-    const receita = Math.abs(findValue(allRows, "receitas líquidas", year) || findValue(allRows, "receita líquida", year));
-    const lucro = findValue(allRows, "resultado do exercício", year) || findValue(allRows, "lucro líquido", year);
-    const resOp = findValue(allRows, "resultado operacional", year) || findValue(allRows, "lucro operacional bruto", year);
-    const despFin = Math.abs(findValue(allRows, "despesas financeiras", year));
-    const imob = Math.abs(findValue(allRows, "imobilizado", year));
-    const contasReceber = Math.abs(findValue(allRows, "contas a receber", year));
-    const fornecedores = Math.abs(findValue(allRows, "fornecedores", year));
-    const cmv = Math.abs(findValue(allRows, "cmv", year) || findValue(allRows, "total dos custos", year));
-    const at = ac + anc || 1;
-    const pt = pc + pnc || 1;
-
-    result[year] = {
-      liquidezCorrente: pc ? ac / pc : 0,
-      liquidezSeca: pc ? (ac - estoque) / pc : 0,
-      liquidezImediata: pc ? caixa / pc : 0,
-      liquidezGeral: pt ? (ac + anc) / pt : 0,
-      endividamentoTotal: at ? pt / at : 0,
-      composicaoEndividamento: pt ? pc / pt : 0,
-      imobilizacaoPL: Math.abs(pl) ? imob / Math.abs(pl) : 0,
-      coberturaJuros: despFin ? (resOp + despFin) / despFin : 0,
-      giroAtivo: at ? receita / at : 0,
-      pmr: receita ? (contasReceber * 360) / receita : 0,
-      pmp: cmv ? (fornecedores * 360) / cmv : 0,
-      idadeMediaEstoque: cmv ? (estoque * 360) / cmv : 0,
-      margemLiquida: receita ? lucro / receita : 0,
-      margemOperacional: receita ? resOp / receita : 0,
-      roa: at ? lucro / at : 0,
-      roe: Math.abs(pl) ? lucro / Math.abs(pl) : 0,
-      _ac: ac, _anc: anc, _pc: pc, _pnc: pnc, _pl: pl, _caixa: caixa,
-      _receita: receita, _lucro: lucro, _resOp: resOp, _despFin: despFin,
-      _imob: imob, _estoque: estoque, _fornecedores: fornecedores, _cmv: cmv,
-      _contasReceber: contasReceber,
-    };
-  }
-  return result;
+/**
+ * CANONICAL SSOT: Converte ParsedFinancialData para a série de indicadores canônicos.
+ * Camada de compatibilidade para relatórios que ainda operam sobre o parser direto.
+ */
+const computeIndicatorsFromParsed = (parsed: ParsedFinancialData | null) => {
+  if (!parsed) return {};
+  const rows = buildBSDados(parsed);
+  return computeIndicatorsFromBSRows(rows);
 };
 
 /* ── Helper: indicators from processed BS rows (SSOT) — delega à engine única ── */
