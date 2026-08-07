@@ -540,11 +540,12 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
   // Mas como o roteamento primário deles vai pra divida_* (não pra PNC), o bucket.pnc
   // só acumula os que não são componentes específicos de dívida.
   if (buckets) {
-    if (!buckets.sawACTotal && buckets.ac > 0) row.ativo_circulante = buckets.ac;
-    if (!buckets.sawANCTotal && buckets.anc > 0) row.ativo_nao_circulante = buckets.anc;
-    if (!buckets.sawPCTotal && buckets.pc > 0) row.passivo_circulante = buckets.pc;
-    if (!buckets.sawPNCTotal && buckets.pnc > 0) row.passivo_nao_circulante = buckets.pnc;
-    if (!buckets.sawPLTotal && buckets.pl !== 0) row.patrimonio_liquido = buckets.pl;
+    // REVISÃO SSOT: Prioriza GT-declarado sobre soma das folhas se GT presente
+    row.ativo_circulante = buckets.sawACTotal ? buckets.declared.ativo_circulante : buckets.ac;
+    row.ativo_nao_circulante = buckets.sawANCTotal ? buckets.declared.ativo_nao_circulante : buckets.anc;
+    row.passivo_circulante = buckets.sawPCTotal ? buckets.declared.passivo_circulante : buckets.pc;
+    row.passivo_nao_circulante = buckets.sawPNCTotal ? buckets.declared.passivo_nao_circulante : buckets.pnc;
+    row.patrimonio_liquido = buckets.sawPLTotal ? buckets.declared.patrimonio_liquido : buckets.pl;
   }
 
   // Se PC declarado > soma de componentes classificados, atribui o resíduo a outras_obrigacoes

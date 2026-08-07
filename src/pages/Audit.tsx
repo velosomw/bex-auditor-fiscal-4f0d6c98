@@ -2492,17 +2492,16 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const today = new Date().toLocaleDateString("pt-BR");
   
   const computedInd = computeIndicatorsFromParsed(parsedData || null);
-  const hasComputed = Object.keys(computedInd).length > 0;
-  const years = hasComputed ? Object.keys(computedInd).sort() : ["2021", "2022", "2023"];
-  const latestYear = years[years.length - 1];
-  const ind = hasComputed ? computedInd : state.financialAnalysis.indicators;
-  const d = hasComputed ? computedInd[latestYear] : state.config.entityData["2023"];
-
+  const activeYear = state.selectedYear || Object.keys(computedInd).sort().pop() || "2026-03";
+  const d = computedInd[activeYear] || {};
+  
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
   const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
   const activePend = aiAnalysis?.pendencias || pendencias;
 
-  const scoreColor = activeScore.score <= 30 ? "text-emerald-600" :
+  // Removido BEx Score conforme instrução de Hard Cutover
+  const hasBexScore = false; 
+  const scoreColor = "text-slate-400";
                      activeScore.score <= 60 ? "text-yellow-600" :
                      activeScore.score <= 80 ? "text-orange-600" : "text-red-600";
   const scoreBg = activeScore.score <= 30 ? "bg-emerald-500/10 border-emerald-500/30" :
