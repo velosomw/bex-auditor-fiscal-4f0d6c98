@@ -396,6 +396,12 @@ const UserDashboard = () => {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${kpi.bgClass}`}>
+                    <span className="mr-2 text-[10px] font-bold uppercase tracking-wider opacity-70">
+                      {kpi.label === "Total de Técnicas" ? "Auditorias" :
+                       kpi.label === "Concluídas" ? "Análises" :
+                       kpi.label === "Em Andamento" ? "Auditorias incompletas" :
+                       kpi.label === "Achados Totais" ? "Meses trabalhados" : ""}
+                    </span>
                     <kpi.icon className={`w-4 h-4 ${kpi.colorClass}`} />
                   </div>
                 </div>
