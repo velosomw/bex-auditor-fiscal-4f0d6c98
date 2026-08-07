@@ -2676,6 +2676,17 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,0", classification: latestInd.isg > 1.0 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
 
+  /* MD-CUTOVER-001 §9 — Narrative Number Gate: todo número da narrativa vem do snapshot. */
+  const canonicalKeyPoints: Array<{ item: string; detail: string; status: "positivo" | "atencao" | "negativo" }> = latestInd ? [
+    { item: "Liquidez Corrente", detail: `${fmtDec(latestInd.liquidezCorrente)} (AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)})`, status: latestInd.liquidezCorrente >= 1 ? "positivo" : "negativo" },
+    { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
+    { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
+    { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
+    { item: "Resultado do Período", detail: `R$ ${fmt(result)}`, status: result >= 0 ? "positivo" : "negativo" },
+    { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
+  ] : [];
+
+
   /* ── Kanitz computation for abbreviated section ── */
   const kanitzFindValue = (keyword: string, year: string) => {
     if (!parsedData) return 0;
