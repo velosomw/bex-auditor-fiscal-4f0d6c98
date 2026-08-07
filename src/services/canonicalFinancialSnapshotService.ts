@@ -199,7 +199,10 @@ export function buildCertifiedFinancialSnapshot(
   const critical: (keyof CanonicalFacts)[] = [
     "ativo_circulante", "passivo_circulante", "patrimonio_liquido",
   ];
-  const failed = critical.some(k => !Number.isFinite(num(latest.facts[k])));
+  const latestRow = rows.find(r => r.mesKey === latestKey);
+  const gateFailures = (latestRow?.integrity_gates || []).filter(g => !g.passed);
+  const failed = critical.some(k => !Number.isFinite(num(latest.facts[k]))) || gateFailures.length > 0;
+
 
   const snapshot: CertifiedFinancialSnapshot = {
     snapshot_id: `SNAP-${traceId}`,
