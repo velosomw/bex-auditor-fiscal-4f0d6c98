@@ -21,8 +21,10 @@ const fadeUp = {
 const Index = () => {
   useEffect(() => {
     // Enterprise Gemini Accounting Interpretation Engine (MD-001) Active
-    console.log("BEx Cognitive Foundation: Gemini Interpretation Engine 1.0 Active");
+    // Enterprise Business Facts & Canonical Model (MD-001) Active
+    console.log("BEx Cognitive Foundation: Knowledge Engine 1.0 Active");
   }, []);
+
 
   return (
 
