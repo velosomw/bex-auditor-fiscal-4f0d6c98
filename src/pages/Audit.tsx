@@ -2567,7 +2567,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       runtime_trace_id: traceId,
       canonical_snapshot_id: `SNAP-${traceId}`,
       competency: latestYear,
-      company_id: company.id,
+      company_id: company.id || "manual",
       generated_at: new Date().toISOString(),
       facts: {
         ativo_circulante: latestRow.ativo_circulante || 0,
@@ -2584,7 +2584,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       history: computed,
       kanitz: null,
       narratives: {},
-      limitations: latestRow.errors,
+      limitations: latestRow.errors || [],
     };
   }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
 
