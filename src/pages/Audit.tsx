@@ -3046,7 +3046,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 <div className="h-[260px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={years.map(y => {
-                      const yInd = ind[y];
+                      const yInd = computedInd[y];
                       const receita = Math.abs(yInd?._rl || yInd?.receitaLiquida || 0) / 1000;
                       const cmv = Math.abs(yInd?._cpv || yInd?.custosProdutos || 0);
                       const despOp = Math.abs(yInd?._despOp || yInd?.despesasOperacionais || 0);
