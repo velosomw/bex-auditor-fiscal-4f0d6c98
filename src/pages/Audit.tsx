@@ -2040,21 +2040,11 @@ const TabPatrimonial = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; 
 
 /* ── Tab 5: Risco de Recuperação Judicial ── */
 const TabRiscoRJ = ({ aiAnalysis }: { aiAnalysis?: any }) => {
-  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
-  const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
-  const activePend = aiAnalysis?.pendencias || pendencias;
+  const scoreVal = activeScore.score;
+  const computedScoreColor = scoreVal <= 30 ? "text-emerald-500" :
+                             scoreVal <= 60 ? "text-yellow-500" :
+                             scoreVal <= 80 ? "text-orange-500" : "text-red-500";
 
-  const hasBexScore = false; 
-  const scoreColor = "text-slate-400";
-  const scoreBg = "bg-slate-100 border-slate-200";
-  const scoreLabel = "Score Desativado";
-  const riskIcon = "📋";
-  const caixa = d?.disponivel || 0;
-  const dividaOnerosa = emprestimos;
-
-  const scoreColor = activeScore.score <= 30 ? "text-emerald-500" :
-                     activeScore.score <= 60 ? "text-yellow-500" :
-                     activeScore.score <= 80 ? "text-orange-500" : "text-red-500";
 
   return (
     <div className="space-y-4">
