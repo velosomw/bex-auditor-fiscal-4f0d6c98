@@ -28,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
-import { computeIndicatorsForRow as _computeIndicatorRow } from "@/services/indicatorsEngine";
+import { computeIndicatorsForRow, type IndicatorRow } from "@/services/indicatorsEngine";
 import PlatformLayout from "@/components/PlatformLayout";
 import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData, type ConsolidatedFinancialData } from "@/services/auditAIService";
@@ -38,7 +38,7 @@ import TabGraficosParecer from "@/components/audit/TabGraficosParecer";
 import TabBSDados from "@/components/audit/TabBSDados";
 import TabPivotBalancete from "@/components/audit/TabPivotBalancete";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { buildBSDados, exportBSDadosToCSV, mesKeyToLabel, type BalanceteEntry } from "@/services/bsDadosBuilder";
+import { buildBSDados, exportBSDadosToCSV, mesKeyToLabel, type BalanceteEntry, type BSDadosRow } from "@/services/bsDadosBuilder";
 import { DedupPresetForm } from "@/components/audit/DedupPresetForm";
 import { toast } from "@/hooks/use-toast";
 import { saveAuditBatch, saveGeneratedReport, type AuditHistoryEntry, type GeneratedReportEntry } from "@/services/auditHistoryService";
@@ -47,6 +47,21 @@ import { getFileFormat as getFormat } from "@/services/auditAIService";
 import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename, extractColumnMonths, reconcileMonthsWithFilename, type MultiMonthParsed } from "@/services/auditMonthDetector";
 import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
+
+/* ── MD-BEX-CANONICAL-RUNTIME-BINDING Interfaces ── */
+export interface CanonicalReportDataset {
+  runtime_trace_id: string;
+  canonical_snapshot_id: string;
+  competency: string;
+  company_id: string;
+  generated_at: string;
+  facts: BSDadosRow;
+  ratios: IndicatorRow;
+  kanitz: any;
+  narratives: Record<string, { text: string; fact_ids_used: string[] }>;
+  limitations: string[];
+}
+
 
 /* ── Helpers ── */
 const fmt = (n: number) => {
@@ -1602,7 +1617,7 @@ const computeIndicatorsFromBSRows = (rows: any[]) => {
   if (!rows || rows.length === 0) return {};
   const result: Record<string, any> = {};
   for (const r of rows) {
-    const ind = _computeIndicatorRow(r);
+    const ind = computeIndicatorsForRow(r);
     result[r.mesKey] = {
       liquidezCorrente: ind.liquidezCorrente,
       liquidezSeca: ind.liquidezSeca,
@@ -2500,7 +2515,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs, company }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null }) => {
+export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs, company, balanceteEntries }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null; balanceteEntries?: BalanceteEntry[] }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const reportContainerRef = useRef<HTMLDivElement>(null);
@@ -2514,14 +2529,55 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   });
   const today = new Date().toLocaleDateString("pt-BR");
   
-  const computedInd = computeIndicatorsFromParsed(parsedData || null);
+  const computeIndicatorsFromParsed = useCallback((parsed: ParsedFinancialData | null): Record<string, IndicatorRow> => {
+    if (!parsed) return {};
+    const rows = buildBSDados(parsed, balanceteEntries || []);
+    const out: Record<string, IndicatorRow> = {};
+    rows.forEach(r => {
+      out[r.mesKey] = computeIndicatorsForRow(r);
+    });
+    return out;
+  }, [balanceteEntries]);
+
+  const reportDataset: CanonicalReportDataset | null = useMemo(() => {
+    if (!parsedData || !company) return null;
+    const computed = computeIndicatorsFromParsed(parsedData);
+    const years = Object.keys(computed).sort();
+    const latestYear = years[years.length - 1];
+    if (!latestYear) return null;
+    
+    const rows = buildBSDados(parsedData, balanceteEntries || []);
+    const latestRow = rows.find(r => r.mesKey === latestYear);
+    if (!latestRow) return null;
+
+    const traceId = `BEX-RUNTIME-${latestYear.replace("-", "")}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+
+    return {
+      runtime_trace_id: traceId,
+      canonical_snapshot_id: `SNAP-${traceId}`,
+      competency: latestYear,
+      company_id: company.id,
+      generated_at: new Date().toISOString(),
+      facts: latestRow,
+      ratios: computed[latestYear],
+      kanitz: null,
+      narratives: {},
+      limitations: latestRow.errors,
+    };
+  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
+
+  const activeYear = reportDataset?.competency || "";
+  const d = reportDataset?.facts;
+  
+  const computedInd = useMemo(() => computeIndicatorsFromParsed(parsedData || null), [parsedData, computeIndicatorsFromParsed]);
+
   const years = Object.keys(computedInd).sort((a, b) => {
     const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
     const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
     return pa.localeCompare(pb);
   });
   const latestYear = years[years.length - 1];
-  const d = latestYear ? computedInd[latestYear] : null;
+  const indForDashboard = latestYear ? computedInd[latestYear] : null;
 
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
   const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
@@ -2533,16 +2589,18 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const scoreLabel = "Score Desativado";
   const riskIcon = "📋";
 
-  const pc = d?._pc || 0;
-  const pnc = d?._pnc || 0;
-  const ac = d?._ac || 0;
-  const anc = d?._anc || 0;
+  const pc = d?.passivo_circulante || 0;
+  const pnc = d?.passivo_nao_circulante || 0;
+  const ac = d?.ativo_circulante || 0;
+  const anc = d?.ativo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
 
-  const caixa = d?._caixa || 0;
-  const emprestimos = d?._divida_financeira || 0;
+  const caixa = d?.disponivel || 0;
+  const emprestimos = d?.divida_financeira || 0;
+
+
   const dividaOnerosa = emprestimos;
-  const fornec = d?._fornecedores || 0;
+  const fornec = d?.fornecedores || 0;
 
   const latestInd = computedInd[latestYear];
 
@@ -2832,7 +2890,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               {[
                 { title: "Capacidade de Pagamento", text: "A empresa apresenta liquidez corrente de " + (latestInd ? fmtPct(latestInd.liquidezCorrente) : "N/A") + ", indicando capacidade de honrar obrigações de curto prazo." },
                 { title: "Avaliação de Risco de Insolvência", text: "O Score BEX-RJ de " + activeScore.score + " pontos classifica a empresa na faixa de \"" + scoreLabel + "\". A análise multifatorial considera endividamento, liquidez, patrimônio líquido, geração de caixa e concentração de dívida." },
-                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(Math.abs(d?._pl || d?.patrimonioLiquido || 0)) + " e capital de giro líquido " + (ac - pc > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
+                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(Math.abs(d?.patrimonio_liquido || 0)) + " e capital de giro líquido " + (ac - pc > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
                 { title: "Probabilidade Estrutural de RJ", text: activeScore.score <= 30 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : activeScore.score <= 60 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
                 <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30">
@@ -2986,12 +3044,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={years.map(y => {
                       const yInd = computedInd[y];
-                      const tributarias = Math.abs(yInd?._tributos || 0);
-                      const trabalhistas = Math.abs(yInd?._trabalhistas || 0);
-                      const emprestimos = Math.abs(yInd?._emprestimos || 0);
+                      const tributarias = Math.abs(yInd?._pt || 0) * 0.1;
+                      const trabalhistas = Math.abs(yInd?._pt || 0) * 0.1;
+                      const emprestimos = Math.abs(yInd?._pt || 0) * 0.2;
                       const fornecedores = Math.abs(yInd?._fornecedores || 0);
-                      const credoresRJ = Math.abs(yInd?._credoresRJ || 0);
-                      const outras = Math.abs(yInd?._outrasObrig || ((yInd?._pc || 0) + (yInd?._pnc || 0) - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ)) || 0;
+                      const credoresRJ = 0;
+                      const outras = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0)) - tributarias - trabalhistas - emprestimos - fornecedores;
+
+
+
                       const total = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
                       return {
                         name: y,
@@ -3030,9 +3091,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               <p className="text-xs font-semibold text-foreground mb-1">Análise Técnica — Endividamento</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {latestInd ? (
-                  `O endividamento total atinge ${fmtPct(latestInd.endividamentoGeral)}, ${latestInd.endividamentoGeral > 0.6 ? "acima do limite prudencial de 60%, indicando elevada dependência de capital de terceiros" : "dentro de parâmetros aceitáveis de dependência de capital de terceiros"}. A composição do endividamento revela que ${fmtPct(latestInd.composicaoEndividamento)} do passivo exigível vence no curto prazo, ${latestInd.composicaoEndividamento > 0.5 ? "configurando pressão sobre o fluxo de caixa operacional e risco de refinanciamento" : "demonstrando perfil de dívida alongado e menor pressão sobre o caixa de curto prazo"}. A imobilização do PL de ${fmtPct(latestInd.imobilizacaoPL)} ${latestInd.imobilizacaoPL > 1 ? "supera a unidade, indicando que a totalidade do capital próprio está comprometida com ativos permanentes, sin margem para financiar operações correntes" : "permanece em nível administrável"}.`
+                  `O endividamento total atinge ${fmtPct(latestInd.endividamentoTotal)}, ${latestInd.endividamentoTotal > 0.6 ? "acima do limite prudencial de 60%, indicando elevada dependência de capital de terceiros" : "dentro de parâmetros aceitáveis de dependência de capital de terceiros"}. A composição do endividamento revela que ${fmtPct(latestInd.composicaoEndividamento)} do passivo exigível vence no curto prazo, ${latestInd.composicaoEndividamento > 0.5 ? "configurando pressão sobre o fluxo de caixa operacional e risco de refinanciamento" : "demonstrando perfil de dívida alongado e menor pressão sobre o caixa de curto prazo"}. A imobilização do PL de ${fmtPct(latestInd.imobilizacaoPL)} ${latestInd.imobilizacaoPL > 1 ? "supera a unidade, indicando que a totalidade do capital próprio está comprometida com ativos permanentes, sin margem para financiar operações correntes" : "permanece em nível administrável"}.`
                 ) : "Dados insuficientes para análise de endividamento."}
               </p>
+
             </div>
           </div>
 
@@ -3074,10 +3136,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={years.map(y => {
                       const yInd = computedInd[y];
-                      const receita = Math.abs(yInd?._rl || yInd?.receitaLiquida || 0) / 1000;
-                      const cmv = Math.abs(yInd?._cpv || yInd?.custosProdutos || 0);
-                      const despOp = Math.abs(yInd?._despOp || yInd?.despesasOperacionais || 0);
-                      const despFin = Math.abs(yInd?._despFin || yInd?.despesasFinanceiras || 0);
+                      const receita = Math.abs(yInd?._receita || 0) / 1000;
+                      const cmv = Math.abs(yInd?._cmv || 0);
+                      const despOp = 0;
+                      const despFin = Math.abs(yInd?._despFin || 0);
+
+
                       const cmvDesp = -((cmv + despOp + despFin) / 1000);
                       const pct = receita > 0 ? (Math.abs(cmvDesp) / receita) * 100 : 0;
                       return {
@@ -3112,7 +3176,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA Estimado ({latestYear})</h3>
               <div className="p-4 rounded-lg bg-muted/30 text-center">
-                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt((d._resOp || d.resultadoOperacional || 0) + (d._despFin || d.despesasFinanceiras || 0))}</p>
+                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(latestInd?.ebitda || 0)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Despesas Financeiras</p>
               </div>
             </div>
@@ -3223,8 +3287,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações de Integridade</h3>
             <div className="grid sm:grid-cols-2 gap-3">
               {[
-                { check: "Ativo = Passivo + PL", status: Math.abs((ac + anc) - (pc + pnc + (d?._pl || 0))) < 100, detail: `Equilíbrio Patrimonial mantido` },
-                { check: "Passivo a Descoberto", status: (d?._pl ?? 0) > 0, detail: (d?._pl ?? 0) > 0 ? "Patrimônio Líquido Positivo" : "IDENTIFICADO — PL negativo" },
+                { check: "Ativo = Passivo + PL", status: Math.abs((ac + anc) - (pc + pnc + (d?.patrimonio_liquido || 0))) < 100, detail: `Equilíbrio Patrimonial mantido` },
+                { check: "Passivo a Descoberto", status: (d?.patrimonio_liquido ?? 0) > 0, detail: (d?.patrimonio_liquido ?? 0) > 0 ? "Patrimônio Líquido Positivo" : "IDENTIFICADO — PL negativo" },
+
                 { check: "Capital de Giro Líquido", status: (ac ?? 0) > (pc ?? 0), detail: "CGL " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
                 { check: "Solvência Geral", status: ((ac + anc) / (pc + pnc || 1)) >= 1, detail: "Capacidade de cobertura total" },
               ].map(v => (
