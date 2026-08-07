@@ -491,6 +491,10 @@ function resolveDotDRERef(ref: string): string | null {
 
 /** Resolve a chave canônica de uma linha pelo Ref 1; cai para regex se ausente. */
 function resolveKey(row: RowLike): keyof BSDadosRow | null {
+  // MD-BEX-MULTI-BALANCETE: Priority 0 — P1 Authority (Direct Mapping)
+  const p1Key = isSyntheticAuthority(row.conta || "", row.descricao || "");
+  if (p1Key) return p1Key;
+
   let ref1 = row.ref1 ?? inferRefByCode(row.conta || "", row.descricao || "");
   // FIX (A): sentinel para raízes DRE bare ("3".."8") — descarta a linha
   // antes do fallback por descrição (impede dupla contagem na receita_liquida).
