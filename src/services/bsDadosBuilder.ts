@@ -133,8 +133,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
 
 // Padrões regex usados quando o balancete extraído não traz "Ref 1" explícito.
 // ORDEM IMPORTA: resolveKey retorna no primeiro match — patterns mais específicos primeiro.
-const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
-  mes: null, mesKey: null,
+const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp | null>> = {
   // DRE — mais específicos primeiro
   despesas_financeiras: /\b(?:despesas?\s+financeir|juros\s+(?:passivo|pagos?|sobre)|encargos\s+financeir|varia[cç][oõ]es\s+monet[aá]rias?\s+passiv)/i,
   receitas_financeiras: /\b(?:receitas?\s+financeir|juros\s+(?:ativo|recebidos?|aufer)|rendimentos?\s+de\s+aplica)/i,
@@ -144,7 +143,7 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   receita_liquida: /\breceita.*l[ií]quid|venda.*l[ií]quid\b/i,
   resultado: /\b(?:lucro|preju[ií]zo|resultado)\s+(?:l[ií]quid|do\s+exerc|do\s+per[ií]odo)/i,
   despesas: /\bdespesa|gasto\s+oper/i,
-  // BALANÇO — Ativos: NC antes de C (mais específico) e leaves antes de totais
+  // BALANÇO — Ativos
   estoques: /\bestoqu/i,
   disponivel: /\b(?:caixa|disponibilidade|disponivel|bancos?|aplica[cç][aã]o\s+financ|equivalente)/i,
   contas_receber: /\b(?:contas?\s+a\s+receber|duplicatas?\s+a\s+receber|clientes)\b/i,
@@ -163,10 +162,6 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   passivo_nao_circulante: /\bpassivo\s+n[aã]o[\s-]?circulante|exig[ií]vel\s+a?\s*longo\s+prazo\b/i,
   passivo_circulante: /\bpassivo\s+circulante\b/i,
   patrimonio_liquido: /\b(?:patrim[oô]nio\s+l[ií]quido|capital\s+social|lucros?\s+acumulad|preju[ií]zos?\s+acumulad|reservas?\s+de\s+(?:capital|lucros?))\b/i,
-  divida_total: null, ebitda: null,
-  outras_obrigacoes: null,
-  outras_nao_operacionais: null,
-  hasReceita: null, hasBalanco: null, errors: null, grupos: null,
 };
 
 
