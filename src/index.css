@@ -250,9 +250,21 @@ tr {
 .report-page-body {
   flex: 1;
   margin: 0 16mm;
-  padding: 4mm 0 18mm 0; /* Padding inferior reserva espaço para o footer */
+  /* Footer Safe Zone (MD §57..§59): 18mm do footer + 6mm de folga — nenhum bloco
+     de conteúdo pode terminar sob a barra de rodapé. */
+  padding: 4mm 0 24mm 0;
   position: relative;
   overflow: hidden;
+}
+
+/* §59 — Content Overflow Gate: cartões e blocos editoriais nunca são cortados
+   ao meio; quando não couberem, migram inteiros para a página seguinte. */
+.report-page-body .card,
+.report-page-body [data-report-card],
+.report-page-body section,
+.report-page-body table {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .report-page-body::before {
