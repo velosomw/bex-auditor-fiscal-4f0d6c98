@@ -3812,43 +3812,39 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
       return pa.localeCompare(pb);
     });
+    const computed = computeIndicatorsFromParsed(parsedData);
     for (const year of years) {
-      const ac = Math.abs(findValue("total do ativo circulante", year) || findValue("ativo circulante", year));
-      const anc = Math.abs(findValue("total do ativo não circulante", year) || findValue("ativo nao circulante", year) || findValue("ativo não circulante", year));
-      const pc = Math.abs(findValue("total do passivo circulante", year) || findValue("passivo circulante", year));
-      const pnc = Math.abs(
-        findValue("total do passivo não circulante", year) ||
-        findValue("total do passivo nao circulante", year) ||
-        findValue("passivo nao circulante", year) ||
-        findValue("passivo não circulante", year) ||
-        findValue("exigível a longo prazo", year) ||
-        findValue("exigivel a longo prazo", year)
-      );
-      // PL e LL preservam sinal — essenciais para detectar PL negativo
-      const pl = findValue("total do patrimônio", year) || findValue("patrimonio líquido", year) || findValue("patrimônio líquido", year);
-      const ll = findValue("resultado do exercício", year) || findValue("lucro líquido", year);
-      const estoque = Math.abs(findValue("estoque", year));
-      const rlp = Math.abs(findValue("realizável a longo prazo", year) || findValue("realizavel a longo prazo", year));
-      const rl = Math.abs(findValue("receita líquida", year) || findValue("receita", year));
-      const cpv = Math.abs(findValue("custo dos produtos", year) || findValue("custo", year));
-      const fornecedores = Math.abs(findValue("fornecedores", year));
-      const despFin = Math.abs(findValue("despesas financeiras", year) || findValue("resultado financeiro", year));
-      const lajir = Math.abs(findValue("lajir", year) || findValue("resultado operacional", year));
-      const caixa = Math.abs(findValue("caixa", year));
+      const ind = computed[year];
+      if (!ind) continue;
+
+      const kAplic = ind._pl > 0;
+      const rpl = kAplic ? ind.roe / 12 : 0;
+      const lg = ind.liquidezGeral;
+      const ls = ind.liquidezSeca;
+      const lc = ind.liquidezCorrente;
+      const ge = kAplic ? ind.grauEndividamentoPL : 0;
+      const fi = kAplic ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge) : 0;
+      const isg = ind._at / (ind._pc + ind._pnc || 1);
+      const classificacao: KanitzRow["classificacao"] = !kAplic ? "na"
+        : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
+
+      const ac = ind._ac;
+      const anc = ind._anc;
+      const pc = ind._pc;
+      const pnc = ind._pnc;
+      const pl = ind._pl;
+      const ll = ind._resultado;
+      const estoque = ind._estoque;
+      const rlp = 0; // Fallback para RLP se necessário
+      const rl = ind._receita;
+      const cpv = ind._cmv;
+      const fornecedores = ind._fornecedores;
+      const despFin = ind._despFin;
+      const lajir = ind._resultado + ind._despFin;
+      const caixa = ind._caixa;
       const pt = pc + pnc;
       const at = ac + anc;
-
-      const kanitzAplicavel = pl > 0;
-      const rpl = kanitzAplicavel ? ll / pl : 0;
-      const lg = pt !== 0 ? (ac + rlp) / pt : 0;
-      const ls = pc !== 0 ? (ac - estoque) / pc : 0;
-      const lc = pc !== 0 ? ac / pc : 0;
-      const ge = kanitzAplicavel ? pt / pl : 0;
-      const fi = (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge);
-      const isg = pt !== 0 ? at / pt : 0;
-
-      const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
-        : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
+      const ebitda = ind.ebitda || 0;
 
       kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin, lajir, caixa, kanitzAplicavel, ebitda: 0 });
     }
