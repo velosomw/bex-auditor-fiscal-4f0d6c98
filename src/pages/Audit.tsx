@@ -2518,7 +2518,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const anc = d?._anc || 0;
   const ptotal = pc + pnc || 1;
 
+  const caixa = d?._caixa || 0;
+  const emprestimos = d?._divida_financeira || 0;
+  const dividaOnerosa = emprestimos;
+  const fornec = d?._fornecedores || 0;
+
   const latestInd = computedInd[latestYear];
+
   const solvencyIndicators = latestInd ? [
     { name: "Liquidez Corrente", result: fmtPct(latestInd.liquidezCorrente), param: "> 1,5", classification: (latestInd.liquidezCorrente ?? 0) > 1.5 ? "Adequada" : (latestInd.liquidezCorrente ?? 0) > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
     { name: "Liquidez Seca", result: fmtPct(latestInd.liquidezSeca), param: "> 1,0", classification: (latestInd.liquidezSeca ?? 0) > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
