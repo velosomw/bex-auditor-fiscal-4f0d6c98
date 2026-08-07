@@ -2571,6 +2571,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       },
       ratios: computed[latestYear],
       history: computed,
+      kanitz: null,
+      narratives: {},
+      limitations: latestRow.errors,
     };
   }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
 
