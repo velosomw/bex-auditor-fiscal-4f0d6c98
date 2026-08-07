@@ -2967,18 +2967,21 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 <TableBody>
                   {activePend
                     .filter((p: any) => {
-                      // Filter out platform-error-based pendencies
-                      const prob = (p.problema || "").toLowerCase();
-                      const impact = (p.impacto || "").toLowerCase();
-                      const isInternalError = 
-                        prob.includes("reportada como 0") || 
-                        prob.includes("reportado como zero") ||
-                        impact.includes("fatores determinísticos") ||
-                        prob.includes("não capturado") ||
-                        (prob.includes("receita líquida") && prob.includes("zero")) ||
-                        (prob.includes("estoque") && prob.includes("zero"));
+                      /* MD-CUTOVER-001 §10–§13 — pendência só é válida se o fato realmente não existir no snapshot. */
+                      const txt = `${p.problema || ""} ${p.impacto || ""} ${p.conta || ""}`.toLowerCase();
+                      const factAvailable = (v?: number) => typeof v === "number" && Number.isFinite(v) && v !== 0;
+                      const isInternalError =
+                        txt.includes("fatores determinísticos") ||
+                        txt.includes("reportada como 0") ||
+                        txt.includes("reportado como zero") ||
+                        txt.includes("não capturado") ||
+                        (txt.includes("receita") && factAvailable(d?.receita_liquida)) ||
+                        (txt.includes("estoque") && factAvailable(d?.estoques)) ||
+                        (txt.includes("patrimônio") && factAvailable(d?.patrimonio_liquido)) ||
+                        (txt.includes("fornecedor") && factAvailable(d?.fornecedores));
                       return !isInternalError;
                     })
+
                     .map((p: any, i: number) => (
                       <TableRow key={p.id}>
                         <TableCell className="text-[10px] font-mono px-1">{i + 1}</TableCell>
