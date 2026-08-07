@@ -2694,8 +2694,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     const comp = aiK.componentes || {};
     const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
     const fi = aiK.fatorInsolvencia || 0;
-    const pl = aiStruct.patrimonio_liquido || 0;
-    const kAplic = pl > 0;
+    const plVal = aiStruct.patrimonio_liquido || 0;
+    const kAplic = plVal > 0;
     const isgValue = (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0) / ((aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0) || 1);
     
     const classificacao: any = !kAplic ? "na" :
@@ -2703,7 +2703,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     kanitzResults.push({
       year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
       fi, classificacao, ac: aiStruct.ativo_circulante || 0, anc: aiStruct.ativo_nao_circulante || 0,
-      pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: aiStruct.patrimonio_liquido || 0,
+      pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: plVal,
       estoque: aiStruct.estoques || 0, rlp: 0, pt: (aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0),
       ll: aiStruct.lucro_liquido || 0, at: (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0), rl: aiStruct.receita_liquida || 0,
       ebitda: 0, lajir: 0, despFin: 0, kanitzAplicavel: kAplic, isg: isgValue
