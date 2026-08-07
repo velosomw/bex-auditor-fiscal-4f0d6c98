@@ -3429,7 +3429,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">
-                A empresa apresenta Fator de Insolvência de {(latestKanitz.fi ?? 0).toFixed(2)}, classificando-se como {kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. {(latestKanitz.fi ?? 0) > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : (latestKanitz.fi ?? 0) > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}
+                {!latestKanitz.kanitzAplicavel ? (
+                  `O modelo Kanitz não é aplicável para o período selecionado, pois o Patrimônio Líquido (R$ ${fmt(latestKanitz.pl)}) é nulo ou negativo. Nestes casos, o indicador FI perde a validade estatística. Recomenda-se a análise via Solvência Total (ISG: ${latestKanitz.isg.toFixed(2)}).`
+                ) : (
+                  `A empresa apresenta Fator de Insolvência de ${(latestKanitz.fi ?? 0).toFixed(2)}, classificando-se como ${kanitzClassColors[latestKanitz.classificacao]?.label?.toUpperCase()} segundo o modelo Kanitz. ${(latestKanitz.fi ?? 0) > 0 ? "Os indicadores de liquidez e rentabilidade demonstram solidez financeira e capacidade plena de honrar obrigações." : (latestKanitz.fi ?? 0) > -3 ? "Os indicadores financeiros demonstram fragilidades que requerem monitoramento contínuo e medidas preventivas." : "A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005."}`
+                )}
               </p>
             </div>
             <div className="grid sm:grid-cols-3 gap-3">
