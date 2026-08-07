@@ -163,7 +163,7 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   passivo_nao_circulante: /\bpassivo\s+n[aã]o[\s-]?circulante|exig[ií]vel\s+a?\s*longo\s+prazo\b/i,
   passivo_circulante: /\bpassivo\s+circulante\b/i,
   patrimonio_liquido: /\b(?:patrim[oô]nio\s+l[ií]quido|capital\s+social|lucros?\s+acumulad|preju[ií]zos?\s+acumulad|reservas?\s+de\s+(?:capital|lucros?))\b/i,
-  divida_total: null,
+  divida_total: null, ebitda: null,
   outras_obrigacoes: null,
   outras_nao_operacionais: null,
   hasReceita: null, hasBalanco: null, errors: null, grupos: null,
