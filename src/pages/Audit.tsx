@@ -2058,8 +2058,8 @@ const TabRiscoRJ = ({ aiAnalysis }: { aiAnalysis?: any }) => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center py-6">
-              <p className={`text-6xl font-bold ${scoreColor}`}>{activeScore.score}</p>
-              <p className={`text-lg font-semibold mt-2 ${scoreColor}`}>{activeScore.classificacao}</p>
+              <p className={`text-6xl font-bold ${computedScoreColor}`}>{activeScore.score}</p>
+              <p className={`text-lg font-semibold mt-2 ${computedScoreColor}`}>{activeScore.classificacao}</p>
               <p className="text-xs text-muted-foreground mt-1">de 100 pontos</p>
             </div>
             <div className="space-y-2">
