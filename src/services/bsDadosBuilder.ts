@@ -547,7 +547,12 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     row.fornecedores + row.credores_rj + row.outras_obrigacoes;
   // Resultado derivado da DRE (determinístico) — cmv/despesas/despesas_financeiras já vêm negativos.
   // Evita dupla contagem com contas de PL no balanço (Capital, Lucros Acumulados).
-  row.resultado = row.receita_liquida + row.cmv + row.despesas + row.despesas_financeiras;
+  row.resultado = row.receita_liquida + row.cmv + row.despesas + row.despesas_financeiras + row.receitas_financeiras + row.outras_nao_operacionais;
+  // EBITDA Certificado v1.0 (MD-001): LAJIR + Depreciação + Amortização.
+  // Somente se todos os componentes estiverem presentes (evita inferência).
+  const hasEbitdaComponents = row.receita_liquida !== 0 && (row.depreciacao !== 0 || row.amortizacao !== 0);
+  row.ebitda = hasEbitdaComponents ? (row.resultado + Math.abs(row.despesas_financeiras) - Math.abs(row.receitas_financeiras)) + Math.abs(row.depreciacao) + Math.abs(row.amortizacao) : 0;
+
   row.hasReceita = row.receita_liquida > 0;
   row.hasBalanco = row.ativo_circulante > 0 || row.passivo_circulante > 0 || row.divida_total > 0;
   // Validações
@@ -945,7 +950,7 @@ export function buildIndicatorMemory(r: BSDadosRow): IndicatorMemory[] {
 // ─── EXPORT XLSX (CSV simples — sem dependência) ─────────
 export function exportBSDadosToCSV(rows: BSDadosRow[]): string {
   const headers = [
-    "Mês","Receita Líquida","CMV","Despesas","Resultado",
+    "Mês","Receita Líquida","CMV","Despesas","Resultado","EBITDA",
     "Ativo Circulante","Passivo Circulante","Estoques","Disponível",
     "Dívida Tributária","Dívida Trabalhista","Dívida Financeira",
     "Fornecedores","Credores RJ","Dívida Total",
@@ -954,7 +959,7 @@ export function exportBSDadosToCSV(rows: BSDadosRow[]): string {
   for (const r of rows) {
     lines.push([
       r.mes,
-      r.receita_liquida, r.cmv, r.despesas, r.resultado,
+      r.receita_liquida, r.cmv, r.despesas, r.resultado, r.ebitda,
       r.ativo_circulante, r.passivo_circulante, r.estoques, r.disponivel,
       r.divida_tributaria, r.divida_trabalhista, r.divida_financeira,
       r.fornecedores, r.credores_rj, r.divida_total,
