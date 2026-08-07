@@ -2618,7 +2618,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const latestInd = reportDataset?.ratios;
   const emprestimos = latestInd?._dividaFinanceira || 0;
-  const caixa = d?.disponivel || 0;
+  const caixa = (reportDataset?.facts as any)?.disponivel || 0;
   const dividaOnerosa = emprestimos;
 
   const pc = d?.passivo_circulante || 0;
@@ -2642,7 +2642,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
     { name: "Cobertura de Juros", result: `${latestInd.coberturaJuros.toFixed(2)}x`, param: "> 3,0x", classification: latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: (ac - pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
-    { name: "Solvência Total (ISG)", result: fmtDec(at / (pt || 1)), param: "> 1,0", classification: (at / (pt || 1)) > 1 ? "Solvente" : "Insolvente", comment: `AT / PT` },
+    { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,2", classification: latestInd.isg > 1.2 ? "Solvente" : "Atenção", comment: `AT / PT` },
   ] : [];
 
   /* ── Kanitz computation for abbreviated section ── */
