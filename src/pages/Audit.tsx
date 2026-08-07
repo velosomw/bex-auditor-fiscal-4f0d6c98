@@ -3423,7 +3423,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               </span>
             </div>
             <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
-              <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">Empresa Analisada S.A.</p></div>
+              <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">{company?.name || "Não identificada no balancete"}</p></div>
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p><p className="font-semibold text-foreground">{kanitzResults.map(r => r.year).join(" / ")}</p></div>
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Emissão</p><p className="font-semibold text-foreground">{today}</p></div>
             </div>
@@ -3437,7 +3437,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               <div className="pt-2 mt-2 border-t border-dashed border-border/50">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Metadados do Upload (Rastreabilidade)</p>
                 <div className="grid grid-cols-1 gap-1 text-[10px]">
-                  <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "N/A"}</p>
+                  <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {snap?.source_file_name || (uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "Não identificado no balancete")}</p>
                   <p className="text-muted-foreground"><span className="font-medium text-foreground">Processamento:</span> {today}</p>
                   <p className="text-muted-foreground"><span className="font-medium text-foreground">Intervalo Analisado:</span> {kanitzResults.map(r => r.year).join(" / ")}</p>
                 </div>
@@ -3876,7 +3876,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p>
-              <p className="font-semibold text-foreground">{company?.name || "Empresa Analisada S.A."}</p>
+              <p className="font-semibold text-foreground">{company?.name || "Não identificada no balancete"}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p>
@@ -3896,7 +3896,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <div className="pt-2 mt-2 border-t border-dashed border-border/50">
               <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold mb-1">Metadados do Upload (Rastreabilidade)</p>
               <div className="grid grid-cols-1 gap-1 text-[10px]">
-                <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "N/A"}</p>
+                <p className="text-muted-foreground"><span className="font-medium text-foreground">Arquivo:</span> {snap?.source_file_name || (uploadedFiles && uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(", ") : sourceDocs && sourceDocs.length > 0 ? sourceDocs.map(d => d.fileName).join(", ") : "Não identificado no balancete")}</p>
                 <p className="text-muted-foreground"><span className="font-medium text-foreground">Processamento:</span> {today}</p>
                 <p className="text-muted-foreground"><span className="font-medium text-foreground">Intervalo Analisado:</span> {kanitzResults.map(r => r.year).join(" / ")}</p>
               </div>
@@ -4392,9 +4392,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   return (
                     <TableRow key={sim.cenario}>
                       <TableCell className="text-xs font-medium">{sim.cenario}</TableCell>
-                      <TableCell className="text-right text-xs font-mono">{(l.fi ?? 0).toFixed(2)}</TableCell>
-                      <TableCell className={`text-right text-xs font-mono font-bold ${classColors[newClass]?.color}`}>{(sim.fi ?? 0).toFixed(2)}</TableCell>
-                      <TableCell className={`text-right text-xs font-mono ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{delta > 0 ? "+" : ""}{(delta ?? 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-xs font-mono">{kAplic && Number.isFinite(l.fi) ? l.fi.toFixed(2) : "N/A"}</TableCell>
+                      <TableCell className={`text-right text-xs font-mono font-bold ${classColors[newClass]?.color}`}>{kAplic && Number.isFinite(sim.fi) ? sim.fi.toFixed(2) : "N/A"}</TableCell>
+                      <TableCell className={`text-right text-xs font-mono ${delta > 0 ? "text-emerald-600" : "text-red-600"}`}>{kAplic && Number.isFinite(delta) ? `${delta > 0 ? "+" : ""}${delta.toFixed(2)}` : "N/A"}</TableCell>
                       <TableCell className="text-xs">
                         <Badge className={`text-[9px] ${
                           newClass === "saudavel" ? "bg-emerald-500/15 text-emerald-600" :
