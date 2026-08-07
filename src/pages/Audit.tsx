@@ -146,6 +146,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.maxHeight = `${A4_H}px`;
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
+    p.style.contain = 'layout paint'; // Otimização de renderização
     p.style.position = 'relative';
     p.style.transform = 'none';
     p.style.display = 'block'; // Garante que seja block
@@ -172,7 +173,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
       const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       for (let i = 0; i < pages.length; i++) {
         const canvas = await html2canvas(pages[i], {
-          scale: 2,
+          scale: 2.5, // Aumento de escala para maior nitidez
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
