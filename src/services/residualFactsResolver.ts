@@ -130,9 +130,10 @@ export function resolveResidualFacts(
     pickNonOverlapping(liabilities.filter(n => under(n, prefix)), n => RX.tax.test(n.description));
   const instIn = (prefix: string) =>
     pickNonOverlapping(
-      liabilities.filter(n => under(n, prefix) && RX.tax.test(n.description) === false ? false : under(n, prefix)),
-      n => RX.installment.test(n.description) && (RX.tax.test(n.description) || RX.tax.test(n.description) === false)
-    ).filter(n => RX.installment.test(n.description));
+      liabilities.filter(n => under(n, prefix)),
+      n => RX.installment.test(n.description)
+    );
+
 
   const taxCurrentNodes = taxIn("2.1");
   const taxNonCurrentNodes = taxIn("2.2");
