@@ -393,12 +393,25 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
  */
 export function isSyntheticAuthority(code: string): boolean {
   if (!code) return false;
-  const clean = code.replace(/[^\d.]/g, "");
-  // Padroniza: códigos com 1 ou 2 níveis (ex: "1", "1.1", "1.01", "2.3") são geralmente sintéticos
-  const levels = clean.split(".");
-  if (levels.length <= 2) return true;
-  // Fallback para códigos conhecidos no registro
-  return !!SEMANTIC_ROLE_REGISTRY[clean];
+  // MD-BEX-RUNTIME-CONSUMER Requirement 14: normalizeAccountCode
+  const clean = code.replace(/[^\d]/g, "");
+  
+  // Normalization logic: 1 -> 1, 1.1 -> 11, 2.03 -> 203, 2.3 -> 23
+  // Semantic comparison for 2.3 vs 2.03 vs 2.003
+  for (const registryCode of Object.keys(SEMANTIC_ROLE_REGISTRY)) {
+    const regClean = registryCode.replace(/[^\d]/g, "");
+    if (clean === regClean) return true;
+    
+    // Handled leading zero normalization (e.g., 2.3 vs 2.03)
+    const normClean = clean.replace(/^0+/, "");
+    const normReg = regClean.replace(/^0+/, "");
+    if (normClean === normReg) return true;
+  }
+
+  const parts = code.split(".");
+  if (parts.length <= 2) return true;
+  
+  return false;
 }
 
 export const GROUP_TOTAL_CODES = new Set([
@@ -680,6 +693,12 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
   const at = row.ativo_circulante + row.ativo_nao_circulante;
   const pt = row.passivo_circulante + row.passivo_nao_circulante + row.patrimonio_liquido;
   const integrityGap = Math.abs(at - pt - row.resultado);
+  
+  // MD-BEX-RUNTIME-CONSUMER Requirement 23: Vendas != Resultado != EBITDA assertion
+  if (row.receita_liquida === row.resultado && row.receita_liquida !== 0) {
+    row.errors.push("Colisão Crítica: Receita Líquida e Resultado do Período são idênticos.");
+  }
+
   if (integrityGap > 1000) {
     row.errors.push(`Gap de integridade patrimonial detectado: R$ ${integrityGap.toLocaleString("pt-BR")}`);
   }
