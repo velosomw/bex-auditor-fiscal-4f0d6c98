@@ -3877,11 +3877,11 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <p className="text-sm text-foreground leading-relaxed">
               {!kAplic ? (
                 <>
-                  A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(l.pl)} (Ativo Total R$ {fmt(l.at)} vs Passivo Total R$ {fmt(l.pt)}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
+                  A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(reportDataset.facts.patrimonio_liquido)} (Ativo Total R$ {fmt(reportDataset.facts.ativo_circulante + reportDataset.facts.ativo_nao_circulante)} vs Passivo Total R$ {fmt(reportDataset.facts.passivo_circulante + reportDataset.facts.passivo_nao_circulante)}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
                   <br /><br />
-                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(l.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(l.isg ?? 0) < 1
+                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(reportDataset.indicators.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(reportDataset.indicators.isg ?? 0) < 1
                     ? "O ativo total não cobre as obrigações totais, caracterizando insolvência técnica e demandando reestruturação patrimonial (Lei 11.101/2005) ou aporte de capital."
-                    : (l.isg ?? 0) < 1.5
+                    : (reportDataset.indicators.isg ?? 0) < 1.5
                     ? "Cobertura patrimonial estreita: cada R$ 1,00 de dívida é lastreada por menos de R$ 1,50 de ativos."
                     : "Cobertura patrimonial adequada apesar do PL negativo."}
                 </>
@@ -3892,7 +3892,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 : l.classificacao === "atencao"
                 ? `A empresa encontra-se em ZONA DE ATENÇÃO com FI de ${(l.fi ?? 0).toFixed(2)}. Indicadores de liquidez e endividamento apresentam fragilidades que requerem monitoramento contínuo.`
                 : l.classificacao === "risco"
-                ? `A empresa está em ZONA DE RISCO com FI de ${(l.fi ?? 0).toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(l.ls)} e Grau de Endividamento de ${fmtDec(l.ge)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
+                ? `A empresa está em ZONA DE RISCO com FI de ${(l.fi ?? 0).toFixed(2)}. Os indicadores financeiros demonstram deterioração significativa. Liquidez Seca de ${fmtDec(reportDataset.indicators.liquidezSeca)} e Grau de Endividamento de ${fmtDec(reportDataset.indicators.grauEndividamento)} indicam dificuldades financeiras. Recomenda-se reestruturação imediata.`
                 : `A empresa apresenta ALTA PROBABILIDADE DE INSOLVÊNCIA com FI de ${(l.fi ?? 0).toFixed(2)}. A deterioração severa dos indicadores financeiros indica incapacidade de pagamento. Recomenda-se análise de viabilidade conforme Lei 11.101/2005.`}
 
             </p>
