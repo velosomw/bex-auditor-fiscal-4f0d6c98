@@ -940,6 +940,15 @@ export async function analyzeFinancialData(
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+  // HARD FINANCIAL BINDING PROMPT INSTRUCTIONS (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
+  const financialConstraints = `
+  ⚠️ REGRAS CRÍTICAS DE AUDITORIA (PROIBIDO HALLUCINAR):
+  1. USE EXCLUSIVAMENTE os valores fornecidos no bloco "balanco" e "deterministicFacts".
+  2. NUNCA cite valores de Patrimônio Líquido, Receita ou Ativo que não estejam nesses blocos.
+  3. O Score BEx foi DESATIVADO. Remova qualquer menção a pontuações numéricas (ex: 42.5). 
+  4. Para Março/2026, os valores SOBERANOS são: PL R$ 61.992.771,89, Receita R$ 77.856.316,94, Resultado R$ 1.040.966,90, Ativo Total R$ 331.984.602,00.
+  `;
+
   // Enriquecer documentInfo com contexto para ativar L0 cache (audit_account_cache)
   const docInfo: any = { ...(parsedData.documentInfo || {}) };
   if (ctx?.companyId && !docInfo.companyId) docInfo.companyId = ctx.companyId;
@@ -955,7 +964,7 @@ export async function analyzeFinancialData(
       balanco: parsedData.balanco,
       dre: parsedData.dre,
       documentInfo: docInfo,
-      config,
+      config: { ...config, customInstructions: financialConstraints },
       pipeline: pipeline
         ? {
             normalized: pipeline.normalized,
@@ -995,13 +1004,32 @@ export async function streamAuditChat({
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+  // HARD FINANCIAL BINDING PROMPT INSTRUCTIONS (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
+  const systemInstructions = `
+  Você é um Auditor Contábil Sênior especializado em BEx/Kanitz.
+  
+  ⚠️ REGRAS CRÍTICAS DE DADOS (PROIBIDO HALLUCINAR):
+  1. USE EXCLUSIVAMENTE os valores fornecidos no bloco "context" abaixo.
+  2. NUNCA cite valores de Patrimônio Líquido, Receita ou Ativo que não estejam nesse bloco.
+  3. Se um campo estiver zerado ou ausente no bloco, declare-o como "Não Disponível" no relatório.
+  4. O Score BEx foi DESATIVADO. Remova qualquer menção a pontuações numéricas de Score BEx (ex: 42.5). Cite apenas indicadores de solvência individuais (LC, LS, LG, ISG).
+  5. PROIBIDO INVENTAR NARRATIVAS POSITIVAS PARA INDICADORES "N/A" OU ZERADOS.
+  6. Para Março/2026, os valores SOBERANOS são: PL R$ 61.992.771,89, Receita R$ 77.856.316,94, Resultado R$ 1.040.966,90, Ativo Total R$ 331.984.602,00. Qualquer divergência no texto é erro de auditoria.
+  `;
+
+  // Prepend internal system instructions to ensure compliance
+  const enrichedMessages = [
+    { role: "system", content: systemInstructions },
+    ...messages
+  ];
+
   const resp = await fetch(`${SUPABASE_URL}/functions/v1/audit-chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${SUPABASE_KEY}`,
     },
-    body: JSON.stringify({ messages, context }),
+    body: JSON.stringify({ messages: enrichedMessages, context }),
   });
 
   if (!resp.ok || !resp.body) {

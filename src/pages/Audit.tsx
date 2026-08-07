@@ -2642,7 +2642,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
     { name: "Cobertura de Juros", result: `${latestInd.coberturaJuros.toFixed(2)}x`, param: "> 3,0x", classification: latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: `LAJIR / Despesas Financeiras` },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: (ac - pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
-    { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,2", classification: latestInd.isg > 1.2 ? "Solvente" : "Atenção", comment: `AT / PT` },
+    { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,0", classification: latestInd.isg > 1.0 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
 
   /* ── Kanitz computation for abbreviated section ── */
@@ -2668,7 +2668,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       const ind = computed[k];
       const kAplic = ind._pl > 0;
       
-      const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * ind.grauEndividamentoPL) : 0;
+      const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * (ind._pt / Math.abs(ind._pl))) : 0;
       
       const isgValue = ind._at / (ind._pc + ind._pnc || 1);
       const classificacao: any = !kAplic ? "na" :
@@ -3322,6 +3322,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Passivo Não Circulante", key: "_pnc" },
                   { label: "Patrimônio Líquido", key: "_pl" },
                   { label: "Resultado do Período", key: "_resultado" },
+                  { label: "Estoques", key: "_estoques" },
+                  { label: "Realizável LP", key: "_rlp" },
+                  { label: "Receita Líquida", key: "_receita" },
                 ].map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
@@ -3670,7 +3673,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const ls = ind.liquidezSeca;
       const lc = ind.liquidezCorrente;
       const ge = kanitzAplicavel ? ind.grauEndividamentoPL : (ind._pc + ind._pnc) / (Math.abs(ind._pl) || 1);
-      const fi = kanitzAplicavel ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge) : 0;
+      const fi = kanitzAplicavel ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * (ind._pt / Math.abs(ind._pl))) : 0;
       const isg = (ind._ac + ind._anc) / (ind._pc + ind._pnc || 1);
       const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
         : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
