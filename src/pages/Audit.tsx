@@ -2492,8 +2492,14 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const today = new Date().toLocaleDateString("pt-BR");
   
   const computedInd = computeIndicatorsFromParsed(parsedData || null);
-  const activeYear = state.selectedYear || Object.keys(computedInd).sort().pop() || "2026-03";
-  const d = computedInd[activeYear] || {};
+  const years = Object.keys(computedInd).sort((a, b) => {
+    const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
+    const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
+    return pa.localeCompare(pb);
+  });
+  const latestYear = years[years.length - 1] || "2026-03";
+  const d = computedInd[latestYear] || {};
+  const ind = computedInd;
   
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
   const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
@@ -2502,39 +2508,17 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   // Removido BEx Score conforme instrução de Hard Cutover
   const hasBexScore = false; 
   const scoreColor = "text-slate-400";
-                     activeScore.score <= 60 ? "text-yellow-600" :
-                     activeScore.score <= 80 ? "text-orange-600" : "text-red-600";
-  const scoreBg = activeScore.score <= 30 ? "bg-emerald-500/10 border-emerald-500/30" :
-                  activeScore.score <= 60 ? "bg-yellow-500/10 border-yellow-500/30" :
-                  activeScore.score <= 80 ? "bg-orange-500/10 border-orange-500/30" : "bg-red-500/10 border-red-500/30";
-  const scoreLabel = activeScore.score <= 30 ? "Saudável" :
-                     activeScore.score <= 60 ? "Atenção" :
-                     activeScore.score <= 80 ? "Alto Risco" : "Risco Estrutural";
+  const scoreBg = "bg-slate-100 border-slate-200";
+  const scoreLabel = "Score Desativado";
+  const riskIcon = "📋";
 
-  const riskIcon = activeScore.score <= 30 ? "🟢" :
-                   activeScore.score <= 60 ? "🟡" :
-                   activeScore.score <= 80 ? "🔴" : "⚫";
-
-  // Compute from real data
-  const findAbsValue = (keyword: string) => {
-    if (!parsedData) return 0;
-    const row = parsedData.balanco.find(r => 
-      r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword)
-    );
-    return Math.abs(row?.values[latestYear || ""] || 0);
-  };
-
-  const emprestimos = findAbsValue("empréstimos") || findAbsValue("financiamentos");
-  const pc = d?._pc || d?.passivoCirculante || 0;
-  const pnc = d?._pnc || d?.passivoNaoCirculante || 0;
-  const ac = d?._ac || d?.ativoCirculante || 0;
-  const anc = d?._anc || d?.ativoNaoCirculante || 0;
-  const caixa = d?._caixa || d?.caixaEquivalentes || 0;
-  const dividaOnerosa = emprestimos;
+  const pc = d?._pc || 0;
+  const pnc = d?._pnc || 0;
+  const ac = d?._ac || 0;
+  const anc = d?._anc || 0;
   const ptotal = pc + pnc || 1;
-  const fornec = d?._fornecedores || d?.fornecedores || 0;
 
-  const latestInd = ind[latestYear];
+  const latestInd = computedInd[latestYear];
   const solvencyIndicators = latestInd ? [
     { name: "Liquidez Corrente", result: fmtPct(latestInd.liquidezCorrente), param: "> 1,5", classification: (latestInd.liquidezCorrente ?? 0) > 1.5 ? "Adequada" : (latestInd.liquidezCorrente ?? 0) > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
     { name: "Liquidez Seca", result: fmtPct(latestInd.liquidezSeca), param: "> 1,0", classification: (latestInd.liquidezSeca ?? 0) > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
