@@ -1585,7 +1585,7 @@ const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => 
       liquidezSeca: pc ? (ac - estoque) / pc : 0,
       liquidezImediata: pc ? caixa / pc : 0,
       liquidezGeral: pt ? (ac + anc) / pt : 0,
-      endividamentoGeral: at ? pt / at : 0,
+      endividamentoTotal: at ? pt / at : 0,
       composicaoEndividamento: pt ? pc / pt : 0,
       imobilizacaoPL: Math.abs(pl) ? imob / Math.abs(pl) : 0,
       coberturaJuros: despFin ? (resOp + despFin) / despFin : 0,
