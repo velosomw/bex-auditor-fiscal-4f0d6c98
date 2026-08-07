@@ -3549,7 +3549,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <SectionTitle num="9" title="CONCLUSÃO TÉCNICA" />
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
               <p className="text-sm text-foreground leading-relaxed">
-                {aiAnalysis?.diagnostico?.resumo || "A análise das demonstrações contábeis evidencia a estrutura financeira da empresa no período analisado, com base nos dados do balancete processado."}
+                A análise das demonstrações contábeis da competência {latestYear} evidencia Ativo Total de R$ {fmt(at)}, capital de terceiros de R$ {fmt(pt)} e Patrimônio Líquido de R$ {fmt(pl)}, com Receita Líquida de R$ {fmt(rl)} e {result >= 0 ? "lucro" : "prejuízo"} de R$ {fmt(Math.abs(result))} no período.
               </p>
               <p className="text-sm text-foreground leading-relaxed">
                 Os indicadores de liquidez {latestInd?.liquidezCorrente && latestInd.liquidezCorrente > 1 ? "apontam capacidade adequada para honrar compromissos de curto prazo" : "indicam fragilidade na capacidade de pagamento de curto prazo"}, {latestInd?.liquidezGeral && latestInd.liquidezGeral < 1 ? "embora a liquidez geral permaneça inferior à unidade, refletindo elevada dependência de capital de terceiros." : "com liquidez geral compatível com a operação."}
