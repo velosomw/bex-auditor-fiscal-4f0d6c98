@@ -2040,10 +2040,12 @@ const TabPatrimonial = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any; 
 
 /* ── Tab 5: Risco de Recuperação Judicial ── */
 const TabRiscoRJ = ({ aiAnalysis }: { aiAnalysis?: any }) => {
+  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
   const scoreVal = activeScore.score;
   const computedScoreColor = scoreVal <= 30 ? "text-emerald-500" :
                              scoreVal <= 60 ? "text-yellow-500" :
                              scoreVal <= 80 ? "text-orange-500" : "text-red-500";
+
 
 
   return (
