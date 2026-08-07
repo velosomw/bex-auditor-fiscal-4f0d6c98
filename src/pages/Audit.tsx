@@ -2501,9 +2501,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const d = computedInd[latestYear] || {};
   const ind = computedInd;
   
-  const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
-
-  // Removido BEx Score conforme instrução de Hard Cutover
+  const scoreColor = "text-slate-400";
   const hasBexScore = false; 
   const scoreColor = "text-slate-400";
   const scoreBg = "bg-slate-100 border-slate-200";
