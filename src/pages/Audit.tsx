@@ -3322,6 +3322,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Passivo Não Circulante", key: "_pnc" },
                   { label: "Patrimônio Líquido", key: "_pl" },
                   { label: "Resultado do Período", key: "_resultado" },
+                  { label: "Estoques", key: "_estoques" },
+                  { label: "Realizável LP", key: "_rlp" },
+                  { label: "Receita Líquida", key: "_receita" },
                 ].map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
