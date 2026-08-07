@@ -60,10 +60,15 @@ export interface ResidualFacts {
   tax: TaxTaxonomy;
   labor: LaborTaxonomy;
   borrowings: ComposedFact;
+  /** §29..§32 — taxonomia de dívida onerosa por prazo. */
+  borrowings_current: ComposedFact;
+  borrowings_noncurrent: ComposedFact;
   financial_expenses: FinancialExpensesFact;
+  financial_revenues: ComposedFact;
+  income_taxes: ComposedFact;
   /** EBITDA só é certificado quando LAJIR e D&A são reconstruíveis pelo balancete. */
   ebitda: { value: number; status: ResidualStatus; reason: string };
-  lajir: { value: number; status: ResidualStatus };
+  lajir: { value: number; status: ResidualStatus; reason?: string };
   interest_coverage: { value: number; status: ResidualStatus };
   depreciation: ComposedFact;
   amortization: ComposedFact;
@@ -73,14 +78,18 @@ const RX = {
   tax: /TRIBUT|FISCA|IMPOSTO|ICMS|\bISS\b|\bPIS\b|COFINS|IRPJ|CSLL|SIMPLES NACIONAL/,
   installment: /PARCELAMENT|REFIS|\bPERT\b|TRANSACAO TRIBUT|PARCELADO/,
   labor: /TRABALHIST|OBRIGACOES SOCIA|ENCARGOS SOCIA|SALARI|FOLHA DE PAGAMENTO|FERIAS|RESCIS|\bFGTS\b|\bINSS\b|13[º°]? SAL|DECIMO TERCEIRO|PROVISAO DE FERIAS/,
+  /** §40 — retenções de terceiros nunca compõem dívida trabalhista própria. */
+  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO/,
   payroll: /SALARI|FOLHA DE PAGAMENTO|ORDENADO|PRO[ -]?LABORE/,
   inss: /\bINSS\b|PREVIDENCI/,
   fgts: /\bFGTS\b/,
   vacation: /FERIAS/,
   termination: /RESCIS/,
-  borrowings: /EMPRESTIM|FINANCIAMENT|DEBENTURE|LEASING|ARRENDAMENT|CEDULA DE CREDITO|CAPITAL DE GIRO BANC/,
+  borrowings: /EMPRESTIM|FINANCIAMENT|DEBENTURE|LEASING|ARRENDAMENT|CEDULA DE CREDITO|CAPITAL DE GIRO|OBRIGACOES FINANCEIR/,
   finExpenses: /DESPESAS? FINANCEIR/,
   finExpensesFallback: /JUROS|ENCARGOS FINANCEIR|VARIACOES MONETARIAS PASSIV|IOF/,
+  finRevenues: /RECEITAS? FINANCEIR/,
+  incomeTaxes: /(IRPJ|CSLL|IMPOSTO DE RENDA|CONTRIBUICAO SOCIAL).*(LUCRO|EXERCICIO)?|PROVISAO PARA (IRPJ|CSLL|IMPOSTO DE RENDA)/,
   depreciation: /DEPRECIA/,
   amortization: /AMORTIZA/,
 };
