@@ -3821,7 +3821,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="grid sm:grid-cols-4 gap-3">
             <div className="p-3 rounded-lg bg-muted/20 text-center">
               <p className="text-[10px] text-muted-foreground">{kAplic ? "Score Kanitz" : "Score Kanitz (referência)"}</p>
-              <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{(l.fi ?? 0).toFixed(2)}</p>
+              <p className={`text-2xl font-bold font-mono ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{kAplic ? (l.fi ?? 0).toFixed(2) : "0.00"}</p>
               {!kAplic && <p className="text-[9px] text-red-600 font-semibold">Inválido (PL &lt; 0)</p>}
             </div>
             <div className="p-3 rounded-lg bg-muted/20 text-center">
@@ -3858,7 +3858,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="text-center py-6 rounded-lg bg-muted/20">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Kanitz {kAplic ? "" : "(referência)"}</p>
-              <p className={`text-5xl font-bold ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{(l.fi ?? 0).toFixed(2)}</p>
+              <p className={`text-5xl font-bold ${kAplic ? classColors[l.classificacao]?.color : "text-slate-400 line-through"}`}>{kAplic ? (l.fi ?? 0).toFixed(2) : "0.00"}</p>
               <p className={`text-sm font-semibold mt-2 ${kAplic ? classColors[l.classificacao]?.color : "text-slate-500"}`}>
                 {classColors[l.classificacao]?.icon} {classColors[l.classificacao]?.label}
               </p>
@@ -3930,14 +3930,14 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             Análise dos componentes que determinam o score Kanitz por período. Quando PL ≤ 0, RPL e GE são marcados como N/A (não aplicáveis) e o ISG passa a ser o indicador de referência.
           </p>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed w-full border-collapse">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-[10px]">Indicador</TableHead>
-                  <TableHead className="text-[10px]">Sigla</TableHead>
-                  <TableHead className="text-[10px]">Fórmula</TableHead>
-                  <TableHead className="text-[10px]">Peso</TableHead>
-                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
+                  <TableHead className="w-[20%] text-[10px] py-1 border border-border">Indicador</TableHead>
+                  <TableHead className="w-[8%] text-[10px] py-1 border border-border">Sigla</TableHead>
+                  <TableHead className="w-[22%] text-[10px] py-1 border border-border">Fórmula</TableHead>
+                  <TableHead className="w-[10%] text-[10px] py-1 border border-border">Peso</TableHead>
+                  {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px] py-1 border border-border">{fmtMonthCompact(r.year) || r.year}</TableHead>)}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -3948,31 +3948,31 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                   { name: "Liquidez Corrente", sigla: "LC", formula: "AC / PC", peso: -1.06, key: "lc" as const, naIfNegativePL: false },
                   { name: "Grau de Endividamento", sigla: "GE", formula: "PT / PL", peso: -0.33, key: "ge" as const, naIfNegativePL: true },
                 ].map(ind => (
-                  <TableRow key={ind.sigla}>
-                    <TableCell className="text-xs font-medium">{ind.name}</TableCell>
-                    <TableCell className="text-xs font-mono font-bold">{ind.sigla}</TableCell>
-                    <TableCell className="text-[10px] font-mono text-muted-foreground">{ind.formula}</TableCell>
-                    <TableCell className="text-xs font-mono font-bold">{ind.peso > 0 ? `+${ind.peso}` : ind.peso}</TableCell>
+                  <TableRow key={ind.sigla} className="h-7">
+                    <TableCell className="text-[10px] py-0.5 border border-border truncate font-medium">{ind.name}</TableCell>
+                    <TableCell className="text-[10px] py-0.5 border border-border font-mono font-bold text-center">{ind.sigla}</TableCell>
+                    <TableCell className="text-[9px] py-0.5 border border-border font-mono text-muted-foreground truncate">{ind.formula}</TableCell>
+                    <TableCell className="text-[10px] py-0.5 border border-border font-mono font-bold text-center">{ind.peso > 0 ? `+${ind.peso}` : ind.peso}</TableCell>
                     {kanitzResults.map(r => (
-                      <TableCell key={r.year} className="text-right text-xs font-mono">
+                      <TableCell key={r.year} className="text-right text-[10px] py-0.5 border border-border font-mono">
                         {ind.naIfNegativePL && !r.kanitzAplicavel ? <span className="text-slate-500">N/A</span> : (r[ind.key] != null && !isNaN(r[ind.key]) ? fmtDec(r[ind.key]) : <span className="text-slate-500">N/A</span>)}
                       </TableCell>
                     ))}
                   </TableRow>
                 ))}
-                <TableRow className="bg-amber-500/5">
-                  <TableCell className="text-xs font-medium">Índice de Solvência Geral</TableCell>
-                  <TableCell className="text-xs font-mono font-bold">ISG</TableCell>
-                  <TableCell className="text-[10px] font-mono text-muted-foreground">AT / PT</TableCell>
-                  <TableCell className="text-xs font-mono">—</TableCell>
+                <TableRow className="bg-amber-500/5 h-7">
+                  <TableCell className="text-[10px] py-0.5 border border-border font-medium">Índice de Solvência Geral</TableCell>
+                  <TableCell className="text-[10px] py-0.5 border border-border font-mono font-bold text-center">ISG</TableCell>
+                  <TableCell className="text-[9px] py-0.5 border border-border font-mono text-muted-foreground">AT / PT</TableCell>
+                  <TableCell className="text-[10px] py-0.5 border border-border font-mono text-center">—</TableCell>
                   {kanitzResults.map(r => (
-                    <TableCell key={r.year} className="text-right text-xs font-mono font-bold">{(r.isg ?? 0).toFixed(2)}</TableCell>
+                    <TableCell key={r.year} className="text-right text-[10px] py-0.5 border border-border font-mono font-bold">{(r.isg ?? 0).toFixed(2)}</TableCell>
                   ))}
                 </TableRow>
-                <TableRow className="border-t-2 border-foreground/20">
-                  <TableCell className="text-xs font-bold" colSpan={4}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
+                <TableRow className="border-t-2 border-foreground/20 h-8">
+                  <TableCell className="text-[10px] py-1 border border-border font-bold bg-muted/20" colSpan={4}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
                   {kanitzResults.map(r => (
-                    <TableCell key={r.year} className={`text-right text-sm font-bold font-mono ${classColors[r.classificacao]?.color}`}>
+                    <TableCell key={r.year} className={`text-right text-[11px] py-1 border border-border font-bold font-mono ${classColors[r.classificacao]?.color}`}>
                       {r.kanitzAplicavel ? (r.fi ?? 0).toFixed(2) : <span className="text-slate-500 line-through">{(r.fi ?? 0).toFixed(2)}</span>}
                     </TableCell>
                   ))}
