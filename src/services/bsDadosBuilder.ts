@@ -219,6 +219,8 @@ export interface BSDadosRow {
   depreciacao: number;
   amortizacao: number;
   resultado: number;
+  resultado_acumulado?: number;
+  resultado_competencia?: number;
   // BALANÇO
   ativo_circulante: number;
   ativo_nao_circulante: number;

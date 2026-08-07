@@ -447,44 +447,13 @@ export function recomputePendencyPercentages<T extends Record<string, any>>(
     return text.replace(/(\d{1,3}(?:[.,]\d+)?)\s?%/g, `${pct.toFixed(1).replace(".", ",")}%`);
   };
 
-  return pendencias.map(p => ({
-    ...p,
-    problema: fixField(p.problema),
-    impacto: fixField(p.impacto),
-    recomendacao: fixField(p.recomendacao),
-  }));
-}
-
-/**
- * §3 (Considerações 1) — Percentage Consistency Gate.
- * Recalcula percentuais de concentração citados em pendências narrativas
- * ("X% do Ativo Total") a partir do valor monetário citado e do Ativo Total
- * certificado. O fato monetário é preservado; apenas o percentual é corrigido.
- */
-export function recomputePendencyPercentages<T extends Record<string, any>>(
-  pendencias: T[] | null | undefined,
-  ativoTotal: number | undefined | null
-): T[] {
-  if (!pendencias || pendencias.length === 0) return [];
-  const at = Number(ativoTotal);
-  if (!Number.isFinite(at) || at === 0) return pendencias;
-
-  const parseBRL = (raw: string) => Number(raw.replace(/\./g, "").replace(",", "."));
-  const fixField = (text: unknown): unknown => {
-    if (typeof text !== "string" || !/ATIVO TOTAL/i.test(text)) return text;
-    const money = text.match(/R\$\s*([\d.]+,\d{2})/);
-    if (!money) return text;
-    const valor = parseBRL(money[1]);
-    if (!Number.isFinite(valor) || valor === 0) return text;
-    const pct = (Math.abs(valor) / Math.abs(at)) * 100;
-    return text.replace(/(\d{1,3}(?:[.,]\d+)?)\s?%/g, `${pct.toFixed(1).replace(".", ",")}%`);
-  };
-
   return pendencias.map(p => {
     const out: Record<string, any> = { ...p };
     for (const k of ["problema", "impacto", "recomendacao", "fundamentacao", "descricao", "detalhe"]) {
       if (k in out) out[k] = fixField(out[k]);
     }
     return out as T;
+  });
+}
   });
 }
