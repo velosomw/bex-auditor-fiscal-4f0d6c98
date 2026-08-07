@@ -129,25 +129,35 @@ const EMPTY = (scope: string): ComposedFact => ({
 export function resolveResidualFacts(
   nodes: AccountNode[],
   competency: string,
-  ctx: { resultado?: number; ativo_total?: number; pc?: number; pnc?: number; pl?: number } = {}
+  ctx: {
+    resultado?: number; ativo_total?: number; pc?: number; pnc?: number; pl?: number;
+    /** §41/§69 — quando o Resultado não está certificado, toda a cadeia derivada cai. */
+    resultado_certified?: boolean;
+  } = {}
 ): ResidualFacts {
   const liabilities = nodes.filter(n => n.normalized_code.startsWith("2"));
   const results = nodes.filter(n => n.normalized_code.startsWith("3") || n.normalized_code.startsWith("4"));
 
-  /* ── Tributos ───────────────────────────────────────────── */
-  const taxIn = (prefix: string) =>
-    pickNonOverlapping(liabilities.filter(n => under(n, prefix)), n => RX.tax.test(n.description));
-  const instIn = (prefix: string) =>
-    pickNonOverlapping(
-      liabilities.filter(n => under(n, prefix)),
-      n => RX.installment.test(n.description)
-    );
+  /* ── Tributos (§33..§37) ────────────────────────────────── */
+  const isTax = (n: AccountNode) => RX.tax.test(n.description) && !RX.labor.test(n.description);
+  const isTaxInstallment = (n: AccountNode) => RX.installment.test(n.description) && isTax(n);
 
+  const taxIn = (prefix: string) =>
+    pickNonOverlapping(liabilities.filter(n => under(n, prefix)), isTax);
+  /** Parcelamentos tributários — descendentes dos grupos tributários já selecionados. */
+  const instIn = (prefix: string, parents: AccountNode[]) =>
+    pickNonOverlapping(
+      liabilities.filter(
+        n => under(n, prefix) &&
+          parents.some(p => n.normalized_code === p.normalized_code || n.normalized_code.startsWith(p.normalized_code + "."))
+      ),
+      n => isTaxInstallment(n) && !parents.some(p => p.normalized_code === n.normalized_code)
+    );
 
   const taxCurrentNodes = taxIn("2.1");
   const taxNonCurrentNodes = taxIn("2.2");
-  const instCurrent = instIn("2.1");
-  const instNonCurrent = instIn("2.2");
+  const instCurrent = instIn("2.1", taxCurrentNodes);
+  const instNonCurrent = instIn("2.2", taxNonCurrentNodes);
 
   const taxCurrentTotal = taxCurrentNodes.reduce((s, n) => s + Math.abs(n.value), 0);
   const taxNonCurrentTotal = taxNonCurrentNodes.reduce((s, n) => s + Math.abs(n.value), 0);
@@ -161,11 +171,11 @@ export function resolveResidualFacts(
           status: "AVAILABLE",
           included_accounts: taxCurrentNodes.map(ref),
           excluded_accounts: instCurrent.map(ref),
-          calculation_scope: "Obrigações tributárias de curto prazo (grupo 2.1), líquidas de parcelamentos",
+          calculation_scope: "Obrigações tributárias de curto prazo (grupo 2.1), líquidas de parcelamentos tributários",
         }
       : EMPTY("Obrigações tributárias CP não identificadas no balancete"),
     current_installments: instCurrent.length
-      ? compose(instCurrent, "Parcelamentos tributários de curto prazo (grupo 2.1)")
+      ? compose(instCurrent, "Parcelamentos tributários de curto prazo (composição do grupo tributário, sem encargos sociais)")
       : EMPTY("Parcelamentos tributários CP não identificados no balancete"),
     noncurrent_obligations: taxNonCurrentNodes.length
       ? {
@@ -173,32 +183,38 @@ export function resolveResidualFacts(
           status: "AVAILABLE",
           included_accounts: taxNonCurrentNodes.map(ref),
           excluded_accounts: instNonCurrent.map(ref),
-          calculation_scope: "Obrigações tributárias de longo prazo (grupo 2.2), líquidas de parcelamentos",
+          calculation_scope: "Obrigações tributárias de longo prazo (grupo 2.2), líquidas de parcelamentos tributários",
         }
       : EMPTY("Obrigações tributárias LP não identificadas no balancete"),
     noncurrent_installments: instNonCurrent.length
-      ? compose(instNonCurrent, "Parcelamentos tributários de longo prazo (grupo 2.2)")
+      ? compose(instNonCurrent, "Parcelamentos tributários de longo prazo (composição do grupo tributário)")
       : EMPTY("Parcelamentos tributários LP não identificados no balancete"),
+    // §36 — Double Count Detector: parcelamentos já estão dentro dos grupos sintéticos.
     total_exposure:
       taxCurrentNodes.length || taxNonCurrentNodes.length
         ? {
             value: taxCurrentTotal + taxNonCurrentTotal,
             status: "AVAILABLE",
             included_accounts: [...taxCurrentNodes, ...taxNonCurrentNodes].map(ref),
-            excluded_accounts: [],
-            calculation_scope: "Exposição tributária total = obrigações + parcelamentos (CP + LP)",
+            excluded_accounts: [...instCurrent, ...instNonCurrent].map(ref),
+            calculation_scope:
+              "Exposição tributária total = grupos tributários sintéticos CP + LP (parcelamentos contados uma única vez, como composição)",
           }
         : EMPTY("Exposição tributária não identificada no balancete"),
   };
 
-  /* ── Trabalhistas ───────────────────────────────────────── */
-  const laborCurrentNodes = pickNonOverlapping(
-    liabilities.filter(n => under(n, "2.1")),
-    n => RX.labor.test(n.description) && !RX.tax.test(n.description)
+  /* ── Trabalhistas (§38..§40) ────────────────────────────── */
+  const isLabor = (n: AccountNode) =>
+    RX.labor.test(n.description) &&
+    !RX.tax.test(n.description) &&
+    !RX.withholding.test(n.description) &&
+    !RX.installment.test(n.description);
+
+  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1")), isLabor);
+  const laborExcluded = liabilities.filter(
+    n => under(n, "2.1") && RX.labor.test(n.description) && !isLabor(n) && !n.has_children
   );
-  const laborLeaves = liabilities.filter(
-    n => under(n, "2.1") && RX.labor.test(n.description) && !RX.tax.test(n.description) && !n.has_children
-  );
+  const laborLeaves = liabilities.filter(n => under(n, "2.1") && isLabor(n) && !n.has_children);
   const sub = (rx: RegExp, scope: string) => {
     const sel = laborLeaves.filter(n => rx.test(n.description));
     return sel.length ? compose(sel, scope) : EMPTY(scope + " — não identificado no balancete");
@@ -212,19 +228,30 @@ export function resolveResidualFacts(
     termination_payable: sub(RX.termination, "Rescisões a pagar"),
     other_obligations: EMPTY("Demais obrigações sociais"),
     total_current: laborCurrentNodes.length
-      ? compose(laborCurrentNodes, "Obrigações sociais e trabalhistas de curto prazo (grupo 2.1)")
+      ? {
+          ...compose(laborCurrentNodes, "Obrigações sociais e trabalhistas próprias de curto prazo (grupo 2.1, sem retenções de terceiros e sem parcelamentos)"),
+          excluded_accounts: laborExcluded.map(ref),
+        }
       : EMPTY("Obrigações trabalhistas CP não identificadas no balancete"),
   };
 
-  /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO ── */
-  const borrowNodes = pickNonOverlapping(
-    liabilities,
-    n => RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description)
-  );
+  /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO (§29..§32) ── */
+  const isBorrowing = (n: AccountNode) =>
+    RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
+  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1")), isBorrowing);
+  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), isBorrowing);
+  const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
+
+  const borrowings_current = borrowCurrentNodes.length
+    ? compose(borrowCurrentNodes, "Obrigações financeiras de curto prazo (grupo 2.1)")
+    : EMPTY("Sem obrigações financeiras de curto prazo no balancete");
+  const borrowings_noncurrent = borrowNonCurrentNodes.length
+    ? compose(borrowNonCurrentNodes, "Obrigações financeiras de longo prazo (grupo 2.2)")
+    : EMPTY("Sem obrigações financeiras de longo prazo no balancete");
   const borrowings: ComposedFact = borrowNodes.length
     ? {
-        ...compose(borrowNodes, "Saldo patrimonial de empréstimos e financiamentos (grupo 2)"),
+        ...compose(borrowNodes, "Saldo total das obrigações financeiras onerosas (CP + LP, grupos sintéticos)"),
         excluded_accounts: borrowRejected.map(ref),
       }
     : {
@@ -232,7 +259,7 @@ export function resolveResidualFacts(
         excluded_accounts: borrowRejected.map(ref),
       };
 
-  /* ── Despesas Financeiras (grupo de resultado) ──────────── */
+  /* ── Despesas / Receitas Financeiras e Tributos sobre o Lucro ── */
   let finNodes = pickNonOverlapping(results, n => RX.finExpenses.test(n.description));
   if (finNodes.length === 0) {
     finNodes = pickNonOverlapping(results, n => RX.finExpensesFallback.test(n.description) && !n.has_children);
@@ -245,16 +272,37 @@ export function resolveResidualFacts(
     included_accounts: finNodes.map(ref),
   };
 
+  const finRevNodes = pickNonOverlapping(results, n => RX.finRevenues.test(n.description));
+  const financial_revenues = finRevNodes.length
+    ? compose(finRevNodes, "Receitas financeiras (contas de resultado)")
+    : EMPTY("Receitas financeiras não identificadas");
+
+  const taxOnProfitNodes = pickNonOverlapping(
+    results,
+    n => RX.incomeTaxes.test(n.description) && !RX.finExpenses.test(n.description)
+  );
+  const income_taxes = taxOnProfitNodes.length
+    ? compose(taxOnProfitNodes, "Tributos sobre o lucro (IRPJ/CSLL)")
+    : EMPTY("Tributos sobre o lucro não identificados");
+
   /* ── Depreciação / Amortização ──────────────────────────── */
   const depNodes = pickNonOverlapping(results, n => RX.depreciation.test(n.description));
   const amortNodes = pickNonOverlapping(results, n => RX.amortization.test(n.description));
   const depreciation = depNodes.length ? compose(depNodes, "Depreciação (contas de resultado)") : EMPTY("Depreciação não identificada");
   const amortization = amortNodes.length ? compose(amortNodes, "Amortização (contas de resultado)") : EMPTY("Amortização não identificada");
 
-  /* ── LAJIR / EBITDA / Cobertura de Juros ────────────────── */
+  /* ── LAJIR / EBITDA / Cobertura de Juros (§41..§46) ──────
+   * LAJIR (EBIT) = Resultado Líquido
+   *              + Despesas Financeiras
+   *              − Receitas Financeiras
+   *              + Tributos sobre o Lucro
+   * Nenhum derivado é certificado quando o Resultado base não está certificado. */
   const resultado = Number.isFinite(ctx.resultado as number) ? (ctx.resultado as number) : NaN;
-  const lajirAvailable = financial_expenses.status === "AVAILABLE" && Number.isFinite(resultado);
-  const lajirValue = lajirAvailable ? resultado + financial_expenses.analysis_value : NaN;
+  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado);
+  const lajirAvailable = resultCertified && financial_expenses.status === "AVAILABLE";
+  const lajirValue = lajirAvailable
+    ? resultado + financial_expenses.analysis_value - financial_revenues.value + income_taxes.value
+    : NaN;
 
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
   const ebitdaAvailable = lajirAvailable && daAvailable;
@@ -267,17 +315,29 @@ export function resolveResidualFacts(
     tax,
     labor,
     borrowings,
+    borrowings_current,
+    borrowings_noncurrent,
     financial_expenses,
+    financial_revenues,
+    income_taxes,
     depreciation,
     amortization,
-    lajir: { value: lajirValue, status: lajirAvailable ? "AVAILABLE" : "NOT_AVAILABLE" },
+    lajir: {
+      value: lajirValue,
+      status: lajirAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
+      reason: lajirAvailable
+        ? "Resultado + Despesas Financeiras − Receitas Financeiras + Tributos sobre o Lucro"
+        : !resultCertified
+          ? "Resultado do período não certificado — LAJIR não calculável"
+          : "Despesas financeiras não identificadas no balancete",
+    },
     ebitda: {
       value: ebitdaValue,
       status: ebitdaAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
       reason: ebitdaAvailable
         ? "LAJIR + Depreciação + Amortização certificados pelo balancete"
         : !lajirAvailable
-          ? "LAJIR não certificável — despesas financeiras ausentes no balancete"
+          ? "LAJIR não certificável — cadeia derivada indisponível"
           : "Depreciação/Amortização não identificadas no balancete — EBITDA não disponível com segurança",
     },
     interest_coverage: {
