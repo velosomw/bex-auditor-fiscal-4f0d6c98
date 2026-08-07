@@ -2726,9 +2726,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
 
           <div className="mt-10 space-y-1.5 text-sm text-muted-foreground">
-            <p className="font-semibold text-foreground text-base">Empresa Analisada: Empresa Demonstração S.A.</p>
-            <p>CNPJ: 12.345.678/0001-90</p>
-            <p>Data-base do Balancete: 31/12/2023</p>
+            <p className="font-semibold text-foreground text-base">Empresa Analisada: {company?.name || "Empresa Demonstração S.A."}</p>
+            <p>CNPJ: {company?.cnpj || "12.345.678/0001-90"}</p>
+            <p>Data-base do Balancete: {latestYear || "31/12/2023"}</p>
             <p>Data de Emissão: {today}</p>
           </div>
 
