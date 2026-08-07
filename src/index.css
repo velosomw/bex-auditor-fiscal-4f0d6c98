@@ -158,17 +158,36 @@
 .report-a4-page *, .report-a4-cover * {
   overflow-wrap: break-word;
   word-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
 }
 
 table {
   table-layout: fixed;
   width: 100% !important;
+  border-collapse: collapse;
 }
 
-td, th {
-  word-break: break-word;
-  overflow-wrap: break-word;
+th, td {
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+  font-size: 8.5pt;
+  line-height: 1.4;
+  vertical-align: top;
+  padding: 4pt 6pt;
 }
+
+tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.report-a4-page.landscape {
+  width: 297mm;
+  height: 210mm;
+}
+
 .report-a4-page {
   width: 210mm;
   height: 297mm;
