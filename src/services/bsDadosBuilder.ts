@@ -192,7 +192,7 @@ export interface GroupMappingEntry {
   /** Status do semáforo (1%/3%/>3%). */
   status: GroupMappingStatus;
   /** Campo do BSDadosRow alimentado (ativo_circulante, passivo_circulante, etc.). */
-  campo: keyof BSDadosRow;
+  campo: keyof BSDadosRow | "ignore";
 }
 
 export interface BSDadosRow {
@@ -229,7 +229,8 @@ export interface BSDadosRow {
   fornecedores: number;
   credores_rj: number;
   outras_obrigacoes: number;    // resíduo do PC (Ref JJ)
-  divida_total: number;
+  divida_total: number; // (PC + PNC)
+  ebitda: number;       // EBITDA Certificado
   // Flags
   hasReceita: boolean;
   hasBalanco: boolean;
@@ -302,7 +303,7 @@ function emptyRow(mesKey: string): BSDadosRow {
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
-    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0,
+    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0,
     hasReceita: false, hasBalanco: false, errors: [],
   };
 }
@@ -356,7 +357,7 @@ const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TO
 
 // Chaves que representam AGREGADOS PRINCIPAIS — folhas só devem alimentar
 // estes campos quando o totalizador de grupo NÃO está presente para o mês.
-const MAIN_AGG_KEYS = new Set<keyof BSDadosRow>([
+const MAIN_AGG_KEYS = new Set<(keyof BSDadosRow) | "ignore">([
   "ativo_circulante","ativo_nao_circulante",
   "passivo_circulante","passivo_nao_circulante",
   "patrimonio_liquido",
@@ -372,7 +373,7 @@ type ComponentBuckets = {
   /** Conjunto de códigos GT presentes neste período (ex.: {"11","21","4","6","7"}) */
   groupTotalsPresent: Set<string>;
   /** Diagnóstico — valor declarado pelo GT por campo principal */
-  declared: Partial<Record<keyof BSDadosRow, number>>;
+  declared: Partial<Record<(keyof BSDadosRow) | "ignore", number>>;
   /** Diagnóstico — valor declarado pelo GT por código de grupo (2 dígitos) */
   declaredByGroup: Record<string, number>;
   /** Diagnóstico — soma das folhas (drill-down) por código de grupo */
