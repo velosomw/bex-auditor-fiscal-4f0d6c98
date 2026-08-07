@@ -1564,7 +1564,7 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
 };
 
 /* ── Helper: compute indicators from parsed data (legacy OCR) ── */
-const computeIndicatorsFromBSRows = (parsedData: ParsedFinancialData | null) => {
+const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => {
   if (!parsedData) return {};
   const findValue = (rows: any[], keyword: string, year: string) => {
     const row = rows.find(r => (r.conta || "").toLowerCase().includes(keyword) || (r.descricao || "").toLowerCase().includes(keyword));
