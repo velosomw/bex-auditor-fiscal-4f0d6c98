@@ -95,7 +95,8 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   // ── Patrimônio Líquido ──
   "GG1": "patrimonio_liquido", // Capital Social
   "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
-  "RESULTADO": "resultado",
+  "RESULTADO": "resultado_acumulado", // MD-CUTOVER §18: separação explícita
+  "RESULTADO_MES": "resultado_competencia",
   // ── Totais de grupo (autoritativos quando linha-totalizadora existe) ──
   "AC_TOTAL":  "ativo_circulante",
   "ANC_TOTAL": "ativo_nao_circulante",
@@ -218,6 +219,8 @@ export interface BSDadosRow {
   depreciacao: number;
   amortizacao: number;
   resultado: number;
+  resultado_acumulado?: number;
+  resultado_competencia?: number;
   // BALANÇO
   ativo_circulante: number;
   ativo_nao_circulante: number;
@@ -328,6 +331,7 @@ function emptyRow(mesKey: string): BSDadosRow {
       despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
       outras_nao_operacionais: "NOT_AVAILABLE", depreciacao: "NOT_AVAILABLE",
       amortizacao: "NOT_AVAILABLE", resultado: "NOT_AVAILABLE",
+      resultado_acumulado: "NOT_AVAILABLE", resultado_competencia: "NOT_AVAILABLE",
       ativo_circulante: "NOT_AVAILABLE", ativo_nao_circulante: "NOT_AVAILABLE",
       realizavel_longo_prazo: "NOT_AVAILABLE", investimentos: "NOT_AVAILABLE",
       intangivel: "NOT_AVAILABLE", estoques: "NOT_AVAILABLE", disponivel: "NOT_AVAILABLE",

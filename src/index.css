@@ -250,11 +250,12 @@ tr {
 .report-page-body {
   flex: 1;
   margin: 0 16mm;
-  /* Footer Safe Zone (MD §57..§59): 18mm do footer + 6mm de folga — nenhum bloco
+  /* Footer Safe Zone (MD §57..§59): 18mm do footer + 8mm de folga — nenhum bloco
      de conteúdo pode terminar sob a barra de rodapé. */
-  padding: 4mm 0 24mm 0;
+  padding: 4mm 0 26mm 0;
   position: relative;
   overflow: hidden;
+  display: block; /* Garante que break-inside funcione */
 }
 
 /* §59 — Content Overflow Gate: cartões e blocos editoriais nunca são cortados

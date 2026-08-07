@@ -298,7 +298,7 @@ export function resolveResidualFacts(
    *              + Tributos sobre o Lucro
    * Nenhum derivado é certificado quando o Resultado base não está certificado. */
   const resultado = Number.isFinite(ctx.resultado as number) ? (ctx.resultado as number) : NaN;
-  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado);
+  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && Math.abs(resultado) > 0.01;
   const lajirAvailable = resultCertified && financial_expenses.status === "AVAILABLE";
   const lajirValue = lajirAvailable
     ? resultado + financial_expenses.analysis_value - financial_revenues.value + income_taxes.value
@@ -308,7 +308,8 @@ export function resolveResidualFacts(
   const ebitdaAvailable = lajirAvailable && daAvailable;
   const ebitdaValue = ebitdaAvailable ? lajirValue + depreciation.value + amortization.value : NaN;
 
-  const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 0;
+  // §42 — Interest Coverage uses certified LAJIR and certified Financial Expenses
+  const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10;
 
   return {
     competency,
@@ -349,6 +350,10 @@ export function resolveResidualFacts(
 
 export type BalanceClosureMode = "RESULT_INCLUDED_IN_EQUITY" | "RESULT_OUTSIDE_EQUITY" | "UNKNOWN";
 
+export function isResultIncluded(mode: BalanceClosureMode): boolean {
+  return mode === "RESULT_INCLUDED_IN_EQUITY";
+}
+
 export interface BalanceClosure {
   mode: BalanceClosureMode;
   ativo_total: number;
@@ -387,17 +392,20 @@ export function detectBalanceClosure(f: {
 }
 
 /**
- * §6/§9/§38 — Pendency Validity Gate.
+ * §45/§46 — Pendency Validity Gate.
  * Invalida pendências legadas cujo fato já está certificado e diferente de zero,
  * e reclassifica diagnósticos internos de pipeline (nunca publicados ao cliente).
  */
 export function filterStalePendencias<T extends Record<string, any>>(
   pendencias: T[] | null | undefined,
-  facts: { receita_liquida?: number; estoques?: number; patrimonio_liquido?: number; resultado_liquido?: number } | null | undefined
+  snapshot: any
 ): T[] {
   if (!pendencias || pendencias.length === 0) return [];
+  if (!snapshot) return pendencias;
+  
+  const facts = snapshot.facts;
   const txt = (p: T) =>
-    `${p.problema ?? ""} ${p.tipo ?? ""} ${p.impacto ?? ""} ${p.recomendacao ?? ""} ${p.fundamentacao ?? ""}`
+    `${p.title ?? ""} ${p.description ?? ""} ${p.problema ?? ""} ${p.tipo ?? ""} ${p.impacto ?? ""} ${p.recomendacao ?? ""} ${p.fundamentacao ?? ""}`
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
   const revenueOk = Number.isFinite(facts?.receita_liquida as number) && (facts?.receita_liquida ?? 0) !== 0;
@@ -418,10 +426,7 @@ export function filterStalePendencias<T extends Record<string, any>>(
 }
 
 /**
- * §3 (Considerações 1) — Percentage Consistency Gate.
- * Recalcula percentuais de concentração citados em pendências narrativas
- * ("X% do Ativo Total") a partir do valor monetário citado e do Ativo Total
- * certificado. O fato monetário é preservado; apenas o percentual é corrigido.
+ * Recalcula as concentrações das pendências com base no snapshot atualizado.
  */
 export function recomputePendencyPercentages<T extends Record<string, any>>(
   pendencias: T[] | null | undefined,

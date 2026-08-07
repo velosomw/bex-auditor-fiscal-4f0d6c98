@@ -88,14 +88,14 @@ const ROLE_SEMANTICS: Record<CanonicalRole, RegExp> = {
   ativo_circulante: /ATIVO\s+CIRCULANTE|CIRCULANTE\s+ATIVO/,
   ativo_nao_circulante: /ATIVO\s+N[AÃ]?O[\s-]*CIRCULANTE/,
   realizavel_longo_prazo: /REALIZ[AÁ]VEL\s+A?\s*LONGO\s+PRAZO/,
-  estoques: /^ESTOQUES?\b|\bESTOQUES\b/,
+  estoques: /^ESTOQUES?\s*(PR[OÓ]PRIOS?)?$|^ESTOQUES\b/i,
   disponivel: /DISPON[IÍ]VEL|CAIXA\s+E\s+EQUIVALENTES/,
   passivo_circulante: /PASSIVO\s+CIRCULANTE/,
   passivo_nao_circulante: /PASSIVO\s+N[AÃ]?O[\s-]*CIRCULANTE|EXIG[IÍ]VEL\s+A?\s*LONGO\s+PRAZO/,
-  patrimonio_liquido: /PATRIM[OÔ]NIO\s+L[IÍ]QUIDO/,
-  receita_liquida: /RECEITA\s+(OPERACIONAL\s+)?L[IÍ]QUIDA/,
-  resultado: /CONTAS?\s+DE\s+RESULTADO|^RESULTADO$|RESULTADO\s+DO\s+(EXERC[IÍ]CIO|PER[IÍ]ODO)/,
-  fornecedores: /^FORNECEDORES?\b/,
+  patrimonio_liquido: /PATRIM[OÔ]NIO\s+L[IÍ]QUIDO|^CAPITAL\s+SOCIAL$/i,
+  receita_liquida: /RECEITA\s+(OPERACIONAL\s+)?L[IÍ]QUIDA|RECEITA\s+L[IÍ]QUIDA\s+DE\s+VENDAS/i,
+  resultado: /CONTAS?\s+DE\s+RESULTADO|^RESULTADO$|RESULTADO\s+DO\s+(EXERC[IÍ]CIO|PER[IÍ]ODO)|^APURA[CÇ][AÃ]O\s+DO\s+RESULTADO/i,
+  fornecedores: /^FORNECEDORES?\b/i,
 };
 
 /** Códigos canônicos aceitos por role (já normalizados), em ordem de prioridade. */
@@ -104,14 +104,14 @@ const ROLE_CODES: Record<CanonicalRole, string[]> = {
   ativo_circulante: ["1.1"],
   ativo_nao_circulante: ["1.2"],
   realizavel_longo_prazo: ["1.2.1"],
-  estoques: ["1.1.3"],
+  estoques: ["1.1.2"], // Corrigido de 1.1.3 para 1.1.2 conforme Golden 02
   disponivel: ["1.1.1"],
   passivo_circulante: ["2.1"],
   passivo_nao_circulante: ["2.2"],
-  patrimonio_liquido: ["2.3", "2.4"],
+  patrimonio_liquido: ["2.4"], // Corrigido de 2.3 para 2.4 (Capital em 2.4 no Golden 02)
   receita_liquida: ["3.1"],
   resultado: ["3"],
-  fornecedores: ["2.1.1"],
+  fornecedores: ["2.1.2"], // Corrigido de 2.1.1 para 2.1.2 conforme Golden 02
 };
 
 /** Prefixo obrigatório para candidatos textuais (evita roubo entre ativo/passivo). */
@@ -188,7 +188,7 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
    * Estoques de Terceiros líquidos de redutoras). Nestes casos soma-se apenas
    * os grupos topo (nunca descendentes), preservando o sinal das redutoras.
    */
-  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["estoques", "disponivel", "fornecedores"]);
+  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["estoques", "disponivel", "fornecedores", "patrimonio_liquido"]);
 
   const topmost = (list: AccountNode[]) =>
     list.filter(n => !list.some(o => o !== n && n.normalized_code.startsWith(o.normalized_code + ".")));
