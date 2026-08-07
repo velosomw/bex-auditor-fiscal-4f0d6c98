@@ -366,8 +366,10 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "1": "ativo_total" as any,
   "1.1": "ativo_circulante",
   "1.01": "ativo_circulante",
+  "1.1.03": "estoques", // MD-BEX-RUNTIME-CONSUMER: Requirement 13
   "1.2": "ativo_nao_circulante",
   "1.02": "ativo_nao_circulante",
+  "1.2.01": "realizavel_longo_prazo",
   "2": "passivo_total" as any,
   "2.1": "passivo_circulante",
   "2.01": "passivo_circulante",
@@ -375,7 +377,7 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "2.02": "passivo_nao_circulante",
   "2.3": "patrimonio_liquido",
   "2.03": "patrimonio_liquido",
-  "3": "receita_liquida",
+  "3": "periodo_result" as any, // MD-BEX-RUNTIME-CONSUMER: Requirement 13
   "3.1": "receita_liquida",
   "3.01": "receita_liquida",
   "4": "cmv",
