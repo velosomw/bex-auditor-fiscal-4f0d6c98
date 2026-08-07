@@ -29,6 +29,8 @@ import {
   type CanonicalRole,
   type IntegrityGateResult,
 } from "@/services/p1SyntheticResolver";
+import { resolveResidualFacts, type ResidualFacts } from "@/services/residualFactsResolver";
+
 
 
 // Mapeamento Ref 1 (Ref Capital BEX) → chave canônica BS & Dados.
