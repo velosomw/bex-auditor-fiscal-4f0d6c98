@@ -3850,7 +3850,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
         : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
 
-      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin, lajir, caixa, kanitzAplicavel });
+      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin, lajir, caixa, kanitzAplicavel, ebitda: 0 });
     }
     if (kanitzResults.length > 0) {
       const fiValues = kanitzResults.map(r => r.fi);
