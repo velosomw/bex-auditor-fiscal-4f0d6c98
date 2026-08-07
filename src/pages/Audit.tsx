@@ -2521,7 +2521,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[] }) => {
+export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs, company }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const reportContainerRef = useRef<HTMLDivElement>(null);
@@ -5190,7 +5190,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             </div>
           )}
           {reportType === "bex" ? (
-            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} />
           ) : reportType === "kanitz" ? (
             <TabRelatorioKanitz onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
           ) : (
