@@ -2501,7 +2501,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const hasBexScore = false; 
   const scoreColor = "text-slate-400";
-  const scoreColor = "text-slate-400";
   const scoreBg = "bg-slate-100 border-slate-200";
   const scoreLabel = "Score Desativado";
   const riskIcon = "📋";
