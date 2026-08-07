@@ -53,6 +53,16 @@ const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
 const fmtPct = (n: number) => `${((n ?? 0) * 100).toFixed(1)}%`;
 const fmtDays = (n: number) => `${Math.round(n)} dias`;
 
+const fmtMonthCompact = (mesKey: string) => {
+  if (!mesKey) return "";
+  const parts = mesKey.split("-");
+  if (parts.length < 2) return mesKey;
+  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const mIdx = parseInt(parts[1], 10) - 1;
+  return `${months[mIdx] || parts[1]}/${parts[0].slice(-2)}`;
+};
+
+
 /** Padroniza nomes de arquivos baixados/impressos da plataforma (sempre "BEx_..."). */
 import { bexFileName } from "@/lib/bexFileName";
 
@@ -2335,8 +2345,8 @@ const reportTopicsKanitz = [
 ];
 
 /* ── Shared A4 Report Page Wrapper ── */
-const ReportPage = ({ children }: { children: React.ReactNode }) => (
-  <div className="report-a4-page" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
+const ReportPage = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+  <div className={`report-a4-page ${className}`} style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
     <div className="report-page-header">
       <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
     </div>
@@ -2826,28 +2836,28 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">3.1 Tabela de Pendências</h3>
             <div className="overflow-x-auto">
-              <Table>
+              <Table style={{ tableLayout: 'fixed', width: '100%' }}>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-[10px]">ID</TableHead>
-                    <TableHead className="text-[10px]">Tipo</TableHead>
-                    <TableHead className="text-[10px]">Conta</TableHead>
-                    <TableHead className="text-[10px]">Descrição</TableHead>
-                    <TableHead className="text-[10px]">Gravidade</TableHead>
-                    <TableHead className="text-[10px]">Impacto</TableHead>
-                    <TableHead className="text-[10px]">Recomendação</TableHead>
+                    <TableHead style={{ width: '5%' }} className="text-[10px] px-1">ID</TableHead>
+                    <TableHead style={{ width: '11%' }} className="text-[10px] px-1">Tipo</TableHead>
+                    <TableHead style={{ width: '15%' }} className="text-[10px] px-1">Conta</TableHead>
+                    <TableHead style={{ width: '27%' }} className="text-[10px] px-1">Descrição</TableHead>
+                    <TableHead style={{ width: '10%' }} className="text-[10px] px-1 text-center">Gravidade</TableHead>
+                    <TableHead style={{ width: '15%' }} className="text-[10px] px-1">Impacto</TableHead>
+                    <TableHead style={{ width: '17%' }} className="text-[10px] px-1">Recomendação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {activePend.map((p: any, i: number) => (
                     <TableRow key={p.id}>
-                      <TableCell className="text-[10px] font-mono">{i + 1}</TableCell>
-                      <TableCell className="text-[10px]">{p.tipo}</TableCell>
-                      <TableCell className="text-[10px] font-mono">{p.conta}</TableCell>
-                      <TableCell className="text-xs max-w-[200px]">{p.problema}</TableCell>
-                      <TableCell><Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge></TableCell>
-                      <TableCell className="text-[10px]">{p.impacto}</TableCell>
-                      <TableCell className="text-[10px] max-w-[180px]">{p.recomendacao}</TableCell>
+                      <TableCell className="text-[10px] font-mono px-1">{i + 1}</TableCell>
+                      <TableCell className="text-[10px] px-1">{p.tipo}</TableCell>
+                      <TableCell className="text-[10px] font-mono px-1 truncate">{p.conta}</TableCell>
+                      <TableCell className="text-[10px] px-1 leading-tight">{p.problema}</TableCell>
+                      <TableCell className="px-1 text-center"><Badge className={`${severityColors[p.gravidade]?.bg} text-[9px] px-1 py-0 h-4`}>{severityColors[p.gravidade]?.label}</Badge></TableCell>
+                      <TableCell className="text-[10px] px-1 leading-tight">{p.impacto}</TableCell>
+                      <TableCell className="text-[10px] px-1 leading-tight">{p.recomendacao}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -3152,250 +3162,69 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       {/* ── 6. BALANÇO PATRIMONIAL ── */}
 
 
-      {(() => {
-        const allRows = parsedData?.balanco || state.balancoRows;
-        // Whitelist de contas analíticas consolidadas (subtopicos em negrito da planilha)
-        const ATIVO_WHITELIST = [
-          "ativo circulante", "ativo nao circulante", "ativo não circulante",
-          "caixa e equivalentes", "disponibilidades", "bens e numerários", "bens e numerarios",
-          "estoques", "contas a receber", "clientes",
-          "outros valores a receber", "valores a recuperar",
-          "realizavel a longo prazo", "realizável a longo prazo",
-          "outros créditos a longo prazo", "outros creditos a longo prazo",
-          "ativo permanente", "imobilizado", "intangivel", "intangível", "investimentos",
-        ];
-        const PASSIVO_WHITELIST = [
-          "passivo circulante", "passivo nao circulante", "passivo não circulante",
-          "fornecedores", "contas a pagar",
-          "salarios e encargos sociais", "salários e encargos sociais",
-          "tributos e contribuições a recolher", "tributos e contribuicoes a recolher",
-          "instituições financeiras", "instituicoes financeiras", "emprestimos e financiamentos", "empréstimos e financiamentos",
-          "outras contas a pagar",
-          "nao circulante - longo prazo", "não circulante - longo prazo",
-          "patrimonio liquido", "patrimônio líquido", "capital social", "lucros ou prejuizos acumulados", "lucros ou prejuízos acumulados",
-        ];
-        const _norm = (s: string) => (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
-        const _inList = (r: any, list: string[]) => {
-          const d = _norm(r?.descricao || "");
-          if (!d) return false;
-          return list.some(w => {
-            const normalizedW = _norm(w);
-            return d === normalizedW || d.startsWith(normalizedW + " ");
-          });
-        };
-        const ativoRows = allRows.filter((r: any) => (r.conta || "").startsWith("1") && (r.isGroup || _inList(r, ATIVO_WHITELIST)));
-        const passivoRows = allRows.filter((r: any) => (r.conta || "").startsWith("2") && (r.isGroup || _inList(r, PASSIVO_WHITELIST)));
-        const maxRows = Math.max(ativoRows.length, passivoRows.length, 1);
+      <ReportPage className={years.length > 6 ? "landscape" : ""}>
+        <div className="space-y-4">
+          <SectionTitle num="6" title="BALANÇO PATRIMONIAL CONSOLIDADO" />
+          <div className="text-center mb-2">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">ESTRUTURA PATRIMONIAL POR GRANDES GRUPOS</h3>
+            <p className="text-[10px] text-muted-foreground mt-1">Série Histórica Consolidada (Valores em R$)</p>
+          </div>
 
-        const isParent = (conta: string) => {
-          const parts = conta.replace(/\./g, "").length;
-          return conta === "1" || conta === "2" || conta === "1.01" || conta === "1.02" || conta === "2.01" || conta === "2.02" || conta === "2.03" || parts <= 3;
-        };
-
-        const getIndent = (conta: string) => {
-          const depth = (conta.match(/\./g) || []).length;
-          return depth > 0 ? `${depth * 12}px` : "0px";
-        };
-
-        // Rows per page: first page has title+header so fewer rows, continuation pages have more
-        const ROWS_FIRST_PAGE = 38;
-        const ROWS_PER_PAGE = 44;
-
-        // Build array of pages with row ranges
-        const pages: Array<{ startIdx: number; endIdx: number; isFirst: boolean }> = [];
-        let cursor = 0;
-        let isFirst = true;
-        while (cursor < maxRows) {
-          const capacity = isFirst ? ROWS_FIRST_PAGE : ROWS_PER_PAGE;
-          const endIdx = Math.min(cursor + capacity, maxRows);
-          pages.push({ startIdx: cursor, endIdx, isFirst });
-          cursor = endIdx;
-          isFirst = false;
-        }
-
-        // Add validations to the last page
-        const validations = [
-          { check: "Ativo = Passivo + PL", status: true, detail: `Ativo Total: R$ ${fmt(ac + anc)} | Passivo + PL: R$ ${fmt(pc + pnc)}` },
-          { check: "Passivo a Descoberto", status: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0, detail: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0 ? "Não identificado — PL positivo" : "IDENTIFICADO — PL negativo" },
-          { check: "PL Negativo", status: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0, detail: (d?._pl ?? d?.patrimonioLiquido ?? 0) > 0 ? `PL positivo: R$ ${fmt(Math.abs(d?._pl ?? d?.patrimonioLiquido ?? 0))}` : "PL NEGATIVO identificado" },
-          { check: "Descasamento Estrutural", status: (ac ?? 0) > (pc ?? 0), detail: "Capital de giro líquido " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
-        ];
-
-        // Check if validations fit on the last page (need ~6 rows worth of space)
-        const lastPage = pages[pages.length - 1];
-        const lastPageRows = lastPage.endIdx - lastPage.startIdx;
-        const lastPageCapacity = lastPage.isFirst ? ROWS_FIRST_PAGE : ROWS_PER_PAGE;
-        const validationsFitOnLastPage = (lastPageCapacity - lastPageRows) >= 8;
-
-        const renderTableHeader = () => (
-          <thead>
-            <tr className="border-b-2 border-border">
-              <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
-              <th className="text-left p-1.5 text-muted-foreground font-semibold">ATIVO</th>
-              {years.map(y => <th key={`a-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
-              <th className="w-[16px]"></th>
-              <th className="text-left p-1.5 text-muted-foreground font-semibold w-[50px]">Conta</th>
-              <th className="text-left p-1.5 text-muted-foreground font-semibold">PASSIVO + PL</th>
-              {years.map(y => <th key={`p-${y}`} className="text-right p-1.5 text-muted-foreground font-semibold w-[100px]">{y}</th>)}
-            </tr>
-          </thead>
-        );
-
-        const renderRows = (startIdx: number, endIdx: number) => (
-          <tbody>
-            {Array.from({ length: endIdx - startIdx }).map((_, i) => {
-              const idx = startIdx + i;
-              const aRow = ativoRows[idx];
-              const pRow = passivoRows[idx];
-              const aParent = aRow && isParent(aRow.conta);
-              const pParent = pRow && isParent(pRow.conta);
-
-              return (
-                <tr key={idx} className="border-b border-border/40 hover:bg-muted/30 break-inside-avoid">
-                  <td className={`p-1.5 font-mono text-muted-foreground ${aParent ? "font-bold" : ""}`}>
-                    {aRow?.conta || ""}
-                  </td>
-                  <td className={`p-1.5 ${aParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: aRow ? `calc(6px + ${getIndent(aRow.conta)})` : "6px" }}>
-                    {aRow?.descricao || ""}
-                  </td>
+          <div className="overflow-x-auto">
+            <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-[10px] w-[180px]">Conta / Grupo</TableHead>
                   {years.map(y => (
-                    <td key={`a-${y}-${idx}`} className={`p-1.5 text-right font-mono ${aParent ? "font-bold text-foreground" : "text-foreground"}`}>
-                      {aRow ? fmt(aRow.values[y] || 0) : ""}
-                    </td>
+                    <TableHead key={y} className="text-right text-[10px] px-1">{fmtMonthCompact(y)}</TableHead>
                   ))}
-                  <td className="bg-border/20"></td>
-                  <td className={`p-1.5 font-mono text-muted-foreground ${pParent ? "font-bold" : ""}`}>
-                    {pRow?.conta || ""}
-                  </td>
-                  <td className={`p-1.5 ${pParent ? "font-bold text-foreground" : "text-foreground"}`} style={{ paddingLeft: pRow ? `calc(6px + ${getIndent(pRow.conta)})` : "6px" }}>
-                    {pRow?.descricao || ""}
-                  </td>
-                  {years.map(y => (
-                    <td key={`p-${y}-${idx}`} className={`p-1.5 text-right font-mono ${pParent ? "font-bold text-foreground" : "text-foreground"}`}>
-                      {pRow ? fmt(pRow.values[y] || 0) : ""}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        );
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[
+                  { label: "Ativo Circulante", key: "_ac" },
+                  { label: "Ativo Não Circulante", key: "_anc" },
+                  { label: "Passivo Circulante", key: "_pc" },
+                  { label: "Passivo Não Circulante", key: "_pnc" },
+                  { label: "Patrimônio Líquido", key: "_pl" },
+                  { label: "Resultado do Período", key: "_resultado" },
+                ].map((row, idx) => (
+                  <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
+                    <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
+                    {years.map(y => (
+                      <TableCell key={y} className="text-right text-xs font-mono py-2">
+                        {fmt(computedInd[y]?.[row.key as keyof typeof latestInd] as number || 0)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-        const renderValidations = () => (
           <div className="mt-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Validações</h3>
-            <div className="space-y-2">
-              {validations.map(v => (
-                <div key={v.check} className={`flex items-center justify-between p-3 rounded-lg ${v.status ? "bg-emerald-500/5 border border-emerald-500/20" : "bg-red-500/5 border border-red-500/20"}`}>
+            <h3 className="text-sm font-semibold text-foreground mb-2">Validações de Integridade</h3>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {[
+                { check: "Ativo = Passivo + PL", status: Math.abs((ac + anc) - (pc + pnc + (d?._pl || 0))) < 100, detail: `Equilíbrio Patrimonial mantido` },
+                { check: "Passivo a Descoberto", status: (d?._pl ?? 0) > 0, detail: (d?._pl ?? 0) > 0 ? "Patrimônio Líquido Positivo" : "IDENTIFICADO — PL negativo" },
+                { check: "Capital de Giro Líquido", status: (ac ?? 0) > (pc ?? 0), detail: "CGL " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
+                { check: "Solvência Geral", status: ((ac + anc) / (pc + pnc || 1)) >= 1, detail: "Capacidade de cobertura total" },
+              ].map(v => (
+                <div key={v.check} className={`flex items-center justify-between p-3 rounded-lg border ${v.status ? "bg-emerald-500/5 border-emerald-500/20" : "bg-red-500/5 border-red-500/20"}`}>
                   <div className="flex items-center gap-2">
                     {v.status ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertTriangle className="w-4 h-4 text-red-500" />}
-                    <span className="text-xs font-medium text-foreground">{v.check}</span>
+                    <span className="text-[11px] font-medium text-foreground">{v.check}</span>
                   </div>
                   <span className="text-[10px] text-muted-foreground">{v.detail}</span>
                 </div>
               ))}
             </div>
           </div>
-        );
-
-        return (
-          <>
-            {pages.map((page, pageIdx) => (
-              <ReportPage key={`bp-page-${pageIdx}`}>
-                <div className="space-y-2">
-                  {page.isFirst ? (
-                    <>
-                      <SectionTitle num="6" title="BALANÇO PATRIMONIAL" />
-                      <div className="text-center mb-2">
-                        <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">DEMONSTRATIVOS FINANCEIROS CONSOLIDADOS</h3>
-                        <p className="text-[10px] text-muted-foreground mt-1">Balanço Patrimonial</p>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">6. Balanço Patrimonial — continuação ({pageIdx + 1}/{pages.length})</p>
-                    </div>
-                  )}
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[10px] border-collapse">
-                      {renderTableHeader()}
-                      {renderRows(page.startIdx, page.endIdx)}
-                    </table>
-                  </div>
-
-                  {/* Render validations on last page if they fit, otherwise they go on a separate page */}
-                  {pageIdx === pages.length - 1 && validationsFitOnLastPage && renderValidations()}
-                </div>
-              </ReportPage>
-            ))}
-
-            {/* Separate page for validations if they don't fit */}
-            {!validationsFitOnLastPage && (
-              <ReportPage>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">6. Balanço Patrimonial — Validações</p>
-                  </div>
-                  {renderValidations()}
-                </div>
-              </ReportPage>
-            )}
-          </>
-        );
-      })()}
-
-      {/* ── SCORE FINAL ── */}
-      <ReportPage>
-        <div className="space-y-4">
-          <SectionTitle num="★" title="CLASSIFICAÇÃO FINAL — SCORE BEX DE SOLVÊNCIA" />
-          
-          <div className="text-center py-6">
-            <p className={`text-6xl font-bold ${scoreColor}`}>{activeScore.score}</p>
-            <p className={`text-xl font-semibold mt-2 ${scoreColor}`}>{scoreLabel}</p>
-            <p className="text-xs text-muted-foreground mt-1">Score BEX de Solvência — de 100 pontos</p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-3">
-            {(activeScore.componentes || []).map((c: any) => (
-              <div key={c.nome} className="p-3 rounded-lg bg-muted/20 space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="font-medium text-foreground">{c.nome} ({(c.peso * 100)}%)</span>
-                  <span className="font-mono font-bold">{c.valor}/100</span>
-                </div>
-                <Progress value={c.valor} className="h-1.5" />
-                <p className="text-[10px] text-muted-foreground">{c.nota}</p>
-              </div>
-            ))}
-          </div>
-
-          <code className="block bg-muted/50 p-4 rounded-lg text-[11px] font-mono leading-relaxed">
-            Score Solvência ={"\n"}
-            {"  "}(Liquidez × 0.25) +{"\n"}
-            {"  "}(Endividamento × 0.25) +{"\n"}
-            {"  "}(PL × 0.20) +{"\n"}
-            {"  "}(Geração Caixa × 0.15) +{"\n"}
-            {"  "}(Pressão CP × 0.15)
-          </code>
-
-          <div className="space-y-2">
-            {[
-              { range: "0 – 30", label: "Saudável", color: "bg-emerald-500/10 text-emerald-600", active: activeScore.score <= 30 },
-              { range: "31 – 60", label: "Atenção", color: "bg-yellow-500/10 text-yellow-600", active: activeScore.score > 30 && activeScore.score <= 60 },
-              { range: "61 – 80", label: "Alto Risco", color: "bg-orange-500/10 text-orange-600", active: activeScore.score > 60 && activeScore.score <= 80 },
-              { range: "81 – 100", label: "Risco Estrutural", color: "bg-red-500/10 text-red-600", active: activeScore.score > 80 },
-            ].map(item => (
-              <div key={item.range} className={`flex items-center justify-between p-3 rounded-lg bg-muted/20 ${item.active ? "ring-2 ring-accent" : ""}`}>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-mono font-bold px-2 py-1 rounded ${item.color}`}>{item.range}</span>
-                  <span className="text-sm font-medium text-foreground">{item.label}</span>
-                </div>
-                {item.active && <CheckCircle2 className="w-4 h-4 text-accent" />}
-              </div>
-            ))}
-          </div>
         </div>
       </ReportPage>
+
+
 
       {/* ── 7. RELATÓRIO KANITZ — CAPA ── */}
       {latestKanitz && (
@@ -3505,100 +3334,87 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm font-bold">8</div>
               <h2 className="text-lg font-bold text-foreground font-serif">MEMÓRIA DE CÁLCULO</h2>
             </div>
-            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mb-4">
-              <p className="text-xs font-semibold text-foreground mb-2">Fórmula do Fator de Insolvência:</p>
-              <code className="block text-[11px] font-mono leading-relaxed text-foreground">
-                Z = 0,05×X1 + 1,65×X2 + 3,55×X3 − 1,06×X4 − 0,33×X5
-              </code>
-              <div className="mt-2 text-[10px] text-muted-foreground space-y-0.5">
-                <p>X1 = Lucro Líquido / Patrimônio Líquido (RPL)</p>
-                <p>X2 = (Ativo Circulante + Realizável LP) / (Passivo Circulante + Exigível LP) (LG)</p>
-                <p>X3 = (Ativo Circulante − Estoques) / Passivo Circulante (LS)</p>
-                <p>X4 = Passivo Total / Patrimônio Líquido (GE)</p>
-                <p>X5 = Passivo Circulante / Passivo Total</p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-[10px]">Componente</TableHead>
-                    <TableHead className="text-[10px]">Peso</TableHead>
-                    {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year} (Valor)</TableHead>)}
-                    {kanitzResults.map(r => <TableHead key={`w-${r.year}`} className="text-right text-[10px]">{r.year} (Ponderado)</TableHead>)}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[
-                    { name: "RPL (X1)", peso: 0.05, key: "rpl" as const },
-                    { name: "LG (X2)", peso: 1.65, key: "lg" as const },
-                    { name: "LS (X3)", peso: 3.55, key: "ls" as const },
-                    { name: "LC (X4)", peso: -1.06, key: "lc" as const },
-                    { name: "GE (X5)", peso: -0.33, key: "ge" as const },
-                  ].map(c => (
-                    <TableRow key={c.name}>
-                      <TableCell className="text-xs font-mono font-bold">{c.name}</TableCell>
-                      <TableCell className="text-xs font-mono">{c.peso > 0 ? `+${c.peso}` : c.peso}</TableCell>
-                      {kanitzResults.map(r => (
-                        <TableCell key={r.year} className="text-right text-xs font-mono">{fmtKDec(r[c.key])}</TableCell>
-                      ))}
-                      {kanitzResults.map(r => (
-                        <TableCell key={`w-${r.year}`} className="text-right text-xs font-mono font-bold">{(c.peso * (r[c.key] ?? 0)).toFixed(4)}</TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                  <TableRow className="border-t-2 border-foreground/20">
-                    <TableCell className="text-xs font-bold" colSpan={2}>FATOR DE INSOLVÊNCIA (FI)</TableCell>
-                    {kanitzResults.map(r => <TableCell key={r.year} className="text-right" />)}
-                    {kanitzResults.map(r => (
-                      <TableCell key={`fi-${r.year}`} className={`text-right text-sm font-bold font-mono ${kanitzClassColors[r.classificacao]?.color}`}>{(r.fi ?? 0).toFixed(2)}</TableCell>
-                    ))}
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">8.1 Dados Utilizados</h3>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-[10px]">Variável</TableHead>
-                      {kanitzResults.map(r => <TableHead key={r.year} className="text-right text-[10px]">{r.year}</TableHead>)}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[
-                      { label: "Ativo Circulante", key: "ac" }, { label: "Ativo Não Circulante", key: "anc" },
-                      { label: "Realizável a LP", key: "rlp" }, { label: "Estoques", key: "estoque" },
-                      { label: "Passivo Circulante", key: "pc" }, { label: "Passivo Não Circulante", key: "pnc" },
-                      { label: "Passivo Total", key: "pt" }, { label: "Patrimônio Líquido", key: "pl" },
-                      { label: "Lucro Líquido", key: "ll" }, { label: "Receita Líquida", key: "rl" },
-                    ].map(v => (
-                      <TableRow key={v.label}>
-                        <TableCell className="text-xs font-medium">{v.label}</TableCell>
-                        {kanitzResults.map(r => (
-                          <TableCell key={r.year} className="text-right text-xs font-mono">R$ {fmt((r as any)[v.key])}</TableCell>
-                        ))}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Tabela A — Fórmulas e Pesos</h3>
+                <div className="overflow-x-auto">
+                  <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-[10px] w-[120px]">Componente</TableHead>
+                        <TableHead className="text-[10px] w-[200px]">Fórmula</TableHead>
+                        <TableHead className="text-right text-[10px]">Peso</TableHead>
+                        <TableHead className="text-[10px] pl-4">Significado</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        { name: "RPL (X1)", formula: "Lucro Líquido / Patrimônio Líquido", peso: "+0,05", desc: "Rentabilidade do PL" },
+                        { name: "LG (X2)", formula: "(AC + RLP) / (PC + PNC)", peso: "+1,65", desc: "Solvência de Longo Prazo" },
+                        { name: "LS (X3)", formula: "(AC - Estoques) / PC", peso: "+3,55", desc: "Liquidez Sem Estoques" },
+                        { name: "LC (X4)", formula: "Ativo Circulante / Passivo Circulante", peso: "-1,06", desc: "Capacidade de Pagamento" },
+                        { name: "GE (X5)", formula: "Passivo Total / Patrimônio Líquido", peso: "-0,33", desc: "Grau de Endividamento" },
+                      ].map((item) => (
+                        <TableRow key={item.name}>
+                          <TableCell className="text-xs font-bold">{item.name}</TableCell>
+                          <TableCell className="text-[10px] font-mono text-muted-foreground">{item.formula}</TableCell>
+                          <TableCell className="text-right text-xs font-mono font-bold">{item.peso}</TableCell>
+                          <TableCell className="text-[10px] text-muted-foreground pl-4">{item.desc}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Tabela B — Série Histórica Kanitz (Ponderada)</h3>
+                <div className="overflow-x-auto">
+                  <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-[10px] w-[80px]">Mês/Ano</TableHead>
+                        <TableHead className="text-right text-[10px]">RPL</TableHead>
+                        <TableHead className="text-right text-[10px]">LG</TableHead>
+                        <TableHead className="text-right text-[10px]">LS</TableHead>
+                        <TableHead className="text-right text-[10px]">LC</TableHead>
+                        <TableHead className="text-right text-[10px]">GE</TableHead>
+                        <TableHead className="text-right text-[10px] font-bold text-foreground">FI (Z)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {kanitzResults.map((r) => (
+                        <TableRow key={r.year}>
+                          <TableCell className="text-[10px] font-semibold">{fmtMonthCompact(r.year)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.rpl)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.lg)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.ls)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.lc)}</TableCell>
+                          <TableCell className="text-right text-[10px] font-mono">{fmtKDec(r.ge)}</TableCell>
+                          <TableCell className={`text-right text-[11px] font-mono font-bold ${kanitzClassColors[r.classificacao]?.color}`}>
+                            {(r.fi ?? 0).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="mt-4 p-3 rounded bg-muted/20 border border-border/50">
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    <strong>Nota:</strong> O Fator de Insolvência (FI) é o resultado da soma ponderada dos indicadores. Valores de FI acima de 0 indicam solvência, entre 0 e -3 zona de penumbra, e abaixo de -3 insolvência crítica.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </ReportPage>
       )}
 
-      {/* ── 9. CONCLUSÃO (apenas Completo) ── */}
+      {/* ── 9. CONCLUSÃO ── */}
       {variant === "completo" && (
         <ReportPage>
           <div className="space-y-4">
-            <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)] text-white flex items-center justify-center text-sm font-bold">9</div>
-              <h2 className="text-lg font-bold text-foreground font-serif">CONCLUSÃO TÉCNICA</h2>
-            </div>
+            <SectionTitle num="9" title="CONCLUSÃO TÉCNICA" />
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
               <p className="text-sm text-foreground leading-relaxed">
                 {aiAnalysis?.diagnostico?.resumo || "A análise das demonstrações contábeis evidencia a estrutura financeira da empresa no período analisado, com base nos dados do balancete processado."}
@@ -3653,13 +3469,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </button>
           </div>
         </div>
-        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-kanitz-container', 'Relatório Kanitz')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
           <Download className="w-4 h-4" /> Exportar PDF
         </Button>
-        <Button variant="outline" className="gap-1.5 hidden" onClick={() => exportDocx('report-kanitz-container', 'Relatório Kanitz')}>
-          <FileText className="w-4 h-4" /> Exportar .doc
-        </Button>
-        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-kanitz-container', 'Relatório Kanitz')}>
+        <Button variant="outline" className="gap-1.5" onClick={() => printReport('report-bex-container', 'Relatório BEX')}>
           <Printer className="w-4 h-4" /> Imprimir
         </Button>
         <Button variant="outline" onClick={onBack} className="gap-1.5">
@@ -3669,6 +3482,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     </div>
   );
 };
+
 
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO KANITZ EXPANDIDO v2.0
