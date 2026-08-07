@@ -2635,7 +2635,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
   const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
-  const activePend = aiAnalysis?.pendencias || pendencias;
+  /* MD-FINAL-RESIDUAL-001 §6..§9/§38 — Pendency Validity Gate: pendências legadas cujo
+     fato já está certificado no snapshot são invalidadas antes da publicação. */
+  const activePend = filterStalePendencias(aiAnalysis?.pendencias || pendencias, snapshot?.facts);
 
   const hasBexScore = false; 
   const scoreColor = "text-slate-400";
@@ -2790,9 +2792,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
 
           <div className="mt-10 space-y-1.5 text-sm text-muted-foreground">
-            <p className="font-semibold text-foreground text-base">Empresa Analisada: {company?.name || "Empresa Demonstração S.A."}</p>
-            <p>CNPJ: {company?.cnpj || "12.345.678/0001-90"}</p>
-            <p>Data-base do Balancete: {latestYear || "31/12/2023"}</p>
+            <p className="font-semibold text-foreground text-base">Empresa Analisada: {company?.name || "Não identificada no balancete"}</p>
+            <p>CNPJ: {company?.cnpj || "Não identificado no balancete"}</p>
+            <p>Data-base do Balancete: {activeYear || latestYear || "Não identificada no balancete"}</p>
+            <p>Arquivo de Origem: {snapshot?.source_file_name || uploadedFiles?.[0]?.name || sourceDocs?.[0]?.fileName || "Não identificado"}</p>
             <p>Data de Emissão: {today}</p>
           </div>
 
@@ -4670,7 +4673,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
 
   // Use AI data if available, otherwise fall back to mock data
   const activeDiagnostico = aiAnalysis?.diagnostico || diagnosticoData;
-  const activePendencias = aiAnalysis?.pendencias || pendencias;
+  const activePendencias = filterStalePendencias(aiAnalysis?.pendencias || pendencias, reportDataset?.facts);
   const activeScoreRJ = aiAnalysis?.scoreRJ || scoreRJData;
 
   const bsRows = useMemo(() => {
