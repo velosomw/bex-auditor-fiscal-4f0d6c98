@@ -1617,7 +1617,7 @@ const computeIndicatorsFromBSRows = (rows: any[]) => {
   if (!rows || rows.length === 0) return {};
   const result: Record<string, any> = {};
   for (const r of rows) {
-    const ind = _computeIndicatorRow(r);
+    const ind = computeIndicatorsForRow(r);
     result[r.mesKey] = {
       liquidezCorrente: ind.liquidezCorrente,
       liquidezSeca: ind.liquidezSeca,
@@ -2566,36 +2566,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     };
   }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
 
-
+  const activeYear = reportDataset?.competency || "";
+  const d = reportDataset?.facts;
   
-  const reportDataset: CanonicalReportDataset | null = useMemo(() => {
-    if (!parsedData || !company) return null;
-    const computed = computeIndicatorsFromParsed(parsedData);
-    const years = Object.keys(computed).sort();
-    const latestYear = years[years.length - 1];
-    if (!latestYear) return null;
-    
-    const rows = buildBSDados(parsedData, balanceteEntries || []);
-    const latestRow = rows.find(r => r.mesKey === latestYear);
-    if (!latestRow) return null;
-
-    const traceId = `BEX-RUNTIME-${latestYear.replace("-", "")}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-
-    // MD-BEX-CANONICAL-RUNTIME-BINDING: Create frozen snapshot
-    return {
-      runtime_trace_id: traceId,
-      canonical_snapshot_id: `SNAP-${traceId}`,
-      competency: latestYear,
-      company_id: company.id,
-      generated_at: new Date().toISOString(),
-      facts: latestRow,
-      ratios: computed[latestYear],
-      kanitz: null, // Será preenchido se necessário
-      narratives: {},
-      limitations: latestRow.errors,
-    };
-  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
-
   const computedInd = useMemo(() => computeIndicatorsFromParsed(parsedData || null), [parsedData, computeIndicatorsFromParsed]);
 
   const years = Object.keys(computedInd).sort((a, b) => {
@@ -2604,7 +2577,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return pa.localeCompare(pb);
   });
   const latestYear = years[years.length - 1];
-  const d = latestYear ? computedInd[latestYear] : null;
+  const indForDashboard = latestYear ? computedInd[latestYear] : null;
 
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
   const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
@@ -2616,14 +2589,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const scoreLabel = "Score Desativado";
   const riskIcon = "📋";
 
-  const pc = d?._pc || 0;
-  const pnc = d?._pnc || 0;
-  const ac = d?._ac || 0;
-  const anc = d?._anc || 0;
+  const pc = d?.passivo_circulante || 0;
+  const pnc = d?.passivo_nao_circulante || 0;
+  const ac = d?.ativo_circulante || 0;
+  const anc = d?.ativo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
 
-  const caixa = d?._caixa || 0;
-  const emprestimos = d?._pt || 0; // Temporário para evitar quebra de compilação enquanto migramos
+  const caixa = d?.disponivel || 0;
+  const emprestimos = d?.divida_financeira || 0;
+
 
   const dividaOnerosa = emprestimos;
   const fornec = d?._fornecedores || 0;
