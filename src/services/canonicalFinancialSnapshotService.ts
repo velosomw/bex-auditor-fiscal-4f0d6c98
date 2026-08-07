@@ -108,8 +108,10 @@ function factsFromRow(r: BSDadosRow): CanonicalFacts {
   return {
     ativo_circulante: ac,
     ativo_nao_circulante: anc,
-    ativo_total: ac + anc,
+    // MD-P1-001: Ativo Total autoritativo (conta sintética "1") quando disponível.
+    ativo_total: Number.isFinite(r.ativo_total as number) ? (r.ativo_total as number) : ac + anc,
     realizavel_longo_prazo: r.realizavel_longo_prazo,
+
     estoques: r.estoques,
     disponivel: r.disponivel,
     passivo_circulante: pc,
