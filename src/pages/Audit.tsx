@@ -4235,12 +4235,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               {[
                 { label: "Pressão de Caixa (PC/PT)", value: l.pt > 0 ? (l.pc / l.pt) * 100 : 0, desc: `% do passivo vencendo em até 12 meses — ${fmt(l.pc)} / ${fmt(l.pt)}`, alert: l.pt > 0 && l.pc / l.pt > 0.5, suffix: "%" },
                 { label: "Fornecedores / PC", value: l.pc > 0 ? (l.fornecedores / l.pc) * 100 : 0, desc: `Concentração em fornecedores — ${fmt(l.fornecedores)} / ${fmt(l.pc)}`, alert: false, suffix: "%" },
-                { label: "Passivo / EBITDA", value: ebitda > 0 ? l.pt / ebitda : 0, desc: `Anos para quitar passivo total com EBITDA — ${fmt(l.pt)} / ${fmt(ebitda)}`, alert: ebitda > 0 && l.pt / ebitda > 5, suffix: "x" },
+                { label: "Passivo / EBITDA", value: Number.isFinite(ebitda) && ebitda > 0 ? l.pt / ebitda : NaN, desc: `Anos para quitar passivo total com EBITDA — ${fmt(l.pt)} / ${fmt(ebitda)}`, alert: Number.isFinite(ebitda) && ebitda > 0 && l.pt / ebitda > 5, suffix: "x" },
               ].map(item => (
                 <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"}`}>
                   <div className="flex justify-between text-[10px]">
                     <span className="font-medium text-foreground">{item.label}</span>
-                    <span className="font-mono font-bold">{(item.value ?? 0).toFixed(item.suffix === "x" ? 2 : 1)}{item.suffix}</span>
+                    <span className="font-mono font-bold">{!Number.isFinite(item.value as number) ? "N/A" : `${(item.value as number).toFixed(item.suffix === "x" ? 2 : 1)}${item.suffix}`}</span>
                   </div>
                   <p className="text-[9px] text-muted-foreground">{item.desc}</p>
                 </div>
