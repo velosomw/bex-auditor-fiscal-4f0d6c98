@@ -47,6 +47,7 @@ import { getFileFormat as getFormat } from "@/services/auditAIService";
 import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename, extractColumnMonths, reconcileMonthsWithFilename, type MultiMonthParsed } from "@/services/auditMonthDetector";
 import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
+import { buildCertifiedFinancialSnapshot, type CertifiedFinancialSnapshot } from "@/services/canonicalFinancialSnapshotService";
 
 /* ── MD-BEX-CANONICAL-RUNTIME-BINDING Interfaces ── */
 export interface CanonicalReportDataset {
