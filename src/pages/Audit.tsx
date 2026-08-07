@@ -4727,7 +4727,6 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
       narratives: {},
       limitations: latestRow.errors || [],
     };
-    };
   }, [parsedData, company, computeIndicatorsFromParsed, balanceteEntries]);
 
   const persistReport = (variant: "resumido" | "completo") => {
