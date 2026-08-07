@@ -2928,16 +2928,14 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={years.map(y => {
                       const yInd = computedInd[y];
-...
-                    <ComposedChart data={years.map(y => {
-                      const yInd = computedInd[y];
-                      const tributarias = Math.abs(yInd?._tributos || 0);
-                      const trabalhistas = Math.abs(yInd?._trabalhistas || 0);
-                      const emprestimos = Math.abs(yInd?._emprestimos || 0);
-                      const fornecedores = Math.abs(yInd?._fornecedores || 0);
-                      const credoresRJ = Math.abs(yInd?._credoresRJ || 0);
-                      const outras = Math.abs(yInd?._outrasObrig || ((yInd?._pc || 0) + (yInd?._pnc || 0) - tributarias - trabalhistas - emprestimos - fornecedores - credoresRJ)) || 0;
-                      const total = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
+                      return {
+                        name: y,
+                        "LIQUIDEZ IMEDIATA": yInd?.liquidezImediata != null ? parseFloat(((yInd.liquidezImediata) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ CORRENTE": yInd?.liquidezCorrente != null ? parseFloat(((yInd.liquidezCorrente) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ SECA": yInd?.liquidezSeca != null ? parseFloat(((yInd.liquidezSeca) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ GERAL": yInd?.liquidezGeral != null ? parseFloat(((yInd.liquidezGeral) ?? 0).toFixed(2)) : 0,
+                      };
+                    })} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                       return {
                         name: y,
                         "OBRIG. TRIBUTÁRIAS": tributarias / 1000,
