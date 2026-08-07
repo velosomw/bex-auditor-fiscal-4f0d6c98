@@ -22,6 +22,14 @@ import {
   periodToMesKey as _periodToMesKey,
   detectDuplicates,
 } from "@/services/mesNormalizer";
+import {
+  resolveP1Facts,
+  runIntegrityGates,
+  type CertifiedFact,
+  type CanonicalRole,
+  type IntegrityGateResult,
+} from "@/services/p1SyntheticResolver";
+
 
 // Mapeamento Ref 1 (Ref Capital BEX) → chave canônica BS & Dados.
 // Cobertura COMPLETA das 47 referências da aba "BS" do template
