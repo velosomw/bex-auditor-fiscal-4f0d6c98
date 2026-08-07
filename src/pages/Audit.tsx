@@ -2826,10 +2826,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Técnico IA</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">
-                Com base no Balancete de {latestYear}, a empresa apresenta um Ativo Total de R$ {fmt(at)} contra um Passivo Total de R$ {fmt(pt)}. 
+                Com base no Balancete de {latestYear}, a empresa apresenta um Ativo Total de R$ {fmt(at)} contra um Passivo Total (capital de terceiros) de R$ {fmt(pt)}.
                 O Patrimônio Líquido é de R$ {fmt(pl)}. A Receita Líquida do período atingiu R$ {fmt(rl)}, resultando em um {result >= 0 ? "Lucro" : "Prejuízo"} de R$ {fmt(Math.abs(result))}.
-                {activeDiag.resumo}
+                {latestInd ? ` A liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)} e o endividamento total de ${fmtPct(latestInd.endividamentoTotal)} sintetizam a estrutura patrimonial da competência analisada.` : ""}
               </p>
+
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {["CPC 26", "CPC 47", "IFRS 15", "NBC TA 570", "Lei 11.101/2005"].map(n => (
                   <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
