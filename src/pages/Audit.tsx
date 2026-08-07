@@ -1564,58 +1564,14 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
 };
 
 /* ── Helper: compute indicators from parsed data (legacy OCR) ── */
-const computeIndicatorsFromParsed = (parsedData: ParsedFinancialData | null) => {
-  if (!parsedData) return {};
-  const findValue = (rows: any[], keyword: string, year: string) => {
-    const row = rows.find(r => (r.conta || "").toLowerCase().includes(keyword) || (r.descricao || "").toLowerCase().includes(keyword));
-    return row?.values[year] || 0;
-  };
-
-  const result: Record<string, any> = {};
-  for (const year of parsedData.years) {
-    const allRows = [...parsedData.balanco, ...parsedData.dre];
-    const ac = Math.abs(findValue(allRows, "total do ativo circulante", year) || findValue(allRows, "ativo circulante", year));
-    const anc = Math.abs(findValue(allRows, "total do ativo não circulante", year) || findValue(allRows, "ativo nao circulante", year));
-    const pc = Math.abs(findValue(allRows, "total do passivo circulante", year) || findValue(allRows, "passivo circulante", year));
-    const pnc = Math.abs(findValue(allRows, "total do passivo não circulante", year) || findValue(allRows, "passivo nao circulante", year));
-    const pl = findValue(allRows, "total do patrimônio", year) || findValue(allRows, "patrimonio líquido", year) || findValue(allRows, "patrimônio líquido", year);
-    const estoque = Math.abs(findValue(allRows, "estoque", year));
-    const caixa = Math.abs(findValue(allRows, "caixa", year));
-    const receita = Math.abs(findValue(allRows, "receitas líquidas", year) || findValue(allRows, "receita líquida", year));
-    const lucro = findValue(allRows, "resultado do exercício", year) || findValue(allRows, "lucro líquido", year);
-    const resOp = findValue(allRows, "resultado operacional", year) || findValue(allRows, "lucro operacional bruto", year);
-    const despFin = Math.abs(findValue(allRows, "despesas financeiras", year));
-    const imob = Math.abs(findValue(allRows, "imobilizado", year));
-    const contasReceber = Math.abs(findValue(allRows, "contas a receber", year));
-    const fornecedores = Math.abs(findValue(allRows, "fornecedores", year));
-    const cmv = Math.abs(findValue(allRows, "cmv", year) || findValue(allRows, "total dos custos", year));
-    const at = ac + anc || 1;
-    const pt = pc + pnc || 1;
-
-    result[year] = {
-      liquidezCorrente: pc ? ac / pc : 0,
-      liquidezSeca: pc ? (ac - estoque) / pc : 0,
-      liquidezImediata: pc ? caixa / pc : 0,
-      liquidezGeral: pt ? (ac + anc) / pt : 0,
-      endividamentoTotal: at ? pt / at : 0,
-      composicaoEndividamento: pt ? pc / pt : 0,
-      imobilizacaoPL: Math.abs(pl) ? imob / Math.abs(pl) : 0,
-      coberturaJuros: despFin ? (resOp + despFin) / despFin : 0,
-      giroAtivo: at ? receita / at : 0,
-      pmr: receita ? (contasReceber * 360) / receita : 0,
-      pmp: cmv ? (fornecedores * 360) / cmv : 0,
-      idadeMediaEstoque: cmv ? (estoque * 360) / cmv : 0,
-      margemLiquida: receita ? lucro / receita : 0,
-      margemOperacional: receita ? resOp / receita : 0,
-      roa: at ? lucro / at : 0,
-      roe: Math.abs(pl) ? lucro / Math.abs(pl) : 0,
-      _ac: ac, _anc: anc, _pc: pc, _pnc: pnc, _pl: pl, _caixa: caixa,
-      _receita: receita, _lucro: lucro, _resOp: resOp, _despFin: despFin,
-      _imob: imob, _estoque: estoque, _fornecedores: fornecedores, _cmv: cmv,
-      _contasReceber: contasReceber,
-    };
-  }
-  return result;
+/**
+ * CANONICAL SSOT: Converte ParsedFinancialData para a série de indicadores canônicos.
+ * Camada de compatibilidade para relatórios que ainda operam sobre o parser direto.
+ */
+const computeIndicatorsFromParsed = (parsed: ParsedFinancialData | null) => {
+  if (!parsed) return {};
+  const rows = buildBSDados(parsed);
+  return computeIndicatorsFromBSRows(rows);
 };
 
 /* ── Helper: indicators from processed BS rows (SSOT) — delega à engine única ── */
@@ -2536,50 +2492,32 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const today = new Date().toLocaleDateString("pt-BR");
   
   const computedInd = computeIndicatorsFromParsed(parsedData || null);
-  const hasComputed = Object.keys(computedInd).length > 0;
-  const years = hasComputed ? Object.keys(computedInd).sort() : ["2021", "2022", "2023"];
-  const latestYear = years[years.length - 1];
-  const ind = hasComputed ? computedInd : state.financialAnalysis.indicators;
-  const d = hasComputed ? computedInd[latestYear] : state.config.entityData["2023"];
-
+  const years = Object.keys(computedInd).sort((a, b) => {
+    const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
+    const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
   const activeScore = aiAnalysis?.scoreRJ || scoreRJData;
   const activeDiag = aiAnalysis?.diagnostico || diagnosticoData;
   const activePend = aiAnalysis?.pendencias || pendencias;
 
-  const scoreColor = activeScore.score <= 30 ? "text-emerald-600" :
-                     activeScore.score <= 60 ? "text-yellow-600" :
-                     activeScore.score <= 80 ? "text-orange-600" : "text-red-600";
-  const scoreBg = activeScore.score <= 30 ? "bg-emerald-500/10 border-emerald-500/30" :
-                  activeScore.score <= 60 ? "bg-yellow-500/10 border-yellow-500/30" :
-                  activeScore.score <= 80 ? "bg-orange-500/10 border-orange-500/30" : "bg-red-500/10 border-red-500/30";
-  const scoreLabel = activeScore.score <= 30 ? "Saudável" :
-                     activeScore.score <= 60 ? "Atenção" :
-                     activeScore.score <= 80 ? "Alto Risco" : "Risco Estrutural";
+  const hasBexScore = false; 
+  const scoreColor = "text-slate-400";
+  const scoreBg = "bg-slate-100 border-slate-200";
+  const scoreLabel = "Score Desativado";
+  const riskIcon = "📋";
 
-  const riskIcon = activeScore.score <= 30 ? "🟢" :
-                   activeScore.score <= 60 ? "🟡" :
-                   activeScore.score <= 80 ? "🔴" : "⚫";
-
-  // Compute from real data
-  const findAbsValue = (keyword: string) => {
-    if (!parsedData) return 0;
-    const row = parsedData.balanco.find(r => 
-      r.conta.toLowerCase().includes(keyword) || r.descricao.toLowerCase().includes(keyword)
-    );
-    return Math.abs(row?.values[latestYear || ""] || 0);
-  };
-
-  const emprestimos = findAbsValue("empréstimos") || findAbsValue("financiamentos");
-  const pc = d?._pc || d?.passivoCirculante || 0;
-  const pnc = d?._pnc || d?.passivoNaoCirculante || 0;
-  const ac = d?._ac || d?.ativoCirculante || 0;
-  const anc = d?._anc || d?.ativoNaoCirculante || 0;
-  const caixa = d?._caixa || d?.caixaEquivalentes || 0;
-  const dividaOnerosa = emprestimos;
+  const pc = d?._pc || 0;
+  const pnc = d?._pnc || 0;
+  const ac = d?._ac || 0;
+  const anc = d?._anc || 0;
   const ptotal = pc + pnc || 1;
-  const fornec = d?._fornecedores || d?.fornecedores || 0;
 
-  const latestInd = ind[latestYear];
+  const caixa = d?._caixa || 0;
+  const emprestimos = d?._divida_financeira || 0;
+  const dividaOnerosa = emprestimos;
+  const fornec = d?._fornecedores || 0;
+
+  const latestInd = computedInd[latestYear];
+
   const solvencyIndicators = latestInd ? [
     { name: "Liquidez Corrente", result: fmtPct(latestInd.liquidezCorrente), param: "> 1,5", classification: (latestInd.liquidezCorrente ?? 0) > 1.5 ? "Adequada" : (latestInd.liquidezCorrente ?? 0) > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
     { name: "Liquidez Seca", result: fmtPct(latestInd.liquidezSeca), param: "> 1,0", classification: (latestInd.liquidezSeca ?? 0) > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
@@ -2987,10 +2925,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       const yInd = ind[y];
                       return {
                         name: y,
-                        "LIQUIDEZ IMEDIATA": yInd?.liquidezImediata != null ? parseFloat(yInd.liquidezImediata.toFixed(2)) : 0,
-                        "LIQUIDEZ CORRENTE": yInd?.liquidezCorrente != null ? parseFloat(yInd.liquidezCorrente.toFixed(2)) : 0,
-                        "LIQUIDEZ SECA": yInd?.liquidezSeca != null ? parseFloat(yInd.liquidezSeca.toFixed(2)) : 0,
-                        "LIQUIDEZ GERAL": yInd?.liquidezGeral != null ? parseFloat(yInd.liquidezGeral.toFixed(2)) : 0,
+                        "LIQUIDEZ IMEDIATA": yInd?.liquidezImediata != null ? parseFloat(((yInd.liquidezImediata) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ CORRENTE": yInd?.liquidezCorrente != null ? parseFloat(((yInd.liquidezCorrente) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ SECA": yInd?.liquidezSeca != null ? parseFloat(((yInd.liquidezSeca) ?? 0).toFixed(2)) : 0,
+                        "LIQUIDEZ GERAL": yInd?.liquidezGeral != null ? parseFloat(((yInd.liquidezGeral) ?? 0).toFixed(2)) : 0,
                       };
                     })} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -3165,9 +3103,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       const pct = receita > 0 ? (Math.abs(cmvDesp) / receita) * 100 : 0;
                       return {
                         name: y,
-                        "Receita Líquida": parseFloat(receita.toFixed(0)),
-                        "CMV + DESPESA / RECEITA LÍQUIDA": parseFloat(cmvDesp.toFixed(0)),
-                        pct: parseFloat(pct.toFixed(2)),
+                        "Receita Líquida": parseFloat(((receita) ?? 0).toFixed(0)),
+                        "CMV + DESPESA / RECEITA LÍQUIDA": parseFloat(((cmvDesp) ?? 0).toFixed(0)),
+                        pct: parseFloat(((pct) ?? 0).toFixed(2)),
                       };
                     })} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -3590,13 +3528,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 <h3 className="text-sm font-semibold text-foreground mb-3 text-center">TERMÔMETRO DE KANITZ</h3>
                 <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(r.fi.toFixed(2)) }))} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
+                    <LineChart data={kanitzResults.map(r => ({ name: r.year, FI: parseFloat(((r.fi) ?? 0).toFixed(2)) }))} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                       <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} tickFormatter={(v) => v.toFixed(2)} />
-                      <Tooltip formatter={(v: number) => [v.toFixed(2), "Fator de Insolvência"]} />
+                      <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} tickFormatter={(v) => ((v) ?? 0).toFixed(2)} />
+                      <Tooltip formatter={(v: number) => [((v) ?? 0).toFixed(2), "Fator de Insolvência"]} />
                       <Line type="linear" dataKey="FI" stroke="#ed7d31" strokeWidth={2.5} dot={{ r: 4, fill: "#ed7d31" }}>
-                        <LabelList dataKey="FI" position="top" fontSize={10} fill="#ed7d31" formatter={(v: number) => v.toFixed(2)} />
+                        <LabelList dataKey="FI" position="top" fontSize={10} fill="#ed7d31" formatter={(v: number) => ((v) ?? 0).toFixed(2)} />
                       </Line>
                     </LineChart>
                   </ResponsiveContainer>
@@ -3707,7 +3645,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <div className="space-y-4">
             <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
               <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)] text-white flex items-center justify-center text-sm font-bold">9</div>
-              <h2 className="text-lg font-bold text-foreground font-serif">CONCLUSÃO</h2>
+              <h2 className="text-lg font-bold text-foreground font-serif">CONCLUSÃO TÉCNICA</h2>
             </div>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
               <p className="text-sm text-foreground leading-relaxed">
@@ -3717,7 +3655,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 Os indicadores de liquidez {latestInd?.liquidezCorrente && latestInd.liquidezCorrente > 1 ? "apontam capacidade adequada para honrar compromissos de curto prazo" : "indicam fragilidade na capacidade de pagamento de curto prazo"}, {latestInd?.liquidezGeral && latestInd.liquidezGeral < 1 ? "embora a liquidez geral permaneça inferior à unidade, refletindo elevada dependência de capital de terceiros." : "com liquidez geral compatível com a operação."}
               </p>
               <p className="text-sm text-foreground leading-relaxed">
-                {latestKanitz ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${(latestKanitz.fi ?? 0).toFixed(2)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : ""}
+                {latestKanitz && latestKanitz.kanitzAplicavel ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${(latestKanitz.fi ?? 0).toFixed(2)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : "O modelo Kanitz não é aplicável neste período devido ao Patrimônio Líquido nulo ou negativo. Recomenda-se a avaliação via ISG (Índice de Solvência Geral)."}
               </p>
             </div>
           </div>
@@ -3831,9 +3769,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
       const lg = ind.liquidezGeral;
       const ls = ind.liquidezSeca;
       const lc = ind.liquidezCorrente;
-      const ge = kanitzAplicavel ? ind.grauEndividamentoPL : 0;
+      const ge = kanitzAplicavel ? ind.grauEndividamentoPL : (ind._pc + ind._pnc) / (Math.abs(ind._pl) || 1);
       const fi = kanitzAplicavel ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * ge) : 0;
-      const isg = ind._at / (ind._pc + ind._pnc || 1);
+      const isg = (ind._ac + ind._anc) / (ind._pc + ind._pnc || 1);
       const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
         : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
 
@@ -3949,11 +3887,13 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 
   // Simulações (Módulo 9) — aplicadas sobre premissas Kanitz
   const simCompute = (pl2: number, pt2: number, ac2: number, pc2: number, est2: number, rlp2: number, ll2: number) => {
-    const rpl2 = pl2 > 0 ? ll2 / pl2 : 0;
-    const lg2 = pt2 !== 0 ? (ac2 + rlp2) / pt2 : 0;
-    const ls2 = pc2 !== 0 ? (ac2 - est2) / pc2 : 0;
-    const lc2 = pc2 !== 0 ? ac2 / pc2 : 0;
-    const ge2 = pl2 > 0 ? pt2 / pl2 : 0;
+    const kAplic2 = pl2 > 0;
+    if (!kAplic2) return 0;
+    const rpl2 = (ll2 ?? 0) / (pl2 || 1);
+    const lg2 = (ac2 + rlp2) / (pt2 || 1);
+    const ls2 = (ac2 - est2) / (pc2 || 1);
+    const lc2 = ac2 / (pc2 || 1);
+    const ge2 = pt2 / (pl2 || 1);
     return (0.05 * rpl2) + (1.65 * lg2) + (3.55 * ls2) - (1.06 * lc2) - (0.33 * ge2);
   };
   // Cenário 1: Reduzir passivo total em 20% (PC também cai proporcionalmente)
