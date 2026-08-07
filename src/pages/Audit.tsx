@@ -3266,23 +3266,23 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         const allRows = parsedData?.balanco || state.balancoRows;
         // Whitelist de contas analíticas consolidadas (subtopicos em negrito da planilha)
         const ATIVO_WHITELIST = [
-          "ativo circulante",
-          "bens e numerários", "bens e numerarios",
-          "outros valores a receber",
-          "valores a recuperar",
+          "ativo circulante", "ativo nao circulante", "ativo não circulante",
+          "caixa e equivalentes", "disponibilidades", "bens e numerários", "bens e numerarios",
+          "estoques", "contas a receber", "clientes",
+          "outros valores a receber", "valores a recuperar",
+          "realizavel a longo prazo", "realizável a longo prazo",
           "outros créditos a longo prazo", "outros creditos a longo prazo",
-          "ativo permanente",
+          "ativo permanente", "imobilizado", "intangivel", "intangível", "investimentos",
         ];
         const PASSIVO_WHITELIST = [
-          "passivo circulante",
-          "fornecedores",
-          "contas a pagar",
+          "passivo circulante", "passivo nao circulante", "passivo não circulante",
+          "fornecedores", "contas a pagar",
           "salarios e encargos sociais", "salários e encargos sociais",
           "tributos e contribuições a recolher", "tributos e contribuicoes a recolher",
-          "instituições financeiras", "instituicoes financeiras",
+          "instituições financeiras", "instituicoes financeiras", "emprestimos e financiamentos", "empréstimos e financiamentos",
           "outras contas a pagar",
           "nao circulante - longo prazo", "não circulante - longo prazo",
-          "patrimonio liquido", "patrimônio líquido",
+          "patrimonio liquido", "patrimônio líquido", "capital social", "lucros ou prejuizos acumulados", "lucros ou prejuízos acumulados",
         ];
         const _norm = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
         const _inList = (r: any, list: string[]) => {
