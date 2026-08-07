@@ -349,7 +349,7 @@ export const GROUP_TOTAL_CODES = new Set([
   "1","11","12",      // Ativo, AC, ANC
   "2","21","22","23", // Passivo, PC, PNC, PL
   "231", "232",       // Sub-PL
-  "31","32","33",    // Receita bruta, Devoluções, Impostos sobre vendas
+  "3","31","32","33", // Receita bruta, Devoluções, Impostos sobre vendas
   "4","5","6","7","8", // CMV, Custo Industrial, Despesas Op, Desp.Fin, Não Op
 ]);
 
@@ -446,6 +446,7 @@ function applyValue(
   const v = Number(value);
   if (!Number.isFinite(v)) return;
 
+  // MD-BEX-CANONICAL-CRITICAL-FACT-REGISTRY: Semantic Fact Registry
   const isMainAgg = MAIN_AGG_KEYS.has(key);
   const skipMain = isMainAgg && parentGTPresent && !isGroupTotal;
 
@@ -493,14 +494,15 @@ function applyValue(
       case "outras_obrigacoes":
         (target as any)[key] = (target[key] as number) + Math.abs(v); break;
       case "fornecedores": {
-        // MD-001 Point 13: Resolução semântica obrigatória.
-        // Se a conta for Ativo (grupo 1), é "Adiantamento a Fornecedores" (ignora aqui ou move p/ AC).
-        // Somente se for Passivo (grupo 2) é considerado financial.suppliers.
+        // MD-BEX-CANONICAL-CRITICAL-FACT-REGISTRY: Differentiation between suppliers and advances.
+        // Adiantamentos (Ativo) do NOT count as financial.suppliers.current.
+        const descN = toUpperNoAccent(ref1 || "");
         const codePrefix = String(ref1 || "").substring(0, 1);
-        if (codePrefix === "1" || parentGTPresent && buckets.groupTotalsPresent.has("11")) {
-           // É adiantamento (Ativo) -> ignora no passivo exigível "fornecedores"
-        } else {
+        const isAtivo = codePrefix === "1" || (parentGTPresent && buckets.groupTotalsPresent.has("11"));
+        if (!isAtivo) {
            (target as any)[key] = (target[key] as number) + Math.abs(v);
+        } else if (descN.includes("ADIANTAMENTO")) {
+           // FACT 13/14: supplier_advances (ignored in suppliers Passivo)
         }
         break;
       }

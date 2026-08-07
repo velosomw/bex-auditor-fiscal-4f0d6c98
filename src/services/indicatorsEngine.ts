@@ -87,8 +87,11 @@ export interface IndicatorRow {
   naCobertura: boolean;
 }
 
-const div = (n: number, d: number): number =>
-  !Number.isFinite(d) || d === 0 ? 0 : n / d;
+const div = (n: number, d: number): number => {
+  if (!Number.isFinite(n) || isNaN(n)) return 0;
+  if (!Number.isFinite(d) || d === 0 || isNaN(d)) return 0;
+  return n / d;
+};
 
 export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const ac = r.ativo_circulante || 0;
@@ -97,7 +100,10 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const at = ac + anc;
   const pc = r.passivo_circulante || 0;
   const pnc = r.passivo_nao_circulante || 0;
+  
+  // FACT 06: Passivo Total Exigível = PC + PNC
   const pt = pc + pnc;
+  
   const pl = r.patrimonio_liquido || 0;
   const estoque = r.estoques || 0;
   const caixa = r.disponivel || 0;
@@ -136,6 +142,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     // Endividamento
     endividamentoTotal: div(pt, at),
     // Kanitz X5: exibe sinal negativo quando PL é negativo (passivo a descoberto)
+    // Grau de Endividamento (GE) = (PC + PNC) / PL
     grauEndividamentoPL: pl !== 0 ? pt / pl : 0,
     composicaoEndividamento: div(pc, pt),
     composicaoEndividamentoLP: div(pnc, pt),
@@ -152,7 +159,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     margemLiquida: div(resultado, receita),
     margemOperacional: div(lajir, receita),
     roa: div(resultado, at) * 12,
-    roe: pl > 0 ? div(resultado, pl) * 12 : 0,
+    roe: pl !== 0 ? div(resultado, pl) * 12 : 0,
     // EBITDA = Resultado + |DespFin| + |Depreciação| + |Amortização|
     ebitda: lajir + depAbs + amortAbs,
     // Bases
