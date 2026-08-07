@@ -2558,11 +2558,19 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       competency: latestYear,
       company_id: company.id,
       generated_at: new Date().toISOString(),
-      facts: latestRow,
+      facts: {
+        ativo_circulante: latestRow.ativo_circulante || 0,
+        ativo_nao_circulante: latestRow.ativo_nao_circulante || 0,
+        passivo_circulante: latestRow.passivo_circulante || 0,
+        passivo_nao_circulante: latestRow.passivo_nao_circulante || 0,
+        patrimonio_liquido: latestRow.patrimonio_liquido || 0,
+        receita_liquida: latestRow.receita_liquida || 0,
+        resultado_liquido: latestRow.resultado_periodo || 0,
+        estoques: latestRow.estoques || 0,
+        fornecedores: latestRow.fornecedores || 0,
+      },
       ratios: computed[latestYear],
-      kanitz: null,
-      narratives: {},
-      limitations: latestRow.errors,
+      history: computed,
     };
   }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed]);
 
