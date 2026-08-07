@@ -447,7 +447,6 @@ function applyValue(
   if (!Number.isFinite(v)) return;
 
   // MD-BEX-CANONICAL-CRITICAL-FACT-REGISTRY: Semantic Fact Registry
-  const r = { conta: "", descricao: "", ref1: ref1, saldo: value }; // Partial mock for inferSide if needed
   const isMainAgg = MAIN_AGG_KEYS.has(key);
   const skipMain = isMainAgg && parentGTPresent && !isGroupTotal;
 
@@ -498,7 +497,7 @@ function applyValue(
         // MD-BEX-CANONICAL-CRITICAL-FACT-REGISTRY: Differentiation between suppliers and advances.
         // Adiantamentos (Ativo) do NOT count as financial.suppliers.current.
         const descN = toUpperNoAccent(r.descricao || "");
-        const side = inferSide(r.conta, r.ref1, r.descricao);
+        const side = inferSide(r.conta, ref1, r.descricao);
         if (side === "PASSIVO") {
            (target as any)[key] = (target[key] as number) + Math.abs(v);
         } else if (descN.includes("ADIANTAMENTO") && side === "ATIVO") {
