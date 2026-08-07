@@ -30,7 +30,7 @@ import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import { computeIndicatorsForRow as _computeIndicatorRow } from "@/services/indicatorsEngine";
 import PlatformLayout from "@/components/PlatformLayout";
 import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
-import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData } from "@/services/auditAIService";
+import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData, type ConsolidatedFinancialData } from "@/services/auditAIService";
 import TabKanitz from "@/components/audit/TabKanitz";
 import TabGraficosAuditoria from "@/components/audit/TabGraficosAuditoria";
 import TabGraficosParecer from "@/components/audit/TabGraficosParecer";
@@ -172,7 +172,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
       const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       for (let i = 0; i < pages.length; i++) {
         const canvas = await html2canvas(pages[i], {
-          scale: 2, // Aumentado para melhor qualidade
+          scale: 2,
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
@@ -186,7 +186,9 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
           scrollY: 0,
           imageTimeout: 15000,
           onclone: (clonedDoc) => {
-            // Garante que as imagens no clone estejam carregadas
+            // Remove Score BEx (Gate 21) from the exported clone if it exists
+            clonedDoc.querySelectorAll('.score-bex, [class*="score-bex"], .bex-score-display').forEach(n => n.remove());
+            
             const images = clonedDoc.getElementsByTagName('img');
             return Promise.all(Array.from(images).map(img => {
               const imageElement = img as HTMLImageElement;
@@ -1522,14 +1524,14 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
             <CardTitle className="text-base flex items-center gap-2"><Activity className="w-4 h-4 text-accent" /> Diagnóstico Financeiro</CardTitle>
             <Badge className={`${r.bg} border text-xs`}>Diagnóstico Certificado</Badge>
           </div>
-          <CardDescription>Resumo executivo automatizado — Avaliação Empresarial</CardDescription>
+          <CardDescription>Diagnóstico Executivo Certificado — Avaliação Contábil e Financeira</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
             <p className="text-sm text-foreground leading-relaxed">{d.resumo}</p>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-foreground mb-3">Pontos-Chave</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-3">Achados Relevantes e Diagnóstico Executivo</h4>
             <div className="space-y-2">
               {(d.pontosChave || []).map((p: any) => (
                 <div key={p.item} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/30">
@@ -1648,7 +1650,7 @@ const computeIndicatorsFromBSRows = (rows: any[]) => {
 };
 
 /* ── Tab 2: Indicadores Econômico-Financeiros ── */
-const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: ParsedFinancialData | null; aiAnalysis?: any; bsRows?: any[] }) => {
+const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: ParsedFinancialData | ConsolidatedFinancialData | null; aiAnalysis?: any; bsRows?: any[] }) => {
   const { state } = useAudit();
   const computedInd = useMemo(
     () => (bsRows && bsRows.length > 0 ? computeIndicatorsFromBSRows(bsRows) : computeIndicatorsFromParsed(parsedData || null)),

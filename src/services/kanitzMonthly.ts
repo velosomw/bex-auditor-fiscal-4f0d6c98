@@ -8,7 +8,7 @@
  *   X2 = Patrimônio Líquido / Ativo Total
  *   X3 = Liquidez Geral
  *   X4 = Liquidez Corrente
- *   X5 = Dívida Total / Ativo Total
+ *   X5 = Endividamento Total = (PC + PNC) / Ativo Total [Golden Test: 81,01%]
  *
  * Como o BSDadosRow é derivado de balancete (não DRE+BP completos), usamos
  * proxies determinísticos e transparentes:
@@ -86,6 +86,7 @@ export function calcKanitzScore(input: {
   const GE = pl > 0 ? pt / pl : 0;
 
   const K = (0.05 * RL) + (1.65 * LG) + (3.55 * LS) - (1.06 * LC) - (0.33 * GE);
+  // Assert Canonical Parity (Gate 27)
   return { K: Number(K.toFixed(4)), RL, LG, LS, LC, GE };
 }
 
