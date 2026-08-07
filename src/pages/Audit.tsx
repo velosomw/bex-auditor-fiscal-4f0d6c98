@@ -2556,41 +2556,40 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return out;
   }, [balanceteEntries]);
 
+  /* MD-CUTOVER-001 §37 — snapshot materializado por serviço dedicado (sem assembly na UI). */
+  const snapshot = useMemo(
+    () => buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], { companyId: company?.id }),
+    [parsedData, balanceteEntries, company]
+  );
+
+  /* MD-CUTOVER-001 §19/§21 — Kanitz embutido consome o CanonicalKanitzReportModel do snapshot. */
   const kanitzResultsRaw = useMemo(() => {
-    const computed = computeIndicatorsFromParsed(parsedData || null);
     const results: Array<{
       year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
       classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
       ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
       ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
     }> = [];
-
-    Object.keys(computed).sort().forEach(k => {
-      const ind = computed[k];
-      const kAplic = ind._pl > 0;
-      
-      const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * (ind._pt / Math.abs(ind._pl))) : 0;
-      
-      const isgValue = ind._at / (ind._pc + ind._pnc || 1);
-      const classificacao: any = !kAplic ? "na" :
-        fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-
+    if (!snapshot) return results;
+    for (const key of snapshot.competencies) {
+      const cs = snapshot.byCompetency[key];
+      if (!cs) continue;
+      const ind = cs.ratios;
+      const f = cs.facts;
+      const k = cs.kanitz;
       results.push({
-        year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
-        ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
-        ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
-        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin), 
-        despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
+        year: key, rpl: k.rpl, lg: k.lg, ls: k.ls, lc: k.lc, ge: k.ge, fi: k.fi,
+        classificacao: k.classificacao,
+        ac: f.ativo_circulante, anc: f.ativo_nao_circulante, pc: f.passivo_circulante, pnc: f.passivo_nao_circulante,
+        pl: f.patrimonio_liquido, estoque: f.estoques, rlp: f.realizavel_longo_prazo, pt: f.passivo_total,
+        ll: f.resultado_liquido, at: f.ativo_total, rl: f.receita_liquida, ebitda: ind.ebitda,
+        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin),
+        despFin: Math.abs(ind._despFin), kanitzAplicavel: k.applicable, isg: k.isg,
       });
-    });
+    }
     return results;
-  }, [parsedData, computeIndicatorsFromParsed]);
+  }, [snapshot]);
 
-  /* MD-CUTOVER-001 §37 — snapshot materializado por serviço dedicado (sem assembly na UI). */
-  const snapshot = useMemo(
-    () => buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], { companyId: company?.id }),
-    [parsedData, balanceteEntries, company]
-  );
 
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
     if (!snapshot) return null;
