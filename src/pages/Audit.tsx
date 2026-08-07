@@ -3780,9 +3780,10 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const alavancagem = kAplic ? l.at / l.pl : null;
   const participacaoTerceiros = kAplic ? l.pt / l.pl : null;
   // MD-001 Point 29: EBITDA Certificado (Somente se componentes SSOT disponíveis)
-  const ebitda = l.ebitda; 
-  const coberturaJuros = l.despFin !== 0 ? l.lajir / l.despFin : 0;
-  const indiceGeracaoCaixa = l.rl !== 0 ? ebitda / l.rl : 0;
+  const ebitda = l.ebitda;
+  // §35..§41 — cadeia derivada: sem base certificada (LAJIR/Desp.Fin/EBITDA), publica-se NaN → "N/A".
+  const coberturaJuros = Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN;
+  const indiceGeracaoCaixa = Number.isFinite(ebitda) && l.rl !== 0 ? ebitda / l.rl : NaN;
   const margemLiquida = l.rl !== 0 ? l.ll / l.rl : 0;
   const despFinSobreReceita = l.rl !== 0 ? l.despFin / l.rl : 0;
   const estoquesSobreAC = l.ac !== 0 ? l.estoque / l.ac : 0;
@@ -4259,14 +4260,16 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="grid sm:grid-cols-4 gap-3">
             {[
               { label: "EBITDA Certificado", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
-              { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
-              { label: "Índice Geração Caixa", value: l.rl !== 0 ? ebitda / l.rl : 0, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
+              { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: Number.isFinite(coberturaJuros) && coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
+              { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
               { label: "Margem Líquida", value: margemLiquida, format: "pct", alert: margemLiquida < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
                 <p className="text-[10px] text-muted-foreground">{item.label}</p>
                 <p className="text-lg font-bold font-mono text-foreground">
-                  {item.isCurrency ? `R$ ${fmt(item.value)}` : item.format === "pct" ? fmtPct(item.value) : `${(item.value ?? 0).toFixed(2)}${item.suffix || ""}`}
+                  {!Number.isFinite(item.value as number)
+                    ? "N/A"
+                    : item.isCurrency ? `R$ ${fmt(item.value)}` : item.format === "pct" ? fmtPct(item.value) : `${(item.value as number).toFixed(2)}${item.suffix || ""}`}
                 </p>
                 <p className="text-[9px] font-mono text-muted-foreground/70 leading-tight">{item.formula}</p>
                 {item.alert && <p className="text-[9px] text-red-600 font-semibold">⚠ Abaixo do mínimo</p>}
