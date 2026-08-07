@@ -3638,14 +3638,13 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   };
   const kanitzResults: KanitzRow[] = [];
 
-  if (parsedData) {
-    // Ordena cronologicamente (formatos "MM/AAAA" ou "AAAA")
-    const years = [...parsedData.years].sort((a, b) => {
+  if (reportDataset) {
+    const computed = reportDataset.history;
+    const years = Object.keys(computed).sort((a, b) => {
       const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
       const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
       return pa.localeCompare(pb);
     });
-    const computed = computeIndicatorsFromParsed(parsedData);
     for (const year of years) {
       const ind = computed[year];
       if (!ind) continue;
