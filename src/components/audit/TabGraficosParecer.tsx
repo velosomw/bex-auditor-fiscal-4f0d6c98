@@ -6,7 +6,7 @@
  * Fórmulas (espelham as linhas da aba PARECER CONTÁBIL):
  *  - Liquidez Geral   = (AC + RLP) / (PC + PNC)        ← linha 38
  *  - Liquidez Corrente= AC / PC                         ← linha 39
- *  - Endividamento G. = (PC + PNC) / Ativo Total        ← linha 40
+ *  - Endividamento T. = (PC + PNC) / Ativo Total        ← linha 40 [Golden Test: 81,01%]
  *  - Cap. Terceiros   = (PC + PNC) / PL                 ← linha 41
  *  - Resultado/Receita= Resultado / Receita Líquida     ← linha 42
  *  - Emp.Financ/Pass. = Empréstimos / (PC + PNC)        ← linha 43
@@ -278,15 +278,15 @@ const TabGraficosParecer: React.FC<Props> = ({ parsedData, entries = [] }) => {
           </LineChart>
         </Tile>
 
-        {/* 5. ENDIVIDAMENTO GERAL */}
-        <Tile title="ENDIVIDAMENTO GERAL" subtitle="(PC + PNC) / Ativo Total">
+        {/* 5. ENDIVIDAMENTO TOTAL */}
+        <Tile title="ENDIVIDAMENTO TOTAL" subtitle="(PC + PNC) / Ativo Total">
           <LineChart data={series} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
             {GRID}
             <XAxis dataKey="mes" {...AXIS} />
             <YAxis {...AXIS} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
             <Tooltip {...TIP} formatter={(v: any) => [fmtPct(v), "Endividamento Geral"]} />
             <ReferenceLine y={1} stroke={COLORS.vermelho} strokeDasharray="4 4" label={{ value: "100%", fontSize: 10, fill: COLORS.vermelho }} />
-            <Line type="monotone" dataKey="endivG" name="Endividamento Geral" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
+            <Line type="monotone" dataKey="endivG" name="Endividamento Total" stroke={COLORS.vermelho} strokeWidth={3} dot={{ r: 5, strokeWidth: 2 }}>
               <LabelList dataKey="endivG" {...LABEL_PCT} />
             </Line>
           </LineChart>

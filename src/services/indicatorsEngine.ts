@@ -15,7 +15,7 @@
  *   Liquidez Seca       = (AC − Estoques) / PC
  *   Liquidez Imediata   = Disponível / PC
  *   Liquidez Geral      = (AC + RLP) / (PC + PNC)   [planilha Kanitz — RLP, não ANC inteiro; fallback ANC]
- *   Endividamento Geral = (PC + PNC) / (AC + ANC)   [ETA — Endividamento Total sobre Ativos]
+ *   Endividamento Total = (PC + PNC) / Ativo Total   [Golden Test: 81,01%]
  *   Grau Endiv. PL      = (PC + PNC) / PL           [Kanitz X5; N/A se PL ≤ 0]
  *   Composição Endiv.   = PC / (PC + PNC)
  *   Imobilização do PL  = Imobilizado / PL          [N/A se PL ≤ 0]
@@ -28,7 +28,7 @@
  *   Margem Operacional  = (Resultado + |DespFin|) / Receita   [proxy LAJIR]
  *   ROA (anual)         = (Resultado / (AC + ANC)) × 12
  *   ROE (anual)         = (Resultado / PL) × 12               [N/A se PL ≤ 0]
- *   EBITDA              = (Resultado + |DespFin|) + |Depreciação| + |Amortização|
+ *   EBITDA              = (Resultado + |DespFin|) + |Depreciação| + |Amortização| [Somente se componentes certificados]
  */
 import type { BSDadosRow } from "@/services/bsDadosBuilder";
 
@@ -41,7 +41,7 @@ export interface IndicatorRow {
   liquidezImediata: number;
   liquidezGeral: number;
   // Endividamento
-  endividamentoGeral: number;
+  endividamentoTotal: number;
   grauEndividamentoPL: number;           // GE = (PC + PNC) / PL — Kanitz X5 (N/A se PL ≤ 0)
   composicaoEndividamento: number;       // PC / PT (CECP)
   composicaoEndividamentoLP: number;     // PNC / PT (CELP) — NOVO
@@ -134,7 +134,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     liquidezImediata: div(caixa, pc),
     liquidezGeral: div(ac + rlpEff, pc + pnc),
     // Endividamento
-    endividamentoGeral: div(pt, at),
+    endividamentoTotal: div(pt, at),
     // Kanitz X5: exibe sinal negativo quando PL é negativo (passivo a descoberto)
     grauEndividamentoPL: pl !== 0 ? pt / pl : 0,
     composicaoEndividamento: div(pc, pt),

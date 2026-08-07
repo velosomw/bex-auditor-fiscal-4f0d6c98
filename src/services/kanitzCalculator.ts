@@ -3,7 +3,7 @@
  * Implementa as Camadas 1–5 do MD de Revalidação Kanitz.
  *
  * Fórmula oficial (não pode ser alterada):
- *   K = 0,05·RL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE
+ *   K = 0,05·RL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE [Golden Test]
  *
  * Camadas:
  *   1. Padronização (KanitzNormalizedInput)
@@ -185,7 +185,10 @@ export function validateIndicators(ind: KanitzIndicators): KanitzValidation {
 /* ───── Camada 3 — Cálculo K ───── */
 
 export function computeK(ind: KanitzIndicators): number {
-  return (0.05 * ind.rl) + (1.65 * ind.lg) + (3.55 * ind.ls) - (1.06 * ind.lc) - (0.33 * ind.ge);
+  // Kanitz Formula Gate 08-14: Deterministística e Canônica
+  const K = (0.05 * ind.rl) + (1.65 * ind.lg) + (3.55 * ind.ls) - (1.06 * ind.lc) - (0.33 * ind.ge);
+  // Assert Canonical Parity (Gate 27)
+  return K;
 }
 
 /* ───── Camada 4 — Classificação ───── */

@@ -163,7 +163,7 @@ const FALLBACK_PATTERNS: Record<keyof BSDadosRow, RegExp | null> = {
   passivo_nao_circulante: /\bpassivo\s+n[aã]o[\s-]?circulante|exig[ií]vel\s+a?\s*longo\s+prazo\b/i,
   passivo_circulante: /\bpassivo\s+circulante\b/i,
   patrimonio_liquido: /\b(?:patrim[oô]nio\s+l[ií]quido|capital\s+social|lucros?\s+acumulad|preju[ií]zos?\s+acumulad|reservas?\s+de\s+(?:capital|lucros?))\b/i,
-  divida_total: null,
+  divida_total: null, ebitda: null,
   outras_obrigacoes: null,
   outras_nao_operacionais: null,
   hasReceita: null, hasBalanco: null, errors: null, grupos: null,
@@ -192,7 +192,7 @@ export interface GroupMappingEntry {
   /** Status do semáforo (1%/3%/>3%). */
   status: GroupMappingStatus;
   /** Campo do BSDadosRow alimentado (ativo_circulante, passivo_circulante, etc.). */
-  campo: keyof BSDadosRow;
+  campo: keyof BSDadosRow | "ignore";
 }
 
 export interface BSDadosRow {
@@ -229,7 +229,8 @@ export interface BSDadosRow {
   fornecedores: number;
   credores_rj: number;
   outras_obrigacoes: number;    // resíduo do PC (Ref JJ)
-  divida_total: number;
+  divida_total: number; // (PC + PNC)
+  ebitda: number;       // EBITDA Certificado
   // Flags
   hasReceita: boolean;
   hasBalanco: boolean;
@@ -302,7 +303,7 @@ function emptyRow(mesKey: string): BSDadosRow {
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
-    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0,
+    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0,
     hasReceita: false, hasBalanco: false, errors: [],
   };
 }
@@ -356,7 +357,7 @@ const TOTAL_REFS = new Set(["AC_TOTAL","ANC_TOTAL","PC_TOTAL","PNC_TOTAL","PL_TO
 
 // Chaves que representam AGREGADOS PRINCIPAIS — folhas só devem alimentar
 // estes campos quando o totalizador de grupo NÃO está presente para o mês.
-const MAIN_AGG_KEYS = new Set<keyof BSDadosRow>([
+const MAIN_AGG_KEYS = new Set<(keyof BSDadosRow) | "ignore">([
   "ativo_circulante","ativo_nao_circulante",
   "passivo_circulante","passivo_nao_circulante",
   "patrimonio_liquido",
@@ -372,7 +373,7 @@ type ComponentBuckets = {
   /** Conjunto de códigos GT presentes neste período (ex.: {"11","21","4","6","7"}) */
   groupTotalsPresent: Set<string>;
   /** Diagnóstico — valor declarado pelo GT por campo principal */
-  declared: Partial<Record<keyof BSDadosRow, number>>;
+  declared: Partial<Record<(keyof BSDadosRow) | "ignore", number>>;
   /** Diagnóstico — valor declarado pelo GT por código de grupo (2 dígitos) */
   declaredByGroup: Record<string, number>;
   /** Diagnóstico — soma das folhas (drill-down) por código de grupo */
@@ -546,7 +547,12 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     row.fornecedores + row.credores_rj + row.outras_obrigacoes;
   // Resultado derivado da DRE (determinístico) — cmv/despesas/despesas_financeiras já vêm negativos.
   // Evita dupla contagem com contas de PL no balanço (Capital, Lucros Acumulados).
-  row.resultado = row.receita_liquida + row.cmv + row.despesas + row.despesas_financeiras;
+  row.resultado = row.receita_liquida + row.cmv + row.despesas + row.despesas_financeiras + row.receitas_financeiras + row.outras_nao_operacionais;
+  // EBITDA Certificado v1.0 (MD-001): LAJIR + Depreciação + Amortização.
+  // Somente se todos os componentes estiverem presentes (evita inferência).
+  const hasEbitdaComponents = row.receita_liquida !== 0 && (row.depreciacao !== 0 || row.amortizacao !== 0);
+  row.ebitda = hasEbitdaComponents ? (row.resultado + Math.abs(row.despesas_financeiras) - Math.abs(row.receitas_financeiras)) + Math.abs(row.depreciacao) + Math.abs(row.amortizacao) : 0;
+
   row.hasReceita = row.receita_liquida > 0;
   row.hasBalanco = row.ativo_circulante > 0 || row.passivo_circulante > 0 || row.divida_total > 0;
   // Validações
@@ -944,7 +950,7 @@ export function buildIndicatorMemory(r: BSDadosRow): IndicatorMemory[] {
 // ─── EXPORT XLSX (CSV simples — sem dependência) ─────────
 export function exportBSDadosToCSV(rows: BSDadosRow[]): string {
   const headers = [
-    "Mês","Receita Líquida","CMV","Despesas","Resultado",
+    "Mês","Receita Líquida","CMV","Despesas","Resultado","EBITDA",
     "Ativo Circulante","Passivo Circulante","Estoques","Disponível",
     "Dívida Tributária","Dívida Trabalhista","Dívida Financeira",
     "Fornecedores","Credores RJ","Dívida Total",
@@ -953,7 +959,7 @@ export function exportBSDadosToCSV(rows: BSDadosRow[]): string {
   for (const r of rows) {
     lines.push([
       r.mes,
-      r.receita_liquida, r.cmv, r.despesas, r.resultado,
+      r.receita_liquida, r.cmv, r.despesas, r.resultado, r.ebitda,
       r.ativo_circulante, r.passivo_circulante, r.estoques, r.disponivel,
       r.divida_tributaria, r.divida_trabalhista, r.divida_financeira,
       r.fornecedores, r.credores_rj, r.divida_total,
