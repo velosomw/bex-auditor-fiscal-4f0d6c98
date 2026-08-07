@@ -3172,7 +3172,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA Estimado ({latestYear})</h3>
               <div className="p-4 rounded-lg bg-muted/30 text-center">
-                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(yInd?.ebitda || 0)}</p>
+                <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(latestInd?.ebitda || 0)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Despesas Financeiras</p>
               </div>
             </div>
