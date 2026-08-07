@@ -47,6 +47,7 @@ import { getFileFormat as getFormat } from "@/services/auditAIService";
 import { mergeMultiMonth, pickMonths, defaultLast3, detectMonthRangeFromFilename, extractColumnMonths, reconcileMonthsWithFilename, type MultiMonthParsed } from "@/services/auditMonthDetector";
 import { readWorkbook } from "@/lib/excelReader";
 import { MonthsConfirmDialog } from "@/components/audit/MonthsConfirmDialog";
+import { buildCertifiedFinancialSnapshot, type CertifiedFinancialSnapshot } from "@/services/canonicalFinancialSnapshotService";
 
 /* ── MD-BEX-CANONICAL-RUNTIME-BINDING Interfaces ── */
 export interface CanonicalReportDataset {
@@ -71,8 +72,13 @@ export interface CanonicalReportDataset {
   kanitz: any;
   narratives: Record<string, { text: string; fact_ids_used: string[] }>;
   limitations: string[];
+  /** MD-CUTOVER-001 — snapshot certificado imutável (fonte única de todos os consumers). */
+  snapshot?: CertifiedFinancialSnapshot;
 }
 
+
+/* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
+const BEX_INCLUDE_KANITZ = false;
 
 /* ── Helpers ── */
 const fmt = (n: number) => {
@@ -2553,74 +2559,71 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return out;
   }, [balanceteEntries]);
 
+  /* MD-CUTOVER-001 §37 — snapshot materializado por serviço dedicado (sem assembly na UI). */
+  const snapshot = useMemo(
+    () => buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], { companyId: company?.id }),
+    [parsedData, balanceteEntries, company]
+  );
+
+  /* MD-CUTOVER-001 §19/§21 — Kanitz embutido consome o CanonicalKanitzReportModel do snapshot. */
   const kanitzResultsRaw = useMemo(() => {
-    const computed = computeIndicatorsFromParsed(parsedData || null);
     const results: Array<{
       year: string; rpl: number; lg: number; ls: number; lc: number; ge: number; fi: number;
       classificacao: "saudavel" | "estavel" | "atencao" | "risco" | "insolvente" | "na";
       ac: number; anc: number; pc: number; pnc: number; pl: number; estoque: number; rlp: number; pt: number; ll: number; at: number; rl: number;
       ebitda: number; lajir: number; despFin: number; kanitzAplicavel: boolean; isg: number;
     }> = [];
-
-    Object.keys(computed).sort().forEach(k => {
-      const ind = computed[k];
-      const kAplic = ind._pl > 0;
-      
-      const fi = kAplic ? (0.05 * (ind.roe/12)) + (1.65 * ind.liquidezGeral) + (3.55 * ind.liquidezSeca) - (1.06 * ind.liquidezCorrente) - (0.33 * (ind._pt / Math.abs(ind._pl))) : 0;
-      
-      const isgValue = ind._at / (ind._pc + ind._pnc || 1);
-      const classificacao: any = !kAplic ? "na" :
-        fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-
+    if (!snapshot) return results;
+    for (const key of snapshot.competencies) {
+      const cs = snapshot.byCompetency[key];
+      if (!cs) continue;
+      const ind = cs.ratios;
+      const f = cs.facts;
+      const k = cs.kanitz;
       results.push({
-        year: k, rpl: ind.roe/12, lg: ind.liquidezGeral, ls: ind.liquidezSeca, lc: ind.liquidezCorrente, ge: ind.grauEndividamentoPL, fi, classificacao,
-        ac: ind._ac, anc: ind._anc, pc: ind._pc, pnc: ind._pnc, pl: ind._pl, estoque: ind._estoque, rlp: 0, pt: ind._pc + ind._pnc,
-        ll: ind._resultado, at: ind._at, rl: ind._receita, ebitda: ind.ebitda || 0,
-        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin), 
-        despFin: Math.abs(ind._despFin), kanitzAplicavel: kAplic, isg: isgValue
+        year: key, rpl: k.rpl, lg: k.lg, ls: k.ls, lc: k.lc, ge: k.ge, fi: k.fi,
+        classificacao: k.classificacao,
+        ac: f.ativo_circulante, anc: f.ativo_nao_circulante, pc: f.passivo_circulante, pnc: f.passivo_nao_circulante,
+        pl: f.patrimonio_liquido, estoque: f.estoques, rlp: f.realizavel_longo_prazo, pt: f.passivo_total,
+        ll: f.resultado_liquido, at: f.ativo_total, rl: f.receita_liquida, ebitda: ind.ebitda,
+        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin),
+        despFin: Math.abs(ind._despFin), kanitzAplicavel: k.applicable, isg: k.isg,
       });
-    });
+    }
     return results;
-  }, [parsedData, computeIndicatorsFromParsed]);
+  }, [snapshot]);
+
 
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
-    if (!parsedData || !company) return null;
-    const computed = computeIndicatorsFromParsed(parsedData);
-    const years = Object.keys(computed).sort();
-    const latestYear = years[years.length - 1];
-    if (!latestYear) return null;
-    
-    const rows = buildBSDados(parsedData, balanceteEntries || []);
-    const latestRow = rows.find(r => r.mesKey === latestYear);
-    if (!latestRow) return null;
-
-    const traceId = `BEX-RUNTIME-${latestYear.replace("-", "")}-${Math.random().toString(36).substring(7).toUpperCase()}`;
-
+    if (!snapshot) return null;
     return {
-      runtime_trace_id: traceId,
-      canonical_snapshot_id: `SNAP-${traceId}`,
-      competency: latestYear,
-      company_id: company.id || "manual",
-      generated_at: new Date().toISOString(),
+      runtime_trace_id: snapshot.runtime_trace_id,
+      canonical_snapshot_id: snapshot.snapshot_id,
+      competency: snapshot.competency,
+      company_id: snapshot.company_id,
+      generated_at: snapshot.processing_timestamp,
       facts: {
-        ativo_circulante: latestRow.ativo_circulante,
-        ativo_nao_circulante: latestRow.ativo_nao_circulante,
-        passivo_circulante: latestRow.passivo_circulante,
-        passivo_nao_circulante: latestRow.passivo_nao_circulante,
-        patrimonio_liquido: latestRow.patrimonio_liquido,
-        receita_liquida: latestRow.receita_liquida,
-        resultado_liquido: latestRow.resultado,
-        estoques: latestRow.estoques,
-        fornecedores: latestRow.fornecedores,
-        disponivel: latestRow.disponivel
-      },
-      ratios: computed[latestYear],
-      history: computed,
-      kanitz: kanitzResultsRaw[kanitzResultsRaw.length - 1] || null,
+        ativo_circulante: snapshot.facts.ativo_circulante,
+        ativo_nao_circulante: snapshot.facts.ativo_nao_circulante,
+        passivo_circulante: snapshot.facts.passivo_circulante,
+        passivo_nao_circulante: snapshot.facts.passivo_nao_circulante,
+        patrimonio_liquido: snapshot.facts.patrimonio_liquido,
+        receita_liquida: snapshot.facts.receita_liquida,
+        resultado_liquido: snapshot.facts.resultado_liquido,
+        estoques: snapshot.facts.estoques,
+        fornecedores: snapshot.facts.fornecedores,
+        disponivel: snapshot.facts.disponivel,
+        realizavel_longo_prazo: snapshot.facts.realizavel_longo_prazo,
+      } as any,
+      ratios: snapshot.ratios,
+      history: snapshot.history,
+      kanitz: snapshot.kanitz,
       narratives: {},
-      limitations: latestRow.errors || [],
-    };
-  }, [parsedData, company, balanceteEntries, computeIndicatorsFromParsed, kanitzResultsRaw]);
+      limitations: snapshot.limitations,
+      snapshot,
+    } as CanonicalReportDataset;
+  }, [snapshot]);
+
 
   const activeYear = reportDataset?.competency || "";
   const d = reportDataset?.facts;
@@ -2676,6 +2679,17 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,0", classification: latestInd.isg > 1.0 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
 
+  /* MD-CUTOVER-001 §9 — Narrative Number Gate: todo número da narrativa vem do snapshot. */
+  const canonicalKeyPoints: Array<{ item: string; detail: string; status: "positivo" | "atencao" | "negativo" }> = latestInd ? [
+    { item: "Liquidez Corrente", detail: `${fmtDec(latestInd.liquidezCorrente)} (AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)})`, status: latestInd.liquidezCorrente >= 1 ? "positivo" : "negativo" },
+    { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
+    { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
+    { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
+    { item: "Resultado do Período", detail: `R$ ${fmt(result)}`, status: result >= 0 ? "positivo" : "negativo" },
+    { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
+  ] : [];
+
+
   /* ── Kanitz computation for abbreviated section ── */
   const kanitzFindValue = (keyword: string, year: string) => {
     if (!parsedData) return 0;
@@ -2684,31 +2698,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     return row?.values[year] || 0;
   };
 
-  const kanitzResults = useMemo(() => {
-    if (kanitzResultsRaw.length > 0) return kanitzResultsRaw;
-    return [];
-  }, [kanitzResultsRaw]);
+  /* MD-CUTOVER-001 §3 — hard cutover: sem fallback aiAnalysis. */
+  const kanitzResults = kanitzResultsRaw;
 
-  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
-    const aiK = aiAnalysis.kanitz;
-    const comp = aiK.componentes || {};
-    const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
-    const fi = aiK.fatorInsolvencia || 0;
-    const plVal = aiStruct.patrimonio_liquido || 0;
-    const kAplic = plVal > 0;
-    const isgValue = (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0) / ((aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0) || 1);
-    
-    const classificacao: any = !kAplic ? "na" :
-      fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-    kanitzResults.push({
-      year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
-      fi, classificacao, ac: aiStruct.ativo_circulante || 0, anc: aiStruct.ativo_nao_circulante || 0,
-      pc: aiStruct.passivo_circulante || 0, pnc: aiStruct.passivo_nao_circulante || 0, pl: plVal,
-      estoque: aiStruct.estoques || 0, rlp: 0, pt: (aiStruct.passivo_circulante || 0) + (aiStruct.passivo_nao_circulante || 0),
-      ll: aiStruct.lucro_liquido || 0, at: (aiStruct.ativo_circulante || 0) + (aiStruct.ativo_nao_circulante || 0), rl: aiStruct.receita_liquida || 0,
-      ebitda: 0, lajir: 0, despFin: 0, kanitzAplicavel: kAplic, isg: isgValue
-    });
-  }
 
   const latestKanitz = kanitzResults[kanitzResults.length - 1];
   const kanitzClassColors: Record<string, { icon: string; label: string; color: string }> = {
@@ -2828,8 +2820,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">1.2 Principais Pontos Identificados</h3>
+            {/* MD-CUTOVER-001 §6/§9 — Narrative Number Gate: pontos derivados exclusivamente do snapshot. */}
             <div className="space-y-2">
-              {(activeDiag.pontosChave || []).map((p: any) => (
+              {canonicalKeyPoints.map((p) => (
                 <div key={p.item} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/30">
                   <div className="flex items-center gap-3">
                     <div className={`w-2.5 h-2.5 rounded-full ${
@@ -2844,14 +2837,16 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             </div>
           </div>
 
+
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">1.3 Conclusão Técnica do Técnico IA</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">
-                Com base no Balancete de {latestYear}, a empresa apresenta um Ativo Total de R$ {fmt(at)} contra um Passivo Total de R$ {fmt(pt)}. 
+                Com base no Balancete de {latestYear}, a empresa apresenta um Ativo Total de R$ {fmt(at)} contra um Passivo Total (capital de terceiros) de R$ {fmt(pt)}.
                 O Patrimônio Líquido é de R$ {fmt(pl)}. A Receita Líquida do período atingiu R$ {fmt(rl)}, resultando em um {result >= 0 ? "Lucro" : "Prejuízo"} de R$ {fmt(Math.abs(result))}.
-                {activeDiag.resumo}
+                {latestInd ? ` A liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)} e o endividamento total de ${fmtPct(latestInd.endividamentoTotal)} sintetizam a estrutura patrimonial da competência analisada.` : ""}
               </p>
+
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {["CPC 26", "CPC 47", "IFRS 15", "NBC TA 570", "Lei 11.101/2005"].map(n => (
                   <Badge key={n} variant="secondary" className="text-[10px]">{n}</Badge>
@@ -2931,10 +2926,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
             <div className="space-y-3">
               {[
-                { title: "Capacidade de Pagamento", text: "A empresa apresenta liquidez corrente de " + (latestInd ? fmtPct(latestInd.liquidezCorrente) : "N/A") + ", indicando capacidade de honrar obrigações de curto prazo." },
-                { title: "Avaliação de Risco de Insolvência", text: "O Score BEX-RJ de " + activeScore.score + " pontos classifica a empresa na faixa de \"" + scoreLabel + "\". A análise multifatorial considera endividamento, liquidez, patrimônio líquido, geração de caixa e concentração de dívida." },
-                { title: "Continuidade Operacional (Going Concern)", text: "Com PL de R$ " + fmt(latestInd?._pl || 0) + " e capital de giro líquido " + ((latestInd?._ac || 0) - (latestInd?._pc || 0) > 0 ? "positivo" : "negativo") + ", a premissa de continuidade requer monitoramento contínuo." },
-                { title: "Probabilidade Estrutural de RJ", text: (latestInd?.liquidezCorrente ?? 0) > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : (latestInd?.liquidezCorrente ?? 0) > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
+                { title: "Capacidade de Pagamento", text: latestInd
+                    ? `A empresa apresenta liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)}, ${latestInd.liquidezCorrente >= 1 ? "indicando capacidade de honrar obrigações de curto prazo" : "indicando insuficiência de ativos circulantes para cobrir obrigações de curto prazo"} (AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}).`
+                    : "Indicador não disponível para esta análise." },
+                { title: "Continuidade Operacional (Going Concern)", text: latestInd
+                    ? `Com PL de R$ ${fmt(pl)} e capital de giro líquido ${(ac - pc) > 0 ? "positivo" : "negativo"} de R$ ${fmt(Math.abs(ac - pc))}, a premissa de continuidade requer monitoramento contínuo.`
+                    : "Indicador não disponível para esta análise." },
+                { title: "Probabilidade Estrutural de RJ", text: !latestInd ? "Indicador não disponível para esta análise." : latestInd.liquidezCorrente > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : latestInd.liquidezCorrente > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
                 <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30">
                   <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
@@ -2969,18 +2967,21 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 <TableBody>
                   {activePend
                     .filter((p: any) => {
-                      // Filter out platform-error-based pendencies
-                      const prob = (p.problema || "").toLowerCase();
-                      const impact = (p.impacto || "").toLowerCase();
-                      const isInternalError = 
-                        prob.includes("reportada como 0") || 
-                        prob.includes("reportado como zero") ||
-                        impact.includes("fatores determinísticos") ||
-                        prob.includes("não capturado") ||
-                        (prob.includes("receita líquida") && prob.includes("zero")) ||
-                        (prob.includes("estoque") && prob.includes("zero"));
+                      /* MD-CUTOVER-001 §10–§13 — pendência só é válida se o fato realmente não existir no snapshot. */
+                      const txt = `${p.problema || ""} ${p.impacto || ""} ${p.conta || ""}`.toLowerCase();
+                      const factAvailable = (v?: number) => typeof v === "number" && Number.isFinite(v) && v !== 0;
+                      const isInternalError =
+                        txt.includes("fatores determinísticos") ||
+                        txt.includes("reportada como 0") ||
+                        txt.includes("reportado como zero") ||
+                        txt.includes("não capturado") ||
+                        (txt.includes("receita") && factAvailable(d?.receita_liquida)) ||
+                        (txt.includes("estoque") && factAvailable(d?.estoques)) ||
+                        (txt.includes("patrimônio") && factAvailable(d?.patrimonio_liquido)) ||
+                        (txt.includes("fornecedor") && factAvailable(d?.fornecedores));
                       return !isInternalError;
                     })
+
                     .map((p: any, i: number) => (
                       <TableRow key={p.id}>
                         <TableCell className="text-[10px] font-mono px-1">{i + 1}</TableCell>
@@ -3307,43 +3308,48 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <SectionTitle num="6" title="BALANÇO PATRIMONIAL CONSOLIDADO" />
           <div className="text-center mb-2">
             <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">ESTRUTURA PATRIMONIAL POR GRANDES GRUPOS</h3>
-            <p className="text-[10px] text-muted-foreground mt-1">Série Histórica Consolidada (Valores em R$)</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Série Histórica Consolidada (Valores em R$ milhões)</p>
           </div>
 
+          {/* MD-CUTOVER-001 §14–§18 — Balance History consome snapshots mensais certificados. */}
           <div className="overflow-x-auto">
             <Table style={{ tableLayout: 'fixed', width: '100%' }}>
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-[10px] w-[180px]">Conta / Grupo</TableHead>
-                  {years.map(y => (
+                  {(snapshot?.competencies || []).map(y => (
                     <TableHead key={y} className="text-right text-[10px] px-1">{fmtMonthCompact(y)}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[
-                  { label: "Ativo Circulante", key: "_ac" },
-                  { label: "Ativo Não Circulante", key: "_anc" },
-                  { label: "Passivo Circulante", key: "_pc" },
-                  { label: "Passivo Não Circulante", key: "_pnc" },
-                  { label: "Patrimônio Líquido", key: "_pl" },
-                  { label: "Resultado do Período", key: "_resultado" },
-                  { label: "Estoques", key: "_estoques" },
-                  { label: "Realizável LP", key: "_rlp" },
-                  { label: "Receita Líquida", key: "_receita" },
-                ].map((row, idx) => (
+                {([
+                  { label: "Ativo Circulante", key: "ativo_circulante" },
+                  { label: "Ativo Não Circulante", key: "ativo_nao_circulante" },
+                  { label: "Realizável LP", key: "realizavel_longo_prazo" },
+                  { label: "Estoques", key: "estoques" },
+                  { label: "Passivo Circulante", key: "passivo_circulante" },
+                  { label: "Passivo Não Circulante", key: "passivo_nao_circulante" },
+                  { label: "Patrimônio Líquido", key: "patrimonio_liquido" },
+                  { label: "Receita Líquida", key: "receita_liquida" },
+                  { label: "Resultado do Período", key: "resultado_liquido" },
+                ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
-                    {years.map(y => (
-                      <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
-                        {fmt(computedInd[y]?.[row.key as keyof typeof latestInd] as number || 0)}
-                      </TableCell>
-                    ))}
+                    {(snapshot?.competencies || []).map(y => {
+                      const v = snapshot?.byCompetency[y]?.facts[row.key];
+                      return (
+                        <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
+                          {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
+
 
           <div className="mt-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações de Integridade</h3>
@@ -3371,7 +3377,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
       {/* ── 7. RELATÓRIO KANITZ — CAPA ── */}
-      {latestKanitz && (
+      {BEX_INCLUDE_KANITZ && latestKanitz && (
         <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
           <div className="report-page-header">
             <img src={logoBrasilExpertFull} alt="Brasil Expert" className="h-14 object-contain" />
@@ -3420,7 +3426,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       )}
 
       {/* ── 7. SUMÁRIO EXECUTIVO KANITZ + TERMÔMETRO ── */}
-      {latestKanitz && (
+      {BEX_INCLUDE_KANITZ && latestKanitz && (
         <ReportPage>
           <div className="space-y-4">
             <div className="flex items-center gap-3 py-3 border-b-2 border-amber-500/30 mb-4">
@@ -3477,7 +3483,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       )}
 
       {/* ── 8. MEMÓRIA DE CÁLCULO KANITZ ── */}
-      {latestKanitz && (
+      {BEX_INCLUDE_KANITZ && latestKanitz && (
         <ReportPage>
           <div className="space-y-4">
             <div className="flex items-center gap-3 py-3 border-b-2 border-amber-500/30 mb-4">
@@ -3567,7 +3573,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <SectionTitle num="9" title="CONCLUSÃO TÉCNICA" />
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
               <p className="text-sm text-foreground leading-relaxed">
-                {aiAnalysis?.diagnostico?.resumo || "A análise das demonstrações contábeis evidencia a estrutura financeira da empresa no período analisado, com base nos dados do balancete processado."}
+                A análise das demonstrações contábeis da competência {latestYear} evidencia Ativo Total de R$ {fmt(at)}, capital de terceiros de R$ {fmt(pt)} e Patrimônio Líquido de R$ {fmt(pl)}, com Receita Líquida de R$ {fmt(rl)} e {result >= 0 ? "lucro" : "prejuízo"} de R$ {fmt(Math.abs(result))} no período.
               </p>
               <p className="text-sm text-foreground leading-relaxed">
                 Os indicadores de liquidez {latestInd?.liquidezCorrente && latestInd.liquidezCorrente > 1 ? "apontam capacidade adequada para honrar compromissos de curto prazo" : "indicam fragilidade na capacidade de pagamento de curto prazo"}, {latestInd?.liquidezGeral && latestInd.liquidezGeral < 1 ? "embora a liquidez geral permaneça inferior à unidade, refletindo elevada dependência de capital de terceiros." : "com liquidez geral compatível com a operação."}
@@ -3668,82 +3674,37 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   };
   const kanitzResults: KanitzRow[] = [];
 
-  if (reportDataset) {
-    const computed = reportDataset.history;
-    const years = Object.keys(computed).sort((a, b) => {
-      const pa = a.includes("/") ? a.split("/").reverse().join("") : a;
-      const pb = b.includes("/") ? b.split("/").reverse().join("") : b;
-      return pa.localeCompare(pb);
-    });
-    for (const year of years) {
-      const ind = computed[year];
-      if (!ind) continue;
-
-      const kanitzAplicavel = ind._pl > 0;
-      const rpl = kanitzAplicavel ? ind.roe / 12 : 0;
-      const lg = ind.liquidezGeral;
-      const ls = ind.liquidezSeca;
-      const lc = ind.liquidezCorrente;
-      const ge = kanitzAplicavel ? ind.grauEndividamentoPL : (ind._pc + ind._pnc) / (Math.abs(ind._pl) || 1);
-      const fi = kanitzAplicavel ? (0.05 * rpl) + (1.65 * lg) + (3.55 * ls) - (1.06 * lc) - (0.33 * (ind._pt / Math.abs(ind._pl))) : 0;
-      const isg = (ind._ac + ind._anc) / (ind._pc + ind._pnc || 1);
-      const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
-        : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-
-      const ac = ind._ac;
-      const anc = ind._anc;
-      const pc = ind._pc;
-      const pnc = ind._pnc;
-      const pl = ind._pl;
-      const ll = ind._resultado;
-      const estoque = ind._estoque;
-      const rlp = 0; // Fallback para RLP se necessário
-      const rl = ind._receita;
-      const cpv = ind._cmv;
-      const fornecedores = ind._fornecedores;
-      const despFin = ind._despFin;
-      const lajir = ind._resultado + Math.abs(ind._despFin);
-      const caixa = ind._caixa;
-      const pt = pc + pnc;
-      const at = ac + anc;
-      const ebitda = ind.ebitda || 0;
-
-      kanitzResults.push({ year, rpl, lg, ls, lc, ge, fi, isg, classificacao, riskScoreNormalized: 0, ac, anc, pc, pnc, pl, estoque, rlp, pt, ll, at, rl, cpv, fornecedores, despFin: Math.abs(despFin), lajir, caixa, kanitzAplicavel, ebitda });
+  /* MD-CUTOVER-001 §20/§21 — Kanitz standalone consome o MESMO CanonicalKanitzReportModel
+     do Kanitz embutido. Nenhum builder próprio, nenhum fallback aiAnalysis. */
+  const snap = reportDataset?.snapshot;
+  if (snap) {
+    for (const year of snap.competencies) {
+      const cs = snap.byCompetency[year];
+      if (!cs) continue;
+      const ind = cs.ratios;
+      const f = cs.facts;
+      const k = cs.kanitz;
+      kanitzResults.push({
+        year,
+        rpl: k.rpl, lg: k.lg, ls: k.ls, lc: k.lc, ge: k.ge, fi: k.fi, isg: k.isg,
+        classificacao: k.classificacao, riskScoreNormalized: 0,
+        ac: f.ativo_circulante, anc: f.ativo_nao_circulante, pc: f.passivo_circulante, pnc: f.passivo_nao_circulante,
+        pl: f.patrimonio_liquido, estoque: f.estoques, rlp: f.realizavel_longo_prazo,
+        pt: f.passivo_total, ll: f.resultado_liquido, at: f.ativo_total, rl: f.receita_liquida,
+        cpv: ind._cmv, fornecedores: f.fornecedores, despFin: Math.abs(ind._despFin),
+        lajir: ind._resultado + Math.abs(ind._despFin) - Math.abs(ind._recFin),
+        caixa: f.disponivel, kanitzAplicavel: k.applicable, ebitda: ind.ebitda,
+      });
     }
-    if (kanitzResults.length > 0) {
-      const fiValues = kanitzResults.map(r => r.fi);
+    const fiValues = kanitzResults.map(r => r.fi).filter(v => Number.isFinite(v));
+    if (fiValues.length > 0) {
       const fiMin = Math.min(...fiValues);
       const fiMax = Math.max(...fiValues);
       const range = fiMax - fiMin || 1;
-      kanitzResults.forEach(r => { r.riskScoreNormalized = Math.round(((r.fi - fiMin) / range) * 100); });
+      kanitzResults.forEach(r => { r.riskScoreNormalized = Number.isFinite(r.fi) ? Math.round(((r.fi - fiMin) / range) * 100) : 0; });
     }
   }
 
-  // Fallback: use AI analysis kanitz data
-  if (kanitzResults.length === 0 && aiAnalysis?.kanitz) {
-    const aiK = aiAnalysis.kanitz;
-    const comp = aiK.componentes || {};
-    const aiStruct = aiAnalysis?.diagnostico?.estruturaFinanceira || {};
-    const fi = aiK.fatorInsolvencia || 0;
-    const ac = aiStruct.ativo_circulante || 0;
-    const anc = aiStruct.ativo_nao_circulante || 0;
-    const pc = aiStruct.passivo_circulante || 0;
-    const pnc = aiStruct.passivo_nao_circulante || 0;
-    const pl = aiStruct.patrimonio_liquido || 0;
-    const pt = pc + pnc;
-    const at = ac + anc;
-    const kanitzAplicavel = pl > 0;
-    const classificacao: KanitzRow["classificacao"] = !kanitzAplicavel ? "na"
-      : fi > 1 ? "saudavel" : fi > 0 ? "estavel" : fi > -1 ? "atencao" : fi >= -3 ? "risco" : "insolvente";
-    const isg = pt !== 0 ? at / pt : 0;
-    kanitzResults.push({
-      year: "Análise IA", rpl: comp.rpl || 0, lg: comp.lg || 0, ls: comp.ls || 0, lc: comp.lc || 0, ge: comp.ge || 0,
-      fi, isg, classificacao, riskScoreNormalized: fi > 1 ? 90 : fi > 0 ? 70 : fi >= -1 ? 50 : fi >= -3 ? 30 : 10,
-      ac, anc, pc, pnc, pl, estoque: aiStruct.estoques || 0, rlp: 0, pt, ll: aiStruct.lucro_liquido || 0, at,
-      rl: aiStruct.receita_liquida || 0, cpv: 0, fornecedores: aiStruct.fornecedores || 0, despFin: 0, lajir: 0, caixa: aiStruct.caixa || 0,
-      kanitzAplicavel, ebitda: 0,
-    });
-  }
 
   const latest = kanitzResults[kanitzResults.length - 1];
   const previous = kanitzResults.length > 1 ? kanitzResults[kanitzResults.length - 2] : null;
@@ -4722,42 +4683,38 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
     return out;
   }, [balanceteEntries]);
 
+  /* MD-CUTOVER-001 — mesmo serviço de snapshot usado pelo BEx (fonte única). */
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
-    if (!parsedData || !company) return null;
-    const computed = computeIndicatorsFromParsed(parsedData);
-    const years = Object.keys(computed).sort();
-    const latestYear = years[years.length - 1];
-    if (!latestYear) return null;
-    
-    const rows = buildBSDados(parsedData, balanceteEntries || []);
-    const latestRow = rows.find(r => r.mesKey === latestYear);
-    if (!latestRow) return null;
-
-    const traceId = `BEX-RUNTIME-${latestYear}-${Date.now()}`;
+    const snap = buildCertifiedFinancialSnapshot(parsedData, balanceteEntries || [], { companyId: company?.id });
+    if (!snap) return null;
     return {
-      runtime_trace_id: traceId,
-      canonical_snapshot_id: `SNAP-${traceId}`,
-      competency: latestYear,
-      company_id: company.id || "manual",
-      generated_at: new Date().toISOString(),
+      runtime_trace_id: snap.runtime_trace_id,
+      canonical_snapshot_id: snap.snapshot_id,
+      competency: snap.competency,
+      company_id: snap.company_id,
+      generated_at: snap.processing_timestamp,
       facts: {
-        ativo_circulante: latestRow.ativo_circulante,
-        ativo_nao_circulante: latestRow.ativo_nao_circulante,
-        passivo_circulante: latestRow.passivo_circulante,
-        passivo_nao_circulante: latestRow.passivo_nao_circulante,
-        patrimonio_liquido: latestRow.patrimonio_liquido,
-        receita_liquida: latestRow.receita_liquida,
-        resultado_liquido: latestRow.resultado,
-        estoques: latestRow.estoques,
-        fornecedores: latestRow.fornecedores,
-      },
-      ratios: computed[latestYear],
-      history: computed,
-      kanitz: null,
+        ativo_circulante: snap.facts.ativo_circulante,
+        ativo_nao_circulante: snap.facts.ativo_nao_circulante,
+        passivo_circulante: snap.facts.passivo_circulante,
+        passivo_nao_circulante: snap.facts.passivo_nao_circulante,
+        patrimonio_liquido: snap.facts.patrimonio_liquido,
+        receita_liquida: snap.facts.receita_liquida,
+        resultado_liquido: snap.facts.resultado_liquido,
+        estoques: snap.facts.estoques,
+        fornecedores: snap.facts.fornecedores,
+        disponivel: snap.facts.disponivel,
+        realizavel_longo_prazo: snap.facts.realizavel_longo_prazo,
+      } as any,
+      ratios: snap.ratios,
+      history: snap.history,
+      kanitz: snap.kanitz,
       narratives: {},
-      limitations: latestRow.errors || [],
-    };
-  }, [parsedData, company, computeIndicatorsFromParsed, balanceteEntries]);
+      limitations: snap.limitations,
+      snapshot: snap,
+    } as CanonicalReportDataset;
+  }, [parsedData, company, balanceteEntries]);
+
 
   const persistReport = (variant: "resumido" | "completo") => {
     // FIX #4 — SEMPRE prioriza valores DETERMINÍSTICOS do servidor.

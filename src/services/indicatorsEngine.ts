@@ -69,6 +69,7 @@ export interface IndicatorRow {
   _pnc: number;
   _pt: number;
   _pl: number;
+  _rlp: number;
   _caixa: number;
   _estoque: number;
   _imob: number;
@@ -156,7 +157,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     ebitda: lajir + depAbs + amortAbs,
     isg: pt > 0 ? at / pt : 0,
     endividamentoGeral: at > 0 ? pt / at : 0,
-    _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl,
+    _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl, _rlp: rlpEff,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
     _fornecedores: r.fornecedores, _receita: receita, _cmv: cmvAbs,
     _despFin: despFinAbs, _recFin: recFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
