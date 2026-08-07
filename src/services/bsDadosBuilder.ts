@@ -956,7 +956,16 @@ export function buildBSDados(
         const buckets = bucketsByMes.get(mesKey);
         if (!target || !buckets) continue;
         const parentGT = !isGroupTotal && hasParentGT(conta, mesKey);
-        applyValue(target, key, Number(value) || 0, ref1, buckets, isGroupTotal, parentGT);
+        applyValue(
+          target, 
+          key, 
+          Number(value) || 0, 
+          ref1, 
+          buckets, 
+          isGroupTotal, 
+          parentGT,
+          { conta: row.conta, descricao: row.descricao, saldo: Number(value) || 0 }
+        );
 
         // ── Trilha por grupo (2 dígitos) — alimenta painel "Mapeamento por Grupo" ──
         const v = Math.abs(Number(value) || 0);
