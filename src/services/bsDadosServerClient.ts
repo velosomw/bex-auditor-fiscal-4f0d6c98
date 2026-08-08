@@ -63,6 +63,7 @@ export async function consolidateBSDadosOnServer(
       variant: opts.variant,
       audit_name: opts.auditName,
       content_hash: opts.contentHash,
+      processing_run_id: opts.processingRunId,
     },
   });
   if (error) throw new Error(error.message || "valide o erro que está aparecendo do servidor");
