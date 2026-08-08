@@ -47,6 +47,7 @@ export interface ConsolidateOptions {
   variant?: "completo" | "resumido" | "kanitz";
   auditName?: string;
   contentHash?: string;
+  processingRunId?: string;
 }
 
 export async function consolidateBSDadosOnServer(
