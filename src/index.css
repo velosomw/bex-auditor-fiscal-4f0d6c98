@@ -322,6 +322,7 @@ tr {
   }
 
   /* Position targeted containers as the only visible block */
+  body.printing-report .bex-results-wrapper,
   body.printing-report [id="report-bex-container"],
   body.printing-report [id="report-kanitz-container"],
   body.printing-report [id="tab-graficos-container"],
