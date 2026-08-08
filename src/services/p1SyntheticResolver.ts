@@ -101,17 +101,17 @@ const ROLE_SEMANTICS: Record<CanonicalRole, RegExp> = {
 /** Códigos canônicos aceitos por role (já normalizados), em ordem de prioridade. */
 const ROLE_CODES: Record<CanonicalRole, string[]> = {
   ativo_total: ["1"],
-  ativo_circulante: ["1.1"],
-  ativo_nao_circulante: ["1.2"],
+  ativo_circulante: ["1.1", "1.01"],
+  ativo_nao_circulante: ["1.2", "1.02"],
   realizavel_longo_prazo: ["1.2.1"],
-  estoques: ["1.1.2"], // Corrigido de 1.1.3 para 1.1.2 conforme Golden 02
+  estoques: ["1.1.2"], 
   disponivel: ["1.1.1"],
-  passivo_circulante: ["2.1"],
-  passivo_nao_circulante: ["2.2"],
-  patrimonio_liquido: ["2.4"], // Corrigido de 2.3 para 2.4 (Capital em 2.4 no Golden 02)
-  receita_liquida: ["3.1"],
+  passivo_circulante: ["2.1", "2.01"],
+  passivo_nao_circulante: ["2.2", "2.02"],
+  patrimonio_liquido: ["2.4", "2.3"], 
+  receita_liquida: ["3.1", "3.01"],
   resultado: ["3"],
-  fornecedores: ["2.1.2"], // Corrigido de 2.1.1 para 2.1.2 conforme Golden 02
+  fornecedores: ["2.1.2"], 
 };
 
 /** Prefixo obrigatório para candidatos textuais (evita roubo entre ativo/passivo). */

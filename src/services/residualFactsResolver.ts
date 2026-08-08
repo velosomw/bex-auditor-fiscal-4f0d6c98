@@ -72,6 +72,7 @@ export interface ResidualFacts {
   interest_coverage: { value: number; status: ResidualStatus };
   depreciation: ComposedFact;
   amortization: ComposedFact;
+  suppliers_noncurrent: ComposedFact;
 }
 
 const RX = {
@@ -79,7 +80,7 @@ const RX = {
   installment: /PARCELAMENT|REFIS|\bPERT\b|TRANSACAO TRIBUT|PARCELADO/,
   labor: /TRABALHIST|OBRIGACOES SOCIA|ENCARGOS SOCIA|SALARI|FOLHA DE PAGAMENTO|FERIAS|RESCIS|\bFGTS\b|\bINSS\b|13[º°]? SAL|DECIMO TERCEIRO|PROVISAO DE FERIAS/,
   /** §40 — retenções de terceiros nunca compõem dívida trabalhista própria. */
-  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO/,
+  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO|DEDUCOES?/,
   payroll: /SALARI|FOLHA DE PAGAMENTO|ORDENADO|PRO[ -]?LABORE/,
   inss: /\bINSS\b|PREVIDENCI/,
   fgts: /\bFGTS\b/,
@@ -133,10 +134,14 @@ export function resolveResidualFacts(
     resultado?: number; ativo_total?: number; pc?: number; pnc?: number; pl?: number;
     /** §41/§69 — quando o Resultado não está certificado, toda a cadeia derivada cai. */
     resultado_certified?: boolean;
+    resultado_competencia_available?: boolean;
   } = {}
 ): ResidualFacts {
   const liabilities = nodes.filter(n => n.normalized_code.startsWith("2"));
   const results = nodes.filter(n => n.normalized_code.startsWith("3") || n.normalized_code.startsWith("4"));
+
+  /* ── Fornecedores LP (§12) ─────────────────────────── */
+  const suppliersLP = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), n => RX.borrowings.test(n.description) === false && /^FORNECEDORES?\b/i.test(n.description));
 
   /* ── Tributos (§33..§37) ────────────────────────────────── */
   const isTax = (n: AccountNode) => RX.tax.test(n.description) && !RX.labor.test(n.description);
@@ -202,6 +207,11 @@ export function resolveResidualFacts(
           }
         : EMPTY("Exposição tributária não identificada no balancete"),
   };
+
+  /* ── Fornecedores LP Fact (§12) ── */
+  const suppliers_noncurrent = suppliersLP.length
+    ? compose(suppliersLP, "Fornecedores de longo prazo (Passivo Não Circulante)")
+    : EMPTY("Fornecedores LP não identificados no balancete");
 
   /* ── Trabalhistas (§38..§40) ────────────────────────────── */
   const isLabor = (n: AccountNode) =>
@@ -298,10 +308,10 @@ export function resolveResidualFacts(
    *              + Tributos sobre o Lucro
    * Nenhum derivado é certificado quando o Resultado base não está certificado. */
   const resultado = Number.isFinite(ctx.resultado as number) ? (ctx.resultado as number) : NaN;
-  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && Math.abs(resultado) > 0.01;
+  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && (Math.abs(resultado) > 0.01 || ctx.resultado_competencia_available);
   const lajirAvailable = resultCertified && financial_expenses.status === "AVAILABLE";
   const lajirValue = lajirAvailable
-    ? resultado + financial_expenses.analysis_value - financial_revenues.value + income_taxes.value
+    ? resultado + financial_expenses.analysis_value - financial_revenues.value + (income_taxes.status === "AVAILABLE" ? income_taxes.value : 0)
     : NaN;
 
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
@@ -323,6 +333,7 @@ export function resolveResidualFacts(
     income_taxes,
     depreciation,
     amortization,
+    suppliers_noncurrent,
     lajir: {
       value: lajirValue,
       status: lajirAvailable ? "AVAILABLE" : "NOT_AVAILABLE",

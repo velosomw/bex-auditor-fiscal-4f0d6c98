@@ -95,8 +95,10 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   // ── Patrimônio Líquido ──
   "GG1": "patrimonio_liquido", // Capital Social
   "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
-  "RESULTADO": "resultado_acumulado", // MD-CUTOVER §18: separação explícita
-  "RESULTADO_MES": "resultado_competencia",
+  "RESULTADO": "resultado_acumulado", // MD-BEX-FINAL §23: Resultado Acumulado (Code 3)
+  "RESULTADO_MES": "resultado_competencia", // MD-BEX-FINAL §25: Resultado da Competência
+  "ADIANTAMENTOS": "advances_to_third_parties", // MD-BEX-FINAL §70
+  "ADVANCES": "advances_to_third_parties",
   // ── Totais de grupo (autoritativos quando linha-totalizadora existe) ──
   "AC_TOTAL":  "ativo_circulante",
   "ANC_TOTAL": "ativo_nao_circulante",
@@ -130,6 +132,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "ESTOQUE": "estoques",
   "DISPONIVEL": "disponivel",
   "DISPONÍVEL": "disponivel",
+  "ADIANTAMENTOS A TERCEIROS": "advances_to_third_parties",
   "PASSIVO TRIBUTARIO": "divida_tributaria",
   "PASSIVO TRIBUTÁRIO": "divida_tributaria",
   "PASSIVO TRABALHISTA": "divida_trabalhista",
@@ -167,7 +170,7 @@ const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp | null>> = {
   // BALANÇO — Passivos & PL
   divida_tributaria: /\b(?:tribut|impostos?\s+a\s+(?:pagar|recolher)|icms|iss|pis|cofins|irpj|csll)/i,
   divida_trabalhista: /\b(?:sal[aá]rios?\s+a\s+pagar|f[eé]rias|13[ºo°]?|inss\s+a\s+pagar|fgts\s+a\s+pagar|encargos\s+sociais|trabalhista)/i,
-  divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasing|arrendamento)/i,
+  divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasings?|arrendamentos?|cedula\s+de\s+credito|capital\s+de\s+giro|obriga[cç][oõ]es\s+financeir)/i,
   fornecedores: /\bfornecedor/i,
   credores_rj: /\b(?:credores?\s+(?:rj|recupera[cç][aã]o)|recupera[cç][aã]o\s+judic)/i,
   passivo_nao_circulante: /\bpassivo\s+n[aã]o[\s-]?circulante|exig[ií]vel\s+a?\s*longo\s+prazo\b/i,
@@ -221,6 +224,8 @@ export interface BSDadosRow {
   resultado: number;
   resultado_acumulado?: number;
   resultado_competencia?: number;
+  lajir?: number;
+  advances_to_third_parties: number;
   // BALANÇO
   ativo_circulante: number;
   ativo_nao_circulante: number;
@@ -323,9 +328,10 @@ function emptyRow(mesKey: string): BSDadosRow {
     ativo_circulante: 0, ativo_nao_circulante: 0, realizavel_longo_prazo: 0,
     investimentos: 0, intangivel: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
+    advances_to_third_parties: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
-    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0,
+    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0, lajir: 0,
     facts_status: {
       receita_liquida: "NOT_AVAILABLE", cmv: "NOT_AVAILABLE", despesas: "NOT_AVAILABLE",
       despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
@@ -336,11 +342,12 @@ function emptyRow(mesKey: string): BSDadosRow {
       realizavel_longo_prazo: "NOT_AVAILABLE", investimentos: "NOT_AVAILABLE",
       intangivel: "NOT_AVAILABLE", estoques: "NOT_AVAILABLE", disponivel: "NOT_AVAILABLE",
       contas_receber: "NOT_AVAILABLE", imobilizado: "NOT_AVAILABLE",
+      advances_to_third_parties: "NOT_AVAILABLE",
       passivo_circulante: "NOT_AVAILABLE", passivo_nao_circulante: "NOT_AVAILABLE",
       patrimonio_liquido: "NOT_AVAILABLE", divida_tributaria: "NOT_AVAILABLE",
       divida_trabalhista: "NOT_AVAILABLE", divida_financeira: "NOT_AVAILABLE",
       fornecedores: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
-      outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE",
+      outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE", lajir: "NOT_AVAILABLE",
     },
     hasReceita: false, hasBalanco: false, errors: [],
   };
@@ -447,6 +454,7 @@ export function isSyntheticAuthority(code: string, desc?: string): keyof BSDados
   // FORNECEDORES Generalizado
   if (/\bfornecedores?\b/i.test(d) && !/\badiantamento\b|\bfinanceir\b/i.test(d)) {
     if (code.startsWith("2.1") || code.startsWith("2.01")) return "fornecedores";
+    if (code.startsWith("2.2") || code.startsWith("2.02")) return "fornecedores"; // LP
   }
 
   const parts = code.split(".");
@@ -671,6 +679,8 @@ function applyValue(
       }
       case "outras_nao_operacionais":
         target.outras_nao_operacionais += v; break;
+      case "advances_to_third_parties" as any:
+        (target as any).advances_to_third_parties += Math.abs(v); break;
       default: break;
     }
   }
@@ -1189,7 +1199,10 @@ export function buildBSDados(
 
     /* MD-FINAL-RESIDUAL-001 §10..§28 — fatos residuais certificados
        (tributos, trabalhistas, empréstimos SOMENTE do passivo, despesas financeiras). */
-    const residual = resolveResidualFacts(p1Nodes, row.mesKey, { resultado: row.resultado });
+    const residual = resolveResidualFacts(p1Nodes, row.mesKey, { 
+      resultado: row.resultado,
+      resultado_competencia_available: !!row.resultado_competencia
+    });
     row.residual_facts = residual;
 
     if (residual.tax.total_exposure.status === "AVAILABLE") {
@@ -1211,6 +1224,7 @@ export function buildBSDados(
     }
     // §21..§25 — EBITDA só existe quando certificável; nunca igual ao Resultado do Período.
     row.ebitda = residual.ebitda.status === "AVAILABLE" ? residual.ebitda.value : NaN;
+    row.lajir = residual.lajir.status === "AVAILABLE" ? residual.lajir.value : NaN;
 
     // Recalcula agregados derivados após o cutover P1.
     row.divida_total =

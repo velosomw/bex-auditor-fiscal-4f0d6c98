@@ -2701,6 +2701,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
   const result = d?.resultado_liquido || 0;
+  const resultLabel = (reportDataset?.facts as any)?.resultado_competencia ? "Resultado da Competência" : "Resultado Acumulado";
   const pl = d?.patrimonio_liquido || 0;
   const at = ac + anc;
   const pt = pc + pnc;
@@ -2720,7 +2721,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
     { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
-    { item: "Resultado do Período", detail: `R$ ${fmt(result)}`, status: result >= 0 ? "positivo" : "negativo" },
+    { item: resultLabel, detail: `R$ ${fmt(result)}`, status: result >= 0 ? "positivo" : "negativo" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -2879,7 +2880,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">
                 Com base no Balancete de {latestYear}, a empresa apresenta um Ativo Total de R$ {fmt(at)} contra um Passivo Total (capital de terceiros) de R$ {fmt(pt)}.
-                O Patrimônio Líquido é de R$ {fmt(pl)}. A Receita Líquida do período atingiu R$ {fmt(rl)}, resultando em um {result >= 0 ? "Lucro" : "Prejuízo"} de R$ {fmt(Math.abs(result))}.
+                O Patrimônio Líquido é de R$ {fmt(pl)}. A Receita Líquida do período atingiu R$ {fmt(rl)}, resultando em um {result >= 0 ? "Lucro" : "Prejuízo"} ({resultLabel.toLowerCase()}) de R$ {fmt(Math.abs(result))}.
                 {latestInd ? ` A liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)} e o endividamento total de ${fmtPct(latestInd.endividamentoTotal)} sintetizam a estrutura patrimonial da competência analisada.` : ""}
               </p>
 
@@ -3208,9 +3209,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "Margem Operacional", formula: "LAJIR / Receita", value: latestInd?.margemOperacional, interp: "Eficiência operacional da empresa" },
-                    { name: "ROA", formula: "LL / AT", value: latestInd?.roa, interp: "Retorno gerado pelo ativo total" },
-                    { name: "ROE", formula: "LL / PL", value: latestInd?.roe, interp: "Retorno ao acionista sobre capital investido" },
+                    { name: "Margem Líquida", formula: "Resultado / Receita", value: reportDataset.ratios?.margemLiquida, interp: "Eficiência do lucro/prejuízo sobre as vendas" },
+                    { name: "ROA (Retorno do Ativo)", formula: "Resultado / Ativo Total", value: reportDataset.ratios?.roa, interp: "Retorno gerado pelo ativo total" },
+                    { name: "ROE (Retorno do PL)", formula: "Resultado / Patrimônio Líquido", value: reportDataset.ratios?.roe, interp: "Retorno ao acionista sobre capital investido" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3274,7 +3275,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 {reportDataset.ratios?.ebitdaStatus === "AVAILABLE" ? (
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Depreciação + Amortização (componentes certificados)</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">EBITDA Certificado (LAJIR + Depreciação + Amortização)</p>
+                    {residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{residual.ebitda.reason}</p>}
                   </>
                 ) : (
                   <>
@@ -3303,7 +3305,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Obrigações Tributárias LP", value: residual?.tax.noncurrent_obligations.value ?? 0, available: residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: residual?.tax.noncurrent_obligations.calculation_scope },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
-                { label: "Fornecedores", value: fornec, available: true, scope: "Conta sintética de fornecedores (curto prazo)" },
+                { label: "Fornecedores (CP)", value: fornec, available: !!fornec, scope: "Dívida comercial de curto prazo (grupo 2.1)" },
+                { label: "Fornecedores (LP)", value: residual?.suppliers_noncurrent?.value || 0, available: residual?.suppliers_noncurrent?.status === "AVAILABLE", scope: residual?.suppliers_noncurrent?.calculation_scope },
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
                 { label: "Passivo Não Circulante", value: pnc, available: true, scope: "Grupo sintético 2.2" },
               ].map(item => (
@@ -3554,11 +3557,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     </TableHeader>
                     <TableBody>
                       {[
-                        { name: "RPL (X1)", formula: "Lucro Líquido / Patrimônio Líquido", peso: "+0,05", desc: "Rentabilidade do PL" },
+                        { name: "RPL (X1)", formula: "Resultado do Período / Patrimônio Líquido", peso: "+0,05", desc: "Rentabilidade do PL" },
                         { name: "LG (X2)", formula: "(AC + RLP) / (PC + PNC)", peso: "+1,65", desc: "Solvência de Longo Prazo" },
                         { name: "LS (X3)", formula: "(AC - Estoques) / PC", peso: "+3,55", desc: "Liquidez Sem Estoques" },
                         { name: "LC (X4)", formula: "Ativo Circulante / Passivo Circulante", peso: "-1,06", desc: "Capacidade de Pagamento" },
-                        { name: "GE (X5)", formula: "Passivo Total / Patrimônio Líquido", peso: "-0,33", desc: "Grau de Endividamento" },
+                        { name: "GE (X5)", formula: "Passivo Total Exigível / Patrimônio Líquido", peso: "-0,33", desc: "Grau de Endividamento" },
                       ].map((item) => (
                         <TableRow key={item.name}>
                           <TableCell className="text-xs font-bold">{item.name}</TableCell>
