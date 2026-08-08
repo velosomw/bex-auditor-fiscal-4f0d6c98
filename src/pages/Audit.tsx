@@ -4687,6 +4687,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   skipPersist?: boolean;
   initialReportType?: "bex" | "kanitz";
   availableReports?: Array<"bex" | "kanitz">;
+  processingRunId?: string;
 }) => {
   const navigate = useNavigate();
   const isResumido = selectedDepth === "executivo";
