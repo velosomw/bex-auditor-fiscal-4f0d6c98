@@ -105,6 +105,8 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "PC_TOTAL":  "passivo_circulante",
   "PNC_TOTAL": "passivo_nao_circulante",
   "PL_TOTAL":  "patrimonio_liquido",
+  "ADVANCES": "advances_to_third_parties",
+  "ADIANTAMENTOS": "advances_to_third_parties",
   // ── DRE — categorias separadas ──
   "DESPESAS_FIN": "despesas_financeiras", // grupo 7
   "RECEITAS_FIN": "receitas_financeiras", // DRE 50.B
@@ -326,6 +328,7 @@ function emptyRow(mesKey: string): BSDadosRow {
     ativo_circulante: 0, ativo_nao_circulante: 0, realizavel_longo_prazo: 0,
     investimentos: 0, intangivel: 0,
     estoques: 0, disponivel: 0, contas_receber: 0, imobilizado: 0,
+    advances_to_third_parties: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0,
@@ -339,6 +342,7 @@ function emptyRow(mesKey: string): BSDadosRow {
       realizavel_longo_prazo: "NOT_AVAILABLE", investimentos: "NOT_AVAILABLE",
       intangivel: "NOT_AVAILABLE", estoques: "NOT_AVAILABLE", disponivel: "NOT_AVAILABLE",
       contas_receber: "NOT_AVAILABLE", imobilizado: "NOT_AVAILABLE",
+      advances_to_third_parties: "NOT_AVAILABLE",
       passivo_circulante: "NOT_AVAILABLE", passivo_nao_circulante: "NOT_AVAILABLE",
       patrimonio_liquido: "NOT_AVAILABLE", divida_tributaria: "NOT_AVAILABLE",
       divida_trabalhista: "NOT_AVAILABLE", divida_financeira: "NOT_AVAILABLE",
