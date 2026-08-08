@@ -5197,6 +5197,7 @@ const AuditContent = () => {
   const [preParsing, setPreParsing] = useState(false);
   const [balanceteEntries, setBalanceteEntries] = useState<BalanceteEntry[]>([]);
   const [forceReprocess, setForceReprocess] = useState(false);
+  const [processingRunId, setProcessingRunId] = useState<string>(""); // MD-CUTOVER-001 §6
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
