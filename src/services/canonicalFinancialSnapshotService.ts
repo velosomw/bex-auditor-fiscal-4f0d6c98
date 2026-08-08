@@ -210,7 +210,7 @@ export function buildCertifiedFinancialSnapshot(
 
   const fileName = source.fileName || (parsedData as any)?.fileName || "balancete";
   const fileHash = hashString(`${fileName}|${source.fileSize ?? 0}|${competencies.join(",")}`);
-  const runId = source.processingRunId || `RUN-${new Date().toISOString().split('T')[0]}-${fileHash.slice(0, 4)}`;
+  const runId = source.processingRunId || `BEXRUN-${fileHash}-${new Date().getTime().toString(36).toUpperCase()}`;
   const traceId = `BEX-RUNTIME-${latestKey.replace(/[^0-9]/g, "")}-${fileHash}`;
 
   // Certificação: fatos principais precisam existir (zero só é válido se vier do balancete)
