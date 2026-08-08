@@ -2647,7 +2647,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       limitations: snapshot.limitations,
       snapshot,
     } as CanonicalReportDataset;
-  }, [snapshot]);
+  }, [snapshot, processingRunId]);
 
 
   const activeYear = reportDataset?.competency || "";
