@@ -254,8 +254,9 @@ tr {
      de conteúdo pode terminar sob a barra de rodapé. */
   padding: 4mm 0 26mm 0;
   position: relative;
-  overflow: hidden;
   display: block; /* Garante que break-inside funcione */
+  min-height: 297mm;
+  box-sizing: border-box;
 }
 
 /* §59 — Content Overflow Gate: cartões e blocos editoriais nunca são cortados
@@ -322,6 +323,7 @@ tr {
   }
 
   /* Position targeted containers as the only visible block */
+  body.printing-report .bex-results-wrapper,
   body.printing-report [id="report-bex-container"],
   body.printing-report [id="report-kanitz-container"],
   body.printing-report [id="tab-graficos-container"],

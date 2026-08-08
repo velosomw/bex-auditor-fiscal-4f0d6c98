@@ -54,6 +54,8 @@ import { filterStalePendencias, recomputePendencyPercentages } from "@/services/
 export interface CanonicalReportDataset {
   runtime_trace_id: string;
   canonical_snapshot_id: string;
+  processing_run_id: string; // MD-CUTOVER-001 §6
+  source_file_hash: string;  // MD-CUTOVER-001 §8
   competency: string;
   company_id: string;
   generated_at: string;
@@ -1141,7 +1143,7 @@ const processingSteps = [
 const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed, companyId, balanceteEntries, forceReprocess }: { 
   onComplete: () => void; 
   files: File[];
-  onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
+  onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null, processingRunId?: string) => void;
   dedupConfig?: import("@/services/auditAIService").DedupConfig;
   preParsed?: MultiMonthParsed | null;
   companyId?: string | null;
@@ -1155,6 +1157,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
   const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [processingRunId, setProcessingRunId] = useState<string>(""); // MD-CUTOVER-001 §6
   const [elapsedSec, setElapsedSec] = useState(0);
   const startTimeRef = useRef<number>(Date.now());
   const startedRef = useRef(false);
@@ -1194,6 +1197,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
 
     const runRealAnalysis = async () => {
       try {
+        const generatedRunId = `RUN-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+        setProcessingRunId(generatedRunId);
+
         // Step 0: Upload received
         setCurrentStep(0);
         setProgress(5);
@@ -1334,6 +1340,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                   companyId: companyId ?? undefined,
                   fileName: files[0]?.name,
                   variant: "completo",
+                  processingRunId: processingRunId, // MD-CUTOVER-001 §6
                 });
                 console.log(
                   `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false} | audit_id=${persistResp.audit_id ?? "—"}`
@@ -1387,7 +1394,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         if (deterministicFacts?.insights) {
           (analysis as any).insightsDeterministicos = deterministicFacts.insights;
         }
-        onAnalysisReady(analysis, parsedData);
+        onAnalysisReady(analysis, parsedData, processingRunId);
         setTimeout(onComplete, 500);
       } catch (err) {
         console.error("Processing error:", err);
@@ -2434,7 +2441,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
               <BookOpen className="w-5 h-5 text-[hsl(258,90%,66%)]" />
             </div>
             <div>
-              <CardTitle className="text-base">Relatório BEx_Resumido_Kanitz</CardTitle>
+              <CardTitle className="text-base font-serif">Relatório BEx_Resumido_Kanitz</CardTitle>
               <CardDescription className="text-xs">Avaliação Contábil e Solvência Empresarial</CardDescription>
             </div>
           </div>
@@ -2487,7 +2494,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
               <Scale className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <CardTitle className="text-base">Relatório BEx_Completo_Kanitz</CardTitle>
+              <CardTitle className="text-base font-serif">Relatório BEx_Completo_Kanitz</CardTitle>
               <CardDescription className="text-xs">Termômetro de Insolvência — Stephen C. Kanitz</CardDescription>
             </div>
           </div>
@@ -2539,7 +2546,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
 /* ══════════════════════════════════════════════════════
    TAB: RELATÓRIO FINAL BEX
    ══════════════════════════════════════════════════════ */
-export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs, company, balanceteEntries }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null; balanceteEntries?: BalanceteEntry[] }) => {
+export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKanitz, variant = "resumido", uploadedFiles, sourceDocs, company, balanceteEntries, processingRunId }: { onBack: () => void; aiAnalysis?: any; parsedData?: ParsedFinancialData | null; onSwitchToKanitz?: () => void; variant?: "resumido" | "completo"; uploadedFiles?: File[]; sourceDocs?: { fileName: string; fileSize: number; format: string }[]; company?: Company | null; balanceteEntries?: BalanceteEntry[]; processingRunId?: string }) => {
   const { state } = useAudit();
   const navigate = useNavigate();
   const reportContainerRef = useRef<HTMLDivElement>(null);
@@ -2569,8 +2576,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       companyId: company?.id,
       fileName: uploadedFiles?.[0]?.name || sourceDocs?.[0]?.fileName || (balanceteEntries || [])[0]?.fileName || null,
       fileSize: uploadedFiles?.[0]?.size ?? sourceDocs?.[0]?.fileSize ?? null,
+      processingRunId: processingRunId || undefined
     }),
-    [parsedData, balanceteEntries, company, uploadedFiles, sourceDocs]
+    [parsedData, balanceteEntries, company, uploadedFiles, sourceDocs, processingRunId]
   );
 
   /* MD-CUTOVER-001 §19/§21 — Kanitz embutido consome o CanonicalKanitzReportModel do snapshot. */
@@ -2599,14 +2607,23 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       });
     }
     return results;
-  }, [snapshot]);
+  }, [snapshot, processingRunId]);
 
 
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
     if (!snapshot) return null;
+
+    // MD-CUTOVER-001 §11: Hard Gate de Source Binding
+    if (processingRunId && snapshot.processing_run_id !== processingRunId) {
+       console.error("SNAPSHOT_REUSE_CROSS_SOURCE_FAIL: Run ID mismatch detected.", { expected: processingRunId, got: snapshot.processing_run_id });
+       return null;
+    }
+
     return {
       runtime_trace_id: snapshot.runtime_trace_id,
       canonical_snapshot_id: snapshot.snapshot_id,
+      processing_run_id: snapshot.processing_run_id,
+      source_file_hash: snapshot.source_file_hash,
       competency: snapshot.competency,
       company_id: snapshot.company_id,
       generated_at: snapshot.processing_timestamp,
@@ -2630,7 +2647,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       limitations: snapshot.limitations,
       snapshot,
     } as CanonicalReportDataset;
-  }, [snapshot]);
+  }, [snapshot, processingRunId]);
 
 
   const activeYear = reportDataset?.competency || "";
@@ -4108,7 +4125,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </div>
           {!kAplic && (
             <p className="text-[10px] text-muted-foreground italic">
-              Nota: períodos com PL negativo têm RPL e GE marcados como N/A e FI riscado — usar ISG como referência.
+              Nota: períodos com PL negativo têm RPL e GE marcados como N/A — usar ISG como referência.
             </p>
           )}
         </div>
@@ -4660,7 +4677,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
 /* ══════════════════════════════════════════════════════
    RESULTS VIEW (ALL TABS)
    ══════════════════════════════════════════════════════ */
-export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [], skipPersist = false, initialReportType, availableReports }: { 
+export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDocs, company, source, uploadedFiles, selectedDepth = "tecnico", balanceteEntries = [], skipPersist = false, initialReportType, availableReports, processingRunId }: { 
   onBack: () => void; 
   aiAnalysis?: any;
   parsedData?: ParsedFinancialData | null;
@@ -4674,8 +4691,10 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   skipPersist?: boolean;
   initialReportType?: "bex" | "kanitz";
   availableReports?: Array<"bex" | "kanitz">;
+  processingRunId?: string;
 }) => {
   const navigate = useNavigate();
+  const runId = processingRunId; // MD-CUTOVER-001 §6
   const isResumido = selectedDepth === "executivo";
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(
     initialReportType ?? (isResumido ? "bex" : "none")
@@ -4897,20 +4916,20 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   // Resumido (executivo): apenas o relatório BEx_Resumido_Kanitz, sem abas de auditoria
   if (isResumido) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 bex-results-wrapper">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground font-serif">Relatório BEx_Resumido_Kanitz</h1>
             <p className="text-sm text-muted-foreground">Documento gerado automaticamente pelo Técnico Contábil Sênior IA</p>
           </div>
         </div>
-        <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} />
+        <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} processingRunId={runId} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bex-results-wrapper">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -5121,7 +5140,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             </div>
           )}
           {reportType === "bex" ? (
-            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} balanceteEntries={balanceteEntries} />
+            <TabRelatorioFinal onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} variant="resumido" uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} balanceteEntries={balanceteEntries} processingRunId={runId} />
           ) : reportType === "kanitz" ? (
             <TabRelatorioKanitz onBack={onBack} aiAnalysis={aiAnalysis} parsedData={parsedData} uploadedFiles={uploadedFiles} sourceDocs={sourceDocs} company={company} reportDataset={reportDataset} />
           ) : (
@@ -5183,6 +5202,7 @@ const AuditContent = () => {
   const [preParsing, setPreParsing] = useState(false);
   const [balanceteEntries, setBalanceteEntries] = useState<BalanceteEntry[]>([]);
   const [forceReprocess, setForceReprocess] = useState(false);
+  const [processingRunId, setProcessingRunId] = useState<string>(""); // MD-CUTOVER-001 §6
 
   const reportSource: "auditor_chefe" | "usuario" | "empresa" =
     role === "auditor_chefe" || role === "coordenadora" || role === "gestor_ia"
@@ -5336,7 +5356,10 @@ const AuditContent = () => {
             onComplete={() => setPhase("results")} 
             files={uploadedFiles}
             preParsed={multiMonth ? pickMonths(multiMonth, filteredMonths) : null}
-            onAnalysisReady={handleAnalysisReady}
+            onAnalysisReady={(analysis, parsed, runId) => {
+               if (runId) setProcessingRunId(runId);
+               handleAnalysisReady(analysis, parsed);
+            }}
             dedupConfig={dedupConfig}
             companyId={company?.id ?? null}
             balanceteEntries={balanceteEntries}
@@ -5355,6 +5378,7 @@ const AuditContent = () => {
             uploadedFiles={uploadedFiles}
             selectedDepth={selectedDepth}
             balanceteEntries={balanceteEntries}
+            processingRunId={processingRunId}
           />
         )}
       </div>

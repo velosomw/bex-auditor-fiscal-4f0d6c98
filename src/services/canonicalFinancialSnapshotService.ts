@@ -67,6 +67,7 @@ export interface CanonicalCompetencySnapshot {
 
 export interface CertifiedFinancialSnapshot {
   snapshot_id: string;
+  processing_run_id: string; // MD-CUTOVER-001 §6
   runtime_trace_id: string;
   snapshot_version: string;
   company_id: string;
@@ -162,6 +163,7 @@ export interface SnapshotSource {
   companyId?: string | null;
   fileName?: string | null;
   fileSize?: number | null;
+  processingRunId?: string; // MD-CUTOVER-001 §6
 }
 
 /**
@@ -208,6 +210,7 @@ export function buildCertifiedFinancialSnapshot(
 
   const fileName = source.fileName || (parsedData as any)?.fileName || "balancete";
   const fileHash = hashString(`${fileName}|${source.fileSize ?? 0}|${competencies.join(",")}`);
+  const runId = source.processingRunId || `BEXRUN-${fileHash}-${new Date().getTime().toString(36).toUpperCase()}`;
   const traceId = `BEX-RUNTIME-${latestKey.replace(/[^0-9]/g, "")}-${fileHash}`;
 
   // Certificação: fatos principais precisam existir (zero só é válido se vier do balancete)
@@ -221,6 +224,7 @@ export function buildCertifiedFinancialSnapshot(
 
   const snapshot: CertifiedFinancialSnapshot = {
     snapshot_id: `SNAP-${traceId}`,
+    processing_run_id: runId,
     runtime_trace_id: traceId,
     snapshot_version: SNAPSHOT_VERSION,
     company_id: source.companyId || "manual",
