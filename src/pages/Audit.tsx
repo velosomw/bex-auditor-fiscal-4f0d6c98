@@ -1157,6 +1157,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
   const [pipelineProgress, setPipelineProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [processingRunId, setProcessingRunId] = useState<string>(""); // MD-CUTOVER-001 §6
   const [elapsedSec, setElapsedSec] = useState(0);
   const startTimeRef = useRef<number>(Date.now());
   const startedRef = useRef(false);
