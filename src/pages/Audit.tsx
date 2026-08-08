@@ -4916,7 +4916,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   // Resumido (executivo): apenas o relatório BEx_Resumido_Kanitz, sem abas de auditoria
   if (isResumido) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 bex-results-wrapper">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground font-serif">Relatório BEx_Resumido_Kanitz</h1>
