@@ -224,6 +224,7 @@ export interface BSDadosRow {
   resultado: number;
   resultado_acumulado?: number;
   resultado_competencia?: number;
+  lajir?: number;
   advances_to_third_parties: number;
   // BALANÇO
   ativo_circulante: number;
@@ -330,7 +331,7 @@ function emptyRow(mesKey: string): BSDadosRow {
     advances_to_third_parties: 0,
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
-    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0,
+    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0, lajir: 0,
     facts_status: {
       receita_liquida: "NOT_AVAILABLE", cmv: "NOT_AVAILABLE", despesas: "NOT_AVAILABLE",
       despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
@@ -346,7 +347,7 @@ function emptyRow(mesKey: string): BSDadosRow {
       patrimonio_liquido: "NOT_AVAILABLE", divida_tributaria: "NOT_AVAILABLE",
       divida_trabalhista: "NOT_AVAILABLE", divida_financeira: "NOT_AVAILABLE",
       fornecedores: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
-      outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE",
+      outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE", lajir: "NOT_AVAILABLE",
     },
     hasReceita: false, hasBalanco: false, errors: [],
   };
