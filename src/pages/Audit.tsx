@@ -4125,7 +4125,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </div>
           {!kAplic && (
             <p className="text-[10px] text-muted-foreground italic">
-              Nota: períodos com PL negativo têm RPL e GE marcados como N/A e FI riscado — usar ISG como referência.
+              Nota: períodos com PL negativo têm RPL e GE marcados como N/A — usar ISG como referência.
             </p>
           )}
         </div>
