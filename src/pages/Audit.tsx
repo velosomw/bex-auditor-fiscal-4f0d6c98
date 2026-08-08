@@ -54,6 +54,8 @@ import { filterStalePendencias, recomputePendencyPercentages } from "@/services/
 export interface CanonicalReportDataset {
   runtime_trace_id: string;
   canonical_snapshot_id: string;
+  processing_run_id: string; // MD-CUTOVER-001 §6
+  source_file_hash: string;  // MD-CUTOVER-001 §8
   competency: string;
   company_id: string;
   generated_at: string;
