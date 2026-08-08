@@ -1198,7 +1198,10 @@ export function buildBSDados(
 
     /* MD-FINAL-RESIDUAL-001 §10..§28 — fatos residuais certificados
        (tributos, trabalhistas, empréstimos SOMENTE do passivo, despesas financeiras). */
-    const residual = resolveResidualFacts(p1Nodes, row.mesKey, { resultado: row.resultado });
+    const residual = resolveResidualFacts(p1Nodes, row.mesKey, { 
+      resultado: row.resultado,
+      resultado_competencia_available: !!row.resultado_competencia
+    });
     row.residual_facts = residual;
 
     if (residual.tax.total_exposure.status === "AVAILABLE") {
