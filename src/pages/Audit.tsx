@@ -1197,6 +1197,9 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
 
     const runRealAnalysis = async () => {
       try {
+        const generatedRunId = `RUN-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+        setProcessingRunId(generatedRunId);
+
         // Step 0: Upload received
         setCurrentStep(0);
         setProgress(5);
