@@ -225,6 +225,7 @@ export function buildCertifiedFinancialSnapshot(
   const snapshot: CertifiedFinancialSnapshot = {
     snapshot_id: `SNAP-${traceId}`,
     processing_run_id: runId,
+    runtime_trace_id: traceId,
     snapshot_version: SNAPSHOT_VERSION,
     company_id: source.companyId || "manual",
     competency: latestKey,
