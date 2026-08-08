@@ -95,8 +95,10 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   // ── Patrimônio Líquido ──
   "GG1": "patrimonio_liquido", // Capital Social
   "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
-  "RESULTADO": "resultado_acumulado", // MD-CUTOVER §18: separação explícita
-  "RESULTADO_MES": "resultado_competencia",
+  "RESULTADO": "resultado_acumulado", // MD-BEX-FINAL §23: Resultado Acumulado (Code 3)
+  "RESULTADO_MES": "resultado_competencia", // MD-BEX-FINAL §25: Resultado da Competência
+  "ADIANTAMENTOS": "advances_to_third_parties", // MD-BEX-FINAL §70
+  "ADVANCES": "advances_to_third_parties",
   // ── Totais de grupo (autoritativos quando linha-totalizadora existe) ──
   "AC_TOTAL":  "ativo_circulante",
   "ANC_TOTAL": "ativo_nao_circulante",
@@ -219,9 +221,10 @@ export interface BSDadosRow {
   depreciacao: number;
   amortizacao: number;
   resultado: number;
-  resultado_acumulado?: number;
-  resultado_competencia?: number;
-  // BALANÇO
+    resultado_acumulado?: number;
+    resultado_competencia?: number;
+    advances_to_third_parties?: number;
+    // BALANÇO
   ativo_circulante: number;
   ativo_nao_circulante: number;
   realizavel_longo_prazo: number;
@@ -671,6 +674,8 @@ function applyValue(
       }
       case "outras_nao_operacionais":
         target.outras_nao_operacionais += v; break;
+      case "advances_to_third_parties" as any:
+        (target as any).advances_to_third_parties += Math.abs(v); break;
       default: break;
     }
   }
