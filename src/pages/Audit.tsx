@@ -2494,7 +2494,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
               <Scale className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <CardTitle className="text-base">Relatório BEx_Completo_Kanitz</CardTitle>
+              <CardTitle className="text-base font-serif">Relatório BEx_Completo_Kanitz</CardTitle>
               <CardDescription className="text-xs">Termômetro de Insolvência — Stephen C. Kanitz</CardDescription>
             </div>
           </div>
