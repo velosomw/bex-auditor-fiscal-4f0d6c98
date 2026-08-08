@@ -1340,6 +1340,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                   companyId: companyId ?? undefined,
                   fileName: files[0]?.name,
                   variant: "completo",
+                  processing_run_id: processingRunId, // MD-CUTOVER-001 §6
                 });
                 console.log(
                   `BS & Dados (server) — ${persistResp.summary.meses} meses | ${persistResp.summary.total_linhas} linhas | persistido=${persistResp.persisted ?? false} | audit_id=${persistResp.audit_id ?? "—"}`
