@@ -307,10 +307,10 @@ export function resolveResidualFacts(
    *              + Tributos sobre o Lucro
    * Nenhum derivado é certificado quando o Resultado base não está certificado. */
   const resultado = Number.isFinite(ctx.resultado as number) ? (ctx.resultado as number) : NaN;
-  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && Math.abs(resultado) > 0.01;
+  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && (Math.abs(resultado) > 0.01 || ctx.resultado_competencia_available);
   const lajirAvailable = resultCertified && financial_expenses.status === "AVAILABLE";
   const lajirValue = lajirAvailable
-    ? resultado + financial_expenses.analysis_value - financial_revenues.value + income_taxes.value
+    ? resultado + financial_expenses.analysis_value - financial_revenues.value + (income_taxes.status === "AVAILABLE" ? income_taxes.value : 0)
     : NaN;
 
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
