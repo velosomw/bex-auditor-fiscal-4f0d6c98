@@ -4694,6 +4694,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
   processingRunId?: string;
 }) => {
   const navigate = useNavigate();
+  const runId = processingRunId; // MD-CUTOVER-001 §6
   const isResumido = selectedDepth === "executivo";
   const [reportType, setReportType] = useState<"none" | "bex" | "kanitz">(
     initialReportType ?? (isResumido ? "bex" : "none")
