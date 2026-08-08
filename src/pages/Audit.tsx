@@ -3305,7 +3305,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Obrigações Tributárias LP", value: residual?.tax.noncurrent_obligations.value ?? 0, available: residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: residual?.tax.noncurrent_obligations.calculation_scope },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
-                { label: "Fornecedores", value: fornec, available: true, scope: "Conta sintética de fornecedores (curto prazo)" },
+                { label: "Fornecedores (CP)", value: fornec, available: !!fornec, scope: "Dívida comercial de curto prazo (grupo 2.1)" },
+                { label: "Fornecedores (LP)", value: residual?.suppliers_noncurrent?.value || 0, available: residual?.suppliers_noncurrent?.status === "AVAILABLE", scope: residual?.suppliers_noncurrent?.calculation_scope },
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
                 { label: "Passivo Não Circulante", value: pnc, available: true, scope: "Grupo sintético 2.2" },
               ].map(item => (
