@@ -80,7 +80,7 @@ const RX = {
   installment: /PARCELAMENT|REFIS|\bPERT\b|TRANSACAO TRIBUT|PARCELADO/,
   labor: /TRABALHIST|OBRIGACOES SOCIA|ENCARGOS SOCIA|SALARI|FOLHA DE PAGAMENTO|FERIAS|RESCIS|\bFGTS\b|\bINSS\b|13[º°]? SAL|DECIMO TERCEIRO|PROVISAO DE FERIAS/,
   /** §40 — retenções de terceiros nunca compõem dívida trabalhista própria. */
-  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO/,
+  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO|DEDUCOES?/,
   payroll: /SALARI|FOLHA DE PAGAMENTO|ORDENADO|PRO[ -]?LABORE/,
   inss: /\bINSS\b|PREVIDENCI/,
   fgts: /\bFGTS\b/,

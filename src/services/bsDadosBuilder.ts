@@ -132,6 +132,7 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "ESTOQUE": "estoques",
   "DISPONIVEL": "disponivel",
   "DISPONÍVEL": "disponivel",
+  "ADIANTAMENTOS A TERCEIROS": "advances_to_third_parties",
   "PASSIVO TRIBUTARIO": "divida_tributaria",
   "PASSIVO TRIBUTÁRIO": "divida_tributaria",
   "PASSIVO TRABALHISTA": "divida_trabalhista",
@@ -169,7 +170,7 @@ const FALLBACK_PATTERNS: Partial<Record<keyof BSDadosRow, RegExp | null>> = {
   // BALANÇO — Passivos & PL
   divida_tributaria: /\b(?:tribut|impostos?\s+a\s+(?:pagar|recolher)|icms|iss|pis|cofins|irpj|csll)/i,
   divida_trabalhista: /\b(?:sal[aá]rios?\s+a\s+pagar|f[eé]rias|13[ºo°]?|inss\s+a\s+pagar|fgts\s+a\s+pagar|encargos\s+sociais|trabalhista)/i,
-  divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasing|arrendamento)/i,
+  divida_financeira: /\b(?:empr[eé]stimos?|financiamentos?|deb[eê]ntures?|leasings?|arrendamentos?|cedula\s+de\s+credito|capital\s+de\s+giro|obriga[cç][oõ]es\s+financeir)/i,
   fornecedores: /\bfornecedor/i,
   credores_rj: /\b(?:credores?\s+(?:rj|recupera[cç][aã]o)|recupera[cç][aã]o\s+judic)/i,
   passivo_nao_circulante: /\bpassivo\s+n[aã]o[\s-]?circulante|exig[ií]vel\s+a?\s*longo\s+prazo\b/i,
@@ -452,6 +453,7 @@ export function isSyntheticAuthority(code: string, desc?: string): keyof BSDados
   // FORNECEDORES Generalizado
   if (/\bfornecedores?\b/i.test(d) && !/\badiantamento\b|\bfinanceir\b/i.test(d)) {
     if (code.startsWith("2.1") || code.startsWith("2.01")) return "fornecedores";
+    if (code.startsWith("2.2") || code.startsWith("2.02")) return "fornecedores"; // LP
   }
 
   const parts = code.split(".");
