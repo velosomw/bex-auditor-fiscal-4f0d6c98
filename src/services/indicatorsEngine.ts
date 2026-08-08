@@ -127,13 +127,13 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const amortAbs = Math.abs(r.amortizacao);
   const resultado = r.resultado;
 
-  const lajir = resultado + despFinAbs - recFinAbs;
+  const lajir = resultado + despFinAbs - recFinAbs + (r.residual_facts?.income_taxes.value || 0);
 
   /* MD-FINAL-RESIDUAL-001 §21..§29 — EBITDA e Cobertura de Juros só são publicados
      quando certificados pelo resolver residual; caso contrário NaN (nunca zero artificial). */
   const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE" && Number.isFinite(r.residual_facts.ebitda.value);
   const coberturaCertificada =
-    r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 0 && Number.isFinite(lajir);
+    r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 10 && Number.isFinite(lajir);
 
   const pmr = div(contasReceber * 30, receita);
   const pmp = div(r.fornecedores * 30, cmvAbs);
