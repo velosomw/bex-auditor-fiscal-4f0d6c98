@@ -3208,9 +3208,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "Margem Operacional", formula: "LAJIR / Receita", value: latestInd?.margemOperacional, interp: "Eficiência operacional da empresa" },
-                    { name: "ROA", formula: "LL / AT", value: latestInd?.roa, interp: "Retorno gerado pelo ativo total" },
-                    { name: "ROE", formula: "LL / PL", value: latestInd?.roe, interp: "Retorno ao acionista sobre capital investido" },
+                    { name: "Margem Líquida", formula: "Resultado / Receita", value: reportDataset.ratios?.margemLiquida, interp: "Eficiência do lucro/prejuízo sobre as vendas" },
+                    { name: "ROA (Retorno do Ativo)", formula: "Resultado / Ativo Total", value: reportDataset.ratios?.roa, interp: "Retorno gerado pelo ativo total" },
+                    { name: "ROE (Retorno do PL)", formula: "Resultado / Patrimônio Líquido", value: reportDataset.ratios?.roe, interp: "Retorno ao acionista sobre capital investido" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3274,7 +3274,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 {reportDataset.ratios?.ebitdaStatus === "AVAILABLE" ? (
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">LAJIR + Depreciação + Amortização (componentes certificados)</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">EBITDA Certificado (LAJIR + Depreciação + Amortização)</p>
+                    {residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{residual.ebitda.reason}</p>}
                   </>
                 ) : (
                   <>
@@ -3554,11 +3555,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     </TableHeader>
                     <TableBody>
                       {[
-                        { name: "RPL (X1)", formula: "Lucro Líquido / Patrimônio Líquido", peso: "+0,05", desc: "Rentabilidade do PL" },
+                        { name: "RPL (X1)", formula: "Resultado do Período / Patrimônio Líquido", peso: "+0,05", desc: "Rentabilidade do PL" },
                         { name: "LG (X2)", formula: "(AC + RLP) / (PC + PNC)", peso: "+1,65", desc: "Solvência de Longo Prazo" },
                         { name: "LS (X3)", formula: "(AC - Estoques) / PC", peso: "+3,55", desc: "Liquidez Sem Estoques" },
                         { name: "LC (X4)", formula: "Ativo Circulante / Passivo Circulante", peso: "-1,06", desc: "Capacidade de Pagamento" },
-                        { name: "GE (X5)", formula: "Passivo Total / Patrimônio Líquido", peso: "-0,33", desc: "Grau de Endividamento" },
+                        { name: "GE (X5)", formula: "Passivo Total Exigível / Patrimônio Líquido", peso: "-0,33", desc: "Grau de Endividamento" },
                       ].map((item) => (
                         <TableRow key={item.name}>
                           <TableCell className="text-xs font-bold">{item.name}</TableCell>
