@@ -221,10 +221,10 @@ export interface BSDadosRow {
   depreciacao: number;
   amortizacao: number;
   resultado: number;
-    resultado_acumulado?: number;
-    resultado_competencia?: number;
-    advances_to_third_parties?: number;
-    // BALANÇO
+  resultado_acumulado?: number;
+  resultado_competencia?: number;
+  advances_to_third_parties: number;
+  // BALANÇO
   ativo_circulante: number;
   ativo_nao_circulante: number;
   realizavel_longo_prazo: number;
