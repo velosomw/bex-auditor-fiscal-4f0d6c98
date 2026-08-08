@@ -72,6 +72,7 @@ export interface ResidualFacts {
   interest_coverage: { value: number; status: ResidualStatus };
   depreciation: ComposedFact;
   amortization: ComposedFact;
+  suppliers_noncurrent: ComposedFact;
 }
 
 const RX = {
@@ -206,6 +207,11 @@ export function resolveResidualFacts(
         : EMPTY("Exposição tributária não identificada no balancete"),
   };
 
+  /* ── Fornecedores LP Fact (§12) ── */
+  const suppliers_noncurrent = suppliersLP.length
+    ? compose(suppliersLP, "Fornecedores de longo prazo (Passivo Não Circulante)")
+    : EMPTY("Fornecedores LP não identificados no balancete");
+
   /* ── Trabalhistas (§38..§40) ────────────────────────────── */
   const isLabor = (n: AccountNode) =>
     RX.labor.test(n.description) &&
@@ -326,6 +332,7 @@ export function resolveResidualFacts(
     income_taxes,
     depreciation,
     amortization,
+    suppliers_noncurrent,
     lajir: {
       value: lajirValue,
       status: lajirAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
