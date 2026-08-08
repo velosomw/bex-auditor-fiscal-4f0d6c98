@@ -105,8 +105,6 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "PC_TOTAL":  "passivo_circulante",
   "PNC_TOTAL": "passivo_nao_circulante",
   "PL_TOTAL":  "patrimonio_liquido",
-  "ADVANCES": "advances_to_third_parties",
-  "ADIANTAMENTOS": "advances_to_third_parties",
   // ── DRE — categorias separadas ──
   "DESPESAS_FIN": "despesas_financeiras", // grupo 7
   "RECEITAS_FIN": "receitas_financeiras", // DRE 50.B
