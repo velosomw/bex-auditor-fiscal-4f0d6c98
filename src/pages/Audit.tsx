@@ -1143,7 +1143,7 @@ const processingSteps = [
 const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preParsed, companyId, balanceteEntries, forceReprocess }: { 
   onComplete: () => void; 
   files: File[];
-  onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null) => void;
+  onAnalysisReady: (analysis: any, parsedData: ParsedFinancialData | null, processingRunId?: string) => void;
   dedupConfig?: import("@/services/auditAIService").DedupConfig;
   preParsed?: MultiMonthParsed | null;
   companyId?: string | null;
