@@ -1390,7 +1390,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         if (deterministicFacts?.insights) {
           (analysis as any).insightsDeterministicos = deterministicFacts.insights;
         }
-        onAnalysisReady(analysis, parsedData);
+        onAnalysisReady(analysis, parsedData, processingRunId);
         setTimeout(onComplete, 500);
       } catch (err) {
         console.error("Processing error:", err);
