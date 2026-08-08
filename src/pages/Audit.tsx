@@ -2571,8 +2571,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       companyId: company?.id,
       fileName: uploadedFiles?.[0]?.name || sourceDocs?.[0]?.fileName || (balanceteEntries || [])[0]?.fileName || null,
       fileSize: uploadedFiles?.[0]?.size ?? sourceDocs?.[0]?.fileSize ?? null,
+      processingRunId: processingRunId || undefined
     }),
-    [parsedData, balanceteEntries, company, uploadedFiles, sourceDocs]
+    [parsedData, balanceteEntries, company, uploadedFiles, sourceDocs, processingRunId]
   );
 
   /* MD-CUTOVER-001 §19/§21 — Kanitz embutido consome o CanonicalKanitzReportModel do snapshot. */
@@ -2606,9 +2607,18 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
     if (!snapshot) return null;
+
+    // MD-CUTOVER-001 §11: Hard Gate de Source Binding
+    if (processingRunId && snapshot.processing_run_id !== processingRunId) {
+       console.error("SNAPSHOT_REUSE_CROSS_SOURCE_FAIL: Run ID mismatch detected.");
+       return null;
+    }
+
     return {
       runtime_trace_id: snapshot.runtime_trace_id,
       canonical_snapshot_id: snapshot.snapshot_id,
+      processing_run_id: snapshot.processing_run_id,
+      source_file_hash: snapshot.source_file_hash,
       competency: snapshot.competency,
       company_id: snapshot.company_id,
       generated_at: snapshot.processing_timestamp,
