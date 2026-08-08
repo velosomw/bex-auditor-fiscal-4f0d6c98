@@ -269,6 +269,11 @@ tr {
   page-break-inside: avoid;
 }
 
+.report-card-keep-together {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 .report-page-body::before {
   content: none;
 }
