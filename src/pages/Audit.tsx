@@ -5351,7 +5351,10 @@ const AuditContent = () => {
             onComplete={() => setPhase("results")} 
             files={uploadedFiles}
             preParsed={multiMonth ? pickMonths(multiMonth, filteredMonths) : null}
-            onAnalysisReady={handleAnalysisReady}
+            onAnalysisReady={(analysis, parsed, runId) => {
+               if (runId) setProcessingRunId(runId);
+               handleAnalysisReady(analysis, parsed);
+            }}
             dedupConfig={dedupConfig}
             companyId={company?.id ?? null}
             balanceteEntries={balanceteEntries}
