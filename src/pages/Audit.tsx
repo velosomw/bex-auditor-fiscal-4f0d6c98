@@ -2701,6 +2701,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
   const result = d?.resultado_liquido || 0;
+  const resultLabel = (reportDataset?.facts as any)?.resultado_competencia ? "Resultado da Competência" : "Resultado Acumulado";
   const pl = d?.patrimonio_liquido || 0;
   const at = ac + anc;
   const pt = pc + pnc;
@@ -2720,7 +2721,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
     { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
-    { item: "Resultado do Período", detail: `R$ ${fmt(result)}`, status: result >= 0 ? "positivo" : "negativo" },
+    { item: resultLabel, detail: `R$ ${fmt(result)}`, status: result >= 0 ? "positivo" : "negativo" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -2879,7 +2880,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
               <p className="text-sm text-foreground leading-relaxed">
                 Com base no Balancete de {latestYear}, a empresa apresenta um Ativo Total de R$ {fmt(at)} contra um Passivo Total (capital de terceiros) de R$ {fmt(pt)}.
-                O Patrimônio Líquido é de R$ {fmt(pl)}. A Receita Líquida do período atingiu R$ {fmt(rl)}, resultando em um {result >= 0 ? "Lucro" : "Prejuízo"} de R$ {fmt(Math.abs(result))}.
+                O Patrimônio Líquido é de R$ {fmt(pl)}. A Receita Líquida do período atingiu R$ {fmt(rl)}, resultando em um {result >= 0 ? "Lucro" : "Prejuízo"} ({resultLabel.toLowerCase()}) de R$ {fmt(Math.abs(result))}.
                 {latestInd ? ` A liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)} e o endividamento total de ${fmtPct(latestInd.endividamentoTotal)} sintetizam a estrutura patrimonial da competência analisada.` : ""}
               </p>
 
