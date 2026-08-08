@@ -5368,6 +5368,7 @@ const AuditContent = () => {
             uploadedFiles={uploadedFiles}
             selectedDepth={selectedDepth}
             balanceteEntries={balanceteEntries}
+            processingRunId={processingRunId}
           />
         )}
       </div>
