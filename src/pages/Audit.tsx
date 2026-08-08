@@ -2615,7 +2615,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
     // MD-CUTOVER-001 §11: Hard Gate de Source Binding
     if (processingRunId && snapshot.processing_run_id !== processingRunId) {
-       console.error("SNAPSHOT_REUSE_CROSS_SOURCE_FAIL: Run ID mismatch detected.");
+       console.error("SNAPSHOT_REUSE_CROSS_SOURCE_FAIL: Run ID mismatch detected.", { expected: processingRunId, got: snapshot.processing_run_id });
        return null;
     }
 
