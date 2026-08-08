@@ -2607,7 +2607,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       });
     }
     return results;
-  }, [snapshot]);
+  }, [snapshot, processingRunId]);
 
 
   const reportDataset: CanonicalReportDataset | null = useMemo(() => {
