@@ -112,7 +112,8 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
 
   // ── Bloco 3: FCP ──────────────────────────────────────────────────────────
   const fcpRows = useMemo(() => {
-    if (!data?.fcp) return [];
+    if (!data?.fcp || data.fcp.meses.length === 0) return [];
+    // Ensure we show what exists, even if it's only 1 month
     return data.fcp.meses.map((m, i) => ({
       mes: m,
       "Saldo Acumulado": data.fcp!.saldoAcumulado[i],
@@ -122,7 +123,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
 
   // ── Bloco 4: Prev x Realiz ────────────────────────────────────────────────
   const prevRealRows = useMemo(() => {
-    if (!data?.prevReal) return { entradas: [], saidas: [] };
+    if (!data?.prevReal || data.prevReal.meses.length === 0) return { entradas: [], saidas: [] };
     const build = (cats: typeof data.prevReal.entradas) =>
       data.prevReal!.meses.map((m, i) => {
         const obj: Record<string, any> = { mes: m };
