@@ -2713,7 +2713,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Liquidez Corrente", result: fmtDec(latestInd.liquidezCorrente), param: "> 1,5", classification: latestInd.liquidezCorrente > 1.5 ? "Adequada" : latestInd.liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
     { name: "Liquidez Seca", result: fmtDec(latestInd.liquidezSeca), param: "> 1,0", classification: latestInd.liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
     { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
-    { name: "Cobertura de Juros", result: latestInd.coberturaJurosStatus === "AVAILABLE" ? `${latestInd.coberturaJuros.toFixed(2)}x` : "N/D", param: "> 3,0x", classification: latestInd.coberturaJurosStatus !== "AVAILABLE" ? "Não disponível" : latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: latestInd.coberturaJurosStatus === "AVAILABLE" ? `LAJIR / Despesas Financeiras` : "LAJIR não certificável a partir do balancete" },
+    { name: "Cobertura de Juros", result: latestInd.coberturaJurosStatus === "AVAILABLE" ? `${fmtDec(latestInd.coberturaJuros)}x` : "N/D", param: "> 3,0x", classification: latestInd.coberturaJurosStatus !== "AVAILABLE" ? "Não disponível" : latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: latestInd.coberturaJurosStatus === "AVAILABLE" ? `LAJIR / Despesas Financeiras` : "LAJIR não certificável a partir do balancete" },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: (ac - pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
     { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,0", classification: latestInd.isg > 1.0 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
@@ -3332,7 +3332,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
               {([
-                { label: "Empréstimos e Financiamentos (CP + LP)", value: snapshot?.facts.divida_financeira || 0, available: true, scope: "Total oneroso (2.1.1 + 2.2.2)" },
+                { label: "Empréstimos e Financiamentos (CP + LP)", value: snapshot?.residual?.borrowings.value ?? 0, available: snapshot?.residual?.borrowings.status === "AVAILABLE", scope: "Total oneroso (CP + LP certified)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
                 { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.value ?? 0, available: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: snapshot?.residual?.tax.noncurrent_obligations.calculation_scope },
@@ -3463,7 +3463,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">Validações de Integridade</h3>
             <div className="grid sm:grid-cols-2 gap-3">
               {[
-                { check: snapshot?.closure.mode === "RESULT_OUTSIDE_EQUITY" ? "Ativo = Passivo + PL + Resultado" : "Ativo = Passivo + PL", status: !!snapshot?.closure.reconciled, detail: snapshot?.closure.message || "Fechamento não avaliado" },
+                { check: snapshot?.closure.mode === "RESULT_OUTSIDE_EQUITY" ? "Ativo = Passivo Exigível + PL + Resultado" : "Ativo = Passivo Exigível + PL", status: !!snapshot?.closure.reconciled, detail: snapshot?.closure.message || "Fechamento não avaliado" },
                 { check: "Passivo a Descoberto", status: (d?.patrimonio_liquido ?? 0) > 0, detail: (d?.patrimonio_liquido ?? 0) > 0 ? "Patrimônio Líquido Positivo" : "IDENTIFICADO — PL negativo" },
 
                 { check: "Capital de Giro Líquido", status: (ac ?? 0) > (pc ?? 0), detail: "CGL " + ((ac ?? 0) > (pc ?? 0) ? "positivo" : "negativo") },
