@@ -463,6 +463,8 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
 
   const periodLabel = "atual";
   const rows: BalanceteRowParsed[] = [];
+  const tplInternal: { documentInfo?: any } = {}; // Local state to capture metadata during row iteration
+  
   for (let i = headerIdx + 1; i < jsonData.length; i++) {
     const row = jsonData[i];
     if (!row || row.length === 0) continue;
@@ -478,9 +480,9 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     const ref1 = grupoCanonico ?? inferRefByCode(conta, desc);
 
     // §METADATA-IDENTIFICATION: Tenta capturar a empresa do cabeçalho estrutural
-    if (!tpl.documentInfo?.empresa && (desc.includes("LTDA") || desc.includes("S/A") || desc.includes("S.A.")) && desc.length > 5 && desc.length < 100) {
-      if (!tpl.documentInfo) tpl.documentInfo = {};
-      tpl.documentInfo.empresa = desc;
+    if (!tplInternal.documentInfo?.empresa && (desc.includes("LTDA") || desc.includes("S/A") || desc.includes("S.A.")) && desc.length > 5 && desc.length < 100) {
+      if (!tplInternal.documentInfo) tplInternal.documentInfo = {};
+      tplInternal.documentInfo.empresa = desc;
     }
 
     if (useMultiMonth) {
@@ -506,7 +508,7 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     }
   }
   return rows.length > 0
-    ? { rows, periodLabel: useMultiMonth ? monthCols[0].mesKey : periodLabel, multiMonth: useMultiMonth }
+    ? { rows, periodLabel: useMultiMonth ? monthCols[0].mesKey : periodLabel, multiMonth: useMultiMonth, documentInfo: tplInternal.documentInfo }
     : null;
 }
 
