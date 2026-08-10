@@ -3202,7 +3202,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {[
                 { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: true, scope: "Grupo sintético 3.1" },
-                { label: "EBITDA Certificado", value: snapshot?.facts.ebitda || 0, available: snapshot?.facts_status.ebitda === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
+                { label: "EBITDA Certificado", value: snapshot?.ratios.ebitda || 0, available: snapshot?.facts_status.ebitda === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
                 { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia || 0, available: !isNaN(snapshot?.facts.resultado_competencia ?? NaN), scope: "Apuração mensal (Grupo 3)" },
                 { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado || 0, available: !isNaN(snapshot?.facts.resultado_acumulado ?? NaN), scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
