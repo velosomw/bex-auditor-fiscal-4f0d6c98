@@ -86,7 +86,8 @@ const RX = {
   fgts: /\bFGTS\b/,
   vacation: /FERIAS/,
   termination: /RESCIS/,
-  borrowings: /EMPRESTIM|FINANCIAMENT|DEBENTURE|LEASING|ARRENDAMENT|CEDULA DE CREDITO|CAPITAL DE GIRO|OBRIGACOES FINANCEIR/,
+  borrowings: /EMPRESTIM|FINANCIAMENT|DEBENTURE|CEDULA DE CREDITO|CAPITAL DE GIRO|OBRIGACOES FINANCEIR/,
+  leases: /LEASING|ARRENDAMENT/,
   finExpenses: /DESPESAS? FINANCEIR/,
   finExpensesFallback: /JUROS|ENCARGOS FINANCEIR|VARIACOES MONETARIAS PASSIV|IOF/,
   finRevenues: /RECEITAS? FINANCEIR/,
@@ -288,16 +289,20 @@ export function resolveResidualFacts(
   };
 
   /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO (§29..§32) ── */
+  // §P02 — Borrowings: retirar arrendamentos/leasing do card financeiro total.
   const isBorrowing = (n: AccountNode) =>
-    RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
+    RX.borrowings.test(n.description) && 
+    !RX.leases.test(n.description) && 
+    !RX.finExpenses.test(n.description) && 
+    !RX.finRevenues.test(n.description);
+  
   const notBorrowNature = (n: AccountNode) =>
-    (RX.tax.test(n.description) || RX.labor.test(n.description)) && !RX.borrowings.test(n.description);
-  // §29..§32 — dívida onerosa varre TODO o passivo circulante/não circulante
-  // (inclui arrendamentos/leasing fora do grupo 2.1.1), nunca somando pai e filho.
+    (RX.tax.test(n.description) || RX.labor.test(n.description) || RX.leases.test(n.description)) && !RX.borrowings.test(n.description);
+
   const borrowCurrentNodes = pickByTaxonomy(liabilities, "2.1", isBorrowing, notBorrowNature);
   const borrowNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isBorrowing, notBorrowNature);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
-  const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
+  const borrowRejected = [...results.filter(n => RX.borrowings.test(n.description)), ...liabilities.filter(n => RX.leases.test(n.description))];
 
   const borrowings_current = borrowCurrentNodes.length
     ? compose(borrowCurrentNodes, "Obrigações financeiras de curto prazo (grupo 2.1)")
@@ -383,7 +388,11 @@ export function resolveResidualFacts(
   const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
   
   // A05 — EBITDA certification: Tolerância de 0.10 centavos (§EBITDA-SIGN-SANITY-GATE)
-  const sanityPassed = !ebitdaAvailable || (daTotal >= 0.01 ? ebitdaValue >= lajirValue - 0.10 : true);
+  const ebitdaReconstructed = lajirAvailable && daAvailable ? lajirValue + daTotal : NaN;
+  const ebitdaDiff = Math.abs(ebitdaReconstructed - ebitdaValue);
+  const sanityPassed = !ebitdaAvailable || ebitdaDiff < 0.10;
+
+
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
@@ -419,9 +428,10 @@ export function resolveResidualFacts(
       reason: !ebitdaAvailable
         ? (!lajirAvailable ? "LAJIR não certificável" : "Depreciação/Amortização não identificadas na DRE")
         : !sanityPassed 
-          ? "EBITDA_RECONCILIATION_FAIL: EBITDA não pode ser menor que o EBIT com D&A positivo"
+          ? `Erro de Reconciliação (Desvio: R$ ${ebitdaDiff.toFixed(2)})`
           : "LAJIR + Depreciação + Amortização certificados pela DRE",
     },
+
     interest_coverage: {
       value: coverageValue,
       status: coverageAvailable ? "AVAILABLE" : "NOT_AVAILABLE",

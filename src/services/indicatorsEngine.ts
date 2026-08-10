@@ -120,10 +120,12 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const resCompetencia = r.resultado_competencia ?? resultado;
   const resParaCalculo = (resCompetencia !== undefined && resCompetencia !== 0) ? resCompetencia : resAcumulado;
 
-  const lajir = resParaCalculo + despFinAbs - recFinAbs + (r.residual_facts?.income_taxes.value || 0);
-  const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE" && Number.isFinite(r.residual_facts.ebitda.value);
-  const coverageBase = r.residual_facts?.financial_expenses?.analysis_value || despFinAbs;
-  const coberturaCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE" && coverageBase > 10 && Number.isFinite(lajir);
+  // §P07 — Derived SSOT: unificação absoluta da Cobertura de Juros e EBITDA via snapshot residual
+  const lajir = r.residual_facts?.lajir?.status === "AVAILABLE" ? r.residual_facts.lajir.value : NaN;
+  const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE";
+  const ebitdaValue = ebitdaCertificado ? r.residual_facts?.ebitda.value : NaN;
+  const coverageCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE";
+  const coberturaJuros = coverageCertificada ? r.residual_facts?.interest_coverage.value : NaN;
 
   const pmr = div(contasReceber * 30, receita);
   const pmp = receita !== 0 ? div(r.fornecedores * 30, (receita / 12) * 0.7) : div(r.fornecedores * 30, cmvAbs + Math.abs(r.despesas)); // Fallback PMP baseada em receita quando CMV indisponível
@@ -143,7 +145,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     composicaoEndividamento: div(pc, pt),
     composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
-    coberturaJuros: coberturaCertificada ? lajir / despFinAbs : NaN,
+    coberturaJuros,
     giroAtivo: div(receita, at),
     pmr,
     pmp,
@@ -154,9 +156,9 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     margemOperacional: div(lajir, receita),
     roa: div(resParaCalculo, at) * 12,
     roe: pl !== 0 ? div(resParaCalculo, pl) * 12 : 0,
-    ebitda: ebitdaCertificado ? (r.residual_facts!.ebitda.value) : NaN,
+    ebitda: ebitdaValue,
     ebitdaStatus: ebitdaCertificado ? "AVAILABLE" : "NOT_AVAILABLE",
-    coberturaJurosStatus: coberturaCertificada ? "AVAILABLE" : "NOT_AVAILABLE",
+    coberturaJurosStatus: coverageCertificada ? "AVAILABLE" : "NOT_AVAILABLE",
     isg: pt > 0 ? at / pt : 0,
     endividamentoGeral: at > 0 ? pt / at : 0,
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl, _rlp: rlp,
@@ -172,7 +174,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     indicators_status: {},
     naROE: pl <= 0,
     naImobilizacao: pl <= 0,
-    naCobertura: !coberturaCertificada,
+    naCobertura: !coverageCertificada,
   };
 
   const s = r.facts_status;

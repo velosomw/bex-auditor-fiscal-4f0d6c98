@@ -77,10 +77,15 @@ export interface CertifiedFinancialSnapshot {
   runtime_trace_id: string;
   snapshot_version: string;
   company_id: string;
+  metadata?: {
+    company_name?: string;
+    company_cnpj?: string;
+  };
   competency: string;
   source_file_name: string;
   source_file_hash: string;
   processing_timestamp: string;
+
   facts: CanonicalFacts;
   facts_status: Record<string, FactStatus>;
   ratios: IndicatorRow;
@@ -243,7 +248,13 @@ export function buildCertifiedFinancialSnapshot(
     runtime_trace_id: traceId,
     snapshot_version: SNAPSHOT_VERSION,
     company_id: source.companyId || "manual",
+    metadata: {
+      company_name: latestRow?.company_name || parsedData.documentInfo?.empresa,
+      company_cnpj: latestRow?.company_cnpj
+    },
+
     competency: latestKey,
+
     source_file_name: fileName,
     source_file_hash: fileHash,
     processing_timestamp: new Date().toISOString(),
@@ -253,6 +264,7 @@ export function buildCertifiedFinancialSnapshot(
     kanitz: latest.kanitz,
     residual: latest.residual,
     closure: latest.closure,
+
     byCompetency,
     competencies,
     history,

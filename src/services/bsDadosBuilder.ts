@@ -254,10 +254,13 @@ export interface BSDadosRow {
   divida_total: number;
   ebitda: number;
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
-  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts'>, FinancialFact['status']>;
+  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts' | 'company_name' | 'company_cnpj'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
+  company_name?: string;
+  company_cnpj?: string;
   errors: string[];
+
   grupos?: GroupMappingEntry[];
   /** MD-P1-001 — Ativo Total autoritativo (conta sintética "1"), quando disponível. */
   ativo_total?: number;
@@ -356,7 +359,9 @@ function emptyRow(mesKey: string): BSDadosRow {
       fornecedores: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
       outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE", lajir: "NOT_AVAILABLE",
     },
+
     hasReceita: false, hasBalanco: false, errors: [],
+
   };
 }
 
@@ -888,7 +893,9 @@ export function buildBSDados(
   const orderedKeys = Array.from(new Set(usableMesKeys)).sort();
   orderedKeys.forEach(k => {
     const r = emptyRow(k);
+    r.company_name = parsed.documentInfo?.empresa;
     rowsByMes.set(k, r);
+
     bucketsByMes.set(k, {
       ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0,
       sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false,
