@@ -3384,12 +3384,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Passivo Não Circulante", key: "passivo_nao_circulante" },
                   { label: "Patrimônio Líquido", key: "patrimonio_liquido" },
                   { label: "Receita Líquida", key: "receita_liquida" },
-                  { label: "Resultado do Período", key: "resultado_liquido" },
+                  { label: "Resultado Competência", key: "resultado_liquido" },
+                  { label: "Resultado Acumulado", key: "patrimonio_liquido" }, // O Resolver mapeia 2.3.9 para PL se não houver 2.3
                 ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
                     {(snapshot?.competencies || []).map(y => {
-                      const v = snapshot?.byCompetency[y]?.facts[row.key];
+                      const v = row.key === "patrimonio_liquido" 
+                        ? snapshot?.byCompetency[y]?.residual?.income_taxes?.value 
+                        : snapshot?.byCompetency[y]?.facts[row.key];
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                           {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
