@@ -24,9 +24,18 @@ import {
 import { buildISGSeries, type ISGResult } from "@/services/indicatorsEngine";
 import { KanitzThermometer } from "@/components/audit/KanitzThermometer";
 
-const fmt = (n: number) => new Intl.NumberFormat("pt-BR").format(Math.round(n));
-const fmtPct = (n: number) => `${(n * 100).toFixed(2)}%`;
-const fmtDec = (n: number) => n.toFixed(4);
+const fmt = (n: number) => {
+  if (n == null || isNaN(n)) return "N/A";
+  return new Intl.NumberFormat("pt-BR").format(Math.round(n));
+};
+const fmtPct = (n: number) => {
+  if (n == null || isNaN(n)) return "N/A";
+  return `${(n * 100).toFixed(2)}%`;
+};
+const fmtDec = (n: number) => {
+  if (n == null || isNaN(n)) return "N/A";
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(n);
+};
 
 /* ── Component: FormulaInfo ── */
 const FormulaInfo = ({ 
@@ -422,7 +431,7 @@ const TabKanitz = ({
                     FI = (0,05 × RPL) + (1,65 × LG) + (3,55 × LS) − (1,06 × LC) − (0,33 × GE)
                   </code>
                   <p className="text-[10px] text-muted-foreground mt-2">
-                    Onde GE = −((PC + ELP) / PL) — o grau de endividamento entra com sinal negativo.
+                    Onde GE = (PC + ELP) / PL — no cálculo do FI o valor entra com o peso negativo (-0,33).
                   </p>
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
@@ -489,7 +498,7 @@ const TabKanitz = ({
                     { name: "Liquidez Geral", sigla: "LG", formula: "(AC + RLP) / (PC + ELP)", origem: "BP", peso: "1,65", key: "lg" as const },
                     { name: "Liquidez Seca", sigla: "LS", formula: "(AC - EST) / PC", origem: "BP", peso: "3,55", key: "ls" as const },
                     { name: "Liquidez Corrente", sigla: "LC", formula: "AC / PC", origem: "BP", peso: "-1,06", key: "lc" as const },
-                    { name: "Grau de Endividamento", sigla: "GE", formula: "−((PC + ELP) / PL)", origem: "BP", peso: "-0,33", key: "ge" as const },
+                    { name: "Grau de Endividamento", sigla: "GE", formula: "(PC + ELP) / PL", origem: "BP", peso: "-0,33", key: "ge" as const },
                   ].map(ind => (
                     <TableRow key={ind.sigla}>
                       <TableCell className="text-xs font-medium">{ind.name}</TableCell>
