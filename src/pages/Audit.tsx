@@ -2828,7 +2828,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
 
           <div className="mt-10 space-y-1.5 text-sm text-muted-foreground">
-            <p className="font-semibold text-foreground text-base">Empresa Analisada: {company?.name || "Não identificada no balancete"}</p>
+            <p className="font-semibold text-foreground text-base">Empresa Analisada: {reportDataset?.snapshot?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p>
             <p>CNPJ: {company?.cnpj || "Não identificado no balancete"}</p>
             <p>Data-base do Balancete: {activeYear || latestYear || "Não identificada no balancete"}</p>
             <p>Arquivo de Origem: {snapshot?.source_file_name || uploadedFiles?.[0]?.name || sourceDocs?.[0]?.fileName || "Não identificado"}</p>
@@ -3321,7 +3321,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 )}
               </div>
             </div>
-          )}
+                <h1 className="text-3xl font-extrabold text-[#0f172a] tracking-tight uppercase">{reportDataset?.snapshot?.metadata?.company_name || company?.name || "CARREGANDO..."}</h1>
         </div>
       </ReportPage>
 
