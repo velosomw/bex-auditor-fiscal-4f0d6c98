@@ -1,4 +1,4 @@
-# BEx & Kanitz Engine Documentation - [MD-BEX-ARCHITECTURE-CERTIFICATION-001]
+# BEx & Kanitz Engine Documentation - [MD-BEX-ARCHITECTURE-CERTIFICATION-002]
 
 ## 1. Visão Geral da Arquitetura
 A arquitetura do motor financeiro da plataforma BEx baseia-se no princípio da **Single Source of Truth (SSOT)** e no conceito de **P1 Synthetic Authority**. O fluxo de dados segue uma cadeia de custódia rígida para garantir paridade entre análise em tela e exportação (PDF/DOCX).
@@ -28,12 +28,14 @@ Implementa a **Autoridade Sintética P1**.
 - **Regra P1:** Se uma conta sintética (totalizadora de grupo) existe, seu valor é ABSOLUTO. O motor ignora a soma dos filhos analíticos para evitar erros de arredondamento ou contas não mapeadas.
 - **Hierarquia:** P1 (Sintética) > P2 (Filhos) > P3 (Folhas).
 - **Integrity Gates:** Validam se o Balanço fecha e se as relações hierárquicas são lógicas (ex: Estoque não pode ser maior que Ativo Circulante).
+- **Hard Gate [MD-BEX-FINAL]:** Proíbe contas de Receita Líquida (grupo 3.1) de serem classificadas como Resultado.
 
 ### B. residualFactsResolver.ts
 Resolve fatos que dependem de taxonomia textual complexa:
-- **Dívida Onerosa:** Separação entre Empréstimos e Fornecedores no PC e PNC.
-- **Obrigações Trabalhistas:** Separação de salários, impostos e retenções.
-- **EBITDA Sign Sanity Gate:** Garante que Depreciação e Amortização não reduzam o LAJIR artificialmente.
+- **Dívida Onerosa:** Separação entre Empréstimos e Fornecedores no PC e PNC. Totalizada em `borrowings.total = CP + LP`.
+- **Obrigações Trabalhistas:** Separação de salários, impostos e retenções via **§MIXED-TAXONOMY-DESCENT**.
+- **EBITDA Sign Sanity Gate:** Garante que Depreciação e Amortização não reduzam o LAJIR artificialmente (Tolerância de 0.10).
+- **Certification Chain:** EBITDA e Cobertura de Juros só são certificados se a Receita e o Resultado base forem certificados pelo P1.
 
 ---
 
@@ -41,8 +43,8 @@ Resolve fatos que dependem de taxonomia textual complexa:
 
 ### A. canonicalFinancialSnapshotService.ts
 Materializa o `CertifiedFinancialSnapshot`.
-- **Imutabilidade:** O snapshot é congelado (`Object.freeze`).
-- **Traceability:** Inclui `processing_run_id` e `source_file_hash`.
+- **Imutabilidade:** O snapshot é congelado (`Object.freeze`) com `FINAL_ACCOUNTING_CORE_FREEZE = true`.
+- **Traceability:** Inclui `processing_run_id`, `runtime_trace_id` e `source_file_hash`.
 - **Paridade:** Garante que o BEx e o Kanitz consumam EXATAMENTE os mesmos números.
 
 ### B. indicatorsEngine.ts
@@ -61,11 +63,6 @@ Calcula os 40+ indicadores econômicos (Liquidez, Rentabilidade, Endividamento) 
 - `kanitz_scores`: Resultados do modelo de solvência.
 - `pipeline_analysis_results`: Cache JSON da extração (OCR Results).
 
-### Edge Functions:
-- `audit-parse-pdf`: OCR e Extração multimodal.
-- `audit-bs-dados`: Consolidação autoritativa no servidor (espelha a lógica do frontend).
-- `process-ai-jobs-queue`: Gerencia o processamento assíncrono.
-
 ---
 
 ## 6. Modelo Matemático Kanitz
@@ -80,4 +77,10 @@ Calcula os 40+ indicadores econômicos (Liquidez, Rentabilidade, Endividamento) 
 
 ---
 
-*Documentação gerada para homologação técnica e migração de configuração.*
+## 7. Homologação Produtiva [MD-BEX-FINAL-RUNTIME-ASSERTS]
+- **A01 — Resultado:** Card executivo vinculado ao fato de competência.
+- **A02 — Borrowings:** Dívida financeira totalizada (CP + LP), excluindo arrendamentos.
+- **A03 — Tax LP:** Card de tributário LP vinculado diretamente ao fato certificado.
+- **A07 — Safe Pagination:** Configurada a **Safe Zone de 26mm** e `max-height: 245mm`.
+
+*Documentação atualizada em 10/08/2026 para refletir o Core Frozen v1.0.*
