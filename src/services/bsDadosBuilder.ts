@@ -358,8 +358,10 @@ function emptyRow(mesKey: string): BSDadosRow {
       divida_financeira_cp: "NOT_AVAILABLE", divida_financeira_lp: "NOT_AVAILABLE",
       fornecedores: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
       outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE", lajir: "NOT_AVAILABLE",
+      company_name: "NOT_AVAILABLE", company_cnpj: "NOT_AVAILABLE"
     },
     hasReceita: false, hasBalanco: false, errors: [],
+
   };
 }
 
