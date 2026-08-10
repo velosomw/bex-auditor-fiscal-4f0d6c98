@@ -43,6 +43,8 @@ export interface CertifiedFact {
   source_hierarchy_level: number;
   competency: string;
   excluded_candidates: Array<{ account: string; description: string; value: number; reason: string }>;
+  /** Origem quando o fato é derivado (ex.: resultado do período = acumulado − saldo anterior). */
+  derivation?: string;
 }
 
 export interface RawAccountRow {
