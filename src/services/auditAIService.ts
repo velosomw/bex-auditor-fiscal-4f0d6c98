@@ -567,6 +567,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
     }
 
     for (const sp of dedupedSheets) {
+      if (sp.documentInfo?.empresa) years.add(sp.documentInfo.empresa);
       if (sp.multiMonth) {
         for (const r of sp.rows) {
           Object.keys(r.values).forEach(k => years.add(k));
