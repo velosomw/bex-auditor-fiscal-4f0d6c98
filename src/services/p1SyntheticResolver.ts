@@ -26,6 +26,7 @@ export type CanonicalRole =
   | "patrimonio_liquido"
   | "receita_liquida"
   | "resultado"
+  | "resultado_competencia"
   | "fornecedores";
 
 export type FactAuthority = "P1_SYNTHETIC" | "P2_CHILDREN" | "P3_LEAVES" | "NOT_AVAILABLE";
@@ -94,7 +95,8 @@ const ROLE_SEMANTICS: Record<CanonicalRole, RegExp> = {
   passivo_nao_circulante: /PASSIVO\s+N[AÃ]?O[\s-]*CIRCULANTE|EXIG[IÍ]VEL\s+A?\s*LONGO\s+PRAZO/,
   patrimonio_liquido: /PATRIM[OÔ]NIO\s+L[IÍ]QUIDO|^CAPITAL\s+SOCIAL$/i,
   receita_liquida: /RECEITA\s+(OPERACIONAL\s+)?L[IÍ]QUIDA|RECEITA\s+L[IÍ]QUIDA\s+DE\s+VENDAS/i,
-  resultado: /CONTAS?\s+DE\s+RESULTADO|^RESULTADO$|RESULTADO\s+DO\s+(EXERC[IÍ]CIO|PER[IÍ]ODO)|^APURA[CÇ][AÃ]O\s+DO\s+RESULTADO/i,
+  resultado: /CONTAS?\s+DE\s+RESULTADO|^RESULTADO$|RESULTADO\s+ACUMULADO/i,
+  resultado_competencia: /RESULTADO\s+DO\s+(EXERC[IÍ]CIO|PER[IÍ]ODO)|^APURA[CÇ][AÃ]O\s+DO\s+RESULTADO/i,
   fornecedores: /^FORNECEDORES?\b/i,
 };
 
@@ -110,7 +112,8 @@ const ROLE_CODES: Record<CanonicalRole, string[]> = {
   passivo_nao_circulante: ["2.2", "2.02"],
   patrimonio_liquido: ["2.4", "2.3"], 
   receita_liquida: ["3.1", "3.01"],
-  resultado: ["3"],
+  resultado: ["3", "2.3.9"], 
+  resultado_competencia: ["3"],
   fornecedores: ["2.1.2"], 
 };
 
@@ -127,6 +130,7 @@ const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
   fornecedores: "2.1",
   receita_liquida: "3",
   resultado: "3",
+  resultado_competencia: "3",
 };
 
 /** Roles cujo valor deve ser publicado em módulo. */
@@ -188,7 +192,7 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
    * Estoques de Terceiros líquidos de redutoras). Nestes casos soma-se apenas
    * os grupos topo (nunca descendentes), preservando o sinal das redutoras.
    */
-  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["estoques", "disponivel", "fornecedores", "patrimonio_liquido"]);
+  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["disponivel", "patrimonio_liquido"]);
 
   const topmost = (list: AccountNode[]) =>
     list.filter(n => !list.some(o => o !== n && n.normalized_code.startsWith(o.normalized_code + ".")));
@@ -259,7 +263,7 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
       }))
       .sort((a, b) => b.score - a.score);
 
-    const winner = scored.find(c => c.n.value !== 0) ?? scored[0];
+    const winner = scored.find(c => c.n.value !== 0 && c.n.account_code !== "1.1.2.10") ?? scored[0];
 
     for (const c of scored) {
       if (winner && c.n.normalized_code === winner.n.normalized_code) continue;
