@@ -192,8 +192,11 @@ export function resolveResidualFacts(
       n => isTaxInstallment(n) && !parents.some(p => p.normalized_code === n.normalized_code)
     );
 
-  const taxCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.3")), isTax);
-  const taxNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.3")), isTax);
+  const isLaborNature = (n: AccountNode) => RX.labor.test(n.description) && !RX.tax.test(n.description);
+  // §MIXED-TAXONOMY — varre TODO o grupo 2.1/2.2 (não apenas 2.1.3/2.2.3) e desce
+  // em pais que misturam tributos e trabalhistas.
+  const taxCurrentNodes = pickByTaxonomy(liabilities, "2.1", isTax, isLaborNature);
+  const taxNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isTax, isLaborNature);
   const instCurrent = instIn("2.1", taxCurrentNodes);
   const instNonCurrent = instIn("2.2", taxNonCurrentNodes);
 
