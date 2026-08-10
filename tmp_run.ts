@@ -1,0 +1,24 @@
+import ExcelJS from "exceljs";
+import { resolveP1Facts } from "/dev-server/src/services/p1SyntheticResolver";
+import { resolveResidualFacts } from "/dev-server/src/services/residualFactsResolver";
+const wb = new ExcelJS.Workbook();
+await wb.xlsx.readFile("/mnt/user-uploads/BALANCETE_05_2026-3.xlsx");
+const ws = wb.worksheets[0];
+const rows: any[] = [];
+ws.eachRow((row) => {
+  const vals = (row.values as any[]).slice(1).map(v => (v && typeof v === "object" && "result" in v) ? v.result : v);
+  const conta = String(vals[0] ?? "").trim();
+  if (!/^\d+(\.\d+)*$/.test(conta)) return;
+  const nums = vals.filter(v => typeof v === "number");
+  if (!nums.length) return;
+  const desc = String(vals.find((c, i) => i > 0 && typeof c === "string") ?? "");
+  rows.push({ conta, descricao: desc, value: nums[nums.length - 1], previous: nums.length > 1 ? nums[0] : undefined, nums });
+});
+console.log("rows", rows.length); console.log(rows.slice(0,4));
+const { facts, nodes } = resolveP1Facts(rows, "2026-05");
+for (const [k, v] of Object.entries(facts)) console.log(k, (v as any).status, (v as any).value, (v as any).source_account_code);
+const res = resolveResidualFacts(nodes, "2026-05", { resultado: facts.resultado_competencia?.value });
+console.log("tax", res.tax.total_exposure.status, res.tax.total_exposure.value);
+console.log("labor", res.labor.total_current.status, res.labor.total_current.value);
+console.log("borrow", res.borrowings.status, res.borrowings.value);
+console.log("supLP", res.suppliers_noncurrent.status, res.suppliers_noncurrent.value);
