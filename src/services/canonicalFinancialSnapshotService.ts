@@ -35,6 +35,7 @@ export interface CanonicalFacts {
   resultado_competencia: number;
   resultado_acumulado: number;
   fornecedores: number;
+  fornecedores_lp: number;
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
