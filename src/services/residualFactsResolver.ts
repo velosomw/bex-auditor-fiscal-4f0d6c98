@@ -86,7 +86,8 @@ const RX = {
   fgts: /\bFGTS\b/,
   vacation: /FERIAS/,
   termination: /RESCIS/,
-  borrowings: /EMPRESTIM|FINANCIAMENT|DEBENTURE|LEASING|ARRENDAMENT|CEDULA DE CREDITO|CAPITAL DE GIRO|OBRIGACOES FINANCEIR/,
+  borrowings: /EMPRESTIM|FINANCIAMENT|DEBENTURE|CEDULA DE CREDITO|CAPITAL DE GIRO|OBRIGACOES FINANCEIR/,
+  leases: /LEASING|ARRENDAMENT/,
   finExpenses: /DESPESAS? FINANCEIR/,
   finExpensesFallback: /JUROS|ENCARGOS FINANCEIR|VARIACOES MONETARIAS PASSIV|IOF/,
   finRevenues: /RECEITAS? FINANCEIR/,
@@ -288,16 +289,20 @@ export function resolveResidualFacts(
   };
 
   /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO (§29..§32) ── */
+  // §P02 — Borrowings: retirar arrendamentos/leasing do card financeiro total.
   const isBorrowing = (n: AccountNode) =>
-    RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
+    RX.borrowings.test(n.description) && 
+    !RX.leases.test(n.description) && 
+    !RX.finExpenses.test(n.description) && 
+    !RX.finRevenues.test(n.description);
+  
   const notBorrowNature = (n: AccountNode) =>
-    (RX.tax.test(n.description) || RX.labor.test(n.description)) && !RX.borrowings.test(n.description);
-  // §29..§32 — dívida onerosa varre TODO o passivo circulante/não circulante
-  // (inclui arrendamentos/leasing fora do grupo 2.1.1), nunca somando pai e filho.
+    (RX.tax.test(n.description) || RX.labor.test(n.description) || RX.leases.test(n.description)) && !RX.borrowings.test(n.description);
+
   const borrowCurrentNodes = pickByTaxonomy(liabilities, "2.1", isBorrowing, notBorrowNature);
   const borrowNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isBorrowing, notBorrowNature);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
-  const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
+  const borrowRejected = [...results.filter(n => RX.borrowings.test(n.description)), ...liabilities.filter(n => RX.leases.test(n.description))];
 
   const borrowings_current = borrowCurrentNodes.length
     ? compose(borrowCurrentNodes, "Obrigações financeiras de curto prazo (grupo 2.1)")
