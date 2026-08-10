@@ -2681,6 +2681,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
   const latestInd = reportDataset?.ratios;
+  /* MD-FINAL-RESIDUAL-001 §10..§20 — dívidas com composição certificada e memória de cálculo. */
+  const residual = snapshot?.residual;
   const emprestimos = (residual?.borrowings_current?.value || 0) + (residual?.borrowings_noncurrent?.value || 0); // §15..§17 — saldo patrimonial CP + LP
   const caixa = (reportDataset?.facts as any)?.disponivel || 0;
   const dividaOnerosa = emprestimos;
@@ -2691,8 +2693,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const anc = d?.ativo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
 
-  /* MD-FINAL-RESIDUAL-001 §10..§20 — dívidas com composição certificada e memória de cálculo. */
-  const residual = snapshot?.residual;
   const taxAvail = residual?.tax.total_exposure.status === "AVAILABLE";
   const laborAvail = residual?.labor.total_current.status === "AVAILABLE";
   const borrowAvail = residual?.borrowings.status === "AVAILABLE";
