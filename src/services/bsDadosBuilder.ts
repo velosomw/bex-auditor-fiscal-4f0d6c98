@@ -1212,8 +1212,22 @@ export function buildBSDados(
        (tributos, trabalhistas, empréstimos SOMENTE do passivo, despesas financeiras). */
     const residual = resolveResidualFacts(p1Nodes, row.mesKey, { 
       resultado: row.resultado,
+      resultado_certified: facts.resultado_competencia?.status === "AVAILABLE" || facts.resultado?.status === "AVAILABLE",
+      receita_liquida: facts.receita_liquida?.status === "AVAILABLE" ? facts.receita_liquida.value : undefined,
+      receita_certified: facts.receita_liquida?.status === "AVAILABLE",
       resultado_competencia_available: !!row.resultado_competencia
     });
+    // §PARENT-AUTHORITY — Fornecedores LP tem autoridade sintética própria (grupo 2.2).
+    const fLp = facts.fornecedores_lp;
+    if (fLp?.status === "AVAILABLE") {
+      residual.suppliers_noncurrent = {
+        value: Math.abs(fLp.value),
+        status: "AVAILABLE",
+        included_accounts: [{ code: fLp.source_account_code, description: fLp.source_account_description, value: fLp.value }],
+        excluded_accounts: [],
+        calculation_scope: "Fornecedores de longo prazo — conta sintética certificada (P1)",
+      };
+    }
     row.residual_facts = residual;
 
     if (residual.tax.total_exposure.status === "AVAILABLE") {
