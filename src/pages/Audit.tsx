@@ -1619,7 +1619,7 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
                       p.status === "positivo" ? "bg-emerald-500" :
                       p.status === "atencao" ? "bg-yellow-500" : "bg-red-500"
                     }`} />
-                    <span className="text-sm font-medium text-foreground">{p.item.replace(/\s+\d+%.*$/, "").replace(/Pontos-chave/i, "Achado relevante")}</span>
+                    <span className="text-sm font-medium text-foreground">{p.item.replace(/Pontos-chave/i, "Achado relevante")}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">{p.detail.replace(/(\b\w+\b)(?:\s+\1)+/gi, "$1")}</span>
                 </div>
@@ -3204,12 +3204,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">4.3 Indicadores de Rentabilidade</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {[
-                { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: true, scope: "Grupo sintético 3.1" },
+                { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: snapshot?.facts_status.receita_liquida === "AVAILABLE", scope: "Grupo sintético 3.1" },
                 { label: "EBITDA Certificado", value: snapshot?.residual?.ebitda.status === "AVAILABLE" ? snapshot?.residual?.ebitda.value : NaN, available: snapshot?.residual?.ebitda.status === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
-                { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia || 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
-                { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado || 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
+                { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia ?? 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
+                { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado ?? 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
-                { label: "Margem Líquida", value: snapshot?.facts.receita_liquida ? (snapshot.facts.resultado_competencia || 0) / snapshot.facts.receita_liquida : 0, available: snapshot?.facts.receita_liquida > 0, scope: "Resultado Competência / Vendas" },
+                { label: "Margem Líquida (Período)", value: snapshot?.facts.receita_liquida ? (snapshot.facts.resultado_competencia ?? 0) / snapshot.facts.receita_liquida : 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE" && snapshot?.facts.receita_liquida > 0, scope: "Resultado Competência / Receita" },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
