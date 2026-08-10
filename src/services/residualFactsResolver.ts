@@ -305,15 +305,15 @@ export function resolveResidualFacts(
   const borrowings_noncurrent = borrowNonCurrentNodes.length
     ? compose(borrowNonCurrentNodes, "Obrigações financeiras de longo prazo (grupo 2.2)")
     : EMPTY("Sem obrigações financeiras de longo prazo no balancete");
-  const borrowings: ComposedFact = borrowNodes.length
-    ? {
-        ...compose(borrowNodes, "Saldo total das obrigações financeiras onerosas (CP + LP, grupos sintéticos)"),
-        excluded_accounts: borrowRejected.map(ref),
-      }
-    : {
-        ...EMPTY("Sem saldo patrimonial de empréstimos/financiamentos certificado no balancete"),
-        excluded_accounts: borrowRejected.map(ref),
-      };
+  
+  // §15 — borrowings.total = CP + LP (exclusively certified debt roles)
+  const borrowings: ComposedFact = {
+    value: borrowings_current.value + borrowings_noncurrent.value,
+    status: (borrowings_current.status === "AVAILABLE" || borrowings_noncurrent.status === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE",
+    included_accounts: [...borrowings_current.included_accounts, ...borrowings_noncurrent.included_accounts],
+    excluded_accounts: borrowRejected.map(ref),
+    calculation_scope: "Saldo total das obrigações financeiras onerosas (CP + LP certified)",
+  };
 
   /* ── Despesas / Receitas Financeiras e Tributos sobre o Lucro ── */
   let finNodes = pickNonOverlapping(results, n => RX.finExpenses.test(n.description));
