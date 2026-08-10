@@ -77,10 +77,15 @@ export interface CertifiedFinancialSnapshot {
   runtime_trace_id: string;
   snapshot_version: string;
   company_id: string;
+  metadata?: {
+    company_name?: string;
+    company_cnpj?: string;
+  };
   competency: string;
   source_file_name: string;
   source_file_hash: string;
   processing_timestamp: string;
+
   facts: CanonicalFacts;
   facts_status: Record<string, FactStatus>;
   ratios: IndicatorRow;
