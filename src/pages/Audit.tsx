@@ -3317,7 +3317,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {[
+              {([
                 { label: "Empréstimos e Financiamentos (CP + LP)", value: snapshot?.facts.divida_financeira || 0, available: true, scope: "Total oneroso (2.1.1 + 2.2.2)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
@@ -3325,10 +3325,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
                 { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: true, scope: "Dívida comercial de curto prazo (grupo 2.1.2)" },
-                { label: "Fornecedores (LP)", value: snapshot?.residual?.suppliers_noncurrent?.value || (snapshot?.facts as any)?.fornecedores_lp || 0, available: true, scope: "Grupo sintético 2.2.1" },
+                { label: "Fornecedores (LP)", value: snapshot?.facts.fornecedores_lp || snapshot?.residual?.suppliers_noncurrent?.value || 0, available: true, scope: "Grupo sintético 2.2.1" },
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
                 { label: "Passivo Não Circulante", value: pnc, available: true, scope: "Grupo sintético 2.2" },
-              ].map(item => (
+              ] as const).map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
                   <p className="text-sm font-bold font-mono text-foreground">{item.available && (typeof item.value === 'number' && !isNaN(item.value)) ? `R$ ${fmt(item.value)}` : "Não disponível no balancete"}</p>
