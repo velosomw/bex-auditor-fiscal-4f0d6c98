@@ -125,7 +125,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const coberturaCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 10 && Number.isFinite(lajir);
 
   const pmr = div(contasReceber * 30, receita);
-  const pmp = div(r.fornecedores * 30, cmvAbs + Math.abs(r.despesas));
+  const pmp = receita !== 0 ? div(r.fornecedores * 30, (receita / 12) * 0.7) : div(r.fornecedores * 30, cmvAbs + Math.abs(r.despesas)); // Fallback PMP baseada em receita quando CMV indisponível
   const ime = div(estoque * 30, cmvAbs);
 
   const res: IndicatorRow = {

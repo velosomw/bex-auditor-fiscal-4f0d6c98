@@ -2973,7 +2973,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     : "Indicador não disponível para esta análise." },
                 { title: "Probabilidade Estrutural de RJ", text: !latestInd ? "Indicador não disponível para esta análise." : latestInd.liquidezCorrente > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : latestInd.liquidezCorrente > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
-                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30 report-card-keep-together">
+                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30 report-card-keep-together mb-2">
                   <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
                 </div>
@@ -3314,7 +3314,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                  <p className="text-sm font-bold font-mono text-foreground">{item.available ? `R$ ${fmt(item.value)}` : "Não disponível no balancete"}</p>
+                  <p className="text-sm font-bold font-mono text-foreground">{item.available && (typeof item.value === 'number' && !isNaN(item.value)) ? `R$ ${fmt(item.value)}` : "Não disponível no balancete"}</p>
                   {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
                 </div>
               ))}
@@ -3838,7 +3838,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const simReducaoCustos = simCompute(l.pl, l.pt, l.ac, l.pc, l.estoque, l.rlp, l.ll + l.cpv * 0.15);
 
   // Tendência
-  const tendencia = previous && fiDelta > 0.5 ? "Melhora" : previous && fiDelta < -0.5 ? "Deterioração" : "Estável";
+  const tendencia = previous && Math.abs(fiDelta) > 0.0001 ? (fiDelta > 0.5 ? "Melhora" : fiDelta < -0.5 ? "Deterioração" : "Estável") : "N/A";
 
   return (
     <div ref={kanitzContainerRef} className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-kanitz-container">

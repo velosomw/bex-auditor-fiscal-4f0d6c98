@@ -188,6 +188,7 @@ const TabKanitz = ({
   const latest = kanitzResults[kanitzResults.length - 1];
   const previous = kanitzResults.length > 1 ? kanitzResults[kanitzResults.length - 2] : null;
   const fiDelta = previous ? latest?.fi - previous.fi : 0;
+  const tendenciaLabel = previous && Math.abs(fiDelta) > 0.0001 ? (fiDelta > 0.5 ? "Melhora" : fiDelta < -0.5 ? "Deterioração" : "Estável") : "N/A";
 
   // Alerts
   const alerts: string[] = [];
