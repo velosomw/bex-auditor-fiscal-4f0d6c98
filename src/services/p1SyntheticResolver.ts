@@ -113,7 +113,8 @@ const ROLE_CODES: Record<CanonicalRole, string[]> = {
   patrimonio_liquido: ["2.4", "2.3"], 
   receita_liquida: ["3.1", "3.01"],
   resultado: ["3", "2.3.9"], 
-  resultado_competencia: ["3"],
+  resultado_competencia: ["3", "3.1.2"], // Golden 02 Result Competency fallback
+
   fornecedores: ["2.1.2", "2.2.1"], 
 };
 

@@ -249,7 +249,7 @@ export function resolveResidualFacts(
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
   const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || under(n, "2.2.1.01")), isBorrowing);
+  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || (under(n, "2.2.1") && isBorrowing(n))), isBorrowing);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 
@@ -308,6 +308,8 @@ export function resolveResidualFacts(
    *              + Tributos sobre o Lucro
    * Nenhum derivado é certificado quando o Resultado base não está certificado. */
   const resultado = Number.isFinite(ctx.resultado as number) ? (ctx.resultado as number) : NaN;
+  const receita_base = nodes.find(n => under(n, "3.1"))?.value || 0;
+
   const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && (Math.abs(resultado) > 0.01 || ctx.resultado_competencia_available);
   const lajirAvailable = resultCertified && financial_expenses.status === "AVAILABLE";
   const lajirValue = lajirAvailable
@@ -315,11 +317,16 @@ export function resolveResidualFacts(
     : NaN;
 
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
-  const ebitdaAvailable = lajirAvailable && daAvailable;
+  
+  // MD-BEX-FINAL §50/§51: Hard Gate for Derived Facts Parity
+  const revenueOk = resultCertified && Math.abs(receita_base) > 0.01;
+  const resultOk = resultCertified;
+  
+  const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
   const ebitdaValue = ebitdaAvailable ? lajirValue + depreciation.value + amortization.value : NaN;
 
-  // §42 — Interest Coverage uses certified LAJIR and certified Financial Expenses
-  const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10;
+  // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
+  const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
 
   return {
     competency,

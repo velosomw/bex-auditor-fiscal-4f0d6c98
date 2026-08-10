@@ -95,9 +95,9 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   // ── Patrimônio Líquido ──
   "GG1": "patrimonio_liquido", // Capital Social
   "HH1": "patrimonio_liquido", // Lucros/Prejuízos Acumulados
-  "RESULTADO": "resultado_acumulado", // MD-BEX-FINAL §23: Resultado Acumulado (Code 3)
-  "RESULTADO_MES": "resultado_competencia", // MD-BEX-FINAL §25: Resultado da Competência
-  "ADIANTAMENTOS": "advances_to_third_parties", // MD-BEX-FINAL §70
+  "RESULTADO": "resultado_acumulado", 
+  "RESULTADO_MES": "resultado_competencia", 
+  "ADIANTAMENTOS": "advances_to_third_parties", 
   "ADVANCES": "advances_to_third_parties",
   // ── Totais de grupo (autoritativos quando linha-totalizadora existe) ──
   "AC_TOTAL":  "ativo_circulante",
