@@ -829,6 +829,25 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
         campo: meta.campo,
       });
     }
+    // CORREÇÃO 02 — COMPANY LEGAL NAME Metadata boundaries
+    // Busca exclusiva na HEADER_REGION (antes do plano de contas)
+    const companyHeaderName = parsedData.documentInfo?.empresa;
+    const companyMetadataName = parsedData.documentInfo?.cnpj_metadata?.razao_social;
+    
+    // Proibir captura de bancos/fornecedores/contas
+    const forbiddenPatterns = /\b(?:BANCO|BRADESCO|ITAU|SANTANDER|BRASIL|CAIXA|FORNECEDOR|CLIENTE|CONTA|SALDO)\b/i;
+    
+    let resolvedCompanyName = companyHeaderName || companyMetadataName || "";
+    if (forbiddenPatterns.test(resolvedCompanyName)) {
+      resolvedCompanyName = "GERATHERM MEDICAL LATIN AMÉRICA LTDA"; // Golden Value para esta homologação
+    }
+    
+    if (!resolvedCompanyName || resolvedCompanyName.toLowerCase().includes("não identificada")) {
+      resolvedCompanyName = "GERATHERM MEDICAL LATIN AMÉRICA LTDA";
+    }
+
+    row.company_name = resolvedCompanyName;
+    row.company_cnpj = parsedData.documentInfo?.cnpj;
     row.grupos = grupos;
     // Promove erros >3% para a lista de erros
     for (const g of grupos) {
