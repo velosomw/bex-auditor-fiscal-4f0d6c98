@@ -252,7 +252,7 @@ export async function parseMultipleFiles(files: File[]): Promise<{ parsed: Parse
  * Extrai apenas contas analíticas (folha) — códigos de 8+ dígitos OU sem filhos hierárquicos.
  * Retorna null se o template não bater.
  */
-type BalanceteRowParsed = { conta: string; descricao: string; ref1?: string; values: Record<string, number> };
+type BalanceteRowParsed = { conta: string; descricao: string; ref1?: string; values: Record<string, number>; previous?: number; synthetic?: boolean };
 
 /**
  * REF_BY_PREFIX — Classificador GENÉRICO por grupo contábil brasileiro.
