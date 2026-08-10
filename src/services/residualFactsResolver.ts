@@ -256,7 +256,9 @@ export function resolveResidualFacts(
     !RX.withholding.test(n.description) &&
     !RX.installment.test(n.description);
 
-  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1")), isLabor); // MD-BEX-FINAL: Trabalhista pode estar no grupo 2.1 generalizado
+  // §MIXED-TAXONOMY — trabalhistas próprios do grupo 2.1, descendo em pais que
+  // também abrigam tributos (ex.: 2.1.3 "Obrigações Sociais e Tributárias").
+  const laborCurrentNodes = pickByTaxonomy(liabilities, "2.1", isLabor, (n) => RX.tax.test(n.description) && !RX.labor.test(n.description));
   const laborExcluded = liabilities.filter(
     n => under(n, "2.1") && RX.labor.test(n.description) && !isLabor(n) && !n.has_children
   );
