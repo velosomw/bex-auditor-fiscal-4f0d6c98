@@ -363,6 +363,39 @@ export function resolveP1Facts(
      });
   }
 
+  /**
+   * §RESULT-CONTEXT — Resultado Acumulado x Resultado da Competência.
+   * O saldo da conta de resultado no balancete é ACUMULADO no exercício.
+   * O resultado do período é a variação contra o saldo anterior da MESMA conta.
+   * Sem saldo anterior confiável, o Resultado da Competência NÃO é publicado.
+   */
+  const acc = facts.resultado;
+  const comp = facts.resultado_competencia;
+  if (acc?.status === "AVAILABLE") {
+    const prev = previousByNorm.get(normalizeAccountCode(acc.source_account_code));
+    if (Number.isFinite(prev as number)) {
+      const delta = acc.value - (prev as number);
+      facts.resultado_competencia = {
+        ...(comp || acc),
+        role: "resultado_competencia",
+        value: delta,
+        status: "AVAILABLE",
+        authority: acc.authority,
+        source_account_code: acc.source_account_code,
+        source_account_description: acc.source_account_description,
+        derivation: "ACCUMULATED_MINUS_PREVIOUS_BALANCE",
+      } as CertifiedFact;
+    } else if (comp && comp.status === "AVAILABLE" && comp.value === acc.value) {
+      // Sem saldo anterior o valor "de competência" seria uma cópia do acumulado → não certifica.
+      comp.status = "NOT_AVAILABLE";
+      comp.authority = "NOT_AVAILABLE";
+      comp.excluded_candidates.push({
+        account: acc.source_account_code, description: acc.source_account_description,
+        value: acc.value, reason: "PERIOD_RESULT_INDISTINGUISHABLE_FROM_ACCUMULATED",
+      });
+    }
+  }
+
   return { facts, nodes };
 }
 
