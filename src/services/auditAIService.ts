@@ -469,12 +469,12 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     const conta = String(row[cols.conta] ?? "").trim();
     const desc = String(row[cols.descricao] ?? "").trim();
     if (!conta && !desc) continue;
-    // GRUPO-FIRST TEXTUAL: preserva linhas-totalizadoras de Grupo de Resultado
-    // (Ativo Circulante, Passivo Circulante, Receita Bruta…) mesmo quando não
-    // são folhas. Sub-totais sem rótulo canônico continuam pulados para evitar
-    // dupla contagem. Cobre planos não-padrão (Giannini, etc.).
+    // MD-BEX-FINAL-PARENT-AUTHORITY: as linhas sintéticas (totalizadoras de grupo)
+    // são PRESERVADAS para que o P1 Synthetic Authority Resolver enxergue a
+    // hierarquia completa do balancete. A dupla contagem continua evitada porque
+    // o builder poda contas-pai na camada de agregação legada (leafRows).
     const grupoCanonico = matchGrupoCanonico(desc);
-    if (!isLeaf(conta) && !grupoCanonico) continue;
+    const synthetic = !isLeaf(conta);
     const ref1 = grupoCanonico ?? inferRefByCode(conta, desc);
 
     if (useMultiMonth) {
@@ -486,11 +486,17 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
         if (isFinite(v) && v !== 0) { values[mc.mesKey] = v; anyValid = true; }
         else if (isFinite(v)) { values[mc.mesKey] = 0; }
       }
-      if (anyValid) rows.push({ conta, descricao: desc || conta, ref1, values });
+      if (anyValid) rows.push({ conta, descricao: desc || conta, ref1, values, synthetic });
     } else {
       const saldoNum = parseNumCell(row[cols.saldoAtual]);
       if (!isFinite(saldoNum)) continue;
-      rows.push({ conta, descricao: desc || conta, ref1, values: { [periodLabel]: saldoNum } });
+      const anterior = cols.saldoAnterior !== undefined ? parseNumCell(row[cols.saldoAnterior]) : NaN;
+      rows.push({
+        conta, descricao: desc || conta, ref1,
+        values: { [periodLabel]: saldoNum },
+        previous: isFinite(anterior) ? anterior : undefined,
+        synthetic,
+      });
     }
   }
   return rows.length > 0
