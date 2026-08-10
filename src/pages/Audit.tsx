@@ -3390,7 +3390,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
                     {(snapshot?.competencies || []).map(y => {
-                      const v = snapshot?.byCompetency[y]?.facts[row.key as keyof CanonicalFacts] || 0;
+                      const v = snapshot?.byCompetency[y]?.facts[row.key as any] || 0;
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                           {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
