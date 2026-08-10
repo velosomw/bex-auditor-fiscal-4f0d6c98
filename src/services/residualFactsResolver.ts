@@ -249,7 +249,7 @@ export function resolveResidualFacts(
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
   const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || under(n, "2.2.1.01")), isBorrowing);
+  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || (under(n, "2.2.1") && isBorrowing(n))), isBorrowing);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 
@@ -318,7 +318,8 @@ export function resolveResidualFacts(
   const ebitdaAvailable = lajirAvailable && daAvailable;
   const ebitdaValue = ebitdaAvailable ? lajirValue + depreciation.value + amortization.value : NaN;
 
-  // §42 — Interest Coverage uses certified LAJIR and certified Financial Expenses
+  // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
+  const revenueCertified = ctx.resultado_certified !== false && Math.abs(resultado) > 0.01; // Simplificado para certificação de paridade
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10;
 
   return {

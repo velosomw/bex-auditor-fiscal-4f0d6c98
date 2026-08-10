@@ -82,6 +82,8 @@ export interface CanonicalReportDataset {
 
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
+const FINAL_CORE_FINANCIAL_LOCK = true; // MD-BEX-FINAL §3
+
 
 /* ── Helpers ── */
 /** §47/§48 — FI nunca é publicado como 0.00 ou NaN: quando indisponível/inaplicável, é "N/A". */
@@ -3384,7 +3386,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Passivo Não Circulante", key: "passivo_nao_circulante" },
                   { label: "Patrimônio Líquido", key: "patrimonio_liquido" },
                   { label: "Receita Líquida", key: "receita_liquida" },
-                  { label: "Resultado Competência", key: "resultado_competencia" as any },
+                  { label: "Resultado da Competência", key: "resultado_competencia" as any },
                   { label: "Resultado Acumulado", key: "resultado_acumulado" as any },
                 ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
