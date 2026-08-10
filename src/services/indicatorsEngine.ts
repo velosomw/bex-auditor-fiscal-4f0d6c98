@@ -174,7 +174,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     indicators_status: {},
     naROE: pl <= 0,
     naImobilizacao: pl <= 0,
-    naCobertura: !coberturaCertificada,
+    naCobertura: !coverageCertificada,
   };
 
   const s = r.facts_status;
