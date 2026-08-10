@@ -88,7 +88,7 @@ const FINAL_CORE_FINANCIAL_LOCK = true; // MD-BEX-FINAL §3
 /* ── Helpers ── */
 /** §47/§48 — FI nunca é publicado como 0.00 ou NaN: quando indisponível/inaplicável, é "N/A". */
 const fiFmt = (fi?: number | null, aplicavel: boolean = true) =>
-  aplicavel && typeof fi === "number" && Number.isFinite(fi) ? fi.toFixed(2) : "N/A";
+  aplicavel && typeof fi === "number" && Number.isFinite(fi) ? fi.toFixed(4) : "N/A";
 const fmt = (n: number) => {
   if (n == null || isNaN(n)) return "N/A";
   return new Intl.NumberFormat("pt-BR").format(Math.round(n));
@@ -255,7 +255,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
           imageTimeout: 15000,
           onclone: (clonedDoc) => {
             // MD-BEX-CANONICAL-HIERARCHICAL-AGGREGATION: Remove Score BEx (Gate 21) from the exported clone
-            clonedDoc.querySelectorAll('.score-bex, [class*="score-bex"], .bex-score-display').forEach(n => n.remove());
+            clonedDoc.querySelectorAll('.score-bex, [class*="score-bex"], .bex-score-display, .no-print').forEach(n => n.remove());
             
             const images = clonedDoc.getElementsByTagName('img');
             return Promise.all(Array.from(images).map(img => {
@@ -3407,7 +3407,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Resultado Acumulado", key: "resultado_acumulado" as any },
                   { label: "Trabalhista (CP)", key: "divida_trabalhista" as any },
                   { label: "Fornecedores (CP)", key: "fornecedores" },
-                  { label: "Fornecedores (LP)", key: "divida_financeira_lp" as any },
+                  { label: "Fornecedores (LP)", key: "fornecedores_lp" as any },
                 ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>

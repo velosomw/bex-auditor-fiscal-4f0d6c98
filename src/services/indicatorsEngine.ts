@@ -122,7 +122,8 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
 
   const lajir = resParaCalculo + despFinAbs - recFinAbs + (r.residual_facts?.income_taxes.value || 0);
   const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE" && Number.isFinite(r.residual_facts.ebitda.value);
-  const coberturaCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 10 && Number.isFinite(lajir);
+  const coverageBase = r.residual_facts?.financial_expenses?.analysis_value || despFinAbs;
+  const coberturaCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE" && coverageBase > 10 && Number.isFinite(lajir);
 
   const pmr = div(contasReceber * 30, receita);
   const pmp = receita !== 0 ? div(r.fornecedores * 30, (receita / 12) * 0.7) : div(r.fornecedores * 30, cmvAbs + Math.abs(r.despesas)); // Fallback PMP baseada em receita quando CMV indisponível
