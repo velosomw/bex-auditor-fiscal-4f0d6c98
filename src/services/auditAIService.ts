@@ -578,13 +578,15 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   }
   if (allRows.length > 0) {
     // Mescla linhas do mesmo código (sheets diferentes) somando values por mês
-    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number>; ref1?: string }>();
+    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number>; ref1?: string; previous?: number; synthetic?: boolean }>();
     for (const r of allRows) {
       const k = `${r.conta}::${r.descricao}`;
       const cur = merged.get(k);
-      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, ref1: r.ref1, values: { ...r.values } });
+      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, ref1: r.ref1, values: { ...r.values }, previous: (r as any).previous, synthetic: (r as any).synthetic });
       else {
         if (!cur.ref1 && r.ref1) cur.ref1 = r.ref1;
+        const prev = (r as any).previous;
+        if (Number.isFinite(prev)) cur.previous = (cur.previous || 0) + prev;
         for (const [mk, v] of Object.entries(r.values)) cur.values[mk] = (cur.values[mk] || 0) + v;
       }
     }
