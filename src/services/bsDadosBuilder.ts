@@ -257,7 +257,10 @@ export interface BSDadosRow {
   facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
+  company_name?: string;
+  company_cnpj?: string;
   errors: string[];
+
   grupos?: GroupMappingEntry[];
   /** MD-P1-001 — Ativo Total autoritativo (conta sintética "1"), quando disponível. */
   ativo_total?: number;
