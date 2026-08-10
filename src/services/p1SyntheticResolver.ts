@@ -117,7 +117,10 @@ const ROLE_CODES: Record<CanonicalRole, string[]> = {
   resultado: ["3", "2.3.9"], 
   resultado_competencia: ["3"], // Golden 02: Removido fallback 3.1.2 para evitar colisão com Deduções da Receita
 
-  fornecedores: ["2.1.2", "2.2.1"], 
+  // §PARENT-AUTHORITY — Fornecedores é resolvido por prazo: CP (grupo 2.1) e LP (grupo 2.2)
+  // nunca podem ser somados no mesmo fato.
+  fornecedores: ["2.1.2"],
+  fornecedores_lp: ["2.2.1"],
 };
 
 /** Prefixo obrigatório para candidatos textuais (evita roubo entre ativo/passivo). */
@@ -130,7 +133,8 @@ const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
   passivo_circulante: "2",
   passivo_nao_circulante: "2",
   patrimonio_liquido: "2",
-  fornecedores: "2",
+  fornecedores: "2.1",
+  fornecedores_lp: "2.2",
   receita_liquida: "3",
   resultado: "3",
   resultado_competencia: "3",
@@ -140,7 +144,7 @@ const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
 const ABS_ROLES = new Set<CanonicalRole>([
   "ativo_total", "ativo_circulante", "ativo_nao_circulante", "realizavel_longo_prazo",
   "estoques", "disponivel", "passivo_circulante", "passivo_nao_circulante",
-  "fornecedores",
+  "fornecedores", "fornecedores_lp",
 ]);
 
 export interface P1Resolution {
