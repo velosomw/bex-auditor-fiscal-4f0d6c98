@@ -254,6 +254,13 @@ export async function parseMultipleFiles(files: File[]): Promise<{ parsed: Parse
  */
 type BalanceteRowParsed = { conta: string; descricao: string; ref1?: string; values: Record<string, number>; previous?: number; synthetic?: boolean };
 
+interface BalanceteParseResult {
+  rows: BalanceteRowParsed[];
+  periodLabel: string;
+  multiMonth?: boolean;
+  documentInfo?: any;
+}
+
 /**
  * REF_BY_PREFIX — Classificador GENÉRICO por grupo contábil brasileiro.
  *
@@ -321,21 +328,6 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^7/,     "DESPESAS_FIN"], // Despesas/Receitas FINANCEIRAS
   [/^8/,     "DESPESAS_NOP"], // Despesas/Receitas NÃO Operacionais
 ];
-
-interface BalanceteRowParsed {
-  conta: string;
-  descricao: string;
-  ref1?: string;
-  values: Record<string, number>;
-  synthetic?: boolean;
-}
-
-interface BalanceteParseResult {
-  rows: BalanceteRowParsed[];
-  periodLabel: string;
-  multiMonth?: boolean;
-  documentInfo?: any;
-}
 
 const stripAccents = (s: string) =>
   (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
