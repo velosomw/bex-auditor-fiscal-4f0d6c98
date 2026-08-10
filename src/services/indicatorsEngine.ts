@@ -9,26 +9,6 @@
  *  - Determinística: mesmas entradas ⇒ mesmas saídas (sem IA, sem fallback opaco).
  *  - Transparente: cada indicador carrega as contas/refs que o alimentam.
  *  - À prova de divisão por zero: retorna 0 e marca `na: true` quando indefinido.
- *
- * Fórmulas (referência: template BEX):
- *   Liquidez Corrente   = AC / PC
- *   Liquidez Seca       = (AC − Estoques) / PC
- *   Liquidez Imediata   = Disponível / PC
- *   Liquidez Geral      = (AC + RLP) / (PC + PNC)   [planilha Kanitz — RLP, não ANC inteiro; fallback ANC]
- *   Endividamento Total = (PC + PNC) / Ativo Total   [Golden Test: 81,01%]
- *   Grau Endiv. PL      = (PC + PNC) / PL           [Kanitz X5; N/A se PL ≤ 0]
- *   Composição Endiv.   = PC / (PC + PNC)
- *   Imobilização do PL  = Imobilizado / PL          [N/A se PL ≤ 0]
- *   Cobertura de Juros  = (Resultado + |DespFin|) / |DespFin|
- *   Giro do Ativo       = Receita / (AC + ANC)
- *   PMR  = (ContasReceber × 30) / ReceitaMensal     [base mensal, planilha BEX]
- *   PMP  = (Fornecedores   × 30) / |CMV mensal + Despesas Operacionais|
- *   IME  = (Estoques       × 30) / |CMV mensal|
- *   Margem Líquida      = Resultado / Receita
- *   Margem Operacional  = (Resultado + |DespFin|) / Receita   [proxy LAJIR]
- *   ROA (anual)         = (Resultado / (AC + ANC)) × 12
- *   ROE (anual)         = (Resultado / PL) × 12               [N/A se PL ≤ 0]
- *   EBITDA              = (Resultado + |DespFin|) + |Depreciação| + |Amortização| [Somente se componentes certificados]
  */
 import type { BSDadosRow } from "@/services/bsDadosBuilder";
 
@@ -63,10 +43,9 @@ export interface IndicatorRow {
   roe: number;
   // EBITDA
   ebitda: number;
-  /** Status de certificação (MD-FINAL-RESIDUAL-001). */
   ebitdaStatus: "AVAILABLE" | "NOT_AVAILABLE";
   coberturaJurosStatus: "AVAILABLE" | "NOT_AVAILABLE";
-  // Bases (para drill-down / memória de cálculo)
+  // Bases (para drill-down)
   _ac: number;
   _anc: number;
   _at: number;
@@ -87,6 +66,7 @@ export interface IndicatorRow {
   _depreciacao: number;
   _amortizacao: number;
   _resultado: number;
+  resultadoLiquido: number;
   // Bases de dívida detalhadas
   _dividaTributaria: number;
   _dividaTrabalhista: number;
@@ -94,8 +74,7 @@ export interface IndicatorRow {
   _credoresRJ: number;
   // Readouts diretos
   isg: number;
-  endividamentoGeral: number; // pt / at
-  // Metadata & Status
+  endividamentoGeral: number;
   indicators_status: Record<string, "AVAILABLE" | "NOT_AVAILABLE">;
   naROE: boolean;
   naImobilizacao: boolean;
@@ -129,28 +108,28 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const amortAbs = Math.abs(r.amortizacao);
   const resultado = r.resultado;
 
-  const lajir = resultado + despFinAbs - recFinAbs + (r.residual_facts?.income_taxes.value || 0);
+  const resAcumulado = r.resultado_acumulado ?? resultado;
+  const resCompetencia = r.resultado_competencia ?? resultado;
+  const resParaCalculo = (resCompetencia !== undefined && resCompetencia !== 0) ? resCompetencia : resAcumulado;
 
-  /* MD-FINAL-RESIDUAL-001 §21..§29 — EBITDA e Cobertura de Juros só são publicados
-     quando certificados pelo resolver residual; caso contrário NaN (nunca zero artificial). */
+  const lajir = resParaCalculo + despFinAbs - recFinAbs + (r.residual_facts?.income_taxes.value || 0);
+
   const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE" && Number.isFinite(r.residual_facts.ebitda.value);
-  const coberturaCertificada =
-    r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 10 && Number.isFinite(lajir);
+  const coberturaCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 10 && Number.isFinite(lajir);
 
   const pmr = div(contasReceber * 30, receita);
   const pmp = div(r.fornecedores * 30, cmvAbs + Math.abs(r.despesas));
   const ime = div(estoque * 30, cmvAbs);
-  const rlpEff = rlp;
 
   const res: IndicatorRow = {
     mesKey: r.mesKey,
     mes: r.mes,
-    resultadoAcumulado: r.resultado_acumulado ?? r.resultado,
-    resultadoCompetencia: r.resultado_competencia ?? r.resultado,
+    resultadoAcumulado: resAcumulado,
+    resultadoCompetencia: resCompetencia,
     liquidezCorrente: div(ac, pc),
     liquidezSeca: div(ac - estoque, pc),
     liquidezImediata: div(caixa, pc),
-    liquidezGeral: div(ac + rlpEff, pc + pnc),
+    liquidezGeral: div(ac + rlp, pc + pnc),
     endividamentoTotal: div(pt, at),
     grauEndividamentoPL: pl !== 0 ? pt / pl : 0,
     composicaoEndividamento: div(pc, pt),
@@ -163,21 +142,21 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     idadeMediaEstoque: ime,
     cicloOperacional: ime + pmr,
     cicloCaixa: ime + pmr - pmp,
-    margemLiquida: div(res.resultadoCompetencia ?? resultado, receita),
+    margemLiquida: div(resParaCalculo, receita),
     margemOperacional: div(lajir, receita),
-    roa: div(res.resultadoCompetencia ?? resultado, at) * 12,
-    roe: pl !== 0 ? div(res.resultadoCompetencia ?? resultado, pl) * 12 : 0,
+    roa: div(resParaCalculo, at) * 12,
+    roe: pl !== 0 ? div(resParaCalculo, pl) * 12 : 0,
     ebitda: ebitdaCertificado ? (r.residual_facts!.ebitda.value) : NaN,
     ebitdaStatus: ebitdaCertificado ? "AVAILABLE" : "NOT_AVAILABLE",
     coberturaJurosStatus: coberturaCertificada ? "AVAILABLE" : "NOT_AVAILABLE",
     isg: pt > 0 ? at / pt : 0,
     endividamentoGeral: at > 0 ? pt / at : 0,
-    _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl, _rlp: rlpEff,
+    _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl, _rlp: rlp,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
     _fornecedores: r.fornecedores, _receita: receita, _cmv: cmvAbs,
     _despFin: despFinAbs, _recFin: recFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
-    _resultado: res.resultadoCompetencia ?? resultado,
-    resultadoLiquido: res.resultadoCompetencia ?? resultado,
+    _resultado: resParaCalculo,
+    resultadoLiquido: resParaCalculo,
     _dividaTributaria: Math.abs(r.divida_tributaria),
     _dividaTrabalhista: Math.abs(r.divida_trabalhista),
     _dividaFinanceira: Math.abs(r.divida_financeira),
@@ -188,7 +167,6 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     naCobertura: !coberturaCertificada,
   };
 
-  // Mapeia status dos indicadores baseado na disponibilidade dos fatos
   const s = r.facts_status;
   if (s) {
     res.indicators_status.liquidezCorrente = (s.ativo_circulante === "AVAILABLE" && s.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE";
@@ -201,76 +179,9 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   return res;
 }
 
-/** Constrói série indexada por mesKey, pronta para consumo pelas abas. */
 export function buildIndicatorSeries(rows: BSDadosRow[] | null | undefined): Record<string, IndicatorRow> {
   if (!rows || rows.length === 0) return {};
   const out: Record<string, IndicatorRow> = {};
   for (const r of rows) out[r.mesKey] = computeIndicatorsForRow(r);
   return out;
-}
-
-/**
- * ISG — Índice de Solvência Geral.
- * Mede capacidade do Ativo Total cobrir o Capital de Terceiros (PC + PNC).
- * Útil quando PL ≤ 0 (Kanitz com restrições — ver MD).
- *
- * Fórmula:  ISG = Ativo Total / (PC + PNC)
- * Faixas:   > 1,5 Solvente | 1,0–1,5 Atenção | < 1,0 Insolvente
- */
-export type ISGClassification = "solvente" | "atencao" | "insolvente" | "indefinido";
-
-export interface ISGResult {
-  mesKey: string;
-  mes: string;
-  isg: number;
-  ativoTotal: number;
-  capitalTerceiros: number;
-  classificacao: ISGClassification;
-  label: string;
-  icon: string;
-  color: string;
-  reason?: string;
-}
-
-export const ISG_META: Record<ISGClassification, { label: string; icon: string; color: string }> = {
-  solvente:   { label: "Solvente",   icon: "🟢", color: "hsl(150,70%,42%)" },
-  atencao:    { label: "Atenção",    icon: "🟡", color: "hsl(48,96%,53%)"  },
-  insolvente: { label: "Insolvente", icon: "🔴", color: "hsl(0,75%,55%)"   },
-  indefinido: { label: "Indefinido", icon: "⛔", color: "hsl(220,10%,55%)" },
-};
-
-export function classifyISG(isg: number): ISGClassification {
-  if (!Number.isFinite(isg) || isg <= 0) return "indefinido";
-  if (isg > 1.5) return "solvente";
-  if (isg >= 1.0) return "atencao";
-  return "insolvente";
-}
-
-export function computeISG(r: BSDadosRow): ISGResult {
-  const ativoTotal = (r.ativo_circulante || 0) + (r.ativo_nao_circulante || 0);
-  const capitalTerceiros = (r.passivo_circulante || 0) + (r.passivo_nao_circulante || 0);
-  const isg = capitalTerceiros > 0 ? ativoTotal / capitalTerceiros : 0;
-  const classificacao = classifyISG(isg);
-  const meta = ISG_META[classificacao];
-  return {
-    mesKey: r.mesKey,
-    mes: r.mes,
-    isg,
-    ativoTotal,
-    capitalTerceiros,
-    classificacao,
-    label: meta.label,
-    icon: meta.icon,
-    color: meta.color,
-    reason: capitalTerceiros === 0
-      ? "Capital de terceiros (PC + PNC) não capturado — ISG indefinido."
-      : undefined,
-  };
-}
-
-export function buildISGSeries(rows: BSDadosRow[] | null | undefined): ISGResult[] {
-  if (!rows || rows.length === 0) return [];
-  return [...rows]
-    .sort((a, b) => a.mesKey.localeCompare(b.mesKey))
-    .map(computeISG);
 }
