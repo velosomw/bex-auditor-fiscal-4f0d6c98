@@ -3421,9 +3421,19 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       const v = typeof factVal === "number" && Number.isFinite(factVal) && statusOk
                         ? factVal
                         : (residualVal && residualVal.status === "AVAILABLE" ? residualVal.value : undefined);
+                      
+                      // §31/§32/§34: Suppliers LP and Tax LP parity
+                      let finalVal = v;
+                      if (row.key === "fornecedores_lp" && comp?.residual?.suppliers_noncurrent?.status === "AVAILABLE") {
+                        finalVal = comp.residual.suppliers_noncurrent.value;
+                      }
+                      if (row.key === "passivo_nao_circulante" && comp?.facts?.passivo_nao_circulante) {
+                        finalVal = comp.facts.passivo_nao_circulante;
+                      }
+
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
-                          {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
+                          {typeof finalVal === "number" && Number.isFinite(finalVal) ? fmtDec(finalVal / 1_000_000) : "N/D"}
                         </TableCell>
                       );
                     })}
