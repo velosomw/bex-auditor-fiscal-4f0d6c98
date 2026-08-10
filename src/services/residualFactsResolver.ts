@@ -112,6 +112,39 @@ function pickNonOverlapping(nodes: AccountNode[], match: (n: AccountNode) => boo
   );
 }
 
+/**
+ * §MIXED-TAXONOMY-DESCENT — planos de contas frequentemente misturam naturezas
+ * dentro do mesmo pai sintético (ex.: 2.1.3 com tributos E trabalhistas).
+ * Percorre a árvore a partir do prefixo e só aceita um nó sintético quando ele
+ * é "puro" (nenhum descendente pertence à natureza concorrente); caso contrário
+ * desce para os filhos. Nunca soma pai e filho.
+ */
+function pickByTaxonomy(
+  all: AccountNode[],
+  prefix: string,
+  isTarget: (n: AccountNode) => boolean,
+  isOther: (n: AccountNode) => boolean
+): AccountNode[] {
+  const inScope = all.filter(n => n.normalized_code.startsWith(prefix + "."));
+  const childrenOf = (code: string) =>
+    inScope.filter(n => n.parent_code === code);
+  const descendantsOf = (n: AccountNode) =>
+    inScope.filter(o => o.normalized_code.startsWith(n.normalized_code + "."));
+
+  const out: AccountNode[] = [];
+  const visit = (list: AccountNode[]) => {
+    for (const n of list) {
+      const desc = descendantsOf(n);
+      const contaminated = desc.some(isOther) || (isOther(n) && !isTarget(n));
+      if (isTarget(n) && !contaminated) { out.push(n); continue; }
+      if (desc.length > 0) { visit(childrenOf(n.normalized_code)); continue; }
+      if (isTarget(n) && !isOther(n)) out.push(n);
+    }
+  };
+  visit(childrenOf(prefix));
+  return out.filter(n => !out.some(o => o !== n && n.normalized_code.startsWith(o.normalized_code + ".")));
+}
+
 function compose(selected: AccountNode[], scope: string, excluded: AccountNode[] = []): ComposedFact {
   const value = selected.reduce((s, n) => s + n.value, 0); // Preserva o sinal contábil (redutoras) para consolidação sintética
   return {
