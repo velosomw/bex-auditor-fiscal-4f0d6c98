@@ -113,7 +113,7 @@ function pickNonOverlapping(nodes: AccountNode[], match: (n: AccountNode) => boo
 }
 
 function compose(selected: AccountNode[], scope: string, excluded: AccountNode[] = []): ComposedFact {
-  const value = selected.reduce((s, n) => s + Math.abs(n.value), 0);
+  const value = selected.reduce((s, n) => s + n.value, 0); // Preserva o sinal contábil (redutoras) para consolidação sintética
   return {
     value,
     status: selected.length > 0 ? "AVAILABLE" : "NOT_AVAILABLE",
@@ -164,15 +164,15 @@ export function resolveResidualFacts(
   const instCurrent = instIn("2.1", taxCurrentNodes);
   const instNonCurrent = instIn("2.2", taxNonCurrentNodes);
 
-  const taxCurrentTotal = taxCurrentNodes.reduce((s, n) => s + Math.abs(n.value), 0);
-  const taxNonCurrentTotal = taxNonCurrentNodes.reduce((s, n) => s + Math.abs(n.value), 0);
-  const instCurrentTotal = instCurrent.reduce((s, n) => s + Math.abs(n.value), 0);
-  const instNonCurrentTotal = instNonCurrent.reduce((s, n) => s + Math.abs(n.value), 0);
+  const taxCurrentTotal = taxCurrentNodes.reduce((s, n) => s + n.value, 0);
+  const taxNonCurrentTotal = taxNonCurrentNodes.reduce((s, n) => s + n.value, 0);
+  const instCurrentTotal = instCurrent.reduce((s, n) => s + n.value, 0);
+  const instNonCurrentTotal = instNonCurrent.reduce((s, n) => s + n.value, 0);
 
   const tax: TaxTaxonomy = {
     current_obligations: taxCurrentNodes.length
       ? {
-          value: Math.max(0, taxCurrentTotal - instCurrentTotal),
+          value: Math.abs(taxCurrentTotal - instCurrentTotal),
           status: "AVAILABLE",
           included_accounts: taxCurrentNodes.map(ref),
           excluded_accounts: instCurrent.map(ref),
@@ -180,11 +180,11 @@ export function resolveResidualFacts(
         }
       : EMPTY("Obrigações tributárias CP não identificadas no balancete"),
     current_installments: instCurrent.length
-      ? compose(instCurrent, "Parcelamentos tributários de curto prazo (composição do grupo tributário, sem encargos sociais)")
+      ? { ...compose(instCurrent, "Parcelamentos tributários de curto prazo"), value: Math.abs(instCurrentTotal) }
       : EMPTY("Parcelamentos tributários CP não identificados no balancete"),
     noncurrent_obligations: taxNonCurrentNodes.length
       ? {
-          value: Math.max(0, taxNonCurrentTotal - instNonCurrentTotal),
+          value: Math.abs(taxNonCurrentTotal - instNonCurrentTotal),
           status: "AVAILABLE",
           included_accounts: taxNonCurrentNodes.map(ref),
           excluded_accounts: instNonCurrent.map(ref),
@@ -192,13 +192,13 @@ export function resolveResidualFacts(
         }
       : EMPTY("Obrigações tributárias LP não identificadas no balancete"),
     noncurrent_installments: instNonCurrent.length
-      ? compose(instNonCurrent, "Parcelamentos tributários de longo prazo (composição do grupo tributário)")
+      ? { ...compose(instNonCurrent, "Parcelamentos tributários de longo prazo"), value: Math.abs(instNonCurrentTotal) }
       : EMPTY("Parcelamentos tributários LP não identificados no balancete"),
     // §36 — Double Count Detector: parcelamentos já estão dentro dos grupos sintéticos.
     total_exposure:
       taxCurrentNodes.length || taxNonCurrentNodes.length
         ? {
-            value: taxCurrentTotal + taxNonCurrentTotal,
+            value: Math.abs(taxCurrentTotal + taxNonCurrentTotal),
             status: "AVAILABLE",
             included_accounts: [...taxCurrentNodes, ...taxNonCurrentNodes].map(ref),
             excluded_accounts: [...instCurrent, ...instNonCurrent].map(ref),
@@ -210,7 +210,7 @@ export function resolveResidualFacts(
 
   /* ── Fornecedores LP Fact (§12) ── */
   const suppliers_noncurrent = suppliersLP.length
-    ? compose(suppliersLP, "Fornecedores de longo prazo (Passivo Não Circulante)")
+    ? { ...compose(suppliersLP, "Fornecedores de longo prazo (Passivo Não Circulante)"), value: Math.abs(suppliersLP.reduce((s, n) => s + n.value, 0)) }
     : EMPTY("Fornecedores LP não identificados no balancete");
 
   /* ── Trabalhistas (§38..§40) ────────────────────────────── */
@@ -220,7 +220,7 @@ export function resolveResidualFacts(
     !RX.withholding.test(n.description) &&
     !RX.installment.test(n.description);
 
-  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.2")), isLabor);
+  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1")), isLabor); // MD-BEX-FINAL: Trabalhista pode estar no grupo 2.1 generalizado
   const laborExcluded = liabilities.filter(
     n => under(n, "2.1") && RX.labor.test(n.description) && !isLabor(n) && !n.has_children
   );
@@ -239,7 +239,8 @@ export function resolveResidualFacts(
     other_obligations: EMPTY("Demais obrigações sociais"),
     total_current: laborCurrentNodes.length
       ? {
-          ...compose(laborCurrentNodes, "Obrigações sociais e trabalhistas próprias de curto prazo (grupo 2.1, sem retenções de terceiros e sem parcelamentos)"),
+          ...compose(laborCurrentNodes, "Obrigações sociais e trabalhistas próprias de curto prazo"),
+          value: Math.abs(laborCurrentNodes.reduce((s, n) => s + n.value, 0)),
           excluded_accounts: laborExcluded.map(ref),
         }
       : EMPTY("Obrigações trabalhistas CP não identificadas no balancete"),
@@ -248,8 +249,8 @@ export function resolveResidualFacts(
   /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO (§29..§32) ── */
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
-  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || (under(n, "2.2.1") && isBorrowing(n))), isBorrowing);
+  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1") || under(n, "2.1.2")), isBorrowing);
+  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || under(n, "2.2.1")), isBorrowing);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 
@@ -274,7 +275,7 @@ export function resolveResidualFacts(
   if (finNodes.length === 0) {
     finNodes = pickNonOverlapping(results, n => RX.finExpensesFallback.test(n.description) && !n.has_children);
   }
-  const finAbs = finNodes.reduce((s, n) => s + Math.abs(n.value), 0);
+  const finAbs = Math.abs(finNodes.reduce((s, n) => s + n.value, 0));
   const financial_expenses: FinancialExpensesFact = {
     accounting_value: finNodes.length ? -finAbs : 0,
     analysis_value: finAbs,
@@ -313,7 +314,7 @@ export function resolveResidualFacts(
   const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && (Math.abs(resultado) > 0.01 || ctx.resultado_competencia_available);
   const lajirAvailable = resultCertified && financial_expenses.status === "AVAILABLE";
   const lajirValue = lajirAvailable
-    ? resultado + financial_expenses.analysis_value - financial_revenues.value + (income_taxes.status === "AVAILABLE" ? income_taxes.value : 0)
+    ? resultado + (resultado >= 0 ? financial_expenses.analysis_value : -financial_expenses.analysis_value) - (financial_revenues.value > 0 ? financial_revenues.value : 0) + (income_taxes.status === "AVAILABLE" ? income_taxes.value : 0)
     : NaN;
 
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
@@ -323,7 +324,7 @@ export function resolveResidualFacts(
   const resultOk = resultCertified;
   
   const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
-  const ebitdaValue = ebitdaAvailable ? lajirValue + depreciation.value + amortization.value : NaN;
+  const ebitdaValue = ebitdaAvailable ? lajirValue + (lajirValue >= 0 ? depreciation.value + amortization.value : -(depreciation.value + amortization.value)) : NaN;
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;

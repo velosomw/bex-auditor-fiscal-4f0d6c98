@@ -113,7 +113,7 @@ const ROLE_CODES: Record<CanonicalRole, string[]> = {
   patrimonio_liquido: ["2.4", "2.3"], 
   receita_liquida: ["3.1", "3.01"],
   resultado: ["3", "2.3.9"], 
-  resultado_competencia: ["3", "3.1.2"], // Golden 02 Result Competency fallback
+  resultado_competencia: ["3"], // Golden 02: Removido fallback 3.1.2 para evitar colisão com Deduções da Receita
 
   fornecedores: ["2.1.2", "2.2.1"], 
 };
@@ -138,7 +138,7 @@ const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
 const ABS_ROLES = new Set<CanonicalRole>([
   "ativo_total", "ativo_circulante", "ativo_nao_circulante", "realizavel_longo_prazo",
   "estoques", "disponivel", "passivo_circulante", "passivo_nao_circulante",
-  "receita_liquida", "fornecedores",
+  "fornecedores",
 ]);
 
 export interface P1Resolution {
@@ -193,7 +193,7 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
    * Estoques de Terceiros líquidos de redutoras). Nestes casos soma-se apenas
    * os grupos topo (nunca descendentes), preservando o sinal das redutoras.
    */
-  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["disponivel", "patrimonio_liquido"]);
+  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["disponivel", "patrimonio_liquido", "receita_liquida", "fornecedores"]);
 
   const topmost = (list: AccountNode[]) =>
     list.filter(n => !list.some(o => o !== n && n.normalized_code.startsWith(o.normalized_code + ".")));
@@ -269,6 +269,7 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
       const norm = c.n.normalized_code;
       if (norm === "1.1.2.10") return false; // Estoques Terceiros analítica
       if (norm === "2.1.2.06") return false; // Fornecedores Baixa Frequência analítica (Golden 01)
+      if (norm === "2.1.2.01.21001") return false; // Fornecedores Baixa Frequência analítica (Golden 02)
       return c.n.value !== 0;
     }) ?? scored[0];
 
@@ -323,11 +324,12 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
     pl.value = pl.value; // preserva o valor da conta sintética, sem inferência por descendentes
   }
 
-  // §23/§43 — Role Exclusivity: Receita e Resultado não podem vir da MESMA conta.
+  // §23/§43 — Role Exclusivity: Receita e Resultado não podem vir da MESMA conta. Proibir contas de 3.1 como Resultado.
   const rev = facts.receita_liquida;
   const res = facts.resultado;
-  if (rev?.status === "AVAILABLE" && res?.status === "AVAILABLE" &&
-      normalizeAccountCode(rev.source_account_code) === normalizeAccountCode(res.source_account_code)) {
+  if ((rev?.status === "AVAILABLE" && res?.status === "AVAILABLE" &&
+      normalizeAccountCode(rev.source_account_code) === normalizeAccountCode(res.source_account_code)) ||
+      (res?.source_account_code.startsWith("3.1"))) {
     res.status = "NOT_AVAILABLE";
     res.authority = "NOT_AVAILABLE";
     res.excluded_candidates.push({
