@@ -141,7 +141,7 @@ export function resolveResidualFacts(
   const results = nodes.filter(n => n.normalized_code.startsWith("3") || n.normalized_code.startsWith("4"));
 
   /* ── Fornecedores LP (§12) ─────────────────────────── */
-  const suppliersLP = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), n => !RX.borrowings.test(n.description) && /^FORNECEDORES?\b/i.test(n.description));
+  const suppliersLP = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), n => !RX.borrowings.test(n.description) && !RX.tax.test(n.description) && /^FORNECEDORES?\b/i.test(n.description));
 
   /* ── Tributos (§33..§37) ────────────────────────────────── */
   const isTax = (n: AccountNode) => RX.tax.test(n.description) && !RX.labor.test(n.description);
@@ -249,8 +249,8 @@ export function resolveResidualFacts(
   /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO (§29..§32) ── */
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
-  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1") || under(n, "2.1.2")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || under(n, "2.2.1")), isBorrowing);
+  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
+  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || (under(n, "2.2.1") && isBorrowing(n))), isBorrowing);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 
