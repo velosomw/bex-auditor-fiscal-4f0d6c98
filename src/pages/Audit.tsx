@@ -3326,6 +3326,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           )}
         </div>
 
+
       </ReportPage>
 
       {/* ── 5. ENDIVIDAMENTO ── */}
