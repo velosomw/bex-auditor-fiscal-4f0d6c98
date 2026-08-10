@@ -76,11 +76,11 @@ export interface ResidualFacts {
 }
 
 const RX = {
-  tax: /TRIBUT|FISCA|IMPOSTO|ICMS|\bISS\b|\bPIS\b|COFINS|IRPJ|CSLL|SIMPLES NACIONAL/,
+  tax: /TRIBUT|FISCA|IMPOSTO|ICMS|\bISS\b|\bPIS\b|COFINS|IRPJ|CSLL|SIMPLES NACIONAL|\bIRRF\b|\bIRF\b|\bDIFAL\b/,
   installment: /PARCELAMENT|REFIS|\bPERT\b|TRANSACAO TRIBUT|PARCELADO/,
   labor: /TRABALHIST|OBRIGACOES SOCIA|ENCARGOS SOCIA|SALARI|FOLHA DE PAGAMENTO|FERIAS|RESCIS|\bFGTS\b|\bINSS\b|13[º°]? SAL|DECIMO TERCEIRO|PROVISAO DE FERIAS/,
-  /** §40 — retenções de terceiros nunca compõem dívida trabalhista própria. */
-  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO|DEDUCOES?/,
+  /** §40 — retenções (de terceiros ou de empregados) nunca compõem dívida trabalhista própria. */
+  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO|DEDUCOES?|\bIRRF\b|\bIRF\b/,
   payroll: /SALARI|FOLHA DE PAGAMENTO|ORDENADO|PRO[ -]?LABORE/,
   inss: /\bINSS\b|PREVIDENCI/,
   fgts: /\bFGTS\b/,
