@@ -1880,10 +1880,10 @@ const TabEndividamento = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any
   const anc = d?._anc || aiStruct?.ativo_nao_circulante || 0;
 
   // Use debt components from processed BS rows
-  const emprestimos = d?._divida_financeira || 0;
+  const emprestimos = d?.residual_facts?.borrowings?.value || 0;
   const fornecedores = d?._fornecedores || aiStruct?.fornecedores || 0;
-  const tributario = d?._divida_tributaria || 0;
-  const trabalhista = d?._divida_trabalhista || 0;
+  const tributario = d?.residual_facts?.tax?.total_exposure?.value || 0;
+  const trabalhista = d?.residual_facts?.labor?.total_current?.value || 0;
   const credoresRJ = d?._credores_rj || 0;
   const dividaTotal = emprestimos + fornecedores + tributario + trabalhista + credoresRJ;
   const dividaLiquida = (emprestimos + fornecedores + tributario + trabalhista + credoresRJ) - caixa;
@@ -2703,7 +2703,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
   const result = d?.resultado_liquido || 0;
-  const resultLabel = (reportDataset?.facts as any)?.resultado_competencia ? "Resultado da Competência" : "Resultado Acumulado";
+  const resultLabel = (reportDataset?.facts as any)?.resultado_competencia?.status === "AVAILABLE" ? "Resultado da Competência" : "Resultado Acumulado";
   const pl = d?.patrimonio_liquido || 0;
   const at = ac + anc;
   const pt = pc + pnc;
@@ -3388,11 +3388,14 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Receita Líquida", key: "receita_liquida" },
                   { label: "Resultado da Competência", key: "resultado_competencia" as any },
                   { label: "Resultado Acumulado", key: "resultado_acumulado" as any },
+                  { label: "Fornecedores (CP)", key: "fornecedores" },
+                  { label: "Fornecedores (LP)", key: "suppliers_noncurrent" as any },
                 ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
                     {(snapshot?.competencies || []).map(y => {
-                      const v = snapshot?.byCompetency[y]?.facts[row.key as any] || 0;
+                      const fact = snapshot?.byCompetency[y]?.facts[row.key as any];
+                      const v = fact && fact.status === "AVAILABLE" ? fact.value : (snapshot?.byCompetency[y] as any)?.residual?.[row.key as any]?.value;
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                           {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
