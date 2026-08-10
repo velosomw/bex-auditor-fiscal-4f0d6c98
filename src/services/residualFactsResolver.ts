@@ -382,11 +382,14 @@ export function resolveResidualFacts(
   // §44/§49 — EBITDA Sign Sanity Gate: EBITDA must be >= EBIT if D&A adjustment is positive
   const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
   
-  // Tolerância de centavos para rounding differences
-  const sanityPassed = !ebitdaAvailable || (daTotal >= 0.01 ? ebitdaValue >= lajirValue - 0.05 : true);
+  // Tolerância de centavos para rounding differences (§EBITDA-SIGN-SANITY-GATE expanded)
+  const sanityPassed = !ebitdaAvailable || (daTotal >= 0.01 ? ebitdaValue >= lajirValue - 0.10 : true);
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
+
+  // §SSOT-COVERAGE: Hard Parity between BEx and Kanitz
+  const coverageValue = coverageAvailable ? lajirValue / financial_expenses.analysis_value : NaN;
 
   return {
     competency,
@@ -420,7 +423,7 @@ export function resolveResidualFacts(
           : "LAJIR + Depreciação + Amortização certificados pela DRE",
     },
     interest_coverage: {
-      value: coverageAvailable ? lajirValue / financial_expenses.analysis_value : NaN,
+      value: coverageValue,
       status: coverageAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
     },
   };

@@ -2722,7 +2722,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
     { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
-    { item: resultLabel, detail: `R$ ${fmt(reportDataset?.facts.resultado_competencia || 0)}`, status: (reportDataset?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
+                { item: resultLabel, detail: `R$ ${fmt(reportDataset?.facts.resultado_competencia ?? 0)}`, status: (reportDataset?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
+                { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(reportDataset?.residual?.borrowings.status === "AVAILABLE" ? reportDataset.residual.borrowings.value : 0)}` },
+                { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(reportDataset?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? reportDataset.residual.tax.noncurrent_obligations.value : 0)}` },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 

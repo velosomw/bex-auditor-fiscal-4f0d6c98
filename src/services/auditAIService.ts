@@ -477,6 +477,12 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     const synthetic = !isLeaf(conta);
     const ref1 = grupoCanonico ?? inferRefByCode(conta, desc);
 
+    // §METADATA-IDENTIFICATION: Tenta capturar a empresa do cabeçalho estrutural
+    if (!tpl.documentInfo?.empresa && (desc.includes("LTDA") || desc.includes("S/A") || desc.includes("S.A.")) && desc.length > 5 && desc.length < 100) {
+      if (!tpl.documentInfo) tpl.documentInfo = {};
+      tpl.documentInfo.empresa = desc;
+    }
+
     if (useMultiMonth) {
       // Emite uma entrada por mês detectado nas colunas
       const values: Record<string, number> = {};
