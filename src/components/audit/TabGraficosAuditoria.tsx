@@ -617,7 +617,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                 </Line>
               </ComposedChart>
             </ResponsiveContainer>
-          ) : <EmptyState icon={Wallet} title="Não existem dados no Balancete para gerar o gráfico" message="O Fluxo de Caixa Projetado requer a aba específica ou dados de projeção no balancete." />}
+            ) : <EmptyState icon={Wallet} title="Não existem dados no Balancete para gerar o gráfico" message="O Fluxo de Caixa Projetado requer a aba específica ou dados de projeção no balancete. Não existem dados no balancete para gerar o gráfico completo." />}
         </CardContent>
       </Card>
 
@@ -678,7 +678,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
           ) : null}
 
           {!prevRealRows.entradas.length && !prevRealRows.saidas.length && (
-            <EmptyState icon={BarChart3} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de fluxo previsto vs realizado não detectados." />
+            <EmptyState icon={BarChart3} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de fluxo previsto vs realizado não detectados. Não existem dados no balancete para gerar o gráfico completo." />
           )}
         </CardContent>
       </Card>
