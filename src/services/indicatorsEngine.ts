@@ -185,3 +185,26 @@ export function buildIndicatorSeries(rows: BSDadosRow[] | null | undefined): Rec
   for (const r of rows) out[r.mesKey] = computeIndicatorsForRow(r);
   return out;
 }
+
+export interface ISGResult {
+  mesKey: string;
+  mes: string;
+  isg: number;
+  status: "AVAILABLE" | "NOT_AVAILABLE";
+}
+
+export function buildISGSeries(rows: BSDadosRow[] | null | undefined): Record<string, ISGResult> {
+  if (!rows || rows.length === 0) return {};
+  const out: Record<string, ISGResult> = {};
+  for (const r of rows) {
+    const at = r.ativo_circulante + r.ativo_nao_circulante;
+    const pt = r.passivo_circulante + r.passivo_nao_circulante;
+    out[r.mesKey] = {
+      mesKey: r.mesKey,
+      mes: r.mes,
+      isg: pt > 0 ? at / pt : 0,
+      status: (r.facts_status.ativo_circulante === "AVAILABLE" && r.facts_status.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE"
+    };
+  }
+  return out;
+}

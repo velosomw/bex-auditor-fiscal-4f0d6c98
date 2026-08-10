@@ -141,7 +141,7 @@ export function resolveResidualFacts(
   const results = nodes.filter(n => n.normalized_code.startsWith("3") || n.normalized_code.startsWith("4"));
 
   /* ── Fornecedores LP (§12) ─────────────────────────── */
-  const suppliersLP = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), n => RX.borrowings.test(n.description) === false && /^FORNECEDORES?\b/i.test(n.description));
+  const suppliersLP = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), n => !RX.borrowings.test(n.description) && /^FORNECEDORES?\b/i.test(n.description));
 
   /* ── Tributos (§33..§37) ────────────────────────────────── */
   const isTax = (n: AccountNode) => RX.tax.test(n.description) && !RX.labor.test(n.description);
