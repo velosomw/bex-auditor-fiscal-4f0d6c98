@@ -322,6 +322,21 @@ const REF_BY_PREFIX: Array<[RegExp, string]> = [
   [/^8/,     "DESPESAS_NOP"], // Despesas/Receitas NÃO Operacionais
 ];
 
+interface BalanceteRowParsed {
+  conta: string;
+  descricao: string;
+  ref1?: string;
+  values: Record<string, number>;
+  synthetic?: boolean;
+}
+
+interface BalanceteParseResult {
+  rows: BalanceteRowParsed[];
+  periodLabel: string;
+  multiMonth?: boolean;
+  documentInfo?: any;
+}
+
 const stripAccents = (s: string) =>
   (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
