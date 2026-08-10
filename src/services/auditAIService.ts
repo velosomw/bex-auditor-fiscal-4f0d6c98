@@ -527,7 +527,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   //   (b) sheetName via detectMonthFromYearLabel (ex: "Ago/2025", "08-2025")
   //   (c) intervalo no nome do arquivo "08.2025 a 01.2026" — sequencial
   //   (d) detectMonthFromFilename — para a única sheet
-  type SheetParse = { sheetName: string; rows: BalanceteRowParsed[]; multiMonth: boolean; assignedMes: string | null };
+  type SheetParse = { sheetName: string; rows: BalanceteRowParsed[]; multiMonth: boolean; assignedMes: string | null; documentInfo?: any };
   const sheetParses: SheetParse[] = [];
 
   for (const sheetName of workbook.sheetNames) {
@@ -540,6 +540,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
       rows: tpl.rows,
       multiMonth: !!tpl.multiMonth,
       assignedMes: fromName && fromName.confidence >= 0.8 ? fromName.key : null,
+      documentInfo: tpl.documentInfo,
     });
   }
 
@@ -612,6 +613,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
       balanco: balanco.length > 0 ? balanco : allRowsMerged,
       dre,
       years: Array.from(years).sort(),
+      documentInfo: { empresa: dedupedSheets.find(s => s.documentInfo?.empresa)?.documentInfo?.empresa },
       documentType: "balancete",
       ocrScore: 0.99,
     };
