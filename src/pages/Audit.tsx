@@ -3278,12 +3278,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">EBITDA Certificado (LAJIR + Depreciação + Amortização)</p>
-                    {residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{residual.ebitda.reason}</p>}
+                    {snapshot?.residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{snapshot.residual.ebitda.reason}</p>}
                   </>
                 ) : (
                   <>
                     <p className="text-sm font-semibold text-foreground">EBITDA não disponível com segurança a partir do balancete analisado</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados."}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados."}</p>
                   </>
                 )}
               </div>
