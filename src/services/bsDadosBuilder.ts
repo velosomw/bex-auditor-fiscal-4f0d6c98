@@ -893,7 +893,9 @@ export function buildBSDados(
   const orderedKeys = Array.from(new Set(usableMesKeys)).sort();
   orderedKeys.forEach(k => {
     const r = emptyRow(k);
+    r.company_name = parsed.documentInfo?.empresa;
     rowsByMes.set(k, r);
+
     bucketsByMes.set(k, {
       ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0,
       sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false,
