@@ -252,7 +252,7 @@ export async function parseMultipleFiles(files: File[]): Promise<{ parsed: Parse
  * Extrai apenas contas analíticas (folha) — códigos de 8+ dígitos OU sem filhos hierárquicos.
  * Retorna null se o template não bater.
  */
-type BalanceteRowParsed = { conta: string; descricao: string; ref1?: string; values: Record<string, number> };
+type BalanceteRowParsed = { conta: string; descricao: string; ref1?: string; values: Record<string, number>; previous?: number; synthetic?: boolean };
 
 /**
  * REF_BY_PREFIX — Classificador GENÉRICO por grupo contábil brasileiro.
@@ -469,12 +469,12 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     const conta = String(row[cols.conta] ?? "").trim();
     const desc = String(row[cols.descricao] ?? "").trim();
     if (!conta && !desc) continue;
-    // GRUPO-FIRST TEXTUAL: preserva linhas-totalizadoras de Grupo de Resultado
-    // (Ativo Circulante, Passivo Circulante, Receita Bruta…) mesmo quando não
-    // são folhas. Sub-totais sem rótulo canônico continuam pulados para evitar
-    // dupla contagem. Cobre planos não-padrão (Giannini, etc.).
+    // MD-BEX-FINAL-PARENT-AUTHORITY: as linhas sintéticas (totalizadoras de grupo)
+    // são PRESERVADAS para que o P1 Synthetic Authority Resolver enxergue a
+    // hierarquia completa do balancete. A dupla contagem continua evitada porque
+    // o builder poda contas-pai na camada de agregação legada (leafRows).
     const grupoCanonico = matchGrupoCanonico(desc);
-    if (!isLeaf(conta) && !grupoCanonico) continue;
+    const synthetic = !isLeaf(conta);
     const ref1 = grupoCanonico ?? inferRefByCode(conta, desc);
 
     if (useMultiMonth) {
@@ -486,11 +486,17 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
         if (isFinite(v) && v !== 0) { values[mc.mesKey] = v; anyValid = true; }
         else if (isFinite(v)) { values[mc.mesKey] = 0; }
       }
-      if (anyValid) rows.push({ conta, descricao: desc || conta, ref1, values });
+      if (anyValid) rows.push({ conta, descricao: desc || conta, ref1, values, synthetic });
     } else {
       const saldoNum = parseNumCell(row[cols.saldoAtual]);
       if (!isFinite(saldoNum)) continue;
-      rows.push({ conta, descricao: desc || conta, ref1, values: { [periodLabel]: saldoNum } });
+      const anterior = cols.saldoAnterior !== undefined ? parseNumCell(row[cols.saldoAnterior]) : NaN;
+      rows.push({
+        conta, descricao: desc || conta, ref1,
+        values: { [periodLabel]: saldoNum },
+        previous: isFinite(anterior) ? anterior : undefined,
+        synthetic,
+      });
     }
   }
   return rows.length > 0
@@ -572,13 +578,15 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   }
   if (allRows.length > 0) {
     // Mescla linhas do mesmo código (sheets diferentes) somando values por mês
-    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number>; ref1?: string }>();
+    const merged = new Map<string, { conta: string; descricao: string; values: Record<string, number>; ref1?: string; previous?: number; synthetic?: boolean }>();
     for (const r of allRows) {
       const k = `${r.conta}::${r.descricao}`;
       const cur = merged.get(k);
-      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, ref1: r.ref1, values: { ...r.values } });
+      if (!cur) merged.set(k, { conta: r.conta, descricao: r.descricao, ref1: r.ref1, values: { ...r.values }, previous: (r as any).previous, synthetic: (r as any).synthetic });
       else {
         if (!cur.ref1 && r.ref1) cur.ref1 = r.ref1;
+        const prev = (r as any).previous;
+        if (Number.isFinite(prev)) cur.previous = (cur.previous || 0) + prev;
         for (const [mk, v] of Object.entries(r.values)) cur.values[mk] = (cur.values[mk] || 0) + v;
       }
     }

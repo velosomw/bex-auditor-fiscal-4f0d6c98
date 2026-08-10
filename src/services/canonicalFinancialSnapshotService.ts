@@ -31,6 +31,9 @@ export interface CanonicalFacts {
   patrimonio_liquido: number;
   receita_liquida: number;
   resultado_liquido: number;
+  /** §RESULT-CONTEXT — Resultado do período (competência) e acumulado no exercício. */
+  resultado_competencia: number;
+  resultado_acumulado: number;
   fornecedores: number;
   divida_tributaria: number;
   divida_trabalhista: number;
@@ -128,6 +131,12 @@ function factsFromRow(r: BSDadosRow): CanonicalFacts {
     patrimonio_liquido: r.patrimonio_liquido,
     receita_liquida: r.receita_liquida,
     resultado_liquido: r.resultado,
+    resultado_competencia: Number.isFinite((r as any).resultado_competencia as number)
+      ? ((r as any).resultado_competencia as number)
+      : NaN,
+    resultado_acumulado: Number.isFinite((r as any).resultado_acumulado as number)
+      ? ((r as any).resultado_acumulado as number)
+      : NaN,
     fornecedores: r.fornecedores,
     divida_tributaria: Math.abs(r.divida_tributaria || 0),
     divida_trabalhista: Math.abs(r.divida_trabalhista || 0),

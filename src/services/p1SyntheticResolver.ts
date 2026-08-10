@@ -27,7 +27,8 @@ export type CanonicalRole =
   | "receita_liquida"
   | "resultado"
   | "resultado_competencia"
-  | "fornecedores";
+  | "fornecedores"
+  | "fornecedores_lp";
 
 export type FactAuthority = "P1_SYNTHETIC" | "P2_CHILDREN" | "P3_LEAVES" | "NOT_AVAILABLE";
 
@@ -42,6 +43,8 @@ export interface CertifiedFact {
   source_hierarchy_level: number;
   competency: string;
   excluded_candidates: Array<{ account: string; description: string; value: number; reason: string }>;
+  /** Origem quando o fato é derivado (ex.: resultado do período = acumulado − saldo anterior). */
+  derivation?: string;
 }
 
 export interface RawAccountRow {
@@ -98,6 +101,7 @@ const ROLE_SEMANTICS: Record<CanonicalRole, RegExp> = {
   resultado: /CONTAS?\s+DE\s+RESULTADO|^RESULTADO$|RESULTADO\s+ACUMULADO/i,
   resultado_competencia: /RESULTADO\s+DO\s+(EXERC[IÍ]CIO|PER[IÍ]ODO)|^APURA[CÇ][AÃ]O\s+DO\s+RESULTADO/i,
   fornecedores: /^FORNECEDORES?\b/i,
+  fornecedores_lp: /^FORNECEDORES?\b/i,
 };
 
 /** Códigos canônicos aceitos por role (já normalizados), em ordem de prioridade. */
@@ -115,7 +119,10 @@ const ROLE_CODES: Record<CanonicalRole, string[]> = {
   resultado: ["3", "2.3.9"], 
   resultado_competencia: ["3"], // Golden 02: Removido fallback 3.1.2 para evitar colisão com Deduções da Receita
 
-  fornecedores: ["2.1.2", "2.2.1"], 
+  // §PARENT-AUTHORITY — Fornecedores é resolvido por prazo: CP (grupo 2.1) e LP (grupo 2.2)
+  // nunca podem ser somados no mesmo fato.
+  fornecedores: ["2.1.2"],
+  fornecedores_lp: ["2.2.1"],
 };
 
 /** Prefixo obrigatório para candidatos textuais (evita roubo entre ativo/passivo). */
@@ -128,7 +135,8 @@ const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
   passivo_circulante: "2",
   passivo_nao_circulante: "2",
   patrimonio_liquido: "2",
-  fornecedores: "2",
+  fornecedores: "2.1",
+  fornecedores_lp: "2.2",
   receita_liquida: "3",
   resultado: "3",
   resultado_competencia: "3",
@@ -138,7 +146,7 @@ const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
 const ABS_ROLES = new Set<CanonicalRole>([
   "ativo_total", "ativo_circulante", "ativo_nao_circulante", "realizavel_longo_prazo",
   "estoques", "disponivel", "passivo_circulante", "passivo_nao_circulante",
-  "fornecedores",
+  "fornecedores", "fornecedores_lp",
 ]);
 
 export interface P1Resolution {
@@ -149,14 +157,22 @@ export interface P1Resolution {
 /**
  * Constrói a árvore de contas de uma competência e resolve os canonical roles.
  */
-export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string; value: number }>, competency: string): P1Resolution {
+export function resolveP1Facts(
+  rows: Array<{ conta?: string; descricao?: string; value: number; previous?: number }>,
+  competency: string
+): P1Resolution {
   const byNorm = new Map<string, AccountNode>();
+  /** Saldo anterior por conta — usado para derivar o Resultado da Competência. */
+  const previousByNorm = new Map<string, number>();
 
   for (const r of rows) {
     const norm = normalizeAccountCode(r.conta || "");
     if (!norm) continue;
     const value = Number(r.value);
     if (!Number.isFinite(value)) continue;
+    if (Number.isFinite(r.previous as number)) {
+      previousByNorm.set(norm, (previousByNorm.get(norm) || 0) + (r.previous as number));
+    }
     const existing = byNorm.get(norm);
     if (existing) {
       // Mesma conta repetida na competência → soma (balancetes complementares)
@@ -193,7 +209,9 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
    * Estoques de Terceiros líquidos de redutoras). Nestes casos soma-se apenas
    * os grupos topo (nunca descendentes), preservando o sinal das redutoras.
    */
-  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["disponivel", "patrimonio_liquido", "receita_liquida", "fornecedores"]);
+  const AGGREGABLE_ROLES = new Set<CanonicalRole>([
+    "disponivel", "patrimonio_liquido", "receita_liquida", "fornecedores", "fornecedores_lp", "estoques",
+  ]);
 
   const topmost = (list: AccountNode[]) =>
     list.filter(n => !list.some(o => o !== n && n.normalized_code.startsWith(o.normalized_code + ".")));
@@ -345,6 +363,39 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
        account: res.source_account_code, description: res.source_account_description,
        value: res.value, reason: "PROHIBITED_RESULT_SOURCE_REVENUE_GROUP",
      });
+  }
+
+  /**
+   * §RESULT-CONTEXT — Resultado Acumulado x Resultado da Competência.
+   * O saldo da conta de resultado no balancete é ACUMULADO no exercício.
+   * O resultado do período é a variação contra o saldo anterior da MESMA conta.
+   * Sem saldo anterior confiável, o Resultado da Competência NÃO é publicado.
+   */
+  const acc = facts.resultado;
+  const comp = facts.resultado_competencia;
+  if (acc?.status === "AVAILABLE") {
+    const prev = previousByNorm.get(normalizeAccountCode(acc.source_account_code));
+    if (Number.isFinite(prev as number)) {
+      const delta = acc.value - (prev as number);
+      facts.resultado_competencia = {
+        ...(comp || acc),
+        role: "resultado_competencia",
+        value: delta,
+        status: "AVAILABLE",
+        authority: acc.authority,
+        source_account_code: acc.source_account_code,
+        source_account_description: acc.source_account_description,
+        derivation: "ACCUMULATED_MINUS_PREVIOUS_BALANCE",
+      } as CertifiedFact;
+    } else if (comp && comp.status === "AVAILABLE" && comp.value === acc.value) {
+      // Sem saldo anterior o valor "de competência" seria uma cópia do acumulado → não certifica.
+      comp.status = "NOT_AVAILABLE";
+      comp.authority = "NOT_AVAILABLE";
+      comp.excluded_candidates.push({
+        account: acc.source_account_code, description: acc.source_account_description,
+        value: acc.value, reason: "PERIOD_RESULT_INDISTINGUISHABLE_FROM_ACCUMULATED",
+      });
+    }
   }
 
   return { facts, nodes };

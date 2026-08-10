@@ -411,6 +411,27 @@ tr {
     break-after: avoid !important;
   }
 
+  /* §SAFE-PAGINATION — nenhuma tabela pode ser cortada no meio de uma linha,
+     e cabeçalhos de tabela repetem em cada página impressa. */
+  .report-page-body table,
+  .report-a4-page table { page-break-inside: auto; break-inside: auto; }
+  .report-page-body thead,
+  .report-a4-page thead { display: table-header-group; }
+  .report-page-body tfoot,
+  .report-a4-page tfoot { display: table-footer-group; }
+  .report-page-body tr,
+  .report-a4-page tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  /* Título nunca fica órfão no fim da página */
+  .report-page-body h2, .report-page-body h3, .report-page-body h4,
+  .report-a4-page h2, .report-a4-page h3, .report-a4-page h4 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+
   body {
     background: white !important;
   }

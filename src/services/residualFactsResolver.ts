@@ -76,11 +76,11 @@ export interface ResidualFacts {
 }
 
 const RX = {
-  tax: /TRIBUT|FISCA|IMPOSTO|ICMS|\bISS\b|\bPIS\b|COFINS|IRPJ|CSLL|SIMPLES NACIONAL/,
+  tax: /TRIBUT|FISCA|IMPOSTO|ICMS|\bISS\b|\bPIS\b|COFINS|IRPJ|CSLL|SIMPLES NACIONAL|\bIRRF\b|\bIRF\b|\bDIFAL\b/,
   installment: /PARCELAMENT|REFIS|\bPERT\b|TRANSACAO TRIBUT|PARCELADO/,
   labor: /TRABALHIST|OBRIGACOES SOCIA|ENCARGOS SOCIA|SALARI|FOLHA DE PAGAMENTO|FERIAS|RESCIS|\bFGTS\b|\bINSS\b|13[º°]? SAL|DECIMO TERCEIRO|PROVISAO DE FERIAS/,
-  /** §40 — retenções de terceiros nunca compõem dívida trabalhista própria. */
-  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO|DEDUCOES?/,
+  /** §40 — retenções (de terceiros ou de empregados) nunca compõem dívida trabalhista própria. */
+  withholding: /RETEN[CÇ]|RETID|S\/ ?NF|SOBRE ?NOTA|TERCEIRO|DEDUCOES?|\bIRRF\b|\bIRF\b/,
   payroll: /SALARI|FOLHA DE PAGAMENTO|ORDENADO|PRO[ -]?LABORE/,
   inss: /\bINSS\b|PREVIDENCI/,
   fgts: /\bFGTS\b/,
@@ -112,6 +112,39 @@ function pickNonOverlapping(nodes: AccountNode[], match: (n: AccountNode) => boo
   );
 }
 
+/**
+ * §MIXED-TAXONOMY-DESCENT — planos de contas frequentemente misturam naturezas
+ * dentro do mesmo pai sintético (ex.: 2.1.3 com tributos E trabalhistas).
+ * Percorre a árvore a partir do prefixo e só aceita um nó sintético quando ele
+ * é "puro" (nenhum descendente pertence à natureza concorrente); caso contrário
+ * desce para os filhos. Nunca soma pai e filho.
+ */
+function pickByTaxonomy(
+  all: AccountNode[],
+  prefix: string,
+  isTarget: (n: AccountNode) => boolean,
+  isOther: (n: AccountNode) => boolean
+): AccountNode[] {
+  const inScope = all.filter(n => n.normalized_code.startsWith(prefix + "."));
+  const childrenOf = (code: string) =>
+    inScope.filter(n => n.parent_code === code);
+  const descendantsOf = (n: AccountNode) =>
+    inScope.filter(o => o.normalized_code.startsWith(n.normalized_code + "."));
+
+  const out: AccountNode[] = [];
+  const visit = (list: AccountNode[]) => {
+    for (const n of list) {
+      const desc = descendantsOf(n);
+      const contaminated = desc.some(isOther) || (isOther(n) && !isTarget(n));
+      if (isTarget(n) && !contaminated) { out.push(n); continue; }
+      if (desc.length > 0) { visit(childrenOf(n.normalized_code)); continue; }
+      if (isTarget(n) && !isOther(n)) out.push(n);
+    }
+  };
+  visit(childrenOf(prefix));
+  return out.filter(n => !out.some(o => o !== n && n.normalized_code.startsWith(o.normalized_code + ".")));
+}
+
 function compose(selected: AccountNode[], scope: string, excluded: AccountNode[] = []): ComposedFact {
   const value = selected.reduce((s, n) => s + n.value, 0); // Preserva o sinal contábil (redutoras) para consolidação sintética
   return {
@@ -134,6 +167,9 @@ export function resolveResidualFacts(
     resultado?: number; ativo_total?: number; pc?: number; pnc?: number; pl?: number;
     /** §41/§69 — quando o Resultado não está certificado, toda a cadeia derivada cai. */
     resultado_certified?: boolean;
+    /** §DERIVED-GATE — Receita certificada pelo P1 (valor + status). */
+    receita_liquida?: number;
+    receita_certified?: boolean;
     resultado_competencia_available?: boolean;
   } = {}
 ): ResidualFacts {
@@ -159,8 +195,11 @@ export function resolveResidualFacts(
       n => isTaxInstallment(n) && !parents.some(p => p.normalized_code === n.normalized_code)
     );
 
-  const taxCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.3")), isTax);
-  const taxNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.3")), isTax);
+  const isLaborNature = (n: AccountNode) => RX.labor.test(n.description) && !RX.tax.test(n.description);
+  // §MIXED-TAXONOMY — varre TODO o grupo 2.1/2.2 (não apenas 2.1.3/2.2.3) e desce
+  // em pais que misturam tributos e trabalhistas.
+  const taxCurrentNodes = pickByTaxonomy(liabilities, "2.1", isTax, isLaborNature);
+  const taxNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isTax, isLaborNature);
   const instCurrent = instIn("2.1", taxCurrentNodes);
   const instNonCurrent = instIn("2.2", taxNonCurrentNodes);
 
@@ -220,7 +259,9 @@ export function resolveResidualFacts(
     !RX.withholding.test(n.description) &&
     !RX.installment.test(n.description);
 
-  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1")), isLabor); // MD-BEX-FINAL: Trabalhista pode estar no grupo 2.1 generalizado
+  // §MIXED-TAXONOMY — trabalhistas próprios do grupo 2.1, descendo em pais que
+  // também abrigam tributos (ex.: 2.1.3 "Obrigações Sociais e Tributárias").
+  const laborCurrentNodes = pickByTaxonomy(liabilities, "2.1", isLabor, (n) => RX.tax.test(n.description) && !RX.labor.test(n.description));
   const laborExcluded = liabilities.filter(
     n => under(n, "2.1") && RX.labor.test(n.description) && !isLabor(n) && !n.has_children
   );
@@ -249,8 +290,12 @@ export function resolveResidualFacts(
   /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO (§29..§32) ── */
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
-  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || (under(n, "2.2.1") && isBorrowing(n))), isBorrowing); // §29..§32 — Dívida onerosa LP no grupo 2.2.1/2.2.2
+  const notBorrowNature = (n: AccountNode) =>
+    (RX.tax.test(n.description) || RX.labor.test(n.description)) && !RX.borrowings.test(n.description);
+  // §29..§32 — dívida onerosa varre TODO o passivo circulante/não circulante
+  // (inclui arrendamentos/leasing fora do grupo 2.1.1), nunca somando pai e filho.
+  const borrowCurrentNodes = pickByTaxonomy(liabilities, "2.1", isBorrowing, notBorrowNature);
+  const borrowNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isBorrowing, notBorrowNature);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 
@@ -320,7 +365,9 @@ export function resolveResidualFacts(
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
   
   // MD-BEX-FINAL §50/§51: Hard Gate for Derived Facts Parity
-  const revenueOk = resultCertified && Math.abs(receita_base) > 0.01;
+  const revenueOk = resultCertified
+    && ctx.receita_certified !== false
+    && Math.abs(Number.isFinite(ctx.receita_liquida as number) ? (ctx.receita_liquida as number) : receita_base) > 0.01;
   const resultOk = resultCertified;
   
   const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;

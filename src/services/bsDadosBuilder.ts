@@ -1122,7 +1122,7 @@ export function buildBSDados(
    * SEMPRE prevalece sobre descendentes analíticos. Nenhum valor Golden
    * é injetado — o resolver encontra a conta na hierarquia do balancete.
    * ───────────────────────────────────────────────────────────── */
-  const p1RowsByMes = new Map<string, Array<{ conta?: string; descricao?: string; value: number }>>();
+  const p1RowsByMes = new Map<string, Array<{ conta?: string; descricao?: string; value: number; previous?: number }>>();
   for (const r of allRows) {
     const valuesObj = (r.values || {}) as Record<string, number | string>;
     const pKeys = Object.keys(valuesObj);
@@ -1134,7 +1134,12 @@ export function buildBSDados(
         : periodToMesKey(period);
       if (!rowsByMes.has(mesKey)) continue;
       if (!p1RowsByMes.has(mesKey)) p1RowsByMes.set(mesKey, []);
-      p1RowsByMes.get(mesKey)!.push({ conta: r.conta, descricao: r.descricao, value: v });
+      // Saldo anterior só é semanticamente válido quando a linha traz UMA competência.
+      const prev = pKeys.length <= 1 ? Number((r as any).previous) : NaN;
+      p1RowsByMes.get(mesKey)!.push({
+        conta: r.conta, descricao: r.descricao, value: v,
+        previous: Number.isFinite(prev) ? prev : undefined,
+      });
     }
   }
 
@@ -1207,8 +1212,22 @@ export function buildBSDados(
        (tributos, trabalhistas, empréstimos SOMENTE do passivo, despesas financeiras). */
     const residual = resolveResidualFacts(p1Nodes, row.mesKey, { 
       resultado: row.resultado,
+      resultado_certified: facts.resultado_competencia?.status === "AVAILABLE" || facts.resultado?.status === "AVAILABLE",
+      receita_liquida: facts.receita_liquida?.status === "AVAILABLE" ? facts.receita_liquida.value : undefined,
+      receita_certified: facts.receita_liquida?.status === "AVAILABLE",
       resultado_competencia_available: !!row.resultado_competencia
     });
+    // §PARENT-AUTHORITY — Fornecedores LP tem autoridade sintética própria (grupo 2.2).
+    const fLp = facts.fornecedores_lp;
+    if (fLp?.status === "AVAILABLE") {
+      residual.suppliers_noncurrent = {
+        value: Math.abs(fLp.value),
+        status: "AVAILABLE",
+        included_accounts: [{ code: fLp.source_account_code, description: fLp.source_account_description, value: fLp.value }],
+        excluded_accounts: [],
+        calculation_scope: "Fornecedores de longo prazo — conta sintética certificada (P1)",
+      };
+    }
     row.residual_facts = residual;
 
     if (residual.tax.total_exposure.status === "AVAILABLE") {
