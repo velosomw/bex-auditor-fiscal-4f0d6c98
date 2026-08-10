@@ -3395,7 +3395,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
                     {(snapshot?.competencies || []).map(y => {
                       const fact = snapshot?.byCompetency[y]?.facts[row.key as any];
-                      const v = fact?.status === "AVAILABLE" ? fact.value : (snapshot?.byCompetency[y]?.residual_facts as any)?.[row.key as any]?.value;
+                      const v = fact && fact.status === "AVAILABLE" ? fact.value : (snapshot?.byCompetency[y] as any)?.residual?.[row.key as any]?.value;
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                           {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
