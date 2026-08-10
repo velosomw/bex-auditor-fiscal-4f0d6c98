@@ -84,7 +84,7 @@ export interface CanonicalReportDataset {
 
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
-const FINAL_ACCOUNTING_CORE_FREEZE = true; // MD-CUTOVER-001 §3
+const FINAL_ACCOUNTING_CORE_FREEZE = true; // MD-BEX-FINAL-CONSUMER-BINDING-001 §2
 
 /* ── Helpers ── */
 /** §47/§48 — FI nunca é publicado como 0.00 ou NaN: quando indisponível/inaplicável, é "N/A". */
