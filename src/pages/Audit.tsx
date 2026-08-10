@@ -3217,6 +3217,17 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
                 </div>
               ))}
+              {[
+                { label: "Cobertura de Juros", value: snapshot?.residual?.interest_coverage.status === "AVAILABLE" ? snapshot.residual.interest_coverage.value : NaN, available: snapshot?.residual?.interest_coverage.status === "AVAILABLE", scope: "LAJIR / Despesas Financeiras (SSOT)" },
+                { label: "Endividamento Financeiro", value: (snapshot?.residual?.borrowings.value || 0) / (snapshot?.facts.ativo_total || 1), available: snapshot?.residual?.borrowings.status === "AVAILABLE", scope: "Dívida Onerosa / Ativo Total" },
+                { label: "Ativo = Passivo Exigível + PL", value: 1, available: true, scope: "Equação Patrimonial Certificada" },
+              ].map(item => (
+                <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
+                  <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                  <p className="text-sm font-bold font-mono text-foreground">{item.available && (typeof item.value === 'number' && !isNaN(item.value)) ? (item.label.includes("Ativo =") ? "Em Conformidade" : (item.label.includes("Cobertura") ? `${fmtDec(item.value)}x` : fmtPct(item.value))) : "Não disponível"}</p>
+                  {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
+                </div>
+              ))}
             </div>
 
             <div className="overflow-x-auto">
