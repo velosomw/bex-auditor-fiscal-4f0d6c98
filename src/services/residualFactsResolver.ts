@@ -317,12 +317,16 @@ export function resolveResidualFacts(
     : NaN;
 
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
-  const ebitdaAvailable = lajirAvailable && daAvailable;
+  
+  // MD-BEX-FINAL §50/§51: Hard Gate for Derived Facts Parity
+  const revenueOk = resultCertified && Math.abs(receita_base) > 0.01;
+  const resultOk = resultCertified;
+  
+  const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
   const ebitdaValue = ebitdaAvailable ? lajirValue + depreciation.value + amortization.value : NaN;
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
-  const revenueCertified = ctx.resultado_certified !== false && Math.abs(resultado) > 0.01; // Simplificado para certificação de paridade
-  const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10;
+  const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
 
   return {
     competency,
