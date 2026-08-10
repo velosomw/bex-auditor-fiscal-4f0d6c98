@@ -155,14 +155,22 @@ export interface P1Resolution {
 /**
  * Constrói a árvore de contas de uma competência e resolve os canonical roles.
  */
-export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string; value: number }>, competency: string): P1Resolution {
+export function resolveP1Facts(
+  rows: Array<{ conta?: string; descricao?: string; value: number; previous?: number }>,
+  competency: string
+): P1Resolution {
   const byNorm = new Map<string, AccountNode>();
+  /** Saldo anterior por conta — usado para derivar o Resultado da Competência. */
+  const previousByNorm = new Map<string, number>();
 
   for (const r of rows) {
     const norm = normalizeAccountCode(r.conta || "");
     if (!norm) continue;
     const value = Number(r.value);
     if (!Number.isFinite(value)) continue;
+    if (Number.isFinite(r.previous as number)) {
+      previousByNorm.set(norm, (previousByNorm.get(norm) || 0) + (r.previous as number));
+    }
     const existing = byNorm.get(norm);
     if (existing) {
       // Mesma conta repetida na competência → soma (balancetes complementares)
@@ -199,7 +207,9 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
    * Estoques de Terceiros líquidos de redutoras). Nestes casos soma-se apenas
    * os grupos topo (nunca descendentes), preservando o sinal das redutoras.
    */
-  const AGGREGABLE_ROLES = new Set<CanonicalRole>(["disponivel", "patrimonio_liquido", "receita_liquida", "fornecedores"]);
+  const AGGREGABLE_ROLES = new Set<CanonicalRole>([
+    "disponivel", "patrimonio_liquido", "receita_liquida", "fornecedores", "fornecedores_lp", "estoques",
+  ]);
 
   const topmost = (list: AccountNode[]) =>
     list.filter(n => !list.some(o => o !== n && n.normalized_code.startsWith(o.normalized_code + ".")));
