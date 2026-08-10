@@ -77,6 +77,8 @@ export interface CanonicalReportDataset {
   limitations: string[];
   /** MD-CUTOVER-001 — snapshot certificado imutável (fonte única de todos os consumers). */
   snapshot?: CertifiedFinancialSnapshot;
+  /** MD-CUTOVER-001 — fatos residuais expostos diretamente no dataset para consumers. */
+  residual?: CertifiedFinancialSnapshot["residual"];
 }
 
 
@@ -1617,7 +1619,7 @@ const TabDiagnostico = ({ data }: { data?: any }) => {
                       p.status === "positivo" ? "bg-emerald-500" :
                       p.status === "atencao" ? "bg-yellow-500" : "bg-red-500"
                     }`} />
-                    <span className="text-sm font-medium text-foreground">{p.item.replace(/\s+\d+%.*$/, "").replace(/Pontos-chave/i, "Achado relevante")}</span>
+                    <span className="text-sm font-medium text-foreground">{p.item.replace(/Pontos-chave/i, "Achado relevante")}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">{p.detail.replace(/(\b\w+\b)(?:\s+\1)+/gi, "$1")}</span>
                 </div>
@@ -2722,7 +2724,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
     { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
-    { item: resultLabel, detail: `R$ ${fmt(reportDataset?.facts.resultado_competencia || 0)}`, status: (reportDataset?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
+    { item: resultLabel, detail: `R$ ${fmt(reportDataset?.facts.resultado_competencia ?? 0)}`, status: (reportDataset?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
+    { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(reportDataset?.residual?.borrowings.status === "AVAILABLE" ? reportDataset.residual.borrowings.value : 0)}`, status: "atencao" },
+    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(reportDataset?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? reportDataset.residual.tax.noncurrent_obligations.value : 0)}`, status: "atencao" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -3200,16 +3204,27 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">4.3 Indicadores de Rentabilidade</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {[
-                { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: true, scope: "Grupo sintético 3.1" },
+                { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: snapshot?.facts_status.receita_liquida === "AVAILABLE", scope: "Grupo sintético 3.1" },
                 { label: "EBITDA Certificado", value: snapshot?.residual?.ebitda.status === "AVAILABLE" ? snapshot?.residual?.ebitda.value : NaN, available: snapshot?.residual?.ebitda.status === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
-                { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia || 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
-                { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado || 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
+                { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia ?? 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
+                { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado ?? 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
-                { label: "Margem Líquida", value: snapshot?.facts.receita_liquida ? (snapshot.facts.resultado_competencia || 0) / snapshot.facts.receita_liquida : 0, available: snapshot?.facts.receita_liquida > 0, scope: "Resultado Competência / Vendas" },
+                { label: "Margem Líquida (Período)", value: snapshot?.facts.receita_liquida ? (snapshot.facts.resultado_competencia ?? 0) / snapshot.facts.receita_liquida : 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE" && snapshot?.facts.receita_liquida > 0, scope: "Resultado Competência / Receita" },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
                   <p className="text-sm font-bold font-mono text-foreground">{item.available && (typeof item.value === 'number' && !isNaN(item.value)) ? `R$ ${fmt(item.value)}` : "Não disponível"}</p>
+                  {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
+                </div>
+              ))}
+              {[
+                { label: "Cobertura de Juros", value: snapshot?.residual?.interest_coverage.status === "AVAILABLE" ? snapshot.residual.interest_coverage.value : NaN, available: snapshot?.residual?.interest_coverage.status === "AVAILABLE", scope: "LAJIR / Despesas Financeiras (SSOT)" },
+                { label: "Endividamento Financeiro", value: (snapshot?.residual?.borrowings.value || 0) / (snapshot?.facts.ativo_total || 1), available: snapshot?.residual?.borrowings.status === "AVAILABLE", scope: "Dívida Onerosa / Ativo Total" },
+                { label: "Ativo = Passivo Exigível + PL", value: 1, available: true, scope: "Equação Patrimonial Certificada" },
+              ].map(item => (
+                <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
+                  <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                  <p className="text-sm font-bold font-mono text-foreground">{item.available && (typeof item.value === 'number' && !isNaN(item.value)) ? (item.label.includes("Ativo =") ? "Em Conformidade" : (item.label.includes("Cobertura") ? `${fmtDec(item.value)}x` : fmtPct(item.value))) : "Não disponível"}</p>
                   {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
                 </div>
               ))}

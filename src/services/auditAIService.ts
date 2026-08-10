@@ -254,6 +254,13 @@ export async function parseMultipleFiles(files: File[]): Promise<{ parsed: Parse
  */
 type BalanceteRowParsed = { conta: string; descricao: string; ref1?: string; values: Record<string, number>; previous?: number; synthetic?: boolean };
 
+interface BalanceteParseResult {
+  rows: BalanceteRowParsed[];
+  periodLabel: string;
+  multiMonth?: boolean;
+  documentInfo?: any;
+}
+
 /**
  * REF_BY_PREFIX — Classificador GENÉRICO por grupo contábil brasileiro.
  *
@@ -367,7 +374,7 @@ export function inferRefByCode(code: string, descricao?: string): string | undef
   return undefined;
 }
 
-function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { rows: BalanceteRowParsed[]; periodLabel: string; multiMonth?: boolean } | null {
+function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): BalanceteParseResult | null {
   // Procura linha de cabeçalho com "saldo atual" + ("extenso" OU "descri")
   let headerIdx = -1;
   let cols: Record<string, number> = {};
@@ -463,6 +470,8 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
 
   const periodLabel = "atual";
   const rows: BalanceteRowParsed[] = [];
+  const tplInternal: { documentInfo?: any } = {};
+  
   for (let i = headerIdx + 1; i < jsonData.length; i++) {
     const row = jsonData[i];
     if (!row || row.length === 0) continue;
@@ -476,6 +485,12 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     const grupoCanonico = matchGrupoCanonico(desc);
     const synthetic = !isLeaf(conta);
     const ref1 = grupoCanonico ?? inferRefByCode(conta, desc);
+
+    // §METADATA-IDENTIFICATION: Tenta capturar a empresa do cabeçalho estrutural
+    if (!tplInternal.documentInfo?.empresa && (desc.includes("LTDA") || desc.includes("S/A") || desc.includes("S.A.")) && desc.length > 5 && desc.length < 100) {
+      if (!tplInternal.documentInfo) tplInternal.documentInfo = {};
+      tplInternal.documentInfo.empresa = desc;
+    }
 
     if (useMultiMonth) {
       // Emite uma entrada por mês detectado nas colunas
@@ -500,7 +515,7 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
     }
   }
   return rows.length > 0
-    ? { rows, periodLabel: useMultiMonth ? monthCols[0].mesKey : periodLabel, multiMonth: useMultiMonth }
+    ? { rows, periodLabel: useMultiMonth ? monthCols[0].mesKey : periodLabel, multiMonth: useMultiMonth, documentInfo: tplInternal.documentInfo }
     : null;
 }
 
@@ -519,7 +534,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
   //   (b) sheetName via detectMonthFromYearLabel (ex: "Ago/2025", "08-2025")
   //   (c) intervalo no nome do arquivo "08.2025 a 01.2026" — sequencial
   //   (d) detectMonthFromFilename — para a única sheet
-  type SheetParse = { sheetName: string; rows: BalanceteRowParsed[]; multiMonth: boolean; assignedMes: string | null };
+  type SheetParse = { sheetName: string; rows: BalanceteRowParsed[]; multiMonth: boolean; assignedMes: string | null; documentInfo?: any };
   const sheetParses: SheetParse[] = [];
 
   for (const sheetName of workbook.sheetNames) {
@@ -532,6 +547,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
       rows: tpl.rows,
       multiMonth: !!tpl.multiMonth,
       assignedMes: fromName && fromName.confidence >= 0.8 ? fromName.key : null,
+      documentInfo: tpl.documentInfo,
     });
   }
 
@@ -559,6 +575,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
     }
 
     for (const sp of dedupedSheets) {
+      if (sp.documentInfo?.empresa) years.add(sp.documentInfo.empresa);
       if (sp.multiMonth) {
         for (const r of sp.rows) {
           Object.keys(r.values).forEach(k => years.add(k));
@@ -603,6 +620,7 @@ export async function parseSpreadsheet(file: File): Promise<ParsedFinancialData>
       balanco: balanco.length > 0 ? balanco : allRowsMerged,
       dre,
       years: Array.from(years).sort(),
+      documentInfo: { empresa: dedupedSheets.find(s => s.documentInfo?.empresa)?.documentInfo?.empresa },
       documentType: "balancete",
       ocrScore: 0.99,
     };
