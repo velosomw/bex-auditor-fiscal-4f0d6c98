@@ -35,6 +35,8 @@ import type { BSDadosRow } from "@/services/bsDadosBuilder";
 export interface IndicatorRow {
   mesKey: string;
   mes: string;
+  resultadoAcumulado?: number;
+  resultadoCompetencia?: number;
   // Liquidez
   liquidezCorrente: number;
   liquidezSeca: number;
