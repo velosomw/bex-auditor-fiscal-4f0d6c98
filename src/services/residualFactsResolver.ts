@@ -141,7 +141,7 @@ export function resolveResidualFacts(
   const results = nodes.filter(n => n.normalized_code.startsWith("3") || n.normalized_code.startsWith("4"));
 
   /* ── Fornecedores LP (§12) ─────────────────────────── */
-  const suppliersLP = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), n => RX.borrowings.test(n.description) === false && /^FORNECEDORES?\b/i.test(n.description));
+  const suppliersLP = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), n => !RX.borrowings.test(n.description) && /^FORNECEDORES?\b/i.test(n.description));
 
   /* ── Tributos (§33..§37) ────────────────────────────────── */
   const isTax = (n: AccountNode) => RX.tax.test(n.description) && !RX.labor.test(n.description);
@@ -159,8 +159,8 @@ export function resolveResidualFacts(
       n => isTaxInstallment(n) && !parents.some(p => p.normalized_code === n.normalized_code)
     );
 
-  const taxCurrentNodes = taxIn("2.1.2.03");
-  const taxNonCurrentNodes = taxIn("2.2.1.02");
+  const taxCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.3")), isTax);
+  const taxNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.3")), isTax);
   const instCurrent = instIn("2.1", taxCurrentNodes);
   const instNonCurrent = instIn("2.2", taxNonCurrentNodes);
 
@@ -220,7 +220,7 @@ export function resolveResidualFacts(
     !RX.withholding.test(n.description) &&
     !RX.installment.test(n.description);
 
-  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.2.01") || under(n, "2.1.2.02")), isLabor);
+  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.2")), isLabor);
   const laborExcluded = liabilities.filter(
     n => under(n, "2.1") && RX.labor.test(n.description) && !isLabor(n) && !n.has_children
   );
@@ -249,7 +249,7 @@ export function resolveResidualFacts(
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
   const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2")), isBorrowing);
+  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || under(n, "2.2.1.01")), isBorrowing);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 

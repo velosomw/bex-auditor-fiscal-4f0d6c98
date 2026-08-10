@@ -114,7 +114,7 @@ const ROLE_CODES: Record<CanonicalRole, string[]> = {
   receita_liquida: ["3.1", "3.01"],
   resultado: ["3", "2.3.9"], 
   resultado_competencia: ["3"],
-  fornecedores: ["2.1.2"], 
+  fornecedores: ["2.1.2", "2.2.1"], 
 };
 
 /** Prefixo obrigatório para candidatos textuais (evita roubo entre ativo/passivo). */
@@ -127,7 +127,7 @@ const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
   passivo_circulante: "2",
   passivo_nao_circulante: "2",
   patrimonio_liquido: "2",
-  fornecedores: "2.1",
+  fornecedores: "2",
   receita_liquida: "3",
   resultado: "3",
   resultado_competencia: "3",
@@ -263,7 +263,13 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
       }))
       .sort((a, b) => b.score - a.score);
 
-    const winner = scored.find(c => c.n.value !== 0 && c.n.account_code !== "1.1.2.10") ?? scored[0];
+    // MD-BEX-FINAL: P1 Priority — filter out specific noise analytical children if synthetic is present
+    const winner = scored.find(c => {
+      const norm = c.n.normalized_code;
+      if (norm === "1.1.2.10") return false; // Estoques Terceiros analítica
+      if (norm === "2.1.2.06") return false; // Fornecedores Baixa Frequência analítica (Golden 01)
+      return c.n.value !== 0;
+    }) ?? scored[0];
 
     for (const c of scored) {
       if (winner && c.n.normalized_code === winner.n.normalized_code) continue;
