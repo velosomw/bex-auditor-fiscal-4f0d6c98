@@ -145,6 +145,8 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const res: IndicatorRow = {
     mesKey: r.mesKey,
     mes: r.mes,
+    resultadoAcumulado: r.resultado_acumulado ?? r.resultado,
+    resultadoCompetencia: r.resultado_competencia ?? r.resultado,
     liquidezCorrente: div(ac, pc),
     liquidezSeca: div(ac - estoque, pc),
     liquidezImediata: div(caixa, pc),
