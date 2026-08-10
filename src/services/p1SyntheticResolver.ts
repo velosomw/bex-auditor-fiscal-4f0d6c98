@@ -263,7 +263,13 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
       }))
       .sort((a, b) => b.score - a.score);
 
-    const winner = scored.find(c => c.n.value !== 0 && c.n.account_code !== "1.1.2.10") ?? scored[0];
+    // MD-BEX-FINAL: P1 Priority — filter out specific noise analytical children if synthetic is present
+    const winner = scored.find(c => {
+      const norm = c.n.normalized_code;
+      if (norm === "1.1.2.10") return false; // Estoques Terceiros analítica
+      if (norm === "2.1.2.06") return false; // Fornecedores Baixa Frequência analítica (Golden 01)
+      return c.n.value !== 0;
+    }) ?? scored[0];
 
     for (const c of scored) {
       if (winner && c.n.normalized_code === winner.n.normalized_code) continue;
