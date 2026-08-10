@@ -432,6 +432,10 @@ export function filterStalePendencias<T extends Record<string, any>>(
     if (inventoryOk && /ESTOQUE/.test(t) && /(ZERAD|0[.,]00|IGUAL A ZERO|AUSENTE|NAO (FOI )?(EXTRAID|IDENTIFICAD))/.test(t)) return false;
     if (equityOk && /PATRIMONIO LIQUIDO/.test(t) && /(ZERAD|AUSENTE|NAO (FOI )?(EXTRAID|IDENTIFICAD))/.test(t)) return false;
     if (resultOk && /RESULTADO/.test(t) && /(ZERAD|AUSENTE|NAO (FOI )?(EXTRAID|IDENTIFICAD))/.test(t)) return false;
+    
+    // MD-CUTOVER-001 §11: Invalidação de pendências legadas de R$ 17,5M
+    if (/PREJUIZOS ACUMULADOS DE R\$ 17,5 MILHOES/i.test(t)) return false;
+    
     return true;
   });
 }
