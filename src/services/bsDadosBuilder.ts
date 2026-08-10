@@ -462,7 +462,7 @@ export function isSyntheticAuthority(code: string, desc?: string): keyof BSDados
   // FORNECEDORES Generalizado
   if (/\bfornecedores?\b/i.test(d) && !/\badiantamento\b|\bfinanceir\b/i.test(d)) {
     if (code.startsWith("2.1") || code.startsWith("2.01")) return "fornecedores";
-    if (code.startsWith("2.2") || code.startsWith("2.02")) return "fornecedores"; // LP
+    if (code.startsWith("2.2") || code.startsWith("2.02")) return "fornecedores_lp" as any; // LP
   }
 
   const parts = code.split(".");
