@@ -3321,8 +3321,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 )}
               </div>
             </div>
-                <h1 className="text-3xl font-extrabold text-[#0f172a] tracking-tight uppercase">{reportDataset?.snapshot?.metadata?.company_name || company?.name || "CARREGANDO..."}</h1>
+          )}
         </div>
+
       </ReportPage>
 
       {/* ── 5. ENDIVIDAMENTO ── */}
