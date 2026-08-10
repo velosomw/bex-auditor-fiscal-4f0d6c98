@@ -3039,7 +3039,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
             <div className="space-y-3">
               {activePend.map((p: any, i: number) => (
-                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 break-inside-avoid" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together">
                   <div className="flex items-center gap-2">
                     <Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge>
                     <span className="text-xs font-semibold text-foreground">Pendência {i + 1}: {p.problema}</span>
