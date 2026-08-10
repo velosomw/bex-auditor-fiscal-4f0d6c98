@@ -248,6 +248,10 @@ export function buildCertifiedFinancialSnapshot(
     runtime_trace_id: traceId,
     snapshot_version: SNAPSHOT_VERSION,
     company_id: source.companyId || "manual",
+    metadata: {
+      company_name: latestRow?.company_name || parsedData.company_name,
+      company_cnpj: latestRow?.company_cnpj || parsedData.cnpj
+    },
     competency: latestKey,
     source_file_name: fileName,
     source_file_hash: fileHash,
@@ -258,6 +262,7 @@ export function buildCertifiedFinancialSnapshot(
     kanitz: latest.kanitz,
     residual: latest.residual,
     closure: latest.closure,
+
     byCompetency,
     competencies,
     history,

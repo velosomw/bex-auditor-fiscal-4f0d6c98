@@ -2687,9 +2687,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   /* MD-FINAL-RESIDUAL-001 §10..§20 — dívidas com composição certificada e memória de cálculo. */
   const residual = snapshot?.residual;
   const emprestimos = residual?.borrowings.status === "AVAILABLE" ? residual.borrowings.value : 0; // P02 — Saldo total CP + LP certificado (exclui arrendamentos)
-  const taxLp = (snapshot?.residual?.tax?.noncurrent_obligations?.value || 0) + (snapshot?.residual?.tax?.noncurrent_installments?.value || 0); // P03
+  const taxLpStatus = snapshot?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE";
+  const taxLp = taxLpStatus ? (snapshot?.residual?.tax?.noncurrent_obligations?.value || 0) + (snapshot?.residual?.tax?.noncurrent_installments?.value || 0) : 0; // P03
   const caixa = (reportDataset?.facts as any)?.disponivel || 0;
   const dividaOnerosa = emprestimos;
+
 
 
   const pc = d?.passivo_circulante || 0;
@@ -3339,11 +3341,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
                 { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : 0, available: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: snapshot?.residual?.tax.noncurrent_obligations.calculation_scope },
-                { label: "Tributário LP", value: taxLp, available: !!taxLp, scope: "Obrigações + Parcelamentos LP certificados" },
+                { label: "Tributário LP", value: taxLp, available: taxLpStatus, scope: "Obrigações + Parcelamentos LP certificados" },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
                 { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
                 { label: "Fornecedores (LP)", value: snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" ? snapshot.residual.suppliers_noncurrent.value : (snapshot?.facts.fornecedores_lp || 0), available: (snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" || snapshot?.facts.fornecedores_lp !== undefined), scope: "Passivo Não Circulante (PNC)" },
+
 
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
                 { label: "Passivo Não Circulante", value: pnc, available: true, scope: "Grupo sintético 2.2" },
