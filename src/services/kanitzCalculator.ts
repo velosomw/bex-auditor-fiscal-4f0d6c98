@@ -41,8 +41,10 @@ export interface KanitzIndicators {
   lg: number;   // LG = (AC + RLP) / (PC + ELP)  Liquidez Geral
   ls: number;   // LS = (AC − Estoques) / PC     Liquidez Seca
   lc: number;   // LC = AC / PC                  Liquidez Corrente
-  ge: number;   // GE = (PC + ELP) / PL          Grau de Endividamento (POSITIVO conforme MD)
+  ge: number;   // GE = (PC + ELP) / PL          Grau de Endividamento
+  isg: number;  // ISG = Ativo Total / Passivo Exigível (PC + PNC)
 }
+
 
 export interface KanitzValidation {
   rl: "ok" | "fora_intervalo";
@@ -173,8 +175,10 @@ export function computeIndicators(input: KanitzNormalizedInput): KanitzIndicator
   const ls = pc !== 0 ? (ac - estoques) / pc : 0;
   const lc = pc !== 0 ? ac / pc : 0;
   const ge = pl !== 0 ? (pc + elp) / Math.abs(pl) : 0;
-  return { rl, lg, ls, lc, ge };
+  const isg = (pc + elp) !== 0 ? (ac + rlp + (input.rlp || 0)) / (pc + elp) : 0; // Fallback: Ativo Total aproximado
+  return { rl, lg, ls, lc, ge, isg };
 }
+
 
 export function validateIndicators(ind: KanitzIndicators): KanitzValidation {
   return {

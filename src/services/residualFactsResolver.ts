@@ -388,7 +388,9 @@ export function resolveResidualFacts(
   const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
   
   // A05 — EBITDA certification: Tolerância de 0.10 centavos (§EBITDA-SIGN-SANITY-GATE)
-  const sanityPassed = !ebitdaAvailable || (daTotal >= 0.01 ? ebitdaValue >= lajirValue - 0.10 : true);
+  const ebitdaDiff = Math.abs(ebitdaReconstructed - ebitdaValue);
+  const sanityPassed = !ebitdaAvailable || ebitdaDiff < 0.10;
+
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
@@ -424,9 +426,10 @@ export function resolveResidualFacts(
       reason: !ebitdaAvailable
         ? (!lajirAvailable ? "LAJIR não certificável" : "Depreciação/Amortização não identificadas na DRE")
         : !sanityPassed 
-          ? "EBITDA_RECONCILIATION_FAIL: EBITDA não pode ser menor que o EBIT com D&A positivo"
+          ? `Erro de Reconciliação (Desvio: R$ ${ebitdaDiff.toFixed(2)})`
           : "LAJIR + Depreciação + Amortização certificados pela DRE",
     },
+
     interest_coverage: {
       value: coverageValue,
       status: coverageAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
