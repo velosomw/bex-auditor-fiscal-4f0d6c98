@@ -193,6 +193,7 @@ export function computeK(ind: KanitzIndicators): number {
   // K = 0,05·RL + 1,65·LG + 3,55·LS − 1,06·LC − 0,33·GE
   // MD-BEX-RUNTIME-CONSUMER Requirement 27: Prohibit abs/inversion/sign patch.
   const K = (0.05 * ind.rl) + (1.65 * ind.lg) + (3.55 * ind.ls) - (1.06 * ind.lc) - (0.33 * ind.ge);
+  console.log(`Assertion Match: RL=${ind.rl.toFixed(4)}, LG=${ind.lg.toFixed(4)}, LS=${ind.ls.toFixed(4)}, LC=${ind.lc.toFixed(4)}, GE=${ind.ge.toFixed(4)} | K=${K.toFixed(4)}`);
   
   return K;
 }

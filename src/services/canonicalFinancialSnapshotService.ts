@@ -35,6 +35,7 @@ export interface CanonicalFacts {
   resultado_competencia: number;
   resultado_acumulado: number;
   fornecedores: number;
+  fornecedores_lp: number;
   divida_tributaria: number;
   divida_trabalhista: number;
   divida_financeira: number;
@@ -140,6 +141,7 @@ function factsFromRow(r: BSDadosRow): CanonicalFacts {
       ? ((r as any).resultado_acumulado as number)
       : NaN,
     fornecedores: r.fornecedores,
+    fornecedores_lp: num((r as any).fornecedores_lp || 0),
     divida_tributaria: Math.abs(r.divida_tributaria || 0),
     divida_trabalhista: Math.abs(r.divida_trabalhista || 0),
     divida_financeira: Math.abs(r.divida_financeira || 0),

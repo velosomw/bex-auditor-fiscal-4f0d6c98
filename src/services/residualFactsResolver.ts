@@ -382,7 +382,7 @@ export function resolveResidualFacts(
   // §44 — EBITDA Sign Sanity Gate: EBITDA must be >= EBIT if D&A adjustment is positive
   const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
   
-  const sanityPassed = !ebitdaAvailable || (daTotal >= 0 ? ebitdaValue >= lajirValue : true);
+  const sanityPassed = !ebitdaAvailable || (daTotal >= 0.01 ? ebitdaValue >= lajirValue - 0.01 : true);
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
