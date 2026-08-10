@@ -159,8 +159,8 @@ export function resolveResidualFacts(
       n => isTaxInstallment(n) && !parents.some(p => p.normalized_code === n.normalized_code)
     );
 
-  const taxCurrentNodes = taxIn("2.1");
-  const taxNonCurrentNodes = taxIn("2.2");
+  const taxCurrentNodes = taxIn("2.1.2.03");
+  const taxNonCurrentNodes = taxIn("2.2.1.02");
   const instCurrent = instIn("2.1", taxCurrentNodes);
   const instNonCurrent = instIn("2.2", taxNonCurrentNodes);
 
@@ -220,7 +220,7 @@ export function resolveResidualFacts(
     !RX.withholding.test(n.description) &&
     !RX.installment.test(n.description);
 
-  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1")), isLabor);
+  const laborCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.2.01") || under(n, "2.1.2.02")), isLabor);
   const laborExcluded = liabilities.filter(
     n => under(n, "2.1") && RX.labor.test(n.description) && !isLabor(n) && !n.has_children
   );
@@ -248,8 +248,8 @@ export function resolveResidualFacts(
   /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO (§29..§32) ── */
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
-  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2")), isBorrowing);
+  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
+  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2")), isBorrowing);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 

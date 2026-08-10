@@ -216,6 +216,23 @@ tr {
   box-sizing: border-box;
   page-break-after: always;
   break-after: page;
+  padding-bottom: 26mm; /* Footer Safe Zone MD-CUTOVER-001 §13 */
+}
+
+/* Global Pagination Safeties */
+.report-card-keep-together, .card, .report-section {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.report-a4-page table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.report-a4-page td, .report-a4-page th {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .report-a4-cover {

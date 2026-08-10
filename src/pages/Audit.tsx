@@ -2681,7 +2681,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
   const latestInd = reportDataset?.ratios;
-  const emprestimos = latestInd?._dividaFinanceira || 0; // §15..§17 — somente saldo patrimonial
+  const emprestimos = (residual?.borrowings_current?.value || 0) + (residual?.borrowings_noncurrent?.value || 0); // §15..§17 — saldo patrimonial CP + LP
   const caixa = (reportDataset?.facts as any)?.disponivel || 0;
   const dividaOnerosa = emprestimos;
 
