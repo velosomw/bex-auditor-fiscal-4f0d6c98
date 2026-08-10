@@ -887,7 +887,8 @@ export function buildBSDados(
   // Ordem determinística (cronológica) — evita ordens de Set dependentes de inserção.
   const orderedKeys = Array.from(new Set(usableMesKeys)).sort();
   orderedKeys.forEach(k => {
-    rowsByMes.set(k, emptyRow(k));
+    const r = emptyRow(k);
+    rowsByMes.set(k, r);
     bucketsByMes.set(k, {
       ac: 0, pc: 0, anc: 0, pnc: 0, pl: 0,
       sawACTotal: false, sawPCTotal: false, sawANCTotal: false, sawPNCTotal: false, sawPLTotal: false,
@@ -897,8 +898,17 @@ export function buildBSDados(
       calculatedByGroup: {},
       layerByGroup: {},
     });
+    // MD-CUTOVER-001 §3: Initialize fact status (mandatory for hard replacement)
+    const fStatus = r.facts_status as any;
+    if (fStatus) {
+      fStatus.ativo_circulante = "NOT_AVAILABLE";
+      fStatus.ativo_nao_circulante = "NOT_AVAILABLE";
+      fStatus.patrimonio_liquido = "NOT_AVAILABLE";
+      fStatus.fornecedores = "NOT_AVAILABLE";
+      fStatus.fornecedores_lp = "NOT_AVAILABLE";
+      fStatus.resultado = "NOT_AVAILABLE";
+    }
     if (dupSet.has(k)) {
-      const r = rowsByMes.get(k)!;
       const count = dupList.find(d => d.mesKey === k)?.count ?? 2;
       const msg = `Mês duplicado entre balancetes (×${count}) — valores somados`;
       if (!r.errors.includes(msg)) r.errors.push(msg);
