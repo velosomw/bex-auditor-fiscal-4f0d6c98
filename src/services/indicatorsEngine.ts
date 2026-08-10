@@ -4,11 +4,6 @@
  * Consome BSDadosRow[] (SSOT — saída do bsDadosBuilder) e produz, por mês,
  * o conjunto canônico de indicadores usados em todas as abas do Diagnóstico
  * (Indicadores, Endividamento, Patrimonial, Kanitz, Gráficos).
- *
- * Princípios:
- *  - Determinística: mesmas entradas ⇒ mesmas saídas (sem IA, sem fallback opaco).
- *  - Transparente: cada indicador carrega as contas/refs que o alimentam.
- *  - À prova de divisão por zero: retorna 0 e marca `na: true` quando indefinido.
  */
 import type { BSDadosRow } from "@/services/bsDadosBuilder";
 
@@ -81,6 +76,19 @@ export interface IndicatorRow {
   naCobertura: boolean;
 }
 
+export interface ISGResult {
+  mesKey: string;
+  mes: string;
+  isg: number;
+  status: "AVAILABLE" | "NOT_AVAILABLE";
+  ativoTotal: number;
+  capitalTerceiros: number;
+  label: string;
+  icon: string;
+  color: string;
+  reason?: string;
+}
+
 const div = (n: number, d: number): number => {
   if (!Number.isFinite(n) || isNaN(n)) return 0;
   if (!Number.isFinite(d) || d === 0 || isNaN(d)) return 0;
@@ -113,7 +121,6 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const resParaCalculo = (resCompetencia !== undefined && resCompetencia !== 0) ? resCompetencia : resAcumulado;
 
   const lajir = resParaCalculo + despFinAbs - recFinAbs + (r.residual_facts?.income_taxes.value || 0);
-
   const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE" && Number.isFinite(r.residual_facts.ebitda.value);
   const coberturaCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 10 && Number.isFinite(lajir);
 
@@ -186,25 +193,38 @@ export function buildIndicatorSeries(rows: BSDadosRow[] | null | undefined): Rec
   return out;
 }
 
-export interface ISGResult {
-  mesKey: string;
-  mes: string;
-  isg: number;
-  status: "AVAILABLE" | "NOT_AVAILABLE";
-}
-
-export function buildISGSeries(rows: BSDadosRow[] | null | undefined): Record<string, ISGResult> {
-  if (!rows || rows.length === 0) return {};
-  const out: Record<string, ISGResult> = {};
-  for (const r of rows) {
+export function buildISGSeries(rows: BSDadosRow[] | null | undefined): ISGResult[] {
+  if (!rows || rows.length === 0) return [];
+  return rows.map(r => {
     const at = r.ativo_circulante + r.ativo_nao_circulante;
     const pt = r.passivo_circulante + r.passivo_nao_circulante;
-    out[r.mesKey] = {
+    const isg = pt > 0 ? at / pt : 0;
+    
+    let label = "Insolvente";
+    let icon = "🔴";
+    let color = "hsl(0,75%,55%)";
+    
+    if (isg >= 1.5) {
+      label = "Solvente";
+      icon = "🟢";
+      color = "hsl(150,70%,42%)";
+    } else if (isg >= 1.0) {
+      label = "Atenção";
+      icon = "🟡";
+      color = "hsl(34,95%,55%)";
+    }
+    
+    return {
       mesKey: r.mesKey,
       mes: r.mes,
-      isg: pt > 0 ? at / pt : 0,
-      status: (r.facts_status.ativo_circulante === "AVAILABLE" && r.facts_status.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE"
+      isg,
+      ativoTotal: at,
+      capitalTerceiros: pt,
+      label,
+      icon,
+      color,
+      status: (r.facts_status.ativo_circulante === "AVAILABLE" && r.facts_status.passivo_circulante === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE",
+      reason: (r.patrimonio_liquido <= 0) ? "Patrimônio Líquido negativo — ISG é o principal indicador de solvência." : undefined
     };
-  }
-  return out;
+  });
 }
