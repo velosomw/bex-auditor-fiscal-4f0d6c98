@@ -67,6 +67,7 @@ const EmptyState = ({ icon: Icon, title, message }: { icon: any; title: string; 
     <Icon className="w-8 h-8 mb-2 opacity-40" />
     <p className="text-sm font-medium">{title}</p>
     {message && <p className="text-[11px] mt-1 opacity-70 text-center px-4">{message}</p>}
+    {!message && <p className="text-[11px] mt-1 opacity-70 text-center px-4">Não existem dados no balancete para gerar o gráfico completo.</p>}
   </div>
 );
 
@@ -111,7 +112,8 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
 
   // ── Bloco 3: FCP ──────────────────────────────────────────────────────────
   const fcpRows = useMemo(() => {
-    if (!data?.fcp) return [];
+    if (!data?.fcp || data.fcp.meses.length === 0) return [];
+    // Ensure we show what exists, even if it's only 1 month
     return data.fcp.meses.map((m, i) => ({
       mes: m,
       "Saldo Acumulado": data.fcp!.saldoAcumulado[i],
@@ -121,7 +123,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
 
   // ── Bloco 4: Prev x Realiz ────────────────────────────────────────────────
   const prevRealRows = useMemo(() => {
-    if (!data?.prevReal) return { entradas: [], saidas: [] };
+    if (!data?.prevReal || data.prevReal.meses.length === 0) return { entradas: [], saidas: [] };
     const build = (cats: typeof data.prevReal.entradas) =>
       data.prevReal!.meses.map((m, i) => {
         const obj: Record<string, any> = { mes: m };
@@ -615,7 +617,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
                 </Line>
               </ComposedChart>
             </ResponsiveContainer>
-          ) : <EmptyState icon={Wallet} title="Não existem dados no Balancete para gerar o gráfico" message="O Fluxo de Caixa Projetado requer a aba específica ou dados de projeção no balancete." />}
+            ) : <EmptyState icon={Wallet} title="Não existem dados no Balancete para gerar o gráfico" message="O Fluxo de Caixa Projetado requer a aba específica ou dados de projeção no balancete. Não existem dados no balancete para gerar o gráfico completo." />}
         </CardContent>
       </Card>
 
@@ -676,7 +678,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
           ) : null}
 
           {!prevRealRows.entradas.length && !prevRealRows.saidas.length && (
-            <EmptyState icon={BarChart3} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de fluxo previsto vs realizado não detectados." />
+            <EmptyState icon={BarChart3} title="Não existem dados no Balancete para gerar o gráfico" message="Dados de fluxo previsto vs realizado não detectados. Não existem dados no balancete para gerar o gráfico completo." />
           )}
         </CardContent>
       </Card>
