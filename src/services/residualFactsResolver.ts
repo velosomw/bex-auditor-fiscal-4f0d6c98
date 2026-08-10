@@ -382,7 +382,7 @@ export function resolveResidualFacts(
   // §44/§49 — EBITDA Sign Sanity Gate: EBITDA must be >= EBIT if D&A adjustment is positive
   const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
   
-  // Tolerância de centavos para rounding differences (§EBITDA-SIGN-SANITY-GATE expanded)
+  // A05 — EBITDA certification: Tolerância de 10 centavos (§EBITDA-SIGN-SANITY-GATE)
   const sanityPassed = !ebitdaAvailable || (daTotal >= 0.01 ? ebitdaValue >= lajirValue - 0.10 : true);
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
