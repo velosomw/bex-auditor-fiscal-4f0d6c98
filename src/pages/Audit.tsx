@@ -3314,7 +3314,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                  <p className="text-sm font-bold font-mono text-foreground">{item.available ? `R$ ${fmt(item.value)}` : "Não disponível no balancete"}</p>
+                  <p className="text-sm font-bold font-mono text-foreground">{item.available && (typeof item.value === 'number' && !isNaN(item.value)) ? `R$ ${fmt(item.value)}` : "Não disponível no balancete"}</p>
                   {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
                 </div>
               ))}

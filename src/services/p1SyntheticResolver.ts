@@ -327,15 +327,24 @@ export function resolveP1Facts(rows: Array<{ conta?: string; descricao?: string;
   // §23/§43 — Role Exclusivity: Receita e Resultado não podem vir da MESMA conta. Proibir contas de 3.1 como Resultado.
   const rev = facts.receita_liquida;
   const res = facts.resultado;
-  if ((rev?.status === "AVAILABLE" && res?.status === "AVAILABLE" &&
-      normalizeAccountCode(rev.source_account_code) === normalizeAccountCode(res.source_account_code)) ||
-      (res?.source_account_code.startsWith("3.1"))) {
+  if (rev?.status === "AVAILABLE" && res?.status === "AVAILABLE" &&
+      normalizeAccountCode(rev.source_account_code) === normalizeAccountCode(res.source_account_code)) {
     res.status = "NOT_AVAILABLE";
     res.authority = "NOT_AVAILABLE";
     res.excluded_candidates.push({
       account: rev.source_account_code, description: rev.source_account_description,
       value: rev.value, reason: "ROLE_COLLISION_WITH_NET_REVENUE",
     });
+  }
+
+  // Force definitive result accounts and prohibit 3.1 (Net Revenue group) from being treated as Accumulated Result
+  if (res?.status === "AVAILABLE" && res.source_account_code.startsWith("3.1")) {
+     res.status = "NOT_AVAILABLE";
+     res.authority = "NOT_AVAILABLE";
+     res.excluded_candidates.push({
+       account: res.source_account_code, description: res.source_account_description,
+       value: res.value, reason: "PROHIBITED_RESULT_SOURCE_REVENUE_GROUP",
+     });
   }
 
   return { facts, nodes };
