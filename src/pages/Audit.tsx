@@ -3394,8 +3394,16 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
                     {(snapshot?.competencies || []).map(y => {
-                      const fact = snapshot?.byCompetency[y]?.facts[row.key as any];
-                      const v = fact && fact.status === "AVAILABLE" ? fact.value : (snapshot?.byCompetency[y] as any)?.residual?.[row.key as any]?.value;
+                      // §CONSUMER-PARITY — todos os consumers leem os MESMOS canonical facts.
+                      const comp = snapshot?.byCompetency[y];
+                      const factVal = comp?.facts ? (comp.facts as any)[row.key as any] : undefined;
+                      const statusOk = comp?.facts_status
+                        ? (comp.facts_status as any)[row.key as any] !== "NOT_AVAILABLE"
+                        : true;
+                      const residualVal = (comp as any)?.residual?.[row.key as any];
+                      const v = typeof factVal === "number" && Number.isFinite(factVal) && statusOk
+                        ? factVal
+                        : (residualVal && residualVal.status === "AVAILABLE" ? residualVal.value : undefined);
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                           {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
