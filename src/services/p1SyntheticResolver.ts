@@ -103,8 +103,11 @@ const ROLE_SEMANTICS: Record<CanonicalRole, RegExp> = {
   receita_liquida: /RECEITA\s+(OPERACIONAL\s+)?L[IÍ]QUIDA|RECEITA\s+L[IÍ]QUIDA\s+DE\s+VENDAS/i,
   resultado: /CONTAS?\s+DE\s+RESULTADO|^RESULTADO$|RESULTADO\s+ACUMULADO/i,
   resultado_competencia: /RESULTADO\s+DO\s+(EXERC[IÍ]CIO|PER[IÍ]ODO)|^APURA[CÇ][AÃ]O\s+DO\s+RESULTADO/i,
+  resultado_acumulado: /RESULTADO\s+ACUMULADO/i,
   fornecedores: /^FORNECEDORES?\b/i,
   fornecedores_lp: /^FORNECEDORES?\b/i,
+  divida_financeira_cp: /EMPRESTIM|FINANCIAMENT|DEBENTURE|LEASING|ARRENDAMENT|CEDULA DE CREDITO|CAPITAL DE GIRO|OBRIGACOES FINANCEIR/i,
+  divida_financeira_lp: /EMPRESTIM|FINANCIAMENT|DEBENTURE|LEASING|ARRENDAMENT|CEDULA DE CREDITO|CAPITAL DE GIRO|OBRIGACOES FINANCEIR/i,
 };
 
 /** Códigos canônicos aceitos por role (já normalizados), em ordem de prioridade. */
@@ -120,12 +123,12 @@ const ROLE_CODES: Record<CanonicalRole, string[]> = {
   patrimonio_liquido: ["2.4", "2.3"], 
   receita_liquida: ["3.1", "3.01"],
   resultado: ["3", "2.3.9"], 
-  resultado_competencia: ["3"], // Golden 02: Removido fallback 3.1.2 para evitar colisão com Deduções da Receita
-
-  // §PARENT-AUTHORITY — Fornecedores é resolvido por prazo: CP (grupo 2.1) e LP (grupo 2.2)
-  // nunca podem ser somados no mesmo fato.
+  resultado_competencia: ["3"],
+  resultado_acumulado: ["2.4.1", "2.3.7"],
   fornecedores: ["2.1.2"],
   fornecedores_lp: ["2.2.1"],
+  divida_financeira_cp: ["2.1.1"],
+  divida_financeira_lp: ["2.2.2"],
 };
 
 /** Prefixo obrigatório para candidatos textuais (evita roubo entre ativo/passivo). */
@@ -140,16 +143,19 @@ const ROLE_PREFIX: Partial<Record<CanonicalRole, string>> = {
   patrimonio_liquido: "2",
   fornecedores: "2.1",
   fornecedores_lp: "2.2",
+  divida_financeira_cp: "2.1",
+  divida_financeira_lp: "2.2",
   receita_liquida: "3",
   resultado: "3",
   resultado_competencia: "3",
+  resultado_acumulado: "2",
 };
 
 /** Roles cujo valor deve ser publicado em módulo. */
 const ABS_ROLES = new Set<CanonicalRole>([
   "ativo_total", "ativo_circulante", "ativo_nao_circulante", "realizavel_longo_prazo",
   "estoques", "disponivel", "passivo_circulante", "passivo_nao_circulante",
-  "fornecedores", "fornecedores_lp",
+  "fornecedores", "fornecedores_lp", "divida_financeira_cp", "divida_financeira_lp",
 ]);
 
 export interface P1Resolution {
