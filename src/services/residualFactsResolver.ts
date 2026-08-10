@@ -388,8 +388,10 @@ export function resolveResidualFacts(
   const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
   
   // A05 — EBITDA certification: Tolerância de 0.10 centavos (§EBITDA-SIGN-SANITY-GATE)
+  const ebitdaReconstructed = lajirAvailable && daAvailable ? lajirValue + daTotal : NaN;
   const ebitdaDiff = Math.abs(ebitdaReconstructed - ebitdaValue);
   const sanityPassed = !ebitdaAvailable || ebitdaDiff < 0.10;
+
 
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
