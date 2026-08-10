@@ -783,50 +783,57 @@ const UserDashboard = () => {
                 <p className="text-sm text-muted-foreground">Nenhum documento analisado</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                {history.slice(0, 6).map((d) => {
+              <div className="grid grid-cols-1 gap-3">
+                {history.slice(0, 1).map((d) => {
                   const conf = 99; // Calibrado para exibir 99% conforme solicitado para Extração de Dados por Documento
                   return (
                     <div 
                       key={d.id} 
-                      className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center group relative"
+                      className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center sm:flex-row sm:items-center sm:justify-between group relative"
                       onClick={() => handleDocClick(d)}
                     >
-                      <div className="absolute top-2 right-2">
-                        <Eye className="w-3.5 h-3.5 text-muted-foreground/60" />
-                      </div>
-                      <div className="relative w-[110px] h-[110px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { name: "Extração", value: conf },
-                                { name: "Restante", value: Math.max(0, 100 - conf) },
-                              ]}
-                              dataKey="value"
-                              innerRadius={36}
-                              outerRadius={52}
-                              startAngle={90}
-                              endAngle={-270}
-                              stroke="none"
-                            >
-                              <Cell fill="hsl(217,91%,50%)" />
-                              <Cell fill="hsl(var(--muted))" />
-                            </Pie>
-                            <Tooltip
-                              formatter={(v: number, n: string) => [`${v}%`, n]}
-                              contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <p className="text-lg font-bold text-[hsl(217,91%,50%)]">{conf}%</p>
+                      <div className="flex flex-col items-center sm:flex-row sm:items-center gap-4 w-full">
+                        <div className="relative w-[110px] h-[110px] shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { name: "Extração", value: conf },
+                                  { name: "Restante", value: Math.max(0, 100 - conf) },
+                                ]}
+                                dataKey="value"
+                                innerRadius={36}
+                                outerRadius={52}
+                                startAngle={90}
+                                endAngle={-270}
+                                stroke="none"
+                              >
+                                <Cell fill="hsl(217,91%,50%)" />
+                                <Cell fill="hsl(var(--muted))" />
+                              </Pie>
+                              <Tooltip
+                                formatter={(v: number, n: string) => [`${v}%`, n]}
+                                contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <p className="text-lg font-bold text-[hsl(217,91%,50%)]">{conf}%</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center sm:items-start text-center sm:text-left min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground truncate w-full" title={d.fileName}>
+                            {d.fileName}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">{d.date}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">Clique para ver o detalhamento da extração</p>
+                        </div>
+                        <div className="hidden sm:block">
+                          <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
+                            <Eye className="w-3.5 h-3.5" /> Detalhes
+                          </Button>
                         </div>
                       </div>
-                      <p className="text-[11px] font-medium text-foreground truncate w-full text-center mt-2" title={d.fileName}>
-                        {d.fileName}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">{d.date}</p>
                     </div>
                   );
                 })}
