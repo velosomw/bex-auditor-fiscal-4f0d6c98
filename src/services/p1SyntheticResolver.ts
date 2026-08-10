@@ -99,6 +99,7 @@ const ROLE_SEMANTICS: Record<CanonicalRole, RegExp> = {
   resultado: /CONTAS?\s+DE\s+RESULTADO|^RESULTADO$|RESULTADO\s+ACUMULADO/i,
   resultado_competencia: /RESULTADO\s+DO\s+(EXERC[IÍ]CIO|PER[IÍ]ODO)|^APURA[CÇ][AÃ]O\s+DO\s+RESULTADO/i,
   fornecedores: /^FORNECEDORES?\b/i,
+  fornecedores_lp: /^FORNECEDORES?\b/i,
 };
 
 /** Códigos canônicos aceitos por role (já normalizados), em ordem de prioridade. */
