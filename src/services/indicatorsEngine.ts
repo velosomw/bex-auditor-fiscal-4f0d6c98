@@ -22,7 +22,7 @@
  *   Cobertura de Juros  = (Resultado + |DespFin|) / |DespFin|
  *   Giro do Ativo       = Receita / (AC + ANC)
  *   PMR  = (ContasReceber × 30) / ReceitaMensal     [base mensal, planilha BEX]
- *   PMP  = (Fornecedores   × 30) / |CMV mensal|
+ *   PMP  = (Fornecedores   × 30) / |CMV mensal + Despesas Operacionais|
  *   IME  = (Estoques       × 30) / |CMV mensal|
  *   Margem Líquida      = Resultado / Receita
  *   Margem Operacional  = (Resultado + |DespFin|) / Receita   [proxy LAJIR]
@@ -136,7 +136,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     r.residual_facts?.interest_coverage?.status === "AVAILABLE" && despFinAbs > 10 && Number.isFinite(lajir);
 
   const pmr = div(contasReceber * 30, receita);
-  const pmp = div(r.fornecedores * 30, cmvAbs);
+  const pmp = div(r.fornecedores * 30, cmvAbs + Math.abs(r.despesas));
   const ime = div(estoque * 30, cmvAbs);
   const rlpEff = rlp;
 

@@ -2681,7 +2681,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
   const latestInd = reportDataset?.ratios;
-  const emprestimos = latestInd?._dividaFinanceira || 0; // §15..§17 — somente saldo patrimonial
+  /* MD-FINAL-RESIDUAL-001 §10..§20 — dívidas com composição certificada e memória de cálculo. */
+  const residual = snapshot?.residual;
+  const emprestimos = (residual?.borrowings_current?.value || 0) + (residual?.borrowings_noncurrent?.value || 0); // §15..§17 — saldo patrimonial CP + LP
   const caixa = (reportDataset?.facts as any)?.disponivel || 0;
   const dividaOnerosa = emprestimos;
 
@@ -2691,8 +2693,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const anc = d?.ativo_nao_circulante || 0;
   const ptotal = pc + pnc || 1;
 
-  /* MD-FINAL-RESIDUAL-001 §10..§20 — dívidas com composição certificada e memória de cálculo. */
-  const residual = snapshot?.residual;
   const taxAvail = residual?.tax.total_exposure.status === "AVAILABLE";
   const laborAvail = residual?.labor.total_current.status === "AVAILABLE";
   const borrowAvail = residual?.borrowings.status === "AVAILABLE";
@@ -2971,7 +2971,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     : "Indicador não disponível para esta análise." },
                 { title: "Probabilidade Estrutural de RJ", text: !latestInd ? "Indicador não disponível para esta análise." : latestInd.liquidezCorrente > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : latestInd.liquidezCorrente > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
-                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30 break-inside-avoid" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30 report-card-keep-together">
                   <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
                 </div>
@@ -3039,7 +3039,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
             <div className="space-y-3">
               {activePend.map((p: any, i: number) => (
-                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 break-inside-avoid" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together">
                   <div className="flex items-center gap-2">
                     <Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge>
                     <span className="text-xs font-semibold text-foreground">Pendência {i + 1}: {p.problema}</span>
@@ -3384,12 +3384,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Passivo Não Circulante", key: "passivo_nao_circulante" },
                   { label: "Patrimônio Líquido", key: "patrimonio_liquido" },
                   { label: "Receita Líquida", key: "receita_liquida" },
-                  { label: "Resultado do Período", key: "resultado_liquido" },
+                  { label: "Resultado Competência", key: "resultado_liquido" },
+                  { label: "Resultado Acumulado", key: "patrimonio_liquido" }, // O Resolver mapeia 2.3.9 para PL se não houver 2.3
                 ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
                     {(snapshot?.competencies || []).map(y => {
-                      const v = snapshot?.byCompetency[y]?.facts[row.key];
+                      const v = row.key === "patrimonio_liquido" 
+                        ? snapshot?.byCompetency[y]?.residual?.income_taxes?.value 
+                        : snapshot?.byCompetency[y]?.facts[row.key];
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                           {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}

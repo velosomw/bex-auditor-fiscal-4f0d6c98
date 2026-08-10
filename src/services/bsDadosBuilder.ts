@@ -398,7 +398,8 @@ export const SEMANTIC_ROLE_REGISTRY: Record<string, keyof BSDadosRow> = {
   "1": "ativo_total" as any,
   "1.1": "ativo_circulante",
   "1.01": "ativo_circulante",
-  "1.1.03": "estoques",
+  "1.1.2": "estoques",
+  "1.01.02": "estoques",
   "1.2": "ativo_nao_circulante",
   "1.02": "ativo_nao_circulante",
   "1.2.01": "realizavel_longo_prazo",
@@ -1144,7 +1145,8 @@ export function buildBSDados(
     ["passivo_nao_circulante", "passivo_nao_circulante"],
     ["patrimonio_liquido", "patrimonio_liquido"],
     ["receita_liquida", "receita_liquida"],
-    ["resultado", "resultado"],
+    ["resultado", "resultado_acumulado"],
+    ["resultado_competencia", "resultado"],
     ["fornecedores", "fornecedores"],
   ];
 
