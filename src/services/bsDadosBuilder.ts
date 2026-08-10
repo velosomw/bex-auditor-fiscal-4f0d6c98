@@ -254,7 +254,7 @@ export interface BSDadosRow {
   divida_total: number;
   ebitda: number;
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
-  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts'>, FinancialFact['status']>;
+  facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts' | 'company_name' | 'company_cnpj'>, FinancialFact['status']>;
   hasReceita: boolean;
   hasBalanco: boolean;
   company_name?: string;
