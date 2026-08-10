@@ -267,10 +267,10 @@ tr {
 .report-page-body {
   flex: 1;
   margin: 0 16mm;
-  /* A07 — pdf.safe_bottom_zone: Content Safe Zone (MD-BEX-FINAL §54)
+  /* P05 — CONTENT_SAFE_BOTTOM (MD-BEX-FINAL-CONSUMER-BINDING-001 §33)
      CONTENT_BOTTOM_SAFE < FOOTER_TOP - SAFE_GAP (26mm) */
   padding: 4mm 0 26mm 0;
-  max-height: 245mm; /* Hard gate para evitar invasão do rodapé */
+  max-height: 245mm; /* Hard gate para impedir invasão do rodapé */
   position: relative;
   display: block; 
   min-height: auto;

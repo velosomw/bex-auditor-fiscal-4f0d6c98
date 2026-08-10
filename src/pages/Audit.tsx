@@ -84,7 +84,7 @@ export interface CanonicalReportDataset {
 
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
-const FINAL_ACCOUNTING_CORE_FREEZE = true; // MD-CUTOVER-001 §3
+const FINAL_ACCOUNTING_CORE_FREEZE = true; // MD-BEX-FINAL-CONSUMER-BINDING-001 §2
 
 /* ── Helpers ── */
 /** §47/§48 — FI nunca é publicado como 0.00 ou NaN: quando indisponível/inaplicável, é "N/A". */
@@ -2686,7 +2686,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const latestInd = reportDataset?.ratios;
   /* MD-FINAL-RESIDUAL-001 §10..§20 — dívidas com composição certificada e memória de cálculo. */
   const residual = snapshot?.residual;
-  const emprestimos = (residual?.borrowings_current?.value || 0) + (residual?.borrowings_noncurrent?.value || 0); // §15..§17 — saldo patrimonial CP + LP
+  const emprestimos = residual?.borrowings.status === "AVAILABLE" ? residual.borrowings.value : 0; // P02 — Saldo total CP + LP certificado (exclui arrendamentos)
   const caixa = (reportDataset?.facts as any)?.disponivel || 0;
   const dividaOnerosa = emprestimos;
 
@@ -2703,7 +2703,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const trabalhista = laborAvail ? residual!.labor.total_current.value : 0;
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
-  const result = d?.resultado_liquido || 0;
+  const result = snapshot?.facts.resultado_competencia ?? 0; // P01 — Resultado do período (competência)
   const resultLabel = "Resultado da Competência";
   const pl = d?.patrimonio_liquido || 0;
   const at = ac + anc;
@@ -2718,15 +2718,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,0", classification: latestInd.isg > 1.0 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
 
-  /* MD-CUTOVER-001 §9 — Narrative Number Gate: todo número da narrativa vem do snapshot. */
+  /* MD-BEX-FINAL-CONSUMER-BINDING-001 §39/§40 — Consumer parity gate. */
   const canonicalKeyPoints: Array<{ item: string; detail: string; status: "positivo" | "atencao" | "negativo" }> = latestInd ? [
     { item: "Liquidez Corrente", detail: `${fmtDec(latestInd.liquidezCorrente)} (AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)})`, status: latestInd.liquidezCorrente >= 1 ? "positivo" : "negativo" },
     { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
     { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
-    { item: resultLabel, detail: `R$ ${fmt(reportDataset?.facts.resultado_competencia ?? 0)}`, status: (reportDataset?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
-    { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(reportDataset?.residual?.borrowings.status === "AVAILABLE" ? reportDataset.residual.borrowings.value : 0)}`, status: "atencao" },
-    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(reportDataset?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? reportDataset.residual.tax.noncurrent_obligations.value : 0)}`, status: "atencao" },
+    { item: resultLabel, detail: `R$ ${fmt(snapshot?.facts.resultado_competencia ?? 0)}`, status: (snapshot?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
+    { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(emprestimos)}`, status: "atencao" },
+    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : 0)}`, status: "atencao" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -3219,7 +3219,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               ))}
               {[
                 { label: "Cobertura de Juros", value: snapshot?.residual?.interest_coverage.status === "AVAILABLE" ? snapshot.residual.interest_coverage.value : NaN, available: snapshot?.residual?.interest_coverage.status === "AVAILABLE", scope: "LAJIR / Despesas Financeiras (SSOT)" },
-                { label: "Endividamento Financeiro", value: (snapshot?.residual?.borrowings.value || 0) / (snapshot?.facts.ativo_total || 1), available: snapshot?.residual?.borrowings.status === "AVAILABLE", scope: "Dívida Onerosa / Ativo Total" },
+                { label: "Endividamento Financeiro", value: (emprestimos || 0) / (snapshot?.facts.ativo_total || 1), available: borrowAvail, scope: "Dívida Onerosa / Ativo Total" },
                 { label: "Ativo = Passivo Exigível + PL", value: 1, available: true, scope: "Equação Patrimonial Certificada" },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
@@ -3332,14 +3332,14 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
               {([
-                { label: "Empréstimos e Financiamentos (CP + LP)", value: snapshot?.residual?.borrowings.value ?? 0, available: snapshot?.residual?.borrowings.status === "AVAILABLE", scope: "Total oneroso (CP + LP certified)" },
+                { label: "Empréstimos e Financiamentos (CP + LP)", value: emprestimos, available: borrowAvail, scope: "Total oneroso (CP + LP certified)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
-                { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.value ?? 0, available: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: snapshot?.residual?.tax.noncurrent_obligations.calculation_scope },
+                { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : 0, available: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: snapshot?.residual?.tax.noncurrent_obligations.calculation_scope },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
-                { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: true, scope: "Dívida comercial de curto prazo (grupo 2.1.2)" },
-                { label: "Fornecedores (LP)", value: snapshot?.facts.fornecedores_lp || snapshot?.residual?.suppliers_noncurrent?.value || 0, available: true, scope: "Grupo sintético 2.2.1" },
+                { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
+                { label: "Fornecedores (LP)", value: snapshot?.facts.fornecedores_lp || snapshot?.residual?.suppliers_noncurrent?.value || 0, available: (snapshot?.facts.fornecedores_lp !== undefined || snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE"), scope: "Passivo Não Circulante (PNC)" },
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
                 { label: "Passivo Não Circulante", value: pnc, available: true, scope: "Grupo sintético 2.2" },
               ] as const).map(item => (
