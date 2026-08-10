@@ -196,9 +196,13 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     }
   });
 
-  // Cada folha A4 vira exatamente 1 página do PDF (evita deslocamento por margens/sombras)
+  // Cada folha A4 vira exatamente 1 página do PDF
   const pages = Array.from(clone.querySelectorAll<HTMLElement>('.report-a4-page, .report-a4-cover'));
-  pages.forEach(p => {
+  pages.forEach((p, idx) => {
+    // CORREÇÃO 04 — SAFE PAGINATION: Executar pageBreakBefore nas páginas 3/4
+    if (idx === 2 || idx === 3) {
+       p.style.pageBreakBefore = 'always';
+    }
     p.style.margin = '0';
     p.style.padding = '0'; // Força remoção de padding que pode causar overflow
     p.style.boxShadow = 'none';
@@ -3342,7 +3346,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
                 { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : 0, available: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: snapshot?.residual?.tax.noncurrent_obligations.calculation_scope },
-                { label: "Tributário LP", value: taxLp, available: taxLpStatus, scope: "Obrigações + Parcelamentos LP certificados" },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
                 { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
