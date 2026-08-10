@@ -31,6 +31,9 @@ export interface CanonicalFacts {
   patrimonio_liquido: number;
   receita_liquida: number;
   resultado_liquido: number;
+  /** §RESULT-CONTEXT — Resultado do período (competência) e acumulado no exercício. */
+  resultado_competencia: number;
+  resultado_acumulado: number;
   fornecedores: number;
   divida_tributaria: number;
   divida_trabalhista: number;
