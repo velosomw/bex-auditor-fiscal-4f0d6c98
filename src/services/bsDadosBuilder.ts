@@ -111,9 +111,12 @@ export const REF1_MAP: Record<string, keyof BSDadosRow> = {
   "DESPESAS_NOP": "outras_nao_operacionais", // grupo 8
   // ── Aliases textuais (fallback quando ref1 vem como nome) ──
   "RECEITA": "receita_liquida",
+  "RECEITA BRUTA": "receita_liquida",
+  "RECEITA BRUTA DE VENDAS": "receita_liquida",
   "DEDUCOES_RECEITA": "receita_liquida",
   "RECEITA LIQUIDA": "receita_liquida",
   "RECEITA LÍQUIDA": "receita_liquida",
+  "RECEITA LÍQUIDA DE VENDAS": "receita_liquida",
   "CMV": "cmv",
   "DESPESAS": "despesas",
   "DESPESA": "despesas",
