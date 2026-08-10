@@ -287,8 +287,12 @@ export function resolveResidualFacts(
   /* ── Empréstimos e Financiamentos — SOMENTE lado PASSIVO (§29..§32) ── */
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
-  const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || (under(n, "2.2.1") && isBorrowing(n))), isBorrowing); // §29..§32 — Dívida onerosa LP no grupo 2.2.1/2.2.2
+  const notBorrowNature = (n: AccountNode) =>
+    (RX.tax.test(n.description) || RX.labor.test(n.description)) && !RX.borrowings.test(n.description);
+  // §29..§32 — dívida onerosa varre TODO o passivo circulante/não circulante
+  // (inclui arrendamentos/leasing fora do grupo 2.1.1), nunca somando pai e filho.
+  const borrowCurrentNodes = pickByTaxonomy(liabilities, "2.1", isBorrowing, notBorrowNature);
+  const borrowNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isBorrowing, notBorrowNature);
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 
