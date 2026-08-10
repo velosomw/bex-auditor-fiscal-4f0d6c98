@@ -27,8 +27,11 @@ export type CanonicalRole =
   | "receita_liquida"
   | "resultado"
   | "resultado_competencia"
+  | "resultado_acumulado"
   | "fornecedores"
-  | "fornecedores_lp";
+  | "fornecedores_lp"
+  | "divida_financeira_cp"
+  | "divida_financeira_lp";
 
 export type FactAuthority = "P1_SYNTHETIC" | "P2_CHILDREN" | "P3_LEAVES" | "NOT_AVAILABLE";
 
