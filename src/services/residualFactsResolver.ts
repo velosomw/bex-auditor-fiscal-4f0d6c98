@@ -324,7 +324,9 @@ export function resolveResidualFacts(
   const resultOk = resultCertified;
   
   const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
-  const ebitdaValue = ebitdaAvailable ? lajirValue + (lajirValue >= 0 ? depreciation.value + amortization.value : -(depreciation.value + amortization.value)) : NaN;
+  // §44 — EBITDA Sign Sanity Gate: Se LAJIR é negativo, EBITDA (LAJIR + D&A) não pode ser MAIS negativo.
+  const daTotal = (depreciation.value || 0) + (amortization.value || 0);
+  const ebitdaValue = ebitdaAvailable ? lajirValue + Math.abs(daTotal) : NaN;
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;

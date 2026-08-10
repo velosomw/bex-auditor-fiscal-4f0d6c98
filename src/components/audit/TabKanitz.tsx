@@ -1183,9 +1183,9 @@ function KanitzMensalView({
               <div className="p-3 rounded-lg bg-muted/30 text-center">
                 <p className="text-[10px] text-muted-foreground">Tendência</p>
                 <div className="flex items-center justify-center gap-1">
-                  {trendIcon}
+                  {kanitzResults.length < 2 ? "—" : trendIcon}
                   <span className="text-base font-bold font-mono">
-                    {summary.delta > 0 ? "+" : ""}{summary.delta.toFixed(2)}
+                    {kanitzResults.length < 2 ? "N/A" : (summary.delta > 0 ? "+" : "") + summary.delta.toFixed(2)}
                   </span>
                 </div>
               </div>

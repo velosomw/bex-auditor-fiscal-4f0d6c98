@@ -1880,10 +1880,10 @@ const TabEndividamento = ({ aiAnalysis, parsedData, bsRows }: { aiAnalysis?: any
   const anc = d?._anc || aiStruct?.ativo_nao_circulante || 0;
 
   // Use debt components from processed BS rows
-  const emprestimos = d?._divida_financeira || 0;
+  const emprestimos = d?.residual_facts?.borrowings?.value || 0;
   const fornecedores = d?._fornecedores || aiStruct?.fornecedores || 0;
-  const tributario = d?._divida_tributaria || 0;
-  const trabalhista = d?._divida_trabalhista || 0;
+  const tributario = d?.residual_facts?.tax?.total_exposure?.value || 0;
+  const trabalhista = d?.residual_facts?.labor?.total_current?.value || 0;
   const credoresRJ = d?._credores_rj || 0;
   const dividaTotal = emprestimos + fornecedores + tributario + trabalhista + credoresRJ;
   const dividaLiquida = (emprestimos + fornecedores + tributario + trabalhista + credoresRJ) - caixa;
@@ -2703,7 +2703,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
   const result = d?.resultado_liquido || 0;
-  const resultLabel = (reportDataset?.facts as any)?.resultado_competencia ? "Resultado da Competência" : "Resultado Acumulado";
+  const resultLabel = (reportDataset?.facts as any)?.resultado_competencia?.status === "AVAILABLE" ? "Resultado da Competência" : "Resultado Acumulado";
   const pl = d?.patrimonio_liquido || 0;
   const at = ac + anc;
   const pt = pc + pnc;
