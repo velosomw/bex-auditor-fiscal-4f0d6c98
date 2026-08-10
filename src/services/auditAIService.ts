@@ -374,7 +374,7 @@ export function inferRefByCode(code: string, descricao?: string): string | undef
   return undefined;
 }
 
-function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { rows: BalanceteRowParsed[]; periodLabel: string; multiMonth?: boolean } | null {
+function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): BalanceteParseResult | null {
   // Procura linha de cabeçalho com "saldo atual" + ("extenso" OU "descri")
   let headerIdx = -1;
   let cols: Record<string, number> = {};
@@ -470,7 +470,7 @@ function tryParseBalanceteMensalBR(jsonData: unknown[][], fileName?: string): { 
 
   const periodLabel = "atual";
   const rows: BalanceteRowParsed[] = [];
-  const tplInternal: { documentInfo?: any } = {}; // Local state to capture metadata during row iteration
+  const tplInternal: { documentInfo?: any } = {};
   
   for (let i = headerIdx + 1; i < jsonData.length; i++) {
     const row = jsonData[i];
