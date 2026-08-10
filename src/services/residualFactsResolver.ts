@@ -379,10 +379,11 @@ export function resolveResidualFacts(
   
   const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
   
-  // §44 — EBITDA Sign Sanity Gate: EBITDA must be >= EBIT if D&A adjustment is positive
+  // §44/§49 — EBITDA Sign Sanity Gate: EBITDA must be >= EBIT if D&A adjustment is positive
   const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
   
-  const sanityPassed = !ebitdaAvailable || (daTotal >= 0.01 ? ebitdaValue >= lajirValue - 0.01 : true);
+  // Tolerância de centavos para rounding differences
+  const sanityPassed = !ebitdaAvailable || (daTotal >= 0.01 ? ebitdaValue >= lajirValue - 0.05 : true);
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
@@ -410,7 +411,7 @@ export function resolveResidualFacts(
           : "Despesas financeiras não identificadas no balancete",
     },
     ebitda: {
-      value: sanityPassed ? ebitdaValue : NaN,
+      value: (ebitdaAvailable && sanityPassed) ? ebitdaValue : NaN,
       status: (ebitdaAvailable && sanityPassed) ? "AVAILABLE" : "NOT_AVAILABLE",
       reason: !ebitdaAvailable
         ? (!lajirAvailable ? "LAJIR não certificável" : "Depreciação/Amortização não identificadas na DRE")

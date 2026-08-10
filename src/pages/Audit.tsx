@@ -82,8 +82,7 @@ export interface CanonicalReportDataset {
 
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
-const FINAL_CORE_FINANCIAL_LOCK = true; // MD-BEX-FINAL §3
-
+const FINAL_ACCOUNTING_CORE_FREEZE = true; // MD-CUTOVER-001 §3
 
 /* ── Helpers ── */
 /** §47/§48 — FI nunca é publicado como 0.00 ou NaN: quando indisponível/inaplicável, é "N/A". */
@@ -2703,7 +2702,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
   const result = d?.resultado_liquido || 0;
-  const resultLabel = (reportDataset?.facts as any)?.resultado_competencia?.status === "AVAILABLE" ? "Resultado da Competência" : "Resultado Acumulado";
+  const resultLabel = "Resultado da Competência";
   const pl = d?.patrimonio_liquido || 0;
   const at = ac + anc;
   const pt = pc + pnc;
@@ -2723,7 +2722,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
     { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
-    { item: resultLabel, detail: `R$ ${fmt(result)}`, status: result >= 0 ? "positivo" : "negativo" },
+    { item: resultLabel, detail: `R$ ${fmt(reportDataset?.facts.resultado_competencia || 0)}`, status: (reportDataset?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -3202,9 +3201,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {[
                 { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: true, scope: "Grupo sintético 3.1" },
-                { label: "EBITDA Certificado", value: snapshot?.ratios.ebitda || 0, available: snapshot?.facts_status.ebitda === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
-                { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia || 0, available: !isNaN(snapshot?.facts.resultado_competencia ?? NaN), scope: "Apuração mensal (Grupo 3)" },
-                { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado || 0, available: !isNaN(snapshot?.facts.resultado_acumulado ?? NaN), scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
+                { label: "EBITDA Certificado", value: snapshot?.residual?.ebitda.status === "AVAILABLE" ? snapshot?.residual?.ebitda.value : NaN, available: snapshot?.residual?.ebitda.status === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
+                { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia || 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
+                { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado || 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
                 { label: "Margem Líquida", value: snapshot?.facts.receita_liquida ? (snapshot.facts.resultado_competencia || 0) / snapshot.facts.receita_liquida : 0, available: snapshot?.facts.receita_liquida > 0, scope: "Resultado Competência / Vendas" },
               ].map(item => (
@@ -3422,9 +3421,19 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       const v = typeof factVal === "number" && Number.isFinite(factVal) && statusOk
                         ? factVal
                         : (residualVal && residualVal.status === "AVAILABLE" ? residualVal.value : undefined);
+                      
+                      // §31/§32/§34: Suppliers LP and Tax LP parity
+                      let finalVal = v;
+                      if (row.key === "fornecedores_lp" && comp?.residual?.suppliers_noncurrent?.status === "AVAILABLE") {
+                        finalVal = comp.residual.suppliers_noncurrent.value;
+                      }
+                      if (row.key === "passivo_nao_circulante" && comp?.facts?.passivo_nao_circulante) {
+                        finalVal = comp.facts.passivo_nao_circulante;
+                      }
+
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
-                          {typeof v === "number" && Number.isFinite(v) ? fmtDec(v / 1_000_000) : "N/D"}
+                          {typeof finalVal === "number" && Number.isFinite(finalVal) ? fmtDec(finalVal / 1_000_000) : "N/D"}
                         </TableCell>
                       );
                     })}
@@ -4029,7 +4038,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <div className="p-4 rounded-lg border border-red-500/40 bg-red-500/5">
               <p className="text-xs font-bold text-red-600 mb-1">⛔ KANITZ NÃO APLICÁVEL</p>
               <p className="text-xs text-foreground leading-relaxed">
-                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({(l.fi ?? 0).toFixed(2)}) não é aplicável. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
+                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz não é aplicável. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
               </p>
             </div>
           )}
