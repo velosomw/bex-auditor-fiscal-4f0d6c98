@@ -3199,6 +3199,23 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           {/* 4.3 Rentabilidade */}
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">4.3 Indicadores de Rentabilidade</h3>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+              {[
+                { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: true, scope: "Grupo sintético 3.1" },
+                { label: "EBITDA Certificado", value: snapshot?.facts.ebitda || 0, available: snapshot?.facts_status.ebitda === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
+                { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia || 0, available: !isNaN(snapshot?.facts.resultado_competencia ?? NaN), scope: "Apuração mensal (Grupo 3)" },
+                { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado || 0, available: !isNaN(snapshot?.facts.resultado_acumulado ?? NaN), scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
+                { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
+                { label: "Margem Líquida", value: snapshot?.facts.receita_liquida ? (snapshot.facts.resultado_competencia || 0) / snapshot.facts.receita_liquida : 0, available: snapshot?.facts.receita_liquida > 0, scope: "Resultado Competência / Vendas" },
+              ].map(item => (
+                <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
+                  <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                  <p className="text-sm font-bold font-mono text-foreground">{item.available && (typeof item.value === 'number' && !isNaN(item.value)) ? `R$ ${fmt(item.value)}` : "Não disponível"}</p>
+                  {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
+                </div>
+              ))}
+            </div>
+
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
