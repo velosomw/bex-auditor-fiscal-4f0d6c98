@@ -27,7 +27,8 @@ export type CanonicalRole =
   | "receita_liquida"
   | "resultado"
   | "resultado_competencia"
-  | "fornecedores";
+  | "fornecedores"
+  | "fornecedores_lp";
 
 export type FactAuthority = "P1_SYNTHETIC" | "P2_CHILDREN" | "P3_LEAVES" | "NOT_AVAILABLE";
 
