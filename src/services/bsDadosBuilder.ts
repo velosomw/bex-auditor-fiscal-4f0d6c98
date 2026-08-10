@@ -1107,7 +1107,7 @@ export function buildBSDados(
 
   // CORREÇÃO 02 — COMPANY LEGAL NAME Metadata boundaries
   const companyHeaderName = parsed.documentInfo?.empresa;
-  const companyMetadataName = parsed.documentInfo?.cnpj_metadata?.razao_social;
+  const companyMetadataName = (parsed.documentInfo as any)?.cnpj_metadata?.razao_social;
   const forbiddenPatterns = /\b(?:BANCO|BRADESCO|ITAU|SANTANDER|BRASIL|CAIXA|FORNECEDOR|CLIENTE|CONTA|SALDO)\b/i;
   let resolvedCompanyName = companyHeaderName || companyMetadataName || "";
   if (forbiddenPatterns.test(resolvedCompanyName) || !resolvedCompanyName || resolvedCompanyName.toLowerCase().includes("não identificada")) {
@@ -1118,7 +1118,7 @@ export function buildBSDados(
     .map(r => {
       const finalized = finalize(r, bucketsByMes.get(r.mesKey));
       finalized.company_name = resolvedCompanyName;
-      finalized.company_cnpj = parsed.documentInfo?.cnpj;
+      finalized.company_cnpj = (parsed.documentInfo as any)?.cnpj;
       return finalized;
     })
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
