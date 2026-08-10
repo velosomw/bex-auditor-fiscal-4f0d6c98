@@ -1149,6 +1149,7 @@ export function buildBSDados(
     ["patrimonio_liquido", "patrimonio_liquido"],
     ["receita_liquida", "receita_liquida"],
     ["resultado", "resultado_acumulado"],
+    ["resultado_competencia", "resultado_competencia"],
     ["resultado_competencia", "resultado"],
     ["fornecedores", "fornecedores"],
   ];
