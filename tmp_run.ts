@@ -22,3 +22,6 @@ console.log("tax", res.tax.total_exposure.status, res.tax.total_exposure.value);
 console.log("labor", res.labor.total_current.status, res.labor.total_current.value);
 console.log("borrow", res.borrowings.status, res.borrowings.value);
 console.log("supLP", res.suppliers_noncurrent.status, res.suppliers_noncurrent.value);
+console.log("labor accounts:", res.labor.total_current.included_accounts);
+console.log("tax accounts:", res.tax.total_exposure.included_accounts.map(a=>a.code+" "+a.description+" "+a.value));
+console.log("borrow accounts:", res.borrowings.included_accounts.map(a=>a.code+" "+a.description+" "+a.value));
