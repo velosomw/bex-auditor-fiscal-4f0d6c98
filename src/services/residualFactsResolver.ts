@@ -362,7 +362,9 @@ export function resolveResidualFacts(
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
   
   // MD-BEX-FINAL §50/§51: Hard Gate for Derived Facts Parity
-  const revenueOk = resultCertified && Math.abs(receita_base) > 0.01;
+  const revenueOk = resultCertified
+    && ctx.receita_certified !== false
+    && Math.abs(Number.isFinite(ctx.receita_liquida as number) ? (ctx.receita_liquida as number) : receita_base) > 0.01;
   const resultOk = resultCertified;
   
   const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
