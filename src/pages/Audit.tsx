@@ -2702,7 +2702,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const fornec = d?.fornecedores || 0;
   const rl = d?.receita_liquida || 0;
   const result = d?.resultado_liquido || 0;
-  const resultLabel = (reportDataset?.facts as any)?.resultado_competencia?.status === "AVAILABLE" ? "Resultado da Competência" : "Resultado Acumulado";
+  const resultLabel = "Resultado da Competência";
   const pl = d?.patrimonio_liquido || 0;
   const at = ac + anc;
   const pt = pc + pnc;
