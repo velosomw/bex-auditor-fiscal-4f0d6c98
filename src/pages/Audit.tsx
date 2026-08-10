@@ -3199,6 +3199,23 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           {/* 4.3 Rentabilidade */}
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">4.3 Indicadores de Rentabilidade</h3>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+              {[
+                { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: true, scope: "Grupo sintético 3.1" },
+                { label: "EBITDA Certificado", value: snapshot?.ratios.ebitda || 0, available: snapshot?.facts_status.ebitda === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
+                { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia || 0, available: !isNaN(snapshot?.facts.resultado_competencia ?? NaN), scope: "Apuração mensal (Grupo 3)" },
+                { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado || 0, available: !isNaN(snapshot?.facts.resultado_acumulado ?? NaN), scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
+                { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
+                { label: "Margem Líquida", value: snapshot?.facts.receita_liquida ? (snapshot.facts.resultado_competencia || 0) / snapshot.facts.receita_liquida : 0, available: snapshot?.facts.receita_liquida > 0, scope: "Resultado Competência / Vendas" },
+              ].map(item => (
+                <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
+                  <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                  <p className="text-sm font-bold font-mono text-foreground">{item.available && (typeof item.value === 'number' && !isNaN(item.value)) ? `R$ ${fmt(item.value)}` : "Não disponível"}</p>
+                  {item.scope && <p className="text-[8.5px] text-muted-foreground/80 leading-tight mt-0.5">{item.scope}</p>}
+                </div>
+              ))}
+            </div>
+
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -3278,12 +3295,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">EBITDA Certificado (LAJIR + Depreciação + Amortização)</p>
-                    {residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{residual.ebitda.reason}</p>}
+                    {snapshot?.residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{snapshot.residual.ebitda.reason}</p>}
                   </>
                 ) : (
                   <>
                     <p className="text-sm font-semibold text-foreground">EBITDA não disponível com segurança a partir do balancete analisado</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados."}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados."}</p>
                   </>
                 )}
               </div>
@@ -3301,14 +3318,14 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">5.1 Estrutura da Dívida</h3>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { label: "Empréstimos e Financiamentos (saldo do passivo)", value: emprestimos, available: !!borrowAvail, scope: residual?.borrowings.calculation_scope },
+                { label: "Empréstimos e Financiamentos (CP + LP)", value: snapshot?.facts.divida_financeira || 0, available: true, scope: "Total oneroso (2.1.1 + 2.2.2)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
-                { label: "Obrigações Tributárias LP", value: residual?.tax.noncurrent_obligations.value ?? 0, available: residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: residual?.tax.noncurrent_obligations.calculation_scope },
+                { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.value ?? 0, available: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: snapshot?.residual?.tax.noncurrent_obligations.calculation_scope },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
-                { label: "Fornecedores (CP)", value: fornec, available: !!fornec, scope: "Dívida comercial de curto prazo (grupo 2.1)" },
-                { label: "Fornecedores (LP)", value: residual?.suppliers_noncurrent?.value || 0, available: residual?.suppliers_noncurrent?.status === "AVAILABLE", scope: residual?.suppliers_noncurrent?.calculation_scope },
+                { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: true, scope: "Dívida comercial de curto prazo (grupo 2.1.2)" },
+                { label: "Fornecedores (LP)", value: snapshot?.residual?.suppliers_noncurrent?.value || (snapshot?.facts as any)?.fornecedores_lp || 0, available: true, scope: "Grupo sintético 2.2.1" },
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
                 { label: "Passivo Não Circulante", value: pnc, available: true, scope: "Grupo sintético 2.2" },
               ].map(item => (
@@ -3390,7 +3407,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Resultado Acumulado", key: "resultado_acumulado" as any },
                   { label: "Trabalhista (CP)", key: "divida_trabalhista" as any },
                   { label: "Fornecedores (CP)", key: "fornecedores" },
-                  { label: "Fornecedores (LP)", key: "suppliers_noncurrent" as any },
+                  { label: "Fornecedores (LP)", key: "divida_financeira_lp" as any },
                 ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>

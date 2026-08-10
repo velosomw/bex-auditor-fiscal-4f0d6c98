@@ -305,15 +305,15 @@ export function resolveResidualFacts(
   const borrowings_noncurrent = borrowNonCurrentNodes.length
     ? compose(borrowNonCurrentNodes, "Obrigações financeiras de longo prazo (grupo 2.2)")
     : EMPTY("Sem obrigações financeiras de longo prazo no balancete");
-  const borrowings: ComposedFact = borrowNodes.length
-    ? {
-        ...compose(borrowNodes, "Saldo total das obrigações financeiras onerosas (CP + LP, grupos sintéticos)"),
-        excluded_accounts: borrowRejected.map(ref),
-      }
-    : {
-        ...EMPTY("Sem saldo patrimonial de empréstimos/financiamentos certificado no balancete"),
-        excluded_accounts: borrowRejected.map(ref),
-      };
+  
+  // §15 — borrowings.total = CP + LP (exclusively certified debt roles)
+  const borrowings: ComposedFact = {
+    value: borrowings_current.value + borrowings_noncurrent.value,
+    status: (borrowings_current.status === "AVAILABLE" || borrowings_noncurrent.status === "AVAILABLE") ? "AVAILABLE" : "NOT_AVAILABLE",
+    included_accounts: [...borrowings_current.included_accounts, ...borrowings_noncurrent.included_accounts],
+    excluded_accounts: borrowRejected.map(ref),
+    calculation_scope: "Saldo total das obrigações financeiras onerosas (CP + LP certified)",
+  };
 
   /* ── Despesas / Receitas Financeiras e Tributos sobre o Lucro ── */
   let finNodes = pickNonOverlapping(results, n => RX.finExpenses.test(n.description));
@@ -358,10 +358,17 @@ export function resolveResidualFacts(
 
   const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && (Math.abs(resultado) > 0.01 || ctx.resultado_competencia_available);
   const lajirAvailable = resultCertified && financial_expenses.status === "AVAILABLE";
+  const incomeTaxVal = income_taxes.status === "AVAILABLE" ? income_taxes.value : 0;
+  
+  // EBIT = Result + Financial Expenses - Financial Revenues + Income Taxes
   const lajirValue = lajirAvailable
-    ? resultado + (resultado >= 0 ? financial_expenses.analysis_value : -financial_expenses.analysis_value) - (financial_revenues.value > 0 ? financial_revenues.value : 0) + (income_taxes.status === "AVAILABLE" ? income_taxes.value : 0)
+    ? resultado + financial_expenses.analysis_value - (financial_revenues.value > 0 ? financial_revenues.value : 0) + incomeTaxVal
     : NaN;
 
+  // MD-BEX-FINAL §40..§43: EBITDA = EBIT + ABS(D&A) from DRE only
+  const depValue = depreciation.status === "AVAILABLE" ? Math.abs(depreciation.value) : 0;
+  const amortValue = amortization.status === "AVAILABLE" ? Math.abs(amortization.value) : 0;
+  const daTotal = depValue + amortValue;
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
   
   // MD-BEX-FINAL §50/§51: Hard Gate for Derived Facts Parity
@@ -371,9 +378,11 @@ export function resolveResidualFacts(
   const resultOk = resultCertified;
   
   const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
-  // §44 — EBITDA Sign Sanity Gate: Se LAJIR é negativo, EBITDA (LAJIR + D&A) não pode ser MAIS negativo.
-  const daTotal = (depreciation.value || 0) + (amortization.value || 0);
-  const ebitdaValue = ebitdaAvailable ? lajirValue + Math.abs(daTotal) : NaN;
+  
+  // §44 — EBITDA Sign Sanity Gate: EBITDA must be >= EBIT if D&A adjustment is positive
+  const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
+  
+  const sanityPassed = !ebitdaAvailable || (daTotal >= 0 ? ebitdaValue >= lajirValue : true);
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
@@ -401,13 +410,13 @@ export function resolveResidualFacts(
           : "Despesas financeiras não identificadas no balancete",
     },
     ebitda: {
-      value: ebitdaValue,
-      status: ebitdaAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
-      reason: ebitdaAvailable
-        ? "LAJIR + Depreciação + Amortização certificados pelo balancete"
-        : !lajirAvailable
-          ? "LAJIR não certificável — cadeia derivada indisponível"
-          : "Depreciação/Amortização não identificadas no balancete — EBITDA não disponível com segurança",
+      value: sanityPassed ? ebitdaValue : NaN,
+      status: (ebitdaAvailable && sanityPassed) ? "AVAILABLE" : "NOT_AVAILABLE",
+      reason: !ebitdaAvailable
+        ? (!lajirAvailable ? "LAJIR não certificável" : "Depreciação/Amortização não identificadas na DRE")
+        : !sanityPassed 
+          ? "EBITDA_RECONCILIATION_FAIL: EBITDA não pode ser menor que o EBIT com D&A positivo"
+          : "LAJIR + Depreciação + Amortização certificados pela DRE",
     },
     interest_coverage: {
       value: coverageAvailable ? lajirValue / financial_expenses.analysis_value : NaN,
