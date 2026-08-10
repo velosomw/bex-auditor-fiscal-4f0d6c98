@@ -167,6 +167,9 @@ export function resolveResidualFacts(
     resultado?: number; ativo_total?: number; pc?: number; pnc?: number; pl?: number;
     /** §41/§69 — quando o Resultado não está certificado, toda a cadeia derivada cai. */
     resultado_certified?: boolean;
+    /** §DERIVED-GATE — Receita certificada pelo P1 (valor + status). */
+    receita_liquida?: number;
+    receita_certified?: boolean;
     resultado_competencia_available?: boolean;
   } = {}
 ): ResidualFacts {
