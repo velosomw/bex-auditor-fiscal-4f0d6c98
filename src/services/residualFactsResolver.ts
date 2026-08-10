@@ -250,7 +250,7 @@ export function resolveResidualFacts(
   const isBorrowing = (n: AccountNode) =>
     RX.borrowings.test(n.description) && !RX.finExpenses.test(n.description) && !RX.finRevenues.test(n.description);
   const borrowCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.1.1")), isBorrowing);
-  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || (under(n, "2.2.1") && isBorrowing(n))), isBorrowing);
+  const borrowNonCurrentNodes = pickNonOverlapping(liabilities.filter(n => under(n, "2.2.2") || under(n, "2.2.1")), isBorrowing); // §29..§32 — Dívida onerosa LP no grupo 2.2.1/2.2.2
   const borrowNodes = [...borrowCurrentNodes, ...borrowNonCurrentNodes];
   const borrowRejected = results.filter(n => RX.borrowings.test(n.description));
 
