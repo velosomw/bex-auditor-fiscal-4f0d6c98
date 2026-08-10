@@ -384,21 +384,16 @@ export function resolveResidualFacts(
   
   const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
   
-  // §44/§49 — EBITDA Sign Sanity Gate: EBITDA must be >= EBIT if D&A adjustment is positive
-  const ebitdaValue = ebitdaAvailable ? lajirValue + daTotal : NaN;
-  
-  // A05 — EBITDA certification: Tolerância de 0.10 centavos (§EBITDA-SIGN-SANITY-GATE)
+  // §44/§49 — EBITDA reconstructed exclusively via DRE
   const ebitdaReconstructed = lajirAvailable && daAvailable ? lajirValue + daTotal : NaN;
-  const ebitdaDiff = Math.abs(ebitdaReconstructed - ebitdaValue);
-  const sanityPassed = !ebitdaAvailable || ebitdaDiff < 0.10;
 
 
 
   // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
-  const coverageAvailable = lajirAvailable && financial_expenses.analysis_value > 10 && revenueOk && resultOk;
-
   // §SSOT-COVERAGE: Hard Parity between BEx and Kanitz
-  const coverageValue = coverageAvailable ? lajirValue / financial_expenses.analysis_value : NaN;
+  const coverageValue = (ebitdaAvailable && financial_expenses.analysis_value > 10) 
+    ? lajirValue / financial_expenses.analysis_value 
+    : NaN;
 
   return {
     competency,
@@ -422,19 +417,13 @@ export function resolveResidualFacts(
           ? "Resultado do período não certificado — LAJIR não calculável"
           : "Despesas financeiras não identificadas no balancete",
     },
-    ebitda: {
-      value: (ebitdaAvailable && sanityPassed) ? ebitdaValue : NaN,
-      status: (ebitdaAvailable && sanityPassed) ? "AVAILABLE" : "NOT_AVAILABLE",
-      reason: !ebitdaAvailable
-        ? (!lajirAvailable ? "LAJIR não certificável" : "Depreciação/Amortização não identificadas na DRE")
-        : !sanityPassed 
-          ? `Erro de Reconciliação (Desvio: R$ ${ebitdaDiff.toFixed(2)})`
-          : "LAJIR + Depreciação + Amortização certificados pela DRE",
-    },
+    ebitda: (ebitdaAvailable && Number.isFinite(ebitdaReconstructed))
+      ? { value: ebitdaReconstructed, status: "AVAILABLE", reason: "EBITDA reconstruído via DRE (LAJIR + D&A)" }
+      : { value: NaN, status: "NOT_AVAILABLE", reason: "EBITDA não certificado a partir do balancete" },
 
     interest_coverage: {
       value: coverageValue,
-      status: coverageAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
+      status: Number.isFinite(coverageValue) ? "AVAILABLE" : "NOT_AVAILABLE",
     },
   };
 }

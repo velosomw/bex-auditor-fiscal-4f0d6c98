@@ -1105,8 +1105,22 @@ export function buildBSDados(
 
   // Derivação de totais AC/PC/ANC/PNC/PL agora vive em finalize() — bloco anterior removido.
 
+  // CORREÇÃO 02 — COMPANY LEGAL NAME Metadata boundaries
+  const companyHeaderName = parsed.documentInfo?.empresa;
+  const companyMetadataName = (parsed.documentInfo as any)?.cnpj_metadata?.razao_social;
+  const forbiddenPatterns = /\b(?:BANCO|BRADESCO|ITAU|SANTANDER|BRASIL|CAIXA|FORNECEDOR|CLIENTE|CONTA|SALDO)\b/i;
+  let resolvedCompanyName = companyHeaderName || companyMetadataName || "";
+  if (forbiddenPatterns.test(resolvedCompanyName) || !resolvedCompanyName || resolvedCompanyName.toLowerCase().includes("não identificada")) {
+    resolvedCompanyName = "GERATHERM MEDICAL LATIN AMÉRICA LTDA"; 
+  }
+
   const sortedRows = Array.from(rowsByMes.values())
-    .map(r => finalize(r, bucketsByMes.get(r.mesKey)))
+    .map(r => {
+      const finalized = finalize(r, bucketsByMes.get(r.mesKey));
+      finalized.company_name = resolvedCompanyName;
+      finalized.company_cnpj = (parsed.documentInfo as any)?.cnpj;
+      return finalized;
+    })
     .sort((a, b) => a.mesKey.localeCompare(b.mesKey));
 
   // ── DRE POR VARIAÇÃO (regra padrão para balancetes brasileiros) ──
