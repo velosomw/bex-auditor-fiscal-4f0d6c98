@@ -4038,7 +4038,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <div className="p-4 rounded-lg border border-red-500/40 bg-red-500/5">
               <p className="text-xs font-bold text-red-600 mb-1">⛔ KANITZ NÃO APLICÁVEL</p>
               <p className="text-xs text-foreground leading-relaxed">
-                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz calculado ({(l.fi ?? 0).toFixed(2)}) não é aplicável. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
+                Com PL = R$ {fmt(l.pl)} (negativo), o componente X1 = LL/PL do modelo Kanitz distorce o resultado: um prejuízo dividido por PL negativo gera pseudo-rentabilidade positiva. Por isso, o Kanitz não é aplicável. O indicador oficial para este caso é o <strong>Índice de Solvência Geral (ISG)</strong>.
               </p>
             </div>
           )}
