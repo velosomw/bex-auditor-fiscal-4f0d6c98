@@ -67,6 +67,7 @@ const EmptyState = ({ icon: Icon, title, message }: { icon: any; title: string; 
     <Icon className="w-8 h-8 mb-2 opacity-40" />
     <p className="text-sm font-medium">{title}</p>
     {message && <p className="text-[11px] mt-1 opacity-70 text-center px-4">{message}</p>}
+    {!message && <p className="text-[11px] mt-1 opacity-70 text-center px-4">Não existem dados no balancete para gerar o gráfico completo.</p>}
   </div>
 );
 
