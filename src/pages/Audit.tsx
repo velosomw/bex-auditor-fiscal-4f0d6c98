@@ -3388,6 +3388,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Receita Líquida", key: "receita_liquida" },
                   { label: "Resultado da Competência", key: "resultado_competencia" as any },
                   { label: "Resultado Acumulado", key: "resultado_acumulado" as any },
+                  { label: "Trabalhista (CP)", key: "divida_trabalhista" as any },
                   { label: "Fornecedores (CP)", key: "fornecedores" },
                   { label: "Fornecedores (LP)", key: "suppliers_noncurrent" as any },
                 ] as const).map((row, idx) => (
