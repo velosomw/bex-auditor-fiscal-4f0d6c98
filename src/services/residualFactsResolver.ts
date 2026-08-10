@@ -444,6 +444,7 @@ export function filterStalePendencias<T extends Record<string, any>>(
     // MD-CUTOVER-001 §11: Invalidação de pendências legadas de R$ 17,5M
     if (/PREJUIZOS ACUMULADOS DE R\$ 17,5 MILHOES/i.test(t)) return false;
     
+    if (f.descricao.includes("Receita Líquida zerada") && Number(facts?.receita_liquida) > 0.01) return false;
     return true;
   });
 }

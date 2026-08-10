@@ -3838,7 +3838,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const simReducaoCustos = simCompute(l.pl, l.pt, l.ac, l.pc, l.estoque, l.rlp, l.ll + l.cpv * 0.15);
 
   // Tendência
-  const tendencia = previous && Math.abs(fiDelta) > 0.01 ? (fiDelta > 0.5 ? "Melhora" : fiDelta < -0.5 ? "Deterioração" : "Estável") : "N/A";
+  const tendencia = previous && Math.abs(fiDelta) > 0.0001 ? (fiDelta > 0.5 ? "Melhora" : fiDelta < -0.5 ? "Deterioração" : "Estável") : "N/A";
 
   return (
     <div ref={kanitzContainerRef} className="space-y-0" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties} id="report-kanitz-container">
