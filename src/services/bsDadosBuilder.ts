@@ -1122,7 +1122,7 @@ export function buildBSDados(
    * SEMPRE prevalece sobre descendentes analíticos. Nenhum valor Golden
    * é injetado — o resolver encontra a conta na hierarquia do balancete.
    * ───────────────────────────────────────────────────────────── */
-  const p1RowsByMes = new Map<string, Array<{ conta?: string; descricao?: string; value: number }>>();
+  const p1RowsByMes = new Map<string, Array<{ conta?: string; descricao?: string; value: number; previous?: number }>>();
   for (const r of allRows) {
     const valuesObj = (r.values || {}) as Record<string, number | string>;
     const pKeys = Object.keys(valuesObj);
@@ -1134,7 +1134,12 @@ export function buildBSDados(
         : periodToMesKey(period);
       if (!rowsByMes.has(mesKey)) continue;
       if (!p1RowsByMes.has(mesKey)) p1RowsByMes.set(mesKey, []);
-      p1RowsByMes.get(mesKey)!.push({ conta: r.conta, descricao: r.descricao, value: v });
+      // Saldo anterior só é semanticamente válido quando a linha traz UMA competência.
+      const prev = pKeys.length <= 1 ? Number((r as any).previous) : NaN;
+      p1RowsByMes.get(mesKey)!.push({
+        conta: r.conta, descricao: r.descricao, value: v,
+        previous: Number.isFinite(prev) ? prev : undefined,
+      });
     }
   }
 
