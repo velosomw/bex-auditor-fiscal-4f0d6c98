@@ -249,13 +249,10 @@ export function buildCertifiedFinancialSnapshot(
     snapshot_version: SNAPSHOT_VERSION,
     company_id: source.companyId || "manual",
     metadata: {
-      company_name: latestRow?.company_name || parsedData.company_name,
-      company_cnpj: latestRow?.company_cnpj || parsedData.cnpj
-    },
-    metadata: {
       company_name: latestRow?.company_name || parsedData.documentInfo?.empresa,
       company_cnpj: latestRow?.company_cnpj
     },
+
     competency: latestKey,
 
     source_file_name: fileName,
