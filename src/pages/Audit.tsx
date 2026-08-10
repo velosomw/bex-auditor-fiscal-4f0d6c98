@@ -3390,7 +3390,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   { label: "Resultado Acumulado", key: "resultado_acumulado" as any },
                   { label: "Trabalhista (CP)", key: "divida_trabalhista" as any },
                   { label: "Fornecedores (CP)", key: "fornecedores" },
-                  { label: "Fornecedores (LP)", key: "divida_financeira_lp" as any }, // Corrigido para papel canônico
+                  { label: "Fornecedores (LP)", key: "divida_financeira_lp" as any },
                 ] as const).map((row, idx) => (
                   <TableRow key={row.label} className={idx % 2 === 0 ? "bg-muted/10" : ""}>
                     <TableCell className="text-xs font-semibold py-2">{row.label}</TableCell>
