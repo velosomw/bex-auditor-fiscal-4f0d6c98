@@ -267,15 +267,14 @@ tr {
 .report-page-body {
   flex: 1;
   margin: 0 16mm;
-  /* P05 — CONTENT_SAFE_BOTTOM (MD-BEX-FINAL-CONSUMER-BINDING-001 §33)
-     CONTENT_BOTTOM_SAFE < FOOTER_TOP - SAFE_GAP (26mm) */
   padding: 4mm 0 26mm 0;
   max-height: 245mm; 
-  min-height: 245mm; /* Estabiliza altura para evitar cortes de cards */
+  min-height: 245mm;
   position: relative;
   display: block; 
-  min-height: auto;
   box-sizing: border-box;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 /* §59 — Content Overflow Gate: cartões e blocos editoriais nunca são cortados
