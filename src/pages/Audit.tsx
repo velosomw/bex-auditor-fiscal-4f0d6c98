@@ -3253,7 +3253,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia ?? 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
                 { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado ?? 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
-                { label: "Margem Líquida (Período)", value: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE" ? snapshot.residual.margins.current_month.value : NaN, available: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE", scope: "Resultado Competência / Receita" },
+                { label: "Margem Líquida (Período)", value: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE" ? snapshot.residual.margins.current_month.value : NaN, available: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE" && (snapshot?.facts.patrimonio_liquido > 0), scope: "Resultado Competência / Receita" },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
@@ -3262,7 +3262,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </div>
               ))}
               {[
-                { label: "Cobertura de Juros", value: snapshot?.residual?.interest_coverage.status === "AVAILABLE" ? snapshot.residual.interest_coverage.value : NaN, available: snapshot?.residual?.interest_coverage.status === "AVAILABLE", scope: "LAJIR / Despesas Financeiras (SSOT)" },
+                { label: "Cobertura de Juros", value: snapshot?.residual?.interest_coverage.status === "AVAILABLE" ? snapshot.residual.interest_coverage.value : NaN, available: snapshot?.residual?.interest_coverage.status === "AVAILABLE" && (snapshot?.facts.patrimonio_liquido > 0), scope: "LAJIR / Despesas Financeiras (SSOT)" },
                 { label: "Endividamento Financeiro", value: (emprestimos || 0) / (snapshot?.facts.ativo_total || 1), available: borrowAvail, scope: "Dívida Onerosa / Ativo Total" },
                 { label: "Ativo = Passivo Exigível + PL", value: 1, available: true, scope: "Equação Patrimonial Certificada" },
               ].map(item => (
@@ -3286,9 +3286,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "Margem Líquida", formula: "Resultado / Receita", value: snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : (reportDataset.facts.receita_liquida !== 0 ? (reportDataset.facts.resultado_liquido || 0) / reportDataset.facts.receita_liquida : NaN), interp: "Eficiência do lucro/prejuízo sobre as vendas" },
+                     { name: "Margem Líquida", formula: "Resultado / Receita", value: (snapshot?.facts.patrimonio_liquido > 0) ? (snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : (reportDataset.facts.receita_liquida !== 0 ? (reportDataset.facts.resultado_liquido || 0) / reportDataset.facts.receita_liquida : NaN)) : NaN, interp: "Eficiência do lucro/prejuízo sobre as vendas" },
                     { name: "ROA (Retorno do Ativo)", formula: "Resultado / Ativo Total", value: reportDataset.ratios?.roa, interp: "Retorno gerado pelo ativo total" },
-                    { name: "ROE (Retorno do PL)", formula: "Resultado / Patrimônio Líquido", value: reportDataset.ratios?.roe, interp: "Retorno ao acionista sobre capital investido" },
+                    { name: "ROE (Retorno do PL)", formula: "Resultado / Patrimônio Líquido", value: (snapshot?.facts.patrimonio_liquido > 0) ? reportDataset.ratios?.roe : NaN, interp: "Retorno ao acionista sobre capital investido" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3381,7 +3381,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Empréstimos e Financiamentos (CP + LP)", value: emprestimos, available: borrowAvail, scope: "Total oneroso (CP + LP certificado, exclui arrendamentos)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
-                { label: "Obrigações Tributárias (LP)", value: snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0, available: true, scope: "Grupo 2.2.3 (Certified Binding)" },
+                { label: "Obrigações Tributárias (LP)", value: snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0, available: (snapshot?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" || (snapshot?.facts?.tax_noncurrent ?? 0) > 0), scope: "Grupo 2.2.3 (Certified Binding)" },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
                 { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },

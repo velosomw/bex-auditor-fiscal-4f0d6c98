@@ -441,7 +441,7 @@ export function resolveResidualFacts(
     },
     interest_coverage: {
       value: coverageValue,
-      status: (Number.isFinite(coverageValue) && ctx.resultado_certified) ? "AVAILABLE" : "NOT_AVAILABLE",
+      status: (Number.isFinite(coverageValue) && ctx.resultado_certified && (!ctx.pl || ctx.pl > 0)) ? "AVAILABLE" : "NOT_AVAILABLE",
       unit: "MULTIPLE"
     },
     margins: {
