@@ -90,8 +90,8 @@ const TabExecutionTime = () => {
       <Card className="p-4 bg-card border-border">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
-              <Timer className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+            <div className="w-10 h-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center">
+              <Timer className="w-5 h-5 text-[#8B5CF6]" />
             </div>
             <div>
               <h3 className="font-semibold text-foreground">Tempo de Execução</h3>

@@ -116,7 +116,7 @@ const ModelRoutingMatrix = () => {
   return (
     <div className="space-y-5">
       {/* ── Header explicativo ─────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-[hsl(217,91%,50%)]/8 to-[hsl(258,90%,66%)]/5 rounded-xl border border-border p-5">
+      <div className="bg-gradient-to-br from-[hsl(217,91%,50%)]/8 to-[#8B5CF6]/5 rounded-xl border border-border p-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-lg bg-[hsl(217,91%,50%)]/15 flex items-center justify-center shrink-0">
             <GitBranch className="w-5 h-5 text-[hsl(217,91%,50%)]" />
@@ -141,7 +141,7 @@ const ModelRoutingMatrix = () => {
       {/* ── Critérios de criticidade ───────────────────────────────── */}
       <div className="bg-card rounded-xl border border-border p-5">
         <h4 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-          <Zap className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+          <Zap className="w-4 h-4 text-[#8B5CF6]" />
           Definição funcional por criticidade
         </h4>
         <div className="grid md:grid-cols-3 gap-3">

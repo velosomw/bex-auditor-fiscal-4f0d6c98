@@ -355,7 +355,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
               { label: "Receita", value: fmtMoeda(exec.kpis.receita), icon: TrendingUp, color: "hsl(217,91%,50%)" },
               { label: "Lucro / Prejuízo", value: fmtMoeda(exec.kpis.lucro), icon: DollarSign, color: exec.kpis.lucro >= 0 ? "hsl(150,70%,42%)" : "hsl(0,75%,55%)" },
               { label: "Margem", value: `${exec.kpis.margem.toFixed(1)}%`, icon: Activity, color: exec.kpis.margem >= 5 ? "hsl(150,70%,42%)" : exec.kpis.margem >= 0 ? "hsl(34,95%,55%)" : "hsl(0,75%,55%)" },
-              { label: "Caixa Disponível", value: fmtMoeda(exec.kpis.caixa), icon: Wallet, color: "hsl(258,90%,66%)" },
+              { label: "Caixa Disponível", value: fmtMoeda(exec.kpis.caixa), icon: Wallet, color: "#8B5CF6" },
             ].map((k) => (
               <Card key={k.label} className="border-l-4" style={{ borderLeftColor: k.color }}>
                 <CardContent className="p-4">
@@ -592,7 +592,7 @@ const TabGraficosAuditoria = ({ files, parsedData, entries = [] }: Props) => {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+            <Wallet className="w-4 h-4 text-[#8B5CF6]" />
             Fluxo de Caixa Projetado (FCP) — 6 meses
           </CardTitle>
           <CardDescription>Aba <strong>FCP - 6 meses</strong> · saldo acumulado (linha) + fluxo mensal (coluna)</CardDescription>

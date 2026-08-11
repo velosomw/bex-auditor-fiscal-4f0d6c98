@@ -137,7 +137,7 @@ const CompanyPage = () => {
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Relatórios Gerados", value: stats.totalReports, icon: FileText, color: "hsl(258,90%,66%)" },
+            { label: "Relatórios Gerados", value: stats.totalReports, icon: FileText, color: "#8B5CF6" },
             { label: "Documentos", value: stats.totalDocs, icon: FileText, color: "hsl(217,91%,50%)" },
             { label: "Conformidade Média", value: `${stats.avgConformidade}%`, icon: Shield, color: "hsl(142,76%,36%)" },
             { label: "Achados Totais", value: stats.totalRiscos, icon: AlertTriangle, color: "hsl(0,84%,60%)" },
@@ -158,7 +158,7 @@ const CompanyPage = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Relatórios da Empresa
+              <FileText className="w-4 h-4 text-[#8B5CF6]" /> Relatórios da Empresa
             </CardTitle>
             <CardDescription>
               Inclui relatórios gerados pelo Técnico Chefe, Usuário e pela própria Empresa.

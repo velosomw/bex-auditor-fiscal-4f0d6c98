@@ -68,7 +68,7 @@ function MultiSelect({
             <Icon className="w-3.5 h-3.5" />
             {label}
             {selected.size > 0 && (
-              <Badge className="h-4 px-1.5 text-[10px] bg-[hsl(258,90%,66%)]/15 text-[hsl(258,90%,66%)] border-0">
+              <Badge className="h-4 px-1.5 text-[10px] bg-[#8B5CF6]/15 text-[#8B5CF6] border-0">
                 {selected.size}
               </Badge>
             )}
@@ -89,7 +89,7 @@ function MultiSelect({
           </div>
         </div>
         <div className="flex items-center justify-between px-2 py-1.5 border-b text-[11px]">
-          <button onClick={toggleAll} className="text-[hsl(258,90%,66%)] hover:underline">
+          <button onClick={toggleAll} className="text-[#8B5CF6] hover:underline">
             {allFilteredSelected ? "Limpar filtrados" : "Selecionar filtrados"}
           </button>
           {selected.size > 0 && (
@@ -327,12 +327,12 @@ export default function TabPivotBalancete({ parsedData, entries = [] }: Props) {
   }
 
   return (
-    <Card className="border-[hsl(258,90%,66%)]/20">
+    <Card className="border-[#8B5CF6]/20">
       <CardHeader className="pb-3 space-y-3">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Layers className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+              <Layers className="w-5 h-5 text-[#8B5CF6]" />
               Pivot — Balancete Consolidado (linha-a-linha)
             </CardTitle>
             <CardDescription className="text-xs">

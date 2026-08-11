@@ -291,7 +291,7 @@ const UserManagement = () => {
   };
 
   const dashCards = [
-    { label: "Total Cadastrados", value: totalUsers, icon: Users, color: "hsl(258,90%,66%)" },
+    { label: "Total Cadastrados", value: totalUsers, icon: Users, color: "#8B5CF6" },
     { label: "Ativos", value: activeUsers, icon: UserCheck, color: "hsl(152,70%,45%)" },
     { label: "Inativos", value: inactiveUsers, icon: UserX, color: "hsl(0,70%,55%)" },
   ];
@@ -309,7 +309,7 @@ const UserManagement = () => {
           </div>
           <Button
             size="sm"
-            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
+            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5"
             onClick={openCreate}
           >
             <Plus className="w-4 h-4" /> Novo Usuário
@@ -400,7 +400,7 @@ const UserManagement = () => {
 
         {/* Users Table */}
         <div className="flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+          <Users className="w-4 h-4 text-[#8B5CF6]" />
           <h2 className="text-lg font-semibold text-foreground">Usuários Ativos</h2>
         </div>
         {loading ? (
@@ -466,14 +466,14 @@ const UserManagement = () => {
             {!editingUser && (
               <Button
                 variant="outline"
-                className="border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)]/10"
+                className="border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#8B5CF6]/10"
                 onClick={() => handleSave(true)}
                 disabled={saving}
               >
                 {saving ? "Enviando..." : "Criar e enviar e-mail de senha"}
               </Button>
             )}
-            <Button className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white" onClick={() => handleSave(false)} disabled={saving}>
+            <Button className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white" onClick={() => handleSave(false)} disabled={saving}>
               {saving ? "Salvando..." : editingUser ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>

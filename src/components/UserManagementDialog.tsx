@@ -171,7 +171,7 @@ const UserManagementDialog = ({ allowedRoles, buttonLabel = "Cadastrar Usuário"
     <>
       <Button
         size="sm"
-        className={buttonClassName || "bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"}
+        className={buttonClassName || "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5"}
         onClick={() => setOpen(true)}
       >
         <UserPlus className="w-3.5 h-3.5" /> {buttonLabel}
@@ -181,7 +181,7 @@ const UserManagementDialog = ({ allowedRoles, buttonLabel = "Cadastrar Usuário"
         <DialogContent className="bg-card border-border max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-[hsl(258,90%,66%)]" /> Gestão de Usuários
+              <UserPlus className="w-5 h-5 text-[#8B5CF6]" /> Gestão de Usuários
             </DialogTitle>
           </DialogHeader>
 
@@ -190,7 +190,7 @@ const UserManagementDialog = ({ allowedRoles, buttonLabel = "Cadastrar Usuário"
               <p className="text-sm text-muted-foreground">
                 Perfis disponíveis: {allowedRoles.map(r => roleLabels[r]).join(", ")}
               </p>
-              <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={openCreate}>
+              <Button size="sm" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5" onClick={openCreate}>
                 <Plus className="w-3.5 h-3.5" /> Novo Usuário
               </Button>
             </div>
@@ -216,7 +216,7 @@ const UserManagementDialog = ({ allowedRoles, buttonLabel = "Cadastrar Usuário"
                         <td className="px-4 py-3 font-medium text-foreground">{user.full_name || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{user.phone || "—"}</td>
                         <td className="px-4 py-3">
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[hsl(258,90%,66%)]/10 text-[hsl(258,90%,66%)]">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#8B5CF6]/10 text-[#8B5CF6]">
                             {roleLabels[user.role] || user.role}
                           </span>
                         </td>
@@ -279,7 +279,7 @@ const UserManagementDialog = ({ allowedRoles, buttonLabel = "Cadastrar Usuário"
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button
-              className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white"
+              className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
               onClick={handleSave}
               disabled={saving}
             >

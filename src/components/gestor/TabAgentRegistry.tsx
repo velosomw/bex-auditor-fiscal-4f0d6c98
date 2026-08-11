@@ -138,7 +138,7 @@ const TabAgentRegistry = () => {
       {/* ── Resumo visual ────────────────────────────────── */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Agentes IA", value: agents.length, icon: Bot, color: "hsl(258,90%,66%)" },
+          { label: "Agentes IA", value: agents.length, icon: Bot, color: "#8B5CF6" },
           { label: "Integrações", value: integrations.length, icon: Plug, color: "hsl(200,90%,50%)" },
           { label: "Ativos", value: [...agents, ...integrations].filter(x => x.status === "active").length, icon: CheckCircle2, color: "hsl(152,70%,45%)" },
           { label: "Standby", value: [...agents, ...integrations].filter(x => x.status !== "active").length, icon: Pause, color: "hsl(38,90%,55%)" },
@@ -157,7 +157,7 @@ const TabAgentRegistry = () => {
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Bot className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Agentes registrados
+            <Bot className="w-4 h-4 text-[#8B5CF6]" /> Agentes registrados
           </h4>
           <span className="text-xs text-muted-foreground">{agents.length} agentes</span>
         </div>
@@ -207,14 +207,14 @@ const TabAgentRegistry = () => {
             <ImportValidatedReferenceDialog />
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
+                <Button size="sm" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5">
                   <Plus className="w-3.5 h-3.5" /> Nova Integração / API
                 </Button>
               </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Plug className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Cadastrar API externa
+                  <Plug className="w-4 h-4 text-[#8B5CF6]" /> Cadastrar API externa
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-2">
@@ -269,7 +269,7 @@ const TabAgentRegistry = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white" onClick={addIntegration}>
+                <Button className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white" onClick={addIntegration}>
                   Cadastrar
                 </Button>
               </DialogFooter>

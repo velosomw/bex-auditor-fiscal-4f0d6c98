@@ -73,8 +73,8 @@ const Panel360 = ({ selection, onClose }: { selection: Selection; onClose: () =>
   const Header = ({ icon: Icon, title, subtitle }: any) => (
     <div className="flex items-start justify-between gap-3 pb-4 border-b border-border/50">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
-          <Icon className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+        <div className="w-10 h-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+          <Icon className="w-5 h-5 text-[#8B5CF6]" />
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Visão 360°</p>
@@ -98,7 +98,7 @@ const Panel360 = ({ selection, onClose }: { selection: Selection; onClose: () =>
   );
 
   return (
-    <Card className="border-2 border-[hsl(258,90%,66%)]/30 bg-gradient-to-br from-[hsl(258,90%,66%)]/5 to-transparent">
+    <Card className="border-2 border-[#8B5CF6]/30 bg-gradient-to-br from-[#8B5CF6]/5 to-transparent">
       <CardContent className="p-5 space-y-5">
         {selection.kind === "accountant" && (
           <>
@@ -309,7 +309,7 @@ export default function CoordinatorDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: "Total de Empresas", value: totalEmpresas, icon: Building2, color: "hsl(217,91%,50%)" },
-          { label: "Consultores Ativos", value: consultoresAtivos, icon: Users, color: "hsl(258,90%,66%)" },
+          { label: "Consultores Ativos", value: consultoresAtivos, icon: Users, color: "#8B5CF6" },
           { label: "Movimentações na Semana", value: movementsThisWeek, icon: Activity, color: "hsl(142,76%,36%)" },
         ].map((k) => (
           <Card key={k.label} className="border-border/50">
@@ -354,7 +354,7 @@ export default function CoordinatorDashboard() {
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {r.kind === "accountant" ? (
-                      <Briefcase className="w-3.5 h-3.5 text-[hsl(258,90%,66%)] shrink-0" />
+                      <Briefcase className="w-3.5 h-3.5 text-[#8B5CF6] shrink-0" />
                     ) : (
                       <Building2 className="w-3.5 h-3.5 text-[hsl(217,91%,50%)] shrink-0" />
                     )}
@@ -389,7 +389,7 @@ export default function CoordinatorDashboard() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Top Contabilidades
+                  <Briefcase className="w-4 h-4 text-[#8B5CF6]" /> Top Contabilidades
                 </CardTitle>
               </CardHeader>
               <CardContent>

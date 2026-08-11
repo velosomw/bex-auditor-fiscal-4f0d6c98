@@ -159,7 +159,7 @@ export const CacheReuseCard = () => {
         />
         <Metric
           icon={<Layers className="w-4 h-4" />}
-          color="hsl(258,90%,66%)"
+          color="#8B5CF6"
           label="Docs deduplicados"
           value={stats.dedupedDocs.toLocaleString("pt-BR")}
           sub={`${dedupPct.toFixed(1)}% do total`}

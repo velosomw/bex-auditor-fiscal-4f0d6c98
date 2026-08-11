@@ -49,7 +49,7 @@ const Field = ({
         const v = e.target.value;
         onChange(v === "" ? undefined : Number(v));
       }}
-      className="mt-1 w-full px-2 py-1.5 text-xs rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[hsl(258,90%,66%)]"
+      className="mt-1 w-full px-2 py-1.5 text-xs rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-[#8B5CF6]"
     />
   </label>
 );
@@ -77,8 +77,8 @@ const KindBlock = ({
             onClick={() => onChange({ ...opts, dataKind: k.id })}
             className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-colors ${
               kind === k.id
-                ? "bg-[hsl(258,90%,66%)] text-white border-[hsl(258,90%,66%)]"
-                : "bg-background text-foreground border-border hover:border-[hsl(258,90%,66%)]/40"
+                ? "bg-[#8B5CF6] text-white border-[#8B5CF6]"
+                : "bg-background text-foreground border-border hover:border-[#8B5CF6]/40"
             }`}
           >
             {k.label}
@@ -159,7 +159,7 @@ export const DedupPresetForm = ({ value, onChange, disabled = false, lockedMessa
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors rounded-xl"
       >
         <div className="flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+          <Sliders className="w-4 h-4 text-[#8B5CF6]" />
           <div>
             <p className="text-sm font-semibold text-foreground">Deduplicação avançada</p>
             <p className="text-[11px] text-muted-foreground">

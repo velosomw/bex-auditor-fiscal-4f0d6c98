@@ -86,7 +86,7 @@ const TabLoginAttempts = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
-            <span className="w-1 h-5 rounded-full bg-[hsl(258,90%,66%)]" /> Monitoramento de Acessos
+            <span className="w-1 h-5 rounded-full bg-[#8B5CF6]" /> Monitoramento de Acessos
           </h3>
           <p className="text-sm text-muted-foreground">Acompanhe tentativas de login bloqueadas por falta de confirmação de e-mail.</p>
         </div>

@@ -70,7 +70,7 @@ export default function PipelineDiagnosticPanel({ onComplete }: Props) {
           <Button
             onClick={handleRun}
             disabled={running}
-            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
+            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5"
             size="sm"
           >
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlayCircle className="w-3.5 h-3.5" />}
