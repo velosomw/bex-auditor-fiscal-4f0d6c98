@@ -2998,6 +2998,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </div>
       </ReportPage>
 
+
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
       {/* ── 3. ANÁLISE TÉCNICA — PENDÊNCIAS ── */}
       <ReportPage>
         <div className="space-y-4">
@@ -3082,6 +3084,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </div>
       </ReportPage>
 
+
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
       {/* ── 4. INDICADORES ECONÔMICO-FINANCEIROS ── */}
       <ReportPage>
         <div className="space-y-4">
