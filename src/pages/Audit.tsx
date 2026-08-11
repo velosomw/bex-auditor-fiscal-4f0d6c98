@@ -3976,7 +3976,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p>
-              <p className="font-semibold text-foreground">{snap?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p>
+              <p className="font-semibold text-foreground">{snapshot?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p>
