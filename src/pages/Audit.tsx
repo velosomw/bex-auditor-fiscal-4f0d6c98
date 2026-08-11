@@ -1128,7 +1128,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
           </p>
         )}
         <Button onClick={() => { onForceReprocess?.(false); handleContinue(); }} disabled={!canContinue}
-          className="bg-[#8B5CF6] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[#8B5CF6]/20">
+          className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[#8B5CF6]/20">
           Fazer Auditoria <ArrowRight className="w-5 h-5" />
         </Button>
         {onForceReprocess && (
@@ -2390,7 +2390,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
               </div>
               <div className="flex gap-2">
                 <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Pergunte sobre este balancete..." className="text-sm" disabled={isStreaming} />
-                <Button onClick={sendChat} disabled={isStreaming} className="bg-[#8B5CF6] hover:bg-[hsl(258,90%,56%)] text-white px-4">
+                <Button onClick={sendChat} disabled={isStreaming} className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-4">
                   {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
@@ -2503,7 +2503,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
           </div>
           <Button
             onClick={onGerarBex}
-            className="w-full bg-[#8B5CF6] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-11 text-sm font-semibold rounded-xl shadow-lg shadow-[#8B5CF6]/20"
+            className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-2 h-11 text-sm font-semibold rounded-xl shadow-lg shadow-[#8B5CF6]/20"
           >
             <FileText className="w-4 h-4" /> Gerar Relatório BEX
           </Button>
@@ -2979,7 +2979,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       <Tooltip formatter={(v: number) => [`${(v ?? 0).toFixed(1)}%`, "Resultado"]} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map((_, i) => (
-                          <Cell key={i} fill={["#8B5CF6", "hsl(258,70%,60%)", "hsl(258,50%,55%)", "hsl(258,90%,50%)"][i % 4]} />
+                          <Cell key={i} fill={["#8B5CF6", "#8B5CF6", "#8B5CF6", "#6D28D9"][i % 4]} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -5069,7 +5069,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <div className="flex items-center gap-2 print:hidden">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="default" className="gap-2 bg-[#8B5CF6] hover:bg-[hsl(258,90%,75%)] hidden">
+              <Button variant="default" className="gap-2 bg-[#8B5CF6] hover:bg-[#A78BFA] hidden">
                 <Download className="w-4 h-4" /> Exportar Resultados
                 <ChevronDown className="w-3 h-3 ml-1 opacity-50" />
               </Button>
@@ -5245,7 +5245,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                 <Button
                   size="sm"
                   variant={reportType === "bex" ? "default" : "outline"}
-                  className={`gap-1.5 h-8 ${reportType === "bex" ? "bg-[#8B5CF6] hover:bg-[hsl(258,90%,56%)] text-white" : ""}`}
+                  className={`gap-1.5 h-8 ${reportType === "bex" ? "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white" : ""}`}
                   onClick={() => setReportType("bex")}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
@@ -5285,7 +5285,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
               type="button"
               onClick={goPrevTab}
               aria-label="Aba anterior"
-              className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[#8B5CF6] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(258,90%,56%)] hover:scale-105 transition-all flex items-center justify-center"
+              className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[#8B5CF6] text-white shadow-xl ring-2 ring-white/20 hover:bg-[#7C3AED] hover:scale-105 transition-all flex items-center justify-center"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
