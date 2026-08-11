@@ -1390,8 +1390,8 @@ export function buildIndicatorMemory(r: BSDadosRow): IndicatorMemory[] {
     {
       indicador: "Solvência Geral (ISG)",
       formula: "AT / (PC + PNC)",
-      numerador: { rotulo: "Ativo Total", valor: r.ativo_total, origem: "Subtotal Grupo 1 (Authority P1)" },
-      denominador: { rotulo: "Passivo Exigível", valor: r.passivo_total, origem: "Subtotal Grupo 2 (Authority P1)" },
+      numerador: { rotulo: "Ativo Total", valor: r.ativo_total || 0, origem: "Subtotal Grupo 1 (Authority P1)" },
+      denominador: { rotulo: "Passivo Exigível", valor: r.passivo_circulante + r.passivo_nao_circulante, origem: "Subtotal Grupo 2 (Authority P1)" },
       resultado: isg,
       classificacao: isg >= 1.0 ? "Capacidade Plena" : "Dependência de Capital Próprio",
     },
