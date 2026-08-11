@@ -3266,7 +3266,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "Margem Líquida", formula: "Resultado / Receita", value: snapshot?.residual?.margins?.ytd?.value || reportDataset.ratios?.margemLiquida, interp: "Eficiência do lucro/prejuízo sobre as vendas" },
+                    { name: "Margem Líquida", formula: "Resultado / Receita", value: snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : (l.rl !== 0 ? l.ll / l.rl : NaN), interp: "Eficiência do lucro/prejuízo sobre as vendas" },
                     { name: "ROA (Retorno do Ativo)", formula: "Resultado / Ativo Total", value: reportDataset.ratios?.roa, interp: "Retorno gerado pelo ativo total" },
                     { name: "ROE (Retorno do PL)", formula: "Resultado / Patrimônio Líquido", value: reportDataset.ratios?.roe, interp: "Retorno ao acionista sobre capital investido" },
                   ].map(item => (
