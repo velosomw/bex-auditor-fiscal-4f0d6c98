@@ -223,7 +223,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.maxWidth = `${A4_W}px`;
     p.style.height = `${A4_H}px`;
     p.style.minHeight = `${A4_H}px`;
-    p.style.maxHeight = '245mm'; // §37..§47 Safe Zone
+    p.style.maxHeight = `${A4_H}px`; // Fixado para evitar cortes graduais
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
     p.style.contain = 'layout paint'; 
@@ -231,6 +231,13 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.transform = 'none';
     p.style.display = 'block'; 
     
+    // §SAFE-PAGINATION-GATE — Garante que blocos críticos do BEx não quebrem no meio
+    const criticalBlocks = p.querySelectorAll('.report-card-keep-together, .card, section');
+    criticalBlocks.forEach(b => {
+      (b as HTMLElement).style.breakInside = 'avoid';
+      (b as HTMLElement).style.pageBreakInside = 'avoid';
+    });
+
     // §42..§43 — Regras especiais para Páginas 3 e 4 do BEx
     if (idx === 2 || idx === 3) {
       p.style.pageBreakBefore = 'always';

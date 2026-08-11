@@ -191,23 +191,27 @@ export function resolveResidualFacts(
   const isTax = (n: AccountNode) => RX.tax.test(n.description) && !RX.labor.test(n.description);
   const isTaxInstallment = (n: AccountNode) => RX.installment.test(n.description) && isTax(n);
 
-  const taxIn = (prefix: string) =>
-    pickNonOverlapping(liabilities.filter(n => under(n, prefix)), isTax);
-  /** Parcelamentos tributários — descendentes dos grupos tributários já selecionados. */
+  /** §TAX-NONCURRENT-BINDING — garante que obrigações tributárias LP (2.2.3) sejam capturadas. */
+  const taxCurrentNodes = pickByTaxonomy(liabilities, "2.1", isTax, (n) => RX.labor.test(n.description) && !RX.tax.test(n.description));
+  const taxNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isTax, (n) => RX.labor.test(n.description) && !RX.tax.test(n.description));
+
+  // Se o seletor por taxonomia falhou em capturar o grupo sintético 2.2.3, forçamos a busca direta
+  if (taxNonCurrentNodes.length === 0) {
+    const syntheticTaxLP = liabilities.find(n => n.normalized_code === "2.2.3");
+    if (syntheticTaxLP && syntheticTaxLP.value !== 0) {
+      taxNonCurrentNodes.push(syntheticTaxLP);
+    }
+  }
+
   const instIn = (prefix: string, parents: AccountNode[]) =>
     pickNonOverlapping(
       liabilities.filter(
-        n => under(n, prefix) &&
+        n => n.normalized_code.startsWith(prefix + ".") &&
           parents.some(p => n.normalized_code === p.normalized_code || n.normalized_code.startsWith(p.normalized_code + "."))
       ),
       n => isTaxInstallment(n) && !parents.some(p => p.normalized_code === n.normalized_code)
     );
 
-  const isLaborNature = (n: AccountNode) => RX.labor.test(n.description) && !RX.tax.test(n.description);
-  // §MIXED-TAXONOMY — varre TODO o grupo 2.1/2.2 (não apenas 2.1.3/2.2.3) e desce
-  // em pais que misturam tributos e trabalhistas.
-  const taxCurrentNodes = pickByTaxonomy(liabilities, "2.1", isTax, isLaborNature);
-  const taxNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isTax, isLaborNature);
   const instCurrent = instIn("2.1", taxCurrentNodes);
   const instNonCurrent = instIn("2.2", taxNonCurrentNodes);
 
