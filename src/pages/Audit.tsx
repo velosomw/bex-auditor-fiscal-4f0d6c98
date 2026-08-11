@@ -2772,7 +2772,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
     { item: resultLabel, detail: `R$ ${fmt(snapshot?.facts.resultado_competencia ?? 0)}`, status: (snapshot?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
     { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(emprestimos)}`, status: "atencao" },
-    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.facts?.tax_noncurrent || snapshot?.residual?.tax?.noncurrent_obligations?.value || 0)}`, status: "atencao" },
+    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0)}`, status: "atencao" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -3528,7 +3528,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <TableCell className="text-xs py-2 text-primary">Obrigações Tributárias (LP)</TableCell>
                   {(snapshot?.competencies || []).map(y => {
                     const comp = snapshot?.byCompetency[y];
-                    const v = comp?.facts?.tax_noncurrent || comp?.residual?.tax?.noncurrent_obligations?.value || 0;
+                    const v = comp?.residual?.tax?.noncurrent_obligations?.value || comp?.facts?.tax_noncurrent || 0;
                     return (
                       <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                         {fmtDec(v / 1_000_000)}
