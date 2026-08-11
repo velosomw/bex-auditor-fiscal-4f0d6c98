@@ -3502,6 +3502,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
       {/* ── 7. RELATÓRIO KANITZ — CAPA ── */}
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
+
       {BEX_INCLUDE_KANITZ && latestKanitz && (
         <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
           <div className="report-page-header">
@@ -3550,6 +3552,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </div>
       )}
 
+
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
       {/* ── 7. SUMÁRIO EXECUTIVO KANITZ + TERMÔMETRO ── */}
       {BEX_INCLUDE_KANITZ && latestKanitz && (
         <ReportPage>
@@ -3607,6 +3611,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </ReportPage>
       )}
 
+
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
       {/* ── 8. MEMÓRIA DE CÁLCULO KANITZ ── */}
       {BEX_INCLUDE_KANITZ && latestKanitz && (
         <ReportPage>
