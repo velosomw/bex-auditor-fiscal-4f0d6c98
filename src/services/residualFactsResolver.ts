@@ -375,6 +375,8 @@ export function resolveResidualFacts(
   const lajirValue = lajirAvailable ? resultado + finExpAbs : NaN;
 
   // Interest Coverage calculation (§S01)
+  // §JAN-FAIL-CORRECTION: Use absolute Financial Expenses. 
+  // If result is -83k and finExp is 25k, coverage is -3.32x (economically correct).
   const coverageValue = (lajirAvailable && finExpAbs > 0.01) 
     ? lajirValue / finExpAbs 
     : NaN;
@@ -395,10 +397,13 @@ export function resolveResidualFacts(
   const ebitdaMethodB = resultado + incomeTaxValue - netFinResult + daTotal;
   
   const reconciliationDiff = Math.abs(ebitdaMethodA - ebitdaMethodB);
+  
+  // §EBITDA-CERTIFICATION-GATE: Diff must be small AND Result must be certified.
   const reconciled = lajirAvailable && daAvailable && reconciliationDiff <= 1.00;
 
   let ebitdaStatus: "CERTIFIED" | "NOT_CERTIFIED" | "NOT_AVAILABLE" | "NOT_APPLICABLE" = "NOT_AVAILABLE";
   if (!lajirAvailable) ebitdaStatus = "NOT_AVAILABLE";
+  else if (ctx.pl !== undefined && ctx.pl <= 0) ebitdaStatus = "NOT_APPLICABLE";
   else if (!reconciled) ebitdaStatus = "NOT_CERTIFIED";
   else ebitdaStatus = "CERTIFIED";
 
@@ -427,7 +432,7 @@ export function resolveResidualFacts(
       value: ebitdaStatus === "CERTIFIED" ? ebitdaMethodA : NaN,
       status: ebitdaStatus,
       unit: "BRL",
-      reason: ebitdaStatus === "CERTIFIED" ? "EBITDA certificado via dupla reconciliação (§MD-BEX-001)" : `Falha na reconciliação: dif R$ ${reconciliationDiff.toFixed(2)}`,
+      reason: ebitdaStatus === "CERTIFIED" ? "EBITDA certificado via dupla reconciliação (§MD-BEX-001)" : (ebitdaStatus === "NOT_APPLICABLE" ? "Não aplicável — Patrimônio Líquido negativo" : `Falha na reconciliação: dif R$ ${reconciliationDiff.toFixed(2)}`),
       memory: {
         methodA: ebitdaMethodA,
         methodB: ebitdaMethodB,

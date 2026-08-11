@@ -3345,10 +3345,10 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             )}
           </div>
 
-          {reportDataset && (
-            <div>
+            {reportDataset && (
+            <div className="report-card-keep-together break-inside-avoid">
               <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA ({activeYear || latestYear})</h3>
-              <div className="p-4 rounded-lg bg-muted/30 text-center report-card-keep-together break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
+              <div className="p-4 rounded-lg bg-muted/30 text-center" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
                 {(reportDataset.ratios?.ebitdaStatus === "CERTIFIED" || reportDataset.ratios?.ebitdaStatus === "AVAILABLE" as any) && Number.isFinite(reportDataset.ratios.ebitda) ? (
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
@@ -3357,7 +3357,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-foreground">EBITDA N/A — Não certificado a partir do balancete</p>
+                    <p className="text-sm font-semibold text-foreground">EBITDA N/A — {snapshot?.residual?.ebitda.status === "NOT_APPLICABLE" ? "Não Aplicável (PL Negativo)" : "Não certificado a partir do balancete"}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados ou reconciliados."}</p>
                   </>
                 )}
@@ -3381,7 +3381,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Empréstimos e Financiamentos (CP + LP)", value: emprestimos, available: borrowAvail, scope: "Total oneroso (CP + LP certificado, exclui arrendamentos)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
-                { label: "Obrigações Tributárias (LP)", value: snapshot?.facts?.tax_noncurrent || snapshot?.residual?.tax?.noncurrent_obligations?.value || 0, available: true, scope: "Grupo 2.2.3 (Certified Binding)" },
+                { label: "Obrigações Tributárias (LP)", value: snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0, available: true, scope: "Grupo 2.2.3 (Certified Binding)" },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
                 { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
