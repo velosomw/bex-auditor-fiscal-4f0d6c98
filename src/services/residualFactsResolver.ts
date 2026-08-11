@@ -408,7 +408,7 @@ export function resolveResidualFacts(
       value: lajirValue,
       status: lajirAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
       reason: lajirAvailable
-        ? "Resultado + Despesas Financeiras − Receitas Financeiras + Tributos sobre o Lucro"
+        ? "LAJIR (EBIT) = Resultado do período + Despesas Financeiras"
         : !resultCertified
           ? "Resultado do período não certificado — LAJIR não calculável"
           : "Despesas financeiras não identificadas no balancete",
