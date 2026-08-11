@@ -4373,10 +4373,10 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </p>
           <div className="grid sm:grid-cols-4 gap-3">
             {[
-              { label: "EBITDA Certificado", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
+              { label: "EBITDA Certificado", value: snap?.residual?.ebitda?.status === "AVAILABLE" ? snap.residual.ebitda.value : NaN, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
               { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: Number.isFinite(coberturaJuros) && coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
               { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
-              { label: "Margem Líquida", value: snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : margemLiquida, format: "pct", alert: (snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : margemLiquida) < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
+              { label: "Margem Líquida", value: snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : margemLiquida, format: "pct", alert: (snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : margemLiquida) < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
                 <p className="text-[10px] text-muted-foreground">{item.label}</p>
