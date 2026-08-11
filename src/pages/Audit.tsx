@@ -651,54 +651,56 @@ const timelineSteps = [
   { id: 5, label: "Relatório Final", icon: BookOpen },
 ];
 
-const StepTimeline = ({ currentStep }: { currentStep: number }) => (
-  <div className="w-full mb-8">
-    <div className="flex items-center justify-between relative">
-      {/* Connecting line */}
-      <div className="absolute top-5 left-0 right-0 h-[2px] bg-border z-0" />
-      <div
-        className="absolute top-5 left-0 h-[2px] z-[1] transition-all duration-700"
-        style={{
-          width: `${((Math.min(currentStep, timelineSteps.length) - 1) / (timelineSteps.length - 1)) * 100}%`,
-          background: "linear-gradient(90deg, #8B5CF6, #F59E0B)",
-        }}
-      />
+function StepTimeline({ currentStep }: { currentStep: number }) {
+  return (
+    <div className="w-full mb-8">
+      <div className="flex items-center justify-between relative">
+        {/* Connecting line */}
+        <div className="absolute top-5 left-0 right-0 h-[2px] bg-border z-0" />
+        <div
+          className="absolute top-5 left-0 h-[2px] z-[1] transition-all duration-700"
+          style={{
+            width: `${((Math.min(currentStep, timelineSteps.length) - 1) / (timelineSteps.length - 1)) * 100}%`,
+            background: "linear-gradient(90deg, #8B5CF6, #F59E0B)",
+          }}
+        />
 
-      {timelineSteps.map((step) => {
-        const isActive = step.id === currentStep;
-        const isComplete = step.id < currentStep;
-        const Icon = step.icon;
+        {timelineSteps.map((step) => {
+          const isActive = step.id === currentStep;
+          const isComplete = step.id < currentStep;
+          const Icon = step.icon;
 
-        return (
-          <div key={step.id} className="flex flex-col items-center z-10 relative" style={{ flex: 1 }}>
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-                isComplete
-                  ? "bg-[#8B5CF6] border-[#8B5CF6] text-white"
-                  : isActive
-                  ? "bg-white border-[#8B5CF6] text-[#8B5CF6] shadow-lg shadow-[#8B5CF6]/20"
-                  : "bg-white border-border text-muted-foreground"
-              }`}
-            >
-              {isComplete ? (
-                <CheckCircle2 className="w-5 h-5" />
-              ) : (
-                <Icon className={`w-4 h-4 ${isActive && step.icon === Loader2 ? "animate-spin" : ""}`} />
-              )}
+          return (
+            <div key={step.id} className="flex flex-col items-center z-10 relative" style={{ flex: 1 }}>
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                  isComplete
+                    ? "bg-[#8B5CF6] border-[#8B5CF6] text-white"
+                    : isActive
+                    ? "bg-white border-[#8B5CF6] text-[#8B5CF6] shadow-lg shadow-[#8B5CF6]/20"
+                    : "bg-white border-border text-muted-foreground"
+                }`}
+              >
+                {isComplete ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : (
+                  <Icon className={`w-4 h-4 ${isActive && step.icon === Loader2 ? "animate-spin" : ""}`} />
+                )}
+              </div>
+              <span
+                className={`text-[11px] mt-2 font-medium text-center leading-tight ${
+                  isActive ? "text-[#8B5CF6]" : isComplete ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {step.label}
+              </span>
             </div>
-            <span
-              className={`text-[11px] mt-2 font-medium text-center leading-tight ${
-                isActive ? "text-[#8B5CF6]" : isComplete ? "text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {step.label}
-            </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
 /* ══════════════════════════════════════════════════════
    PHASE 1: UPLOAD (Configuração + Carregamento)
