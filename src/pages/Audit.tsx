@@ -2819,15 +2819,6 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-1.5 border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/5" 
-            onClick={() => setShowFormulasReport(!showFormulasReport)}
-          >
-            <BookOpen className="w-4 h-4" /> 
-            {showFormulasReport ? "Voltar ao Relatório" : "Fórmulas do Motor"}
-          </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
