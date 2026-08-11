@@ -3877,7 +3877,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   // §35..§41 — cadeia derivada: sem base certificada (LAJIR/Desp.Fin/EBITDA), publica-se NaN → "N/A".
   const coberturaJuros = Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN;
   const indiceGeracaoCaixa = Number.isFinite(ebitda) && l.rl !== 0 ? ebitda / l.rl : NaN;
-  const margemLiquida = l.rl !== 0 ? l.ll / l.rl : 0;
+  const margemLiquida = (snap?.residual?.margins?.ytd?.status === "AVAILABLE") 
+    ? snap.residual.margins.ytd.value 
+    : (l.rl !== 0 ? l.ll / l.rl : 0);
   const despFinSobreReceita = l.rl !== 0 ? l.despFin / l.rl : 0;
   const estoquesSobreAC = l.ac !== 0 ? l.estoque / l.ac : 0;
   const giroAtivo = l.at !== 0 ? l.rl / l.at : 0;
