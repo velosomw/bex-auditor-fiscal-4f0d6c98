@@ -448,10 +448,10 @@ export function resolveResidualFacts(
       current_month: {
         // §PATCH-03: Hard sign and period context parity
         // Se o resultado for negativo, a margem deve ser negativa. 
-        value: (ctx.receita_certified && ctx.resultado_competencia_available && ctx.resultado_certified) 
+        value: (ctx.receita_certified && ctx.resultado_competencia_available && ctx.resultado_certified && ctx.receita_liquida !== 0) 
           ? (Number(ctx.resultado) / Number(ctx.receita_liquida)) 
           : NaN,
-        status: (ctx.receita_certified && ctx.resultado_competencia_available && ctx.resultado_certified) ? "AVAILABLE" : "NOT_AVAILABLE",
+        status: (ctx.receita_certified && ctx.resultado_competencia_available && ctx.resultado_certified && ctx.receita_liquida !== 0) ? "AVAILABLE" : "NOT_AVAILABLE",
         label: "Margem da Competência"
       },
       ytd: {

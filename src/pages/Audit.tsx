@@ -3420,6 +3420,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">5.3 Análise Estratégica</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
               <p className="text-xs text-foreground leading-relaxed">
+                {(snapshot?.residual?.ebitda.status === "CERTIFIED" || snapshot?.residual?.ebitda.status === "AVAILABLE" as any) ? (
+                  "A empresa apresenta indicadores financeiros certificados, permitindo uma análise de risco baseada em fatos econômicos reconciliados. A cobertura de juros e a geração de caixa (EBITDA) são os pilares da continuidade operacional nesta competência."
+                ) : (
+                  "Atenção: A análise de risco está limitada nesta competência devido à falta de certificação de indicadores derivados (EBITDA/Margens). Recomenda-se cautela na interpretação das projeções de fluxo de caixa até que a memória de cálculo seja reconciliada com o balancete."
+                )}
+              </p>
                 A estrutura de endividamento revela passivo não circulante de R$ {fmt(pnc)}, representando {ptotal ? fmtPct(pnc / ptotal) : "0,0%"} do passivo total. 
                 A dívida onerosa total (empréstimos) de R$ {fmt(emprestimos)} exige monitoramento contínuo da capacidade de refinanciamento e dos covenants ativos.
               </p>
