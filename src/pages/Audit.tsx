@@ -3208,7 +3208,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       const total = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
                       return {
                         name: y,
-                        "OBRIG. TRIBUTÁRIAS": (snapshot?.residual?.tax?.total_exposure?.value || (tributarias_cp + tributarias_lp)) / 1000,
+                        "OBRIG. TRIBUTÁRIAS": (snapshot?.residual?.tax?.total_exposure?.value || tributarias) / 1000,
                         "OBRIG. TRABALHISTAS": trabalhistas / 1000,
                         "EMPR. E FINANCIAMENTOS": emprestimos / 1000,
                         "FORNECEDORES": fornecedores / 1000,
