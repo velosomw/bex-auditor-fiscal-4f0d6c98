@@ -4044,7 +4044,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 <>
                   A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(reportDataset?.facts.patrimonio_liquido || 0)} (Ativo Total R$ {fmt((reportDataset?.facts.ativo_circulante || 0) + (reportDataset?.facts.ativo_nao_circulante || 0))} vs Passivo Total R$ {fmt((reportDataset?.facts.passivo_circulante || 0) + (reportDataset?.facts.passivo_nao_circulante || 0))}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
                   <br /><br />
-                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(reportDataset?.ratios.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(reportDataset?.ratios.isg ?? 0) < 1
+                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Exigível (PC + PNC))</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(reportDataset?.ratios.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(reportDataset?.ratios.isg ?? 0) < 1
                     ? "O ativo total não cobre as obrigações totais, caracterizando insolvência técnica e demandando reestruturação patrimonial (Lei 11.101/2005) ou aporte de capital."
                     : (reportDataset?.ratios.isg ?? 0) < 1.5
                     ? "Cobertura patrimonial estreita: cada R$ 1,00 de dívida é lastreada por menos de R$ 1,50 de ativos."
@@ -4112,7 +4112,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Índice de Solvência Geral</p>
               <p className={`text-5xl font-bold ${isgClass.color}`}>{(l.isg ?? 0).toFixed(2)}</p>
               <p className={`text-sm font-semibold mt-2 ${isgClass.color}`}>{isgClass.icon} {isgClass.label}</p>
-              <p className="text-xs text-muted-foreground mt-1">ISG = Ativo Total (R$ {fmt(l.at)}) / Passivo Total (R$ {fmt(l.pt)})</p>
+              <p className="text-xs text-muted-foreground mt-1">ISG = Ativo Total (R$ {fmt(l.at)}) / Passivo Exigível (PC + PNC) (R$ {fmt(l.pt)})</p>
             </div>
           </div>
 
@@ -4561,8 +4561,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="space-y-4">
             {[
               { title: "Diagnóstico Financeiro", text: !kAplic
-                ? `A empresa apresenta Patrimônio Líquido de R$ ${fmt(l.pl)} (negativo), Ativo Total de R$ ${fmt(l.at)} e Passivo Total de R$ ${fmt(l.pt)}. Nessas condições, o modelo Kanitz não se aplica: substitui-se pelo Índice de Solvência Geral (ISG = AT/PT) = ${(l.isg ?? 0).toFixed(2)} — ${isgClass.label}. O Endividamento Total é de ${fmtPct(endivTotal)}, configurando estrutura patrimonial ${endivTotal > 0.9 ? "criticamente alavancada" : endivTotal > 0.7 ? "altamente dependente de capital de terceiros" : "moderadamente alavancada"}.`
-                : `A empresa apresenta Fator de Insolvência de ${fiFmt(l.fi, kAplic)} (${classColors[l.classificacao]?.label}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}. ISG = ${(l.isg ?? 0).toFixed(2)}.` },
+                ? `A empresa apresenta Patrimônio Líquido de R$ ${fmt(l.pl)} (negativo), Ativo Total de R$ ${fmt(l.at)} e Passivo Total de R$ ${fmt(l.pt)}. Nessas condições, o modelo Kanitz não se aplica: substitui-se pelo Índice de Solvência Geral (ISG = AT / (PC + PNC)) = ${(l.isg ?? 0).toFixed(2)} — ${isgClass.label}. O Endividamento Total é de ${fmtPct(endivTotal)}, configurando estrutura patrimonial ${endivTotal > 0.9 ? "criticamente alavancada" : endivTotal > 0.7 ? "altamente dependente de capital de terceiros" : "moderadamente alavancada"}.`
+                : `A empresa apresenta Fator de Insolvência de ${fiFmt(l.fi, kAplic)} (${classColors[l.classificacao]?.label}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}. ISG = AT / (PC + PNC) = ${(l.isg ?? 0).toFixed(2)}.` },
 
 
               { title: "Causas de Deterioração", text: previous
