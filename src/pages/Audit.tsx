@@ -660,7 +660,7 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
         className="absolute top-5 left-0 h-[2px] z-[1] transition-all duration-700"
         style={{
           width: `${((Math.min(currentStep, timelineSteps.length) - 1) / (timelineSteps.length - 1)) * 100}%`,
-          background: "linear-gradient(90deg, hsl(258 90% 66%), hsl(38 85% 55%))",
+          background: "linear-gradient(90deg, hsl(258, 90%, 66%), hsl(38, 85%, 55%))",
         }}
       />
 
