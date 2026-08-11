@@ -254,7 +254,10 @@ export interface BSDadosRow {
   outras_obrigacoes: number;
   divida_total: number;
   ebitda: number;
-  tax_noncurrent?: number; // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §8
+  tax_noncurrent?: number; 
+  formula_engine_version?: string;
+  data_quality?: string;
+
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
   facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts' | 'company_name' | 'company_cnpj'>, FinancialFact['status']>;
   hasReceita: boolean;
@@ -344,6 +347,9 @@ function emptyRow(mesKey: string): BSDadosRow {
     divida_financeira_cp: 0, divida_financeira_lp: 0,
     fornecedores: 0, fornecedores_lp: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0, lajir: 0,
     tax_noncurrent: 0,
+    formula_engine_version: "BEX-ACCOUNTING-FORMULA-ENGINE-2.0",
+    data_quality: "CERTIFIED",
+
     facts_status: {
       receita_liquida: "NOT_AVAILABLE", cmv: "NOT_AVAILABLE", despesas: "NOT_AVAILABLE",
       despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
