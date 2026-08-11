@@ -3332,7 +3332,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           {reportDataset && (
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA ({activeYear || latestYear})</h3>
-              <div className="p-4 rounded-lg bg-muted/30 text-center break-inside-avoid">
+              <div className="p-4 rounded-lg bg-muted/30 text-center report-card-keep-together break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
                 {reportDataset.ratios?.ebitdaStatus === "AVAILABLE" ? (
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
@@ -3423,7 +3423,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       <ReportPage className={years.length > 6 ? "landscape" : ""}>
         <div className="space-y-4">
           <SectionTitle num="6" title="BALANÇO PATRIMONIAL CONSOLIDADO" />
-          <div className="text-center mb-2">
+          <div className="text-center mb-2 report-card-keep-together break-inside-avoid">
             <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">ESTRUTURA PATRIMONIAL POR GRANDES GRUPOS</h3>
             <p className="text-[10px] text-muted-foreground mt-1">Série Histórica Consolidada (Valores em R$ milhões)</p>
           </div>
