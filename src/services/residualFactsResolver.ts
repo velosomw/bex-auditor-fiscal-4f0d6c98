@@ -73,6 +73,11 @@ export interface ResidualFacts {
   depreciation: ComposedFact;
   amortization: ComposedFact;
   suppliers_noncurrent: ComposedFact;
+  /** §MARGIN-SSOT — Margens de rentabilidade com sinais absolutos unificados. */
+  margins: {
+    current_month: { value: number; status: ResidualStatus; label: string };
+    ytd: { value: number; status: ResidualStatus; label: string };
+  };
 }
 
 const RX = {
@@ -95,6 +100,8 @@ const RX = {
   depreciation: /DEPRECIA/,
   amortization: /AMORTIZA/,
 };
+
+const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : NaN);
 
 const under = (n: AccountNode, prefix: string) =>
   n.normalized_code === prefix || n.normalized_code.startsWith(prefix + ".");
@@ -230,7 +237,9 @@ export function resolveResidualFacts(
           excluded_accounts: instNonCurrent.map(ref),
           calculation_scope: "Obrigações tributárias de longo prazo (grupo 2.2), líquidas de parcelamentos tributários",
         }
-      : EMPTY("Obrigações tributárias LP não identificadas no balancete"),
+      : (taxNonCurrentTotal !== 0 
+          ? { value: Math.abs(taxNonCurrentTotal), status: "AVAILABLE", included_accounts: [], excluded_accounts: [], calculation_scope: "Obrigações tributárias LP (saldos sintéticos/fallback)" }
+          : EMPTY("Obrigações tributárias LP não identificadas no balancete")),
     noncurrent_installments: instNonCurrent.length
       ? { ...compose(instNonCurrent, "Parcelamentos tributários de longo prazo"), value: Math.abs(instNonCurrentTotal) }
       : EMPTY("Parcelamentos tributários LP não identificados no balancete"),
@@ -389,10 +398,10 @@ export function resolveResidualFacts(
 
 
 
-  // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   // §SSOT-COVERAGE: Hard Parity between BEx and Kanitz
-  const coverageValue = (ebitdaAvailable && financial_expenses.analysis_value > 10) 
-    ? lajirValue / financial_expenses.analysis_value 
+  // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §27..§35
+  const coverageValue = (ebitdaAvailable && Math.abs(financial_expenses.analysis_value) > 0.01) 
+    ? lajirValue / Math.abs(financial_expenses.analysis_value) 
     : NaN;
 
   return {
@@ -425,6 +434,18 @@ export function resolveResidualFacts(
       value: coverageValue,
       status: Number.isFinite(coverageValue) ? "AVAILABLE" : "NOT_AVAILABLE",
     },
+    margins: {
+      current_month: {
+        value: (ctx.receita_certified && ctx.resultado_competencia_available) ? (num(ctx.resultado) / num(ctx.receita_liquida)) : NaN,
+        status: (ctx.receita_certified && ctx.resultado_competencia_available) ? "AVAILABLE" : "NOT_AVAILABLE",
+        label: "Margem da Competência"
+      },
+      ytd: {
+        value: (ctx.receita_certified && resultCertified) ? (num(resultado) / num(ctx.receita_liquida)) : NaN,
+        status: (ctx.receita_certified && resultCertified) ? "AVAILABLE" : "NOT_AVAILABLE",
+        label: "Margem Acumulada"
+      }
+    }
   };
 }
 

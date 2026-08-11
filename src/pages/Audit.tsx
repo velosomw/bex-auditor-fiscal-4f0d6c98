@@ -84,7 +84,8 @@ export interface CanonicalReportDataset {
 
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
-const FINAL_4_POINT_CORE_FREEZE = true; // MD-BEX-FINAL-4-POINT-CONSUMER-DERIVED-METADATA-AND-PAGINATION-CORRECTION-001 §2
+const FINAL_RUNTIME_4_BINDING_PATCH_FREEZE = true; 
+const ACCOUNTING_CORE_FREEZE = true;
 
 /* ── Helpers ── */
 /** §47/§48 — FI nunca é publicado como 0.00 ou NaN: quando indisponível/inaplicável, é "N/A". */
@@ -200,11 +201,13 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
   const pages = Array.from(clone.querySelectorAll<HTMLElement>('.report-a4-page, .report-a4-cover'));
   pages.forEach((p, idx) => {
     // CORREÇÃO 04 — SAFE PAGINATION: Executar pageBreakBefore nas páginas 3/4
+    // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §60..§62
     if (idx === 2 || idx === 3) {
        p.style.pageBreakBefore = 'always';
+       p.style.breakBefore = 'page';
     }
     p.style.margin = '0';
-    p.style.padding = '0'; // Força remoção de padding que pode causar overflow
+    p.style.padding = '0'; 
     p.style.boxShadow = 'none';
     p.style.border = 'none';
     p.style.borderRadius = '0';
@@ -212,14 +215,15 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.maxWidth = `${A4_W}px`;
     p.style.height = `${A4_H}px`;
     p.style.minHeight = `${A4_H}px`;
-    p.style.maxHeight = `${A4_H}px`;
+    p.style.maxHeight = '245mm'; // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §55..§65
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
-    p.style.contain = 'layout paint'; // Otimização de renderização
+    p.style.contain = 'layout paint'; 
     p.style.position = 'relative';
     p.style.transform = 'none';
-    p.style.display = 'block'; // Garante que seja block
+    p.style.display = 'block'; 
     p.style.pageBreakAfter = 'always';
+    p.style.breakAfter = 'page';
   });
 
   wrapper.appendChild(clone);
@@ -2835,8 +2839,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div className="mt-10 space-y-1.5 text-sm text-muted-foreground">
             <p className="font-semibold text-foreground text-base">Empresa Analisada: {snapshot?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p>
-            <p>CNPJ: {company?.cnpj || "Não identificado no balancete"}</p>
-            <p>Data-base do Balancete: {activeYear || latestYear || "Não identificada no balancete"}</p>
+            <p>CNPJ: {snapshot?.metadata?.company_cnpj || company?.cnpj || "Não identificado no balancete"}</p>
+            <p>Data-base do Balancete: {snapshot?.competency || activeYear || latestYear || "Não identificada no balancete"}</p>
             <p>Arquivo de Origem: {snapshot?.source_file_name || uploadedFiles?.[0]?.name || sourceDocs?.[0]?.fileName || "Não identificado"}</p>
             <p>Data de Emissão: {today}</p>
           </div>
@@ -2994,6 +2998,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </div>
       </ReportPage>
 
+
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
       {/* ── 3. ANÁLISE TÉCNICA — PENDÊNCIAS ── */}
       <ReportPage>
         <div className="space-y-4">
@@ -3078,6 +3084,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </div>
       </ReportPage>
 
+
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
       {/* ── 4. INDICADORES ECONÔMICO-FINANCEIROS ── */}
       <ReportPage>
         <div className="space-y-4">
@@ -3101,6 +3109,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
                     { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
                     { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
+                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.facts?.tax_noncurrent || snapshot?.residual?.tax?.noncurrent_obligations?.value || 0, interp: "Exposição fiscal de longo prazo" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3217,7 +3226,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia ?? 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
                 { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado ?? 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
-                { label: "Margem Líquida (Período)", value: snapshot?.facts.receita_liquida ? (snapshot.facts.resultado_competencia ?? 0) / snapshot.facts.receita_liquida : 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE" && snapshot?.facts.receita_liquida > 0, scope: "Resultado Competência / Receita" },
+                { label: "Margem Líquida (Período)", value: snapshot?.residual?.margins?.current_month?.value || 0, available: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE", scope: "Resultado Competência / Receita" },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
@@ -3250,7 +3259,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "Margem Líquida", formula: "Resultado / Receita", value: reportDataset.ratios?.margemLiquida, interp: "Eficiência do lucro/prejuízo sobre as vendas" },
+                    { name: "Margem Líquida", formula: "Resultado / Receita", value: snapshot?.residual?.margins?.ytd?.value || reportDataset.ratios?.margemLiquida, interp: "Eficiência do lucro/prejuízo sobre as vendas" },
                     { name: "ROA (Retorno do Ativo)", formula: "Resultado / Ativo Total", value: reportDataset.ratios?.roa, interp: "Retorno gerado pelo ativo total" },
                     { name: "ROE (Retorno do PL)", formula: "Resultado / Patrimônio Líquido", value: reportDataset.ratios?.roe, interp: "Retorno ao acionista sobre capital investido" },
                   ].map(item => (
@@ -3497,6 +3506,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
 
       {/* ── 7. RELATÓRIO KANITZ — CAPA ── */}
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
+
       {BEX_INCLUDE_KANITZ && latestKanitz && (
         <div className="report-a4-cover" style={{ "--report-watermark": `url(${folhaRostoBg})` } as React.CSSProperties}>
           <div className="report-page-header">
@@ -3517,7 +3528,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
               </span>
             </div>
             <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
-              <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">{company?.name || "Não identificada no balancete"}</p></div>
+              <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p><p className="font-semibold text-foreground">{snapshot?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p></div>
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p><p className="font-semibold text-foreground">{kanitzResults.map(r => r.year).join(" / ")}</p></div>
               <div><p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Emissão</p><p className="font-semibold text-foreground">{today}</p></div>
             </div>
@@ -3545,6 +3556,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </div>
       )}
 
+
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
       {/* ── 7. SUMÁRIO EXECUTIVO KANITZ + TERMÔMETRO ── */}
       {BEX_INCLUDE_KANITZ && latestKanitz && (
         <ReportPage>
@@ -3602,6 +3615,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         </ReportPage>
       )}
 
+
+      <div className="report-page-break" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
       {/* ── 8. MEMÓRIA DE CÁLCULO KANITZ ── */}
       {BEX_INCLUDE_KANITZ && latestKanitz && (
         <ReportPage>
@@ -3870,9 +3885,13 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   // MD-001 Point 29: EBITDA Certificado (Somente se componentes SSOT disponíveis)
   const ebitda = l.ebitda;
   // §35..§41 — cadeia derivada: sem base certificada (LAJIR/Desp.Fin/EBITDA), publica-se NaN → "N/A".
-  const coberturaJuros = Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN;
+  const coberturaJuros = (snap?.residual?.interest_coverage?.status === "AVAILABLE") 
+    ? snap.residual.interest_coverage.value 
+    : (Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN);
   const indiceGeracaoCaixa = Number.isFinite(ebitda) && l.rl !== 0 ? ebitda / l.rl : NaN;
-  const margemLiquida = l.rl !== 0 ? l.ll / l.rl : 0;
+  const margemLiquida = (snap?.residual?.margins?.ytd?.status === "AVAILABLE") 
+    ? snap.residual.margins.ytd.value 
+    : (l.rl !== 0 ? l.ll / l.rl : 0);
   const despFinSobreReceita = l.rl !== 0 ? l.despFin / l.rl : 0;
   const estoquesSobreAC = l.ac !== 0 ? l.estoque / l.ac : 0;
   const giroAtivo = l.at !== 0 ? l.rl / l.at : 0;
@@ -3971,7 +3990,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p>
-              <p className="font-semibold text-foreground">{company?.name || "Não identificada no balancete"}</p>
+              <p className="font-semibold text-foreground">{snap?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p>

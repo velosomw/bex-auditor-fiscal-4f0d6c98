@@ -41,6 +41,7 @@ export interface CanonicalFacts {
   divida_financeira: number;
   divida_financeira_cp: number;
   divida_financeira_lp: number;
+  tax_noncurrent: number; // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §8
 }
 
 export interface CanonicalKanitzModel {
@@ -152,6 +153,7 @@ function factsFromRow(r: BSDadosRow): CanonicalFacts {
     divida_financeira: Math.abs(r.divida_financeira || 0),
     divida_financeira_cp: Math.abs((r as any).divida_financeira_cp || 0),
     divida_financeira_lp: Math.abs((r as any).divida_financeira_lp || 0),
+    tax_noncurrent: num((r as any).tax_noncurrent || 0),
   };
 }
 

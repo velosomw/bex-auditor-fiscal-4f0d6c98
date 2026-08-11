@@ -249,10 +249,12 @@ export interface BSDadosRow {
   divida_financeira_cp: number;
   divida_financeira_lp: number;
   fornecedores: number;
+  fornecedores_lp: number;
   credores_rj: number;
   outras_obrigacoes: number;
   divida_total: number;
   ebitda: number;
+  tax_noncurrent?: number; // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §8
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
   facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts' | 'company_name' | 'company_cnpj'>, FinancialFact['status']>;
   hasReceita: boolean;
@@ -340,7 +342,8 @@ function emptyRow(mesKey: string): BSDadosRow {
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     divida_financeira_cp: 0, divida_financeira_lp: 0,
-    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0, lajir: 0,
+    fornecedores: 0, fornecedores_lp: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0, lajir: 0,
+    tax_noncurrent: 0,
     facts_status: {
       receita_liquida: "NOT_AVAILABLE", cmv: "NOT_AVAILABLE", despesas: "NOT_AVAILABLE",
       despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
@@ -356,8 +359,9 @@ function emptyRow(mesKey: string): BSDadosRow {
       patrimonio_liquido: "NOT_AVAILABLE", divida_tributaria: "NOT_AVAILABLE",
       divida_trabalhista: "NOT_AVAILABLE", divida_financeira: "NOT_AVAILABLE",
       divida_financeira_cp: "NOT_AVAILABLE", divida_financeira_lp: "NOT_AVAILABLE",
-      fornecedores: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
+      fornecedores: "NOT_AVAILABLE", fornecedores_lp: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
       outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE", lajir: "NOT_AVAILABLE",
+      tax_noncurrent: "NOT_AVAILABLE",
     },
 
     hasReceita: false, hasBalanco: false, errors: [],
@@ -685,8 +689,8 @@ function applyValue(
         (target as any)[key] = (target[key] as number) + Math.abs(v); break;
       case "fornecedores": {
         const descN = toUpperNoAccent(ref1 || "");
-        const codePrefix = String(ref1 || "").substring(0, 1);
-        const isAtivo = codePrefix === "1" || (parentGTPresent && buckets.groupTotalsPresent.has("11"));
+        const codePrefix = String(sourceRow.conta || "").trim().substring(0, 1);
+        const isAtivo = codePrefix === "1";
         if (!isAtivo) {
            (target as any)[key] = (target[key] as number) + Math.abs(v);
         }
@@ -746,6 +750,8 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     row.ativo_nao_circulante = buckets.sawANCTotal ? (buckets.declaredByGroup["12"] ?? buckets.anc) : buckets.anc;
     row.passivo_circulante = buckets.sawPCTotal ? (buckets.declaredByGroup["21"] ?? buckets.pc) : buckets.pc;
     row.passivo_nao_circulante = buckets.sawPNCTotal ? (buckets.declaredByGroup["22"] ?? buckets.pnc) : buckets.pnc;
+    // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §8..§10 — Bind tax.noncurrent strictly to 2.2.3
+    row.tax_noncurrent = buckets.declaredByGroup["223"] || buckets.declaredByGroup["2.2.3"] || 0;
     row.patrimonio_liquido = buckets.sawPLTotal ? (buckets.declaredByGroup["23"] ?? buckets.pl) : buckets.pl;
   }
 
