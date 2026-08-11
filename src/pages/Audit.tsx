@@ -688,7 +688,7 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
             </div>
             <span
               className={`text-[11px] mt-2 font-medium text-center leading-tight ${
-                isActive ? "text-[hsl(258,90%,66%)]" : isComplete ? "text-foreground" : "text-muted-foreground"
+                isActive ? "text-[#8B5CF6]" : isComplete ? "text-foreground" : "text-muted-foreground"
               }`}
             >
               {step.label}
