@@ -73,6 +73,11 @@ export interface ResidualFacts {
   depreciation: ComposedFact;
   amortization: ComposedFact;
   suppliers_noncurrent: ComposedFact;
+  /** §MARGIN-SSOT — Margens de rentabilidade com sinais absolutos unificados. */
+  margins: {
+    current_month: { value: number; status: ResidualStatus; label: string };
+    ytd: { value: number; status: ResidualStatus; label: string };
+  };
 }
 
 const RX = {
