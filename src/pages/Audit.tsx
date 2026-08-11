@@ -3820,6 +3820,17 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <ArrowLeft className="w-4 h-4" /> Nova Análise
         </Button>
       </div>
+      
+      {showFormulasReport && (
+        <div className="mt-8 border-t-4 border-[#8B5CF6] pt-8">
+          <ReportFormulas 
+            companyName={company?.name || "Empresa Analisada"} 
+            cnpj={company?.cnpj} 
+            runtimeTraceId={reportDataset?.runtime_trace_id} 
+            onExportPdf={exportFormulasReport}
+          />
+        </div>
+      )}
     </div>
   );
 };
