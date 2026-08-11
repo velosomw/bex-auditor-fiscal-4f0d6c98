@@ -29,6 +29,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AuditProvider, useAudit } from "@/contexts/AuditContext";
 import { computeIndicatorsForRow, type IndicatorRow } from "@/services/indicatorsEngine";
+import { ReportFormulas } from "@/components/audit/ReportFormulas";
 import PlatformLayout from "@/components/PlatformLayout";
 import { useUrlScrollSync } from "@/hooks/useUrlScrollSync";
 import { parseFile, parseMultipleFiles, analyzeFinancialData, runAuditPipeline, streamAuditChat, isPDF, isDocument, isDataFile, getFileFormat, inferRefByCode, type ParsedFinancialData, type ConsolidatedFinancialData } from "@/services/auditAIService";
@@ -141,6 +142,10 @@ const printReport = (containerId: string, reportTitle: string) => {
 
 /** Guard global: impede múltiplas exportações simultâneas de PDF. */
 let pdfExportInProgress = false;
+
+const exportFormulasReport = async () => {
+  await exportPdf('report-formulas-container', 'BEx_Relatorio_Formulas_Tecnicas');
+};
 
 /** Exporta o container como PDF baixado automaticamente (sem abrir diálogo). */
 const exportPdf = async (containerId: string, reportTitle: string) => {
@@ -2575,6 +2580,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const navigate = useNavigate();
   const reportContainerRef = useRef<HTMLDivElement>(null);
   const [totalPages, setTotalPages] = useState(0);
+  const [showFormulasReport, setShowFormulasReport] = useState(false);
 
   useEffect(() => {
     if (reportContainerRef.current) {
@@ -2805,6 +2811,15 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1.5 border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/5" 
+            onClick={() => setShowFormulasReport(!showFormulasReport)}
+          >
+            <BookOpen className="w-4 h-4" /> 
+            {showFormulasReport ? "Voltar ao Relatório" : "Fórmulas do Motor"}
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => exportPdf('report-bex-container', 'Relatório BEX')}>
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
@@ -3805,6 +3820,17 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <ArrowLeft className="w-4 h-4" /> Nova Análise
         </Button>
       </div>
+      
+      {showFormulasReport && (
+        <div className="mt-8 border-t-4 border-[#8B5CF6] pt-8">
+          <ReportFormulas 
+            companyName={company?.name || "Empresa Analisada"} 
+            cnpj={company?.cnpj} 
+            runtimeTraceId={reportDataset?.runtime_trace_id} 
+            onExportPdf={exportFormulasReport}
+          />
+        </div>
+      )}
     </div>
   );
 };
