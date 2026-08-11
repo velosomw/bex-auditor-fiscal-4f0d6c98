@@ -424,10 +424,10 @@ export function resolveResidualFacts(
         : "Resultado do período ou despesas financeiras não certificados",
     },
     ebitda: {
-      value: reconciled ? ebitdaMethodA : NaN,
+      value: ebitdaStatus === "CERTIFIED" ? ebitdaMethodA : NaN,
       status: ebitdaStatus,
       unit: "BRL",
-      reason: reconciled ? "EBITDA certificado via dupla reconciliação (§MD-BEX-001)" : `Falha na reconciliação: dif R$ ${reconciliationDiff.toFixed(2)}`,
+      reason: ebitdaStatus === "CERTIFIED" ? "EBITDA certificado via dupla reconciliação (§MD-BEX-001)" : `Falha na reconciliação: dif R$ ${reconciliationDiff.toFixed(2)}`,
       memory: {
         methodA: ebitdaMethodA,
         methodB: ebitdaMethodB,
