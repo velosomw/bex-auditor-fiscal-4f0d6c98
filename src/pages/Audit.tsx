@@ -2735,7 +2735,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Liquidez Corrente", result: fmtDec(latestInd.liquidezCorrente), param: "> 1,5", classification: latestInd.liquidezCorrente > 1.5 ? "Adequada" : latestInd.liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
     { name: "Liquidez Seca", result: fmtDec(latestInd.liquidezSeca), param: "> 1,0", classification: latestInd.liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
     { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
-    { name: "Cobertura de Juros", result: latestInd.coberturaJurosStatus === "AVAILABLE" ? `${fmtDec(latestInd.coberturaJuros)}x` : "N/D", param: "> 3,0x", classification: latestInd.coberturaJurosStatus !== "AVAILABLE" ? "Não disponível" : latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: latestInd.coberturaJurosStatus === "AVAILABLE" ? `LAJIR / Despesas Financeiras` : "LAJIR não certificável a partir do balancete" },
+    { name: "Cobertura de Juros", result: latestInd.coberturaJurosStatus === "AVAILABLE" ? `${fmtDec(latestInd.coberturaJuros)}x` : "N/D", param: "> 3,0x", classification: latestInd.coberturaJurosStatus !== "AVAILABLE" ? "Não disponível" : latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: latestInd.coberturaJurosStatus === "AVAILABLE" ? `LAJIR / Despesas Financeiras (SSOT Certified)` : "LAJIR não certificável a partir do balancete" },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: (ac - pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
     { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,0", classification: latestInd.isg > 1.0 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
@@ -3232,7 +3232,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {[
                 { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: snapshot?.facts_status.receita_liquida === "AVAILABLE", scope: "Grupo sintético 3.1" },
-                { label: "EBITDA Certificado", value: snapshot?.residual?.ebitda.status === "AVAILABLE" ? snapshot?.residual?.ebitda.value : NaN, available: snapshot?.residual?.ebitda.status === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
+                { label: "EBITDA Certificado", value: snapshot?.residual?.ebitda.status === "AVAILABLE" ? snapshot?.residual?.ebitda.value : NaN, available: snapshot?.residual?.ebitda.status === "AVAILABLE", scope: "LAJIR + Depreciação + Amortização" },
                 { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia ?? 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
                 { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado ?? 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
@@ -3898,10 +3898,11 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const coberturaJuros = (snap?.residual?.interest_coverage?.status === "AVAILABLE") 
     ? snap.residual.interest_coverage.value 
     : (Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN);
+  const ebitdaVal = snap?.residual?.ebitda?.status === "AVAILABLE" ? snap.residual.ebitda.value : NaN;
   const indiceGeracaoCaixa = (snap?.residual?.ebitda?.status === "AVAILABLE" && l.rl !== 0) ? snap.residual.ebitda.value / l.rl : NaN;
   const margemLiquida = (snap?.residual?.margins?.ytd?.status === "AVAILABLE") 
     ? snap.residual.margins.ytd.value 
-    : (l.rl !== 0 ? l.ll / l.rl : 0);
+    : (l.rl !== 0 ? l.ll / l.rl : NaN);
   const despFinSobreReceita = l.rl !== 0 ? l.despFin / l.rl : 0;
   const estoquesSobreAC = l.ac !== 0 ? l.estoque / l.ac : 0;
   const giroAtivo = l.at !== 0 ? l.rl / l.at : 0;
@@ -4352,7 +4353,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               {[
                 { label: "Pressão de Caixa (PC/PT)", value: l.pt > 0 ? (l.pc / l.pt) * 100 : 0, desc: `% do passivo vencendo em até 12 meses — ${fmt(l.pc)} / ${fmt(l.pt)}`, alert: l.pt > 0 && l.pc / l.pt > 0.5, suffix: "%" },
                 { label: "Fornecedores / PC", value: l.pc > 0 ? (l.fornecedores / l.pc) * 100 : 0, desc: `Concentração em fornecedores — ${fmt(l.fornecedores)} / ${fmt(l.pc)}`, alert: false, suffix: "%" },
-                { label: "Passivo / EBITDA", value: Number.isFinite(ebitda) && ebitda > 0 ? l.pt / ebitda : NaN, desc: `Anos para quitar passivo total com EBITDA — ${fmt(l.pt)} / ${fmt(ebitda)}`, alert: Number.isFinite(ebitda) && ebitda > 0 && l.pt / ebitda > 5, suffix: "x" },
+                { label: "Passivo / EBITDA", value: snap?.residual?.ebitda?.status === "AVAILABLE" && snap.residual.ebitda.value > 0 ? l.pt / snap.residual.ebitda.value : NaN, desc: `Anos para quitar passivo total com EBITDA — ${fmt(l.pt)} / ${fmt(ebitdaVal)}`, alert: snap?.residual?.ebitda?.status === "AVAILABLE" && snap.residual.ebitda.value > 0 && l.pt / snap.residual.ebitda.value > 5, suffix: "x" },
               ].map(item => (
                 <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"}`}>
                   <div className="flex justify-between text-[10px]">
@@ -4378,7 +4379,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             {[
               { label: "EBITDA Certificado", value: snap?.residual?.ebitda?.status === "AVAILABLE" ? snap.residual.ebitda.value : NaN, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
               { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: Number.isFinite(coberturaJuros) && coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
-              { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
+              { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitdaVal)} / ${fmt(l.rl)}` },
               { label: "Margem Líquida", value: snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : margemLiquida, format: "pct", alert: (snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : margemLiquida) < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
@@ -4397,10 +4398,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <p className="text-xs font-semibold text-foreground mb-1">Risco de Ruptura Financeira</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {coberturaJuros > 3
-                ? "Sem risco imediato de ruptura. Cobertura de juros adequada e geração de caixa compatível com obrigações financeiras."
+                ? "Sem risco imediato de ruptura financeira significativa. Cobertura de juros adequada e geração de caixa compatível com obrigações financeiras certificadas."
                 : coberturaJuros > 1
-                ? "Risco moderado. Cobertura de juros apertada — qualquer deterioração operacional pode comprometer o pagamento de obrigações financeiras."
-                : "Risco elevado de ruptura. Cobertura de juros insuficiente — a empresa não gera caixa operacional suficiente para honrar despesas financeiras."}
+                ? "Risco moderado de ruptura. Cobertura de juros apertada — qualquer deterioração operacional pode comprometer o pagamento de obrigações financeiras."
+                : !Number.isFinite(coberturaJuros)
+                ? "Risco indeterminado pela insuficiência de dados de D&A e Resultado certificados no balancete."
+                : "Risco elevado de ruptura financeira. Cobertura de juros insuficiente — a empresa não gera caixa operacional certificado suficiente para honrar despesas financeiras."}
             </p>
           </div>
         </div>
