@@ -207,7 +207,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
        p.style.breakBefore = 'page';
     }
     p.style.margin = '0';
-    p.style.padding = '0'; // Força remoção de padding que pode causar overflow
+    p.style.padding = '0'; 
     p.style.boxShadow = 'none';
     p.style.border = 'none';
     p.style.borderRadius = '0';
@@ -215,14 +215,15 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.maxWidth = `${A4_W}px`;
     p.style.height = `${A4_H}px`;
     p.style.minHeight = `${A4_H}px`;
-    p.style.maxHeight = `${A4_H}px`;
+    p.style.maxHeight = '245mm'; // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §55..§65
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
-    p.style.contain = 'layout paint'; // Otimização de renderização
+    p.style.contain = 'layout paint'; 
     p.style.position = 'relative';
     p.style.transform = 'none';
-    p.style.display = 'block'; // Garante que seja block
+    p.style.display = 'block'; 
     p.style.pageBreakAfter = 'always';
+    p.style.breakAfter = 'page';
   });
 
   wrapper.appendChild(clone);

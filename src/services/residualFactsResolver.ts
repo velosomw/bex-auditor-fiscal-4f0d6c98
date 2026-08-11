@@ -432,6 +432,18 @@ export function resolveResidualFacts(
       value: coverageValue,
       status: Number.isFinite(coverageValue) ? "AVAILABLE" : "NOT_AVAILABLE",
     },
+    margins: {
+      current_month: {
+        value: (ctx.receita_certified && ctx.resultado_competencia_available) ? (num(ctx.resultado) / num(ctx.receita_liquida)) : NaN,
+        status: (ctx.receita_certified && ctx.resultado_competencia_available) ? "AVAILABLE" : "NOT_AVAILABLE",
+        label: "Margem da Competência"
+      },
+      ytd: {
+        value: (ctx.receita_certified && resultCertified) ? (num(resultado) / num(ctx.receita_liquida)) : NaN,
+        status: (ctx.receita_certified && resultCertified) ? "AVAILABLE" : "NOT_AVAILABLE",
+        label: "Margem Acumulada"
+      }
+    }
   };
 }
 
