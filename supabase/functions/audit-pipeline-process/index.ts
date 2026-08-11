@@ -1341,8 +1341,11 @@ serve(async (req) => {
 
     // ── Lock por empresa: bloqueia 2 pipelines simultâneos da MESMA company_id ──
     // Janela: 10 min. Mantém isolamento por usuário (RLS) e evita corrida de inserts duplicados.
+    // v4.1: Se o documento bloqueador não teve update nos últimos 3 min, permite sobrescrita (stale lock).
     if (body.company_id) {
       const lockSince = new Date(Date.now() - 10 * 60_000).toISOString();
+      const staleSince = new Date(Date.now() - 3 * 60_000).toISOString();
+      
       const { data: activePipeline } = await supabase
         .from("pipeline_documents")
         .select("id, status, updated_at")
@@ -1354,24 +1357,39 @@ serve(async (req) => {
         .maybeSingle();
 
       if (activePipeline?.id && activePipeline.id !== body.document_id) {
-        stageLog(reqId, "pipeline.lock_busy", {
-          company_id: body.company_id,
-          active_document_id: activePipeline.id,
-          active_status: (activePipeline as { status: string }).status,
-        });
-        return new Response(
-          JSON.stringify({
-            error: "pipeline_busy",
-            message: "Já existe um processamento em andamento para esta empresa. Aguarde a conclusão (até 10 min) e tente novamente.",
+        const isStale = new Date(activePipeline.updated_at) < new Date(staleSince);
+        
+        if (!isStale) {
+          stageLog(reqId, "pipeline.lock_busy", {
+            company_id: body.company_id,
             active_document_id: activePipeline.id,
-          }),
-          {
-            status: 409,
-            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
-          },
-        );
+            active_status: (activePipeline as { status: string }).status,
+          });
+          return new Response(
+            JSON.stringify({
+              error: "pipeline_busy",
+              message: "Já existe um processamento em andamento para esta empresa. Aguarde a conclusão (até 10 min) e tente novamente.",
+              active_document_id: activePipeline.id,
+            }),
+            {
+              status: 409,
+              headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
+            },
+          );
+        } else {
+          stageLog(reqId, "pipeline.lock_stale_overridden", {
+            company_id: body.company_id,
+            overridden_id: activePipeline.id,
+          });
+          // Marca o anterior como erro para liberar
+          await supabase
+            .from("pipeline_documents")
+            .update({ status: "failed", error_message: "Overridden by new pipeline request (stale lock)" })
+            .eq("id", activePipeline.id);
+        }
       }
     }
+
 
 
     if (body.document_id) {
