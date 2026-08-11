@@ -3233,7 +3233,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia ?? 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
                 { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado ?? 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
-                { label: "Margem Líquida (Período)", value: snapshot?.residual?.margins?.current_month?.value || 0, available: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE", scope: "Resultado Competência / Receita" },
+                { label: "Margem Líquida (Período)", value: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE" ? snapshot.residual.margins.current_month.value : NaN, available: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE", scope: "Resultado Competência / Receita" },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
@@ -3895,7 +3895,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const coberturaJuros = (snap?.residual?.interest_coverage?.status === "AVAILABLE") 
     ? snap.residual.interest_coverage.value 
     : (Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN);
-  const indiceGeracaoCaixa = Number.isFinite(ebitda) && l.rl !== 0 ? ebitda / l.rl : NaN;
+  const indiceGeracaoCaixa = (snap?.residual?.ebitda?.status === "AVAILABLE" && l.rl !== 0) ? snap.residual.ebitda.value / l.rl : NaN;
   const margemLiquida = (snap?.residual?.margins?.ytd?.status === "AVAILABLE") 
     ? snap.residual.margins.ytd.value 
     : (l.rl !== 0 ? l.ll / l.rl : 0);
@@ -4376,7 +4376,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               { label: "EBITDA Certificado", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
               { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: Number.isFinite(coberturaJuros) && coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
               { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
-              { label: "Margem Líquida", value: margemLiquida, format: "pct", alert: margemLiquida < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
+              { label: "Margem Líquida", value: snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : margemLiquida, format: "pct", alert: (snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : margemLiquida) < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
                 <p className="text-[10px] text-muted-foreground">{item.label}</p>
