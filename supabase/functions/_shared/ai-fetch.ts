@@ -14,7 +14,7 @@ export interface AIFetchOptions {
   baseDelayMs?: number;
   /** Teto de delay entre tentativas. Default 4000. */
   maxDelayMs?: number;
-  /** Timeout por tentativa (AbortController). Default 60000. */
+  /** Timeout por tentativa (AbortController). Default 120000. */
   perAttemptTimeoutMs?: number;
   /** Identificador para logging. */
   label?: string;
@@ -48,7 +48,7 @@ export async function aiGatewayFetch(
   const maxAttempts = opts.maxAttempts ?? 3;
   const baseDelay = opts.baseDelayMs ?? 400;
   const maxDelay = opts.maxDelayMs ?? 4000;
-  const perAttemptTimeout = opts.perAttemptTimeoutMs ?? 60_000;
+  const perAttemptTimeout = opts.perAttemptTimeoutMs ?? 120_000;
   const label = opts.label ?? "ai_gateway";
 
   let lastError: unknown = null;
