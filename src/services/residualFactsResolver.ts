@@ -414,7 +414,7 @@ export function resolveResidualFacts(
           : "Despesas financeiras não identificadas no balancete",
     },
     ebitda: (ebitdaAvailable && Number.isFinite(ebitdaReconstructed) && ctx.resultado_certified)
-      ? { value: ebitdaReconstructed, status: "AVAILABLE", reason: "EBITDA reconstruído via DRE (LAJIR + D&A)" }
+      ? { value: ebitdaReconstructed, status: "AVAILABLE", reason: "EBITDA certificado via LAJIR + D&A" }
       : { value: 0, status: "NOT_AVAILABLE", reason: "EBITDA não certificado a partir do balancete" },
 
     interest_coverage: {
