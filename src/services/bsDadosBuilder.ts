@@ -358,8 +358,9 @@ function emptyRow(mesKey: string): BSDadosRow {
       patrimonio_liquido: "NOT_AVAILABLE", divida_tributaria: "NOT_AVAILABLE",
       divida_trabalhista: "NOT_AVAILABLE", divida_financeira: "NOT_AVAILABLE",
       divida_financeira_cp: "NOT_AVAILABLE", divida_financeira_lp: "NOT_AVAILABLE",
-      fornecedores: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
+      fornecedores: "NOT_AVAILABLE", fornecedores_lp: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
       outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE", lajir: "NOT_AVAILABLE",
+      tax_noncurrent: "NOT_AVAILABLE",
     },
 
     hasReceita: false, hasBalanco: false, errors: [],
@@ -687,7 +688,7 @@ function applyValue(
         (target as any)[key] = (target[key] as number) + Math.abs(v); break;
       case "fornecedores": {
         const descN = toUpperNoAccent(ref1 || "");
-        const codePrefix = String(row.conta || "").trim().substring(0, 1);
+        const codePrefix = String(sourceRow.conta || "").trim().substring(0, 1);
         const isAtivo = codePrefix === "1";
         if (!isAtivo) {
            (target as any)[key] = (target[key] as number) + Math.abs(v);
