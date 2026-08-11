@@ -342,7 +342,8 @@ function emptyRow(mesKey: string): BSDadosRow {
     passivo_circulante: 0, passivo_nao_circulante: 0, patrimonio_liquido: 0,
     divida_tributaria: 0, divida_trabalhista: 0, divida_financeira: 0,
     divida_financeira_cp: 0, divida_financeira_lp: 0,
-    fornecedores: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0, lajir: 0,
+    fornecedores: 0, fornecedores_lp: 0, credores_rj: 0, outras_obrigacoes: 0, divida_total: 0, ebitda: 0, lajir: 0,
+    tax_noncurrent: 0,
     facts_status: {
       receita_liquida: "NOT_AVAILABLE", cmv: "NOT_AVAILABLE", despesas: "NOT_AVAILABLE",
       despesas_financeiras: "NOT_AVAILABLE", receitas_financeiras: "NOT_AVAILABLE",
