@@ -2772,7 +2772,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
     { item: resultLabel, detail: `R$ ${fmt(snapshot?.facts.resultado_competencia ?? 0)}`, status: (snapshot?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
     { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(emprestimos)}`, status: "atencao" },
-    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0)}`, status: "atencao" },
+    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.byCompetency[snapshot.competency]?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0)}`, status: "atencao" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -3143,7 +3143,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
                     { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
                     { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
-                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0, interp: "Exposição fiscal de longo prazo" },
+                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.byCompetency[snapshot.competency]?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0, interp: "Exposição fiscal de longo prazo" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3360,12 +3360,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">EBITDA Certificado (LAJIR + Depreciação + Amortização)</p>
-                    {snapshot?.residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{snapshot.residual.ebitda.reason}</p>}
+                    {snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{snapshot.byCompetency[snapshot.competency].residual.ebitda.reason}</p>}
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-foreground">EBITDA N/A — {snapshot?.residual?.ebitda.status === "NOT_APPLICABLE" ? "Não Aplicável (PL Negativo)" : "Não certificado a partir do balancete"}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados ou reconciliados."}</p>
+                    <p className="text-sm font-semibold text-foreground">EBITDA N/A — {snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.status === "NOT_APPLICABLE" ? "Não Aplicável (PL Negativo)" : "Não certificado a partir do balancete"}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados ou reconciliados."}</p>
                   </>
                 )}
               </div>
@@ -3388,7 +3388,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Empréstimos e Financiamentos (CP + LP)", value: emprestimos, available: borrowAvail, scope: "Total oneroso (CP + LP certificado, exclui arrendamentos)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
-                { label: "Obrigações Tributárias (LP)", value: snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0, available: (snapshot?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" || (snapshot?.facts?.tax_noncurrent ?? 0) > 0), scope: "Grupo 2.2.3 (Certified Binding)" },
+                { label: "Obrigações Tributárias (LP)", value: snapshot?.byCompetency[snapshot.competency]?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0, available: (snapshot?.byCompetency[snapshot.competency]?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" || (snapshot?.facts?.tax_noncurrent ?? 0) > 0), scope: "Grupo 2.2.3 (Certified Binding)" },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
                 { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
@@ -3427,7 +3427,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">5.3 Análise Estratégica</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
               <p className="text-xs text-foreground leading-relaxed">
-                {(snapshot?.residual?.ebitda.status === "CERTIFIED" || snapshot?.residual?.ebitda.status === "AVAILABLE" as any) ? (
+                {(snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.status === "CERTIFIED" || snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.status === "AVAILABLE" as any) ? (
                   "A empresa apresenta indicadores financeiros certificados, permitindo uma análise de risco baseada em fatos econômicos reconciliados. A cobertura de juros e a geração de caixa (EBITDA) são os pilares da continuidade operacional nesta competência."
                 ) : (
                   "Atenção: A análise de risco está limitada nesta competência devido à falta de certificação de indicadores derivados (EBITDA/Margens). Recomenda-se cautela na interpretação das projeções de fluxo de caixa até que a memória de cálculo seja reconciliada com o balancete."
