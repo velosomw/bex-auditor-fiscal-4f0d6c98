@@ -368,7 +368,10 @@ function emptyRow(mesKey: string): BSDadosRow {
       fornecedores: "NOT_AVAILABLE", fornecedores_lp: "NOT_AVAILABLE", credores_rj: "NOT_AVAILABLE",
       outras_obrigacoes: "NOT_AVAILABLE", divida_total: "NOT_AVAILABLE", ebitda: "NOT_AVAILABLE", lajir: "NOT_AVAILABLE",
       tax_noncurrent: "NOT_AVAILABLE",
+      formula_engine_version: "NOT_AVAILABLE",
+      data_quality: "NOT_AVAILABLE",
     },
+
 
     hasReceita: false, hasBalanco: false, errors: [],
 
