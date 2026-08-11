@@ -41,7 +41,7 @@ export interface IndicatorRow {
   roe: number;
   // EBITDA
   ebitda: number;
-  ebitdaStatus: "AVAILABLE" | "NOT_AVAILABLE";
+  ebitdaStatus: "CERTIFIED" | "NOT_CERTIFIED" | "NOT_AVAILABLE" | "NOT_APPLICABLE";
   coberturaJurosStatus: "AVAILABLE" | "NOT_AVAILABLE";
   // Bases (para drill-down)
   _ac: number;
@@ -124,8 +124,8 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
 
   // §P07 — Derived SSOT
   const lajir = r.residual_facts?.lajir?.status === "AVAILABLE" ? r.residual_facts.lajir.value : NaN;
-  const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE";
-  const ebitdaValue = ebitdaCertificado ? r.residual_facts?.ebitda.value : NaN;
+  const ebitdaStatus = r.residual_facts?.ebitda?.status || "NOT_AVAILABLE";
+  const ebitdaValue = ebitdaStatus === "CERTIFIED" ? r.residual_facts?.ebitda.value : NaN;
   const coverageCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE";
   const coberturaJuros = coverageCertificada ? r.residual_facts?.interest_coverage.value : NaN;
 
@@ -166,7 +166,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     roa: div(resParaCalculo, at) * ctx.annualization_factor,
     roe: pl > 0 ? div(resParaCalculo, pl) * ctx.annualization_factor : 0,
     ebitda: ebitdaValue,
-    ebitdaStatus: ebitdaCertificado ? "AVAILABLE" : "NOT_AVAILABLE",
+    ebitdaStatus: ebitdaStatus as any,
     coberturaJurosStatus: coverageCertificada ? "AVAILABLE" : "NOT_AVAILABLE",
     isg: pt > 0 ? at / pt : 0,
     endividamentoGeral: at > 0 ? pt / at : 0,
