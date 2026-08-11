@@ -3360,12 +3360,12 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">EBITDA Certificado (LAJIR + Depreciação + Amortização)</p>
-                    {snapshot?.residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{snapshot.residual.ebitda.reason}</p>}
+                    {snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.reason && <p className="text-[9px] text-muted-foreground italic mt-0.5">{snapshot.byCompetency[snapshot.competency].residual.ebitda.reason}</p>}
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-foreground">EBITDA N/A — {snapshot?.residual?.ebitda.status === "NOT_APPLICABLE" ? "Não Aplicável (PL Negativo)" : "Não certificado a partir do balancete"}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados ou reconciliados."}</p>
+                    <p className="text-sm font-semibold text-foreground">EBITDA N/A — {snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.status === "NOT_APPLICABLE" ? "Não Aplicável (PL Negativo)" : "Não certificado a partir do balancete"}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados ou reconciliados."}</p>
                   </>
                 )}
               </div>
@@ -3427,7 +3427,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-2">5.3 Análise Estratégica</h3>
             <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-2">
               <p className="text-xs text-foreground leading-relaxed">
-                {(snapshot?.residual?.ebitda.status === "CERTIFIED" || snapshot?.residual?.ebitda.status === "AVAILABLE" as any) ? (
+                {(snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.status === "CERTIFIED" || snapshot?.byCompetency[snapshot.competency]?.residual?.ebitda.status === "AVAILABLE" as any) ? (
                   "A empresa apresenta indicadores financeiros certificados, permitindo uma análise de risco baseada em fatos econômicos reconciliados. A cobertura de juros e a geração de caixa (EBITDA) são os pilares da continuidade operacional nesta competência."
                 ) : (
                   "Atenção: A análise de risco está limitada nesta competência devido à falta de certificação de indicadores derivados (EBITDA/Margens). Recomenda-se cautela na interpretação das projeções de fluxo de caixa até que a memória de cálculo seja reconciliada com o balancete."
