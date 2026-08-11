@@ -2838,8 +2838,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div className="mt-10 space-y-1.5 text-sm text-muted-foreground">
             <p className="font-semibold text-foreground text-base">Empresa Analisada: {snapshot?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p>
-            <p>CNPJ: {company?.cnpj || "Não identificado no balancete"}</p>
-            <p>Data-base do Balancete: {activeYear || latestYear || "Não identificada no balancete"}</p>
+            <p>CNPJ: {snapshot?.metadata?.company_cnpj || company?.cnpj || "Não identificado no balancete"}</p>
+            <p>Data-base do Balancete: {snapshot?.competency || activeYear || latestYear || "Não identificada no balancete"}</p>
             <p>Arquivo de Origem: {snapshot?.source_file_name || uploadedFiles?.[0]?.name || sourceDocs?.[0]?.fileName || "Não identificado"}</p>
             <p>Data de Emissão: {today}</p>
           </div>
@@ -3104,6 +3104,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
                     { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
                     { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
+                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.facts?.tax_noncurrent || snapshot?.residual?.tax?.noncurrent_obligations?.value || 0, interp: "Exposição fiscal de longo prazo" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3974,7 +3975,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="mt-10 grid sm:grid-cols-3 gap-6 text-sm text-muted-foreground w-full max-w-lg">
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Empresa</p>
-              <p className="font-semibold text-foreground">{snapshot?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p>
+              <p className="font-semibold text-foreground">{snap?.metadata?.company_name || company?.name || "Não identificada no balancete"}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Período</p>
