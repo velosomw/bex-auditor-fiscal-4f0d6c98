@@ -170,14 +170,16 @@ export function checkBlocks(input: KanitzNormalizedInput): KanitzBlock {
 
 export function computeIndicators(input: KanitzNormalizedInput): KanitzIndicators {
   const { ac, pc, rlp, elp, pl, estoques, lucroLiquido } = input;
-  const rl = pl !== 0 ? lucroLiquido / Math.abs(pl) : 0;
-  const lg = (pc + elp) !== 0 ? (ac + rlp) / (pc + elp) : 0;
-  const ls = pc !== 0 ? (ac - estoques) / pc : 0;
-  const lc = pc !== 0 ? ac / pc : 0;
-  const ge = pl !== 0 ? (pc + elp) / Math.abs(pl) : 0;
-  const isg = (pc + elp) !== 0 ? (ac + rlp + (input.rlp || 0)) / (pc + elp) : 0; // Fallback: Ativo Total aproximado
+  const plAbs = Math.abs(pl);
+  const rl = pl > 0 ? lucroLiquido / pl : 0;
+  const lg = (pc + elp) > 0 ? (ac + rlp) / (pc + elp) : 0;
+  const ls = pc > 0 ? (ac - estoques) / pc : 0;
+  const lc = pc > 0 ? ac / pc : 0;
+  const ge = pl > 0 ? (pc + elp) / pl : 0;
+  const isg = (pc + elp) > 0 ? (ac + rlp + (input.rlp || 0)) / (pc + elp) : 0;
   return { rl, lg, ls, lc, ge, isg };
 }
+
 
 
 export function validateIndicators(ind: KanitzIndicators): KanitzValidation {
@@ -248,6 +250,7 @@ export function calcKanitz(input: KanitzNormalizedInput, kExcel?: number): Kanit
     applicability: isApplicable ? "APPLICABLE" : "NOT_APPLICABLE",
     reason_code: input.pl > 0 ? "EQUITY_POSITIVE" : "EQUITY_NON_POSITIVE",
     alternative_indicator: "ISG",
+
     kExcel, 
     diff: cmp.diff, 
     diffStatus: cmp.status 
