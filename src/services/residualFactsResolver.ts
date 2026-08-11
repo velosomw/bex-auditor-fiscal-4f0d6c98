@@ -379,8 +379,8 @@ export function resolveResidualFacts(
   const lajirValue = lajirAvailable ? resultado + finExpAbs : NaN;
 
   // Interest Coverage calculation (§S01)
-  // §JAN-FAIL-CORRECTION: Use absolute Financial Expenses. 
-  // If result is -83k and finExp is 25k, coverage is -3.32x (economically correct).
+  // §COVERAGE-MATH-SANITY — Garante que o sinal e o valor seguem a memória publicada (LAJIR / Despesas Fin)
+  // Coverage = LAJIR / Despesas Financeiras. Se ambos forem positivos, coverage é positivo.
   const coverageValue = (lajirAvailable && finExpAbs > 0.01) 
     ? lajirValue / finExpAbs 
     : NaN;
@@ -459,7 +459,7 @@ export function resolveResidualFacts(
         label: "Margem da Competência"
       },
       ytd: {
-        value: (ctx.receita_certified && resultCertified) ? (num(resultado) / num(ctx.receita_liquida)) : NaN,
+        value: (ctx.receita_certified && resultCertified) ? (num(resultado) / (ctx.receita_liquida || 1)) : NaN,
         status: (ctx.receita_certified && resultCertified) ? "AVAILABLE" : "NOT_AVAILABLE",
         label: "Margem Acumulada"
       }
