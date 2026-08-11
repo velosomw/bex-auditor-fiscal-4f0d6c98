@@ -3739,7 +3739,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <ReportPage>
           <div className="space-y-4">
             <SectionTitle num="9" title="CONCLUSÃO TÉCNICA" />
-            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4 report-card-keep-together break-inside-avoid">
               <p className="text-sm text-foreground leading-relaxed">
                 A análise das demonstrações contábeis da competência {latestYear} evidencia Ativo Total de R$ {fmt(at)}, capital de terceiros de R$ {fmt(pt)} e Patrimônio Líquido de R$ {fmt(pl)}, com Receita Líquida de R$ {fmt(rl)} e {result >= 0 ? "lucro" : "prejuízo"} de R$ {fmt(Math.abs(result))} no período.
               </p>
@@ -3747,7 +3747,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 Os indicadores de liquidez {latestInd?.liquidezCorrente && latestInd.liquidezCorrente > 1 ? "apontam capacidade adequada para honrar compromissos de curto prazo" : "indicam fragilidade na capacidade de pagamento de curto prazo"}, {latestInd?.liquidezGeral && latestInd.liquidezGeral < 1 ? "embora a liquidez geral permaneça inferior à unidade, refletindo elevada dependência de capital de terceiros." : "com liquidez geral compatível com a operação."}
               </p>
               <p className="text-sm text-foreground leading-relaxed">
-                {latestKanitz && latestKanitz.kanitzAplicavel ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${fiFmt(latestKanitz.fi, latestKanitz.kanitzAplicavel)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : "O modelo Kanitz não é aplicável neste período devido ao Patrimônio Líquido nulo ou negativo. Recomenda-se a avaliação via ISG (Índice de Solvência Geral)."}
+                {latestKanitz && latestKanitz.kanitzAplicavel ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${fiFmt(latestKanitz.fi, latestKanitz.kanitzAplicavel)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : `O modelo Kanitz não é aplicável neste período devido ao Patrimônio Líquido nulo ou negativo. A avaliação de solvência deve ser pautada pelo ISG (AT / (PC + PNC)) = ${(l.isg ?? 0).toFixed(2)}.`}
               </p>
             </div>
           </div>
