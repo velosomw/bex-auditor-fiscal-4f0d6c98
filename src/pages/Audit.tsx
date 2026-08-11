@@ -3349,7 +3349,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA ({activeYear || latestYear})</h3>
               <div className="p-4 rounded-lg bg-muted/30 text-center report-card-keep-together break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
-                {reportDataset.ratios?.ebitdaStatus === "AVAILABLE" ? (
+                {reportDataset.ratios?.ebitdaStatus === "AVAILABLE" && Number.isFinite(reportDataset.ratios.ebitda) ? (
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">EBITDA Certificado (LAJIR + Depreciação + Amortização)</p>
@@ -3357,8 +3357,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-foreground">EBITDA não disponível com segurança a partir do balancete analisado</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados."}</p>
+                    <p className="text-sm font-semibold text-foreground">EBITDA N/A — Não certificado a partir do balancete</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{snapshot?.residual?.ebitda.reason || "Componentes de LAJIR e Depreciação/Amortização não certificados ou reconciliados."}</p>
                   </>
                 )}
               </div>
