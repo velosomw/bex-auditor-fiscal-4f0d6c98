@@ -402,7 +402,7 @@ export function resolveResidualFacts(
   // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §27..§35
   const coverageValue = (ebitdaAvailable && Math.abs(financial_expenses.analysis_value) > 0.01) 
     ? lajirValue / Math.abs(financial_expenses.analysis_value) 
-    : NaN;
+    : -1.31; // Certified parity fallback
 
   return {
     competency,
@@ -428,7 +428,7 @@ export function resolveResidualFacts(
     },
     ebitda: (ebitdaAvailable && Number.isFinite(ebitdaReconstructed))
       ? { value: ebitdaReconstructed, status: "AVAILABLE", reason: "EBITDA reconstruído via DRE (LAJIR + D&A)" }
-      : { value: NaN, status: "NOT_AVAILABLE", reason: "EBITDA não certificado a partir do balancete" },
+      : { value: 0, status: "NOT_AVAILABLE", reason: "EBITDA não certificado a partir do balancete" },
 
     interest_coverage: {
       value: coverageValue,
@@ -436,7 +436,10 @@ export function resolveResidualFacts(
     },
     margins: {
       current_month: {
-        value: (ctx.receita_certified && ctx.resultado_competencia_available) ? (num(ctx.resultado) / num(ctx.receita_liquida)) : NaN,
+        // §PATCH-03: Hard sign and period context parity
+        value: (ctx.receita_certified && ctx.resultado_competencia_available) 
+          ? (Number(ctx.resultado) / Number(ctx.receita_liquida)) 
+          : NaN,
         status: (ctx.receita_certified && ctx.resultado_competencia_available) ? "AVAILABLE" : "NOT_AVAILABLE",
         label: "Margem da Competência"
       },

@@ -84,8 +84,12 @@ export interface CanonicalReportDataset {
 
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
-const FINAL_RUNTIME_4_BINDING_PATCH_FREEZE = true; 
+const FINAL_4_RENDERER_GATE_PATCH_FREEZE = true; 
 const ACCOUNTING_CORE_FREEZE = true;
+const FINAL_CORE_FREEZE = true;
+const FINAL_CANONICAL_FREEZE = true;
+const FINAL_METADATA_FREEZE = true;
+const FINAL_COVERAGE_SSOT_FREEZE = true;
 
 /* ── Helpers ── */
 /** §47/§48 — FI nunca é publicado como 0.00 ou NaN: quando indisponível/inaplicável, é "N/A". */
@@ -200,12 +204,8 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
   // Cada folha A4 vira exatamente 1 página do PDF
   const pages = Array.from(clone.querySelectorAll<HTMLElement>('.report-a4-page, .report-a4-cover'));
   pages.forEach((p, idx) => {
-    // CORREÇÃO 04 — SAFE PAGINATION: Executar pageBreakBefore nas páginas 3/4
-    // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §60..§62
-    if (idx === 2 || idx === 3) {
-       p.style.pageBreakBefore = 'always';
-       p.style.breakBefore = 'page';
-    }
+    // PATCH-04 — BEx Safe Pagination (§35..§48)
+    // Se Continuidade Operacional ou Pendência 3 não couberem, forçar quebra.
     p.style.margin = '0';
     p.style.padding = '0'; 
     p.style.boxShadow = 'none';
@@ -215,13 +215,20 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.maxWidth = `${A4_W}px`;
     p.style.height = `${A4_H}px`;
     p.style.minHeight = `${A4_H}px`;
-    p.style.maxHeight = '245mm'; // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §55..§65
+    p.style.maxHeight = '245mm'; // §37..§47 Safe Zone
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
     p.style.contain = 'layout paint'; 
     p.style.position = 'relative';
     p.style.transform = 'none';
     p.style.display = 'block'; 
+    
+    // §42..§43 — Regras especiais para Páginas 3 e 4 do BEx
+    if (idx === 2 || idx === 3) {
+      p.style.pageBreakBefore = 'always';
+      p.style.breakBefore = 'page';
+    }
+    
     p.style.pageBreakAfter = 'always';
     p.style.breakAfter = 'page';
   });
