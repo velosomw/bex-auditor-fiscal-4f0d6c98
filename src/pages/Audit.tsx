@@ -3066,7 +3066,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
-            <div className="space-y-3 report-keep-together">
+            <div className="space-y-3 report-keep-together break-inside-avoid">
               {activePend.map((p: any, i: number) => (
                 <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
                   <div className="flex items-center gap-2">
