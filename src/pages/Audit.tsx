@@ -222,8 +222,8 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.width = `${A4_W}px`;
     p.style.maxWidth = `${A4_W}px`;
     p.style.height = `${A4_H}px`;
-    p.style.minHeight = `${A4_H}px`;
-    p.style.maxHeight = `${A4_H}px`; // Fixado para evitar cortes graduais
+    p.style.minHeight = `245mm`;
+    p.style.maxHeight = `245mm`; // Fixado para evitar cortes graduais
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
     p.style.contain = 'layout paint'; 
@@ -232,7 +232,7 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.display = 'block'; 
     
     // §SAFE-PAGINATION-GATE — Garante que blocos críticos do BEx não quebrem no meio
-    const criticalBlocks = p.querySelectorAll('.report-card-keep-together, .card, section');
+    const criticalBlocks = p.querySelectorAll('.report-card-keep-together, .card, section, .break-inside-avoid');
     criticalBlocks.forEach(b => {
       (b as HTMLElement).style.breakInside = 'avoid';
       (b as HTMLElement).style.pageBreakInside = 'avoid';
@@ -1575,7 +1575,7 @@ const diagnosticoData = {
     { item: "Margem Líquida", status: "atencao", detail: "13,6% → deterioração de 60% no período" },
     { item: "Endividamento Oneroso", status: "critico", detail: "R$ 155.554.694 — crescimento de 52%" },
     { item: "Cobertura de Juros", status: "atencao", detail: "6,9x — queda de 43% em relação ao ano anterior" },
-    { item: "Obrigações Tributárias (LP)", status: "atencao", detail: "R$ 131.426 — Passivo Não Circulante certificado" },
+    { item: "Obrigações Tributárias (LP)", status: "atencao", detail: `R$ ${fmt(snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0)} — Passivo Não Circulante certificado` },
   ],
 };
 
