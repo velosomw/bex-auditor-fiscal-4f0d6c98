@@ -291,7 +291,7 @@ ${dictText || "(vazio — use seu conhecimento contábil)"}`;
         ],
         tool_choice: { type: "function", function: { name: "return_normalized_accounts" } },
       }),
-    }, { label: "llm_normalize", maxAttempts: 3, perAttemptTimeoutMs: 45_000 });
+    }, { label: "llm_normalize", maxAttempts: 3, perAttemptTimeoutMs: 120_000 });
   } catch (e) {
     console.warn("LLM normalize aborted/network", e instanceof Error ? e.message : e);
     return null;
