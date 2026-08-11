@@ -2985,7 +2985,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 report-keep-together">
               {[
                 { title: "Capacidade de Pagamento", text: latestInd
                     ? `A empresa apresenta liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)}, ${latestInd.liquidezCorrente >= 1 ? "indicando capacidade de honrar obrigações de curto prazo" : "indicando insuficiência de ativos circulantes para cobrir obrigações de curto prazo"} (AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}).`
@@ -3063,7 +3063,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 report-keep-together">
               {activePend.map((p: any, i: number) => (
                 <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together">
                   <div className="flex items-center gap-2">
@@ -3116,7 +3116,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
                     { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
                     { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
-                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.facts?.tax_noncurrent || snapshot?.residual?.tax?.noncurrent_obligations?.value || 0, interp: "Exposição fiscal de longo prazo" },
+                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0), interp: "Exposição fiscal de longo prazo" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>

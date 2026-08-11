@@ -418,6 +418,16 @@ tr {
   .report-a4-page table { page-break-inside: auto; break-inside: auto; }
   .report-page-body thead,
   .report-a4-page thead { display: table-header-group; }
+
+  .report-keep-together {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .report-a4-page {
+    padding-top: 26mm !important;
+    padding-bottom: 26mm !important;
+  }
   .report-page-body tfoot,
   .report-a4-page tfoot { display: table-footer-group; }
   .report-page-body tr,
