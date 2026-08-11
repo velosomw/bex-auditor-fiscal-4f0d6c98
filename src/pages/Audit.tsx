@@ -3478,6 +3478,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                         finalVal = comp.facts.passivo_nao_circulante;
                       }
 
+                      // PATCH-01: Tax LP parity in history
+                      if (row.label.includes("Tributária") && row.label.includes("LP") && comp?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE") {
+                        finalVal = comp.residual.tax.noncurrent_obligations.value;
+                      } else if (row.label.includes("Tributária") && row.label.includes("LP") && comp?.facts?.tax_noncurrent) {
+                        finalVal = comp.facts.tax_noncurrent;
+                      }
+
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                           {typeof finalVal === "number" && Number.isFinite(finalVal) ? fmtDec(finalVal / 1_000_000) : "N/D"}
@@ -3486,6 +3493,21 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     })}
                   </TableRow>
                 ))}
+
+                <TableRow className="bg-muted/10 font-bold border-t-2 border-primary/20 break-inside-avoid">
+                  <TableCell className="text-xs py-2 text-primary">Obrigações Tributárias (LP)</TableCell>
+                  {(snapshot?.competencies || []).map(y => {
+                    const comp = snapshot?.byCompetency[y];
+                    const v = comp?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" 
+                      ? comp.residual.tax.noncurrent_obligations.value 
+                      : (comp?.facts?.tax_noncurrent || 0);
+                    return (
+                      <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
+                        {fmtDec(v / 1_000_000)}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
               </TableBody>
             </Table>
           </div>
