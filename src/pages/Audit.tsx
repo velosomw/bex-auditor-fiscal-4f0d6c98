@@ -3426,6 +3426,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   "Atenção: A análise de risco está limitada nesta competência devido à falta de certificação de indicadores derivados (EBITDA/Margens). Recomenda-se cautela na interpretação das projeções de fluxo de caixa até que a memória de cálculo seja reconciliada com o balancete."
                 )}
               </p>
+              <p className="text-xs text-foreground leading-relaxed">
                 A estrutura de endividamento revela passivo não circulante de R$ {fmt(pnc)}, representando {ptotal ? fmtPct(pnc / ptotal) : "0,0%"} do passivo total. 
                 A dívida onerosa total (empréstimos) de R$ {fmt(emprestimos)} exige monitoramento contínuo da capacidade de refinanciamento e dos covenants ativos.
               </p>
