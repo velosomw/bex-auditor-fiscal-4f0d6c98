@@ -41,6 +41,7 @@ export interface CanonicalFacts {
   divida_financeira: number;
   divida_financeira_cp: number;
   divida_financeira_lp: number;
+  tax_noncurrent: number; // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §8
 }
 
 export interface CanonicalKanitzModel {
