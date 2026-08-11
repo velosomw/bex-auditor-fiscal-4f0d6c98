@@ -27,6 +27,7 @@ export interface MonthlyDatum {
   despesas: number;             // < 0
   resultado: number;            // signed
   ebitda: number;               // signed
+  ebitdaStatus?: "CERTIFIED" | "NOT_CERTIFIED" | "NOT_AVAILABLE" | "NOT_APPLICABLE";
   depreciacao: number;          // < 0
   amortizacao: number;          // < 0
   // BALANÇO
