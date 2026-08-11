@@ -674,9 +674,9 @@ const StepTimeline = ({ currentStep }: { currentStep: number }) => (
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                 isComplete
-                  ? "bg-[hsl(258,90%,66%)] border-[hsl(258,90%,66%)] text-white"
+                  ? "bg-[#8B5CF6] border-[#8B5CF6] text-white"
                   : isActive
-                  ? "bg-white border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] shadow-lg shadow-[hsl(258,90%,66%)]/20"
+                  ? "bg-white border-[#8B5CF6] text-[#8B5CF6] shadow-lg shadow-[#8B5CF6]/20"
                   : "bg-white border-border text-muted-foreground"
               }`}
             >
