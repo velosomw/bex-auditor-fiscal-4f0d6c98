@@ -101,6 +101,8 @@ const RX = {
   amortization: /AMORTIZA/,
 };
 
+const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : NaN);
+
 const under = (n: AccountNode, prefix: string) =>
   n.normalized_code === prefix || n.normalized_code.startsWith(prefix + ".");
 
