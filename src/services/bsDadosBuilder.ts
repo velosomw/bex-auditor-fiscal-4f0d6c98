@@ -1363,6 +1363,7 @@ export function buildIndicatorMemory(r: BSDadosRow): IndicatorMemory[] {
   const lc = safeDiv(r.ativo_circulante, r.passivo_circulante);
   const ls = safeDiv(r.ativo_circulante - r.estoques, r.passivo_circulante);
   const li = safeDiv(r.disponivel, r.passivo_circulante);
+  const isg = safeDiv(r.ativo_total || 0, r.passivo_circulante + r.passivo_nao_circulante);
   return [
     {
       indicador: "Liquidez Corrente",
@@ -1385,6 +1386,14 @@ export function buildIndicatorMemory(r: BSDadosRow): IndicatorMemory[] {
       numerador: { rotulo: "Disponível", valor: r.disponivel, origem: "Drill-down 111 (Caixa/Bancos/Aplicações)" },
       denominador: { rotulo: "Passivo Circulante", valor: r.passivo_circulante, origem: origemGrupo(r, "21", "PC") },
       resultado: li,
+    },
+    {
+      indicador: "Solvência Geral (ISG)",
+      formula: "AT / (PC + PNC)",
+      numerador: { rotulo: "Ativo Total", valor: r.ativo_total || 0, origem: "Subtotal Grupo 1 (Authority P1)" },
+      denominador: { rotulo: "Passivo Exigível", valor: r.passivo_circulante + r.passivo_nao_circulante, origem: "Subtotal Grupo 2 (Authority P1)" },
+      resultado: isg,
+      classificacao: isg >= 1.0 ? "Capacidade Plena" : "Dependência de Capital Próprio",
     },
   ];
 }

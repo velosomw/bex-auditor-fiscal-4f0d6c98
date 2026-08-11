@@ -1553,6 +1553,7 @@ const diagnosticoData = {
     { item: "Margem Líquida", status: "atencao", detail: "13,6% → deterioração de 60% no período" },
     { item: "Endividamento Oneroso", status: "critico", detail: "R$ 155.554.694 — crescimento de 52%" },
     { item: "Cobertura de Juros", status: "atencao", detail: "6,9x — queda de 43% em relação ao ano anterior" },
+    { item: "Obrigações Tributárias (LP)", status: "atencao", detail: "R$ 131.426 — Passivo Não Circulante certificado" },
   ],
 };
 
@@ -1782,9 +1783,9 @@ const TabIndicadores = ({ parsedData, aiAnalysis, bsRows }: { parsedData?: Parse
     {
       title: "Atividade", icon: BarChart3, items: [
         { label: "Giro do Ativo", key: "giroAtivo", fmt: (n: number) => (n ?? 0).toFixed(2), formula: "V / AT", benchmark: "> 0,5", accounts: ["Receita Líquida (Grupo 3)", "Ativo Total"] },
-        { label: "PMR", key: "pmr", fmt: fmtDays, formula: "DR×360 / V", benchmark: "< 60d", accounts: ["Contas a Receber (Ref 1: C)", "Receita Líquida (Grupo 3)"] },
-        { label: "PMP", key: "pmp", fmt: fmtDays, formula: "DP×360 / Compras", benchmark: "< 45d", accounts: ["Fornecedores (Ref 1: BB, PP)", "Custo das Mercadorias Vendidas (Grupo 4)"] },
-        { label: "Idade Média Estoque", key: "idadeMediaEstoque", fmt: fmtDays, formula: "EST×360 / CMV", benchmark: "< 90d", accounts: ["Estoques (Ref 1: D)", "Custo das Mercadorias Vendidas (Grupo 4)"] },
+        { label: "PMR (Clientes)", key: "pmr", fmt: fmtDays, formula: "DR×360 / V", benchmark: "< 60d", accounts: ["Contas a Receber (Ref 1: C)", "Receita Líquida (Grupo 3)"] },
+        { label: "PMP (Fornecedores)", key: "pmp", fmt: fmtDays, formula: "DP×360 / Compras", benchmark: "< 45d", accounts: ["Fornecedores (Ref 1: BB, PP)", "Custo das Mercadorias Vendidas (Grupo 4)"] },
+        { label: "PME (Estoques)", key: "idadeMediaEstoque", fmt: fmtDays, formula: "EST×360 / CMV", benchmark: "< 90d", accounts: ["Estoques (Ref 1: D)", "Custo das Mercadorias Vendidas (Grupo 4)"] },
       ]
     },
     {
@@ -2735,7 +2736,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { name: "Liquidez Corrente", result: fmtDec(latestInd.liquidezCorrente), param: "> 1,5", classification: latestInd.liquidezCorrente > 1.5 ? "Adequada" : latestInd.liquidezCorrente > 1 ? "Atenção" : "Insuficiente", comment: `AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}` },
     { name: "Liquidez Seca", result: fmtDec(latestInd.liquidezSeca), param: "> 1,0", classification: latestInd.liquidezSeca > 1 ? "Adequada" : "Atenção", comment: `(AC - Estoques) / PC` },
     { name: "Liquidez Geral", result: fmtDec(latestInd.liquidezGeral), param: "> 1,0", classification: latestInd.liquidezGeral > 1 ? "Adequada" : "Insuficiente", comment: `(AC + RLP) / (PC + PNC)` },
-    { name: "Cobertura de Juros", result: latestInd.coberturaJurosStatus === "AVAILABLE" ? `${fmtDec(latestInd.coberturaJuros)}x` : "N/D", param: "> 3,0x", classification: latestInd.coberturaJurosStatus !== "AVAILABLE" ? "Não disponível" : latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: latestInd.coberturaJurosStatus === "AVAILABLE" ? `LAJIR / Despesas Financeiras` : "LAJIR não certificável a partir do balancete" },
+    { name: "Cobertura de Juros", result: latestInd.coberturaJurosStatus === "AVAILABLE" ? `${fmtDec(latestInd.coberturaJuros)}x` : "N/D", param: "> 3,0x", classification: latestInd.coberturaJurosStatus !== "AVAILABLE" ? "Não disponível" : latestInd.coberturaJuros > 3 ? "Adequada" : "Atenção", comment: latestInd.coberturaJurosStatus === "AVAILABLE" ? `LAJIR / Despesas Financeiras (SSOT Certified)` : "LAJIR não certificável a partir do balancete" },
     { name: "Capital de Giro Líquido", result: `R$ ${fmt(ac - pc)}`, param: "> 0", classification: (ac - pc) > 0 ? "Positivo" : "Negativo", comment: `AC - PC` },
     { name: "Solvência Total (ISG)", result: fmtDec(latestInd.isg), param: "> 1,0", classification: latestInd.isg > 1.0 ? "Solvente" : "Insolvente", comment: `AT / PT` },
   ] : [];
@@ -2988,7 +2989,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
-            <div className="space-y-3 report-keep-together">
+            <div className="space-y-3 report-keep-together break-inside-avoid">
               {[
                 { title: "Capacidade de Pagamento", text: latestInd
                     ? `A empresa apresenta liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)}, ${latestInd.liquidezCorrente >= 1 ? "indicando capacidade de honrar obrigações de curto prazo" : "indicando insuficiência de ativos circulantes para cobrir obrigações de curto prazo"} (AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}).`
@@ -2998,7 +2999,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     : "Indicador não disponível para esta análise." },
                 { title: "Probabilidade Estrutural de RJ", text: !latestInd ? "Indicador não disponível para esta análise." : latestInd.liquidezCorrente > 1.0 ? "Baixa probabilidade. Indicadores dentro dos parâmetros aceitáveis." : latestInd.liquidezCorrente > 0.5 ? "Moderada. Deterioração dos indicadores exige atenção e medidas preventivas conforme Lei 11.101/2005." : "Elevada. Recomenda-se plano de reestruturação financeira imediato." },
               ].map(item => (
-                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30 report-card-keep-together mb-2">
+                <div key={item.title} className="p-3 rounded-lg bg-muted/20 border border-border/30 report-card-keep-together mb-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
                   <p className="text-xs font-semibold text-foreground mb-1">{item.title}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">{item.text}</p>
                 </div>
@@ -3066,24 +3067,24 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
-            <div className="space-y-3 report-keep-together">
+            <div className="space-y-3 report-keep-together break-inside-avoid">
               {activePend.map((p: any, i: number) => (
-                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together">
+                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
                   <div className="flex items-center gap-2">
                     <Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge>
                     <span className="text-xs font-semibold text-foreground">Pendência {i + 1}: {p.problema}</span>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
-                    <div className="p-2 rounded bg-muted/30">
+                    <div className="p-2 rounded bg-muted/30 break-inside-avoid">
                       <p className="text-[10px] font-semibold text-foreground mb-0.5">Fundamentação Normativa</p>
                       <p className="text-[10px] text-muted-foreground">{p.fundamentacao}</p>
                     </div>
-                    <div className="p-2 rounded bg-red-500/5">
+                    <div className="p-2 rounded bg-red-500/5 break-inside-avoid">
                       <p className="text-[10px] font-semibold text-red-600 mb-0.5">Risco Econômico / Jurídico</p>
                       <p className="text-[10px] text-foreground">{p.risco}</p>
                     </div>
                   </div>
-                  <div className="p-2 rounded bg-accent/5 border border-accent/20">
+                  <div className="p-2 rounded bg-accent/5 border border-accent/20 break-inside-avoid">
                     <p className="text-[10px] font-semibold text-accent-foreground mb-0.5">Recomendação Corretiva</p>
                     <p className="text-[10px] text-foreground">{p.recomendacao}</p>
                   </div>
@@ -3232,7 +3233,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
               {[
                 { label: "Receita Líquida (Vendas)", value: snapshot?.facts.receita_liquida || 0, available: snapshot?.facts_status.receita_liquida === "AVAILABLE", scope: "Grupo sintético 3.1" },
-                { label: "EBITDA Certificado", value: snapshot?.residual?.ebitda.status === "AVAILABLE" ? snapshot?.residual?.ebitda.value : NaN, available: snapshot?.residual?.ebitda.status === "AVAILABLE", scope: "EBIT + Depreciação/Amortização" },
+                { label: "EBITDA Certificado", value: snapshot?.residual?.ebitda.status === "AVAILABLE" ? snapshot?.residual?.ebitda.value : NaN, available: snapshot?.residual?.ebitda.status === "AVAILABLE", scope: "LAJIR + Depreciação + Amortização" },
                 { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia ?? 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
                 { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado ?? 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
@@ -3331,7 +3332,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           {reportDataset && (
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-2">EBITDA ({activeYear || latestYear})</h3>
-              <div className="p-4 rounded-lg bg-muted/30 text-center break-inside-avoid">
+              <div className="p-4 rounded-lg bg-muted/30 text-center report-card-keep-together break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
                 {reportDataset.ratios?.ebitdaStatus === "AVAILABLE" ? (
                   <>
                     <p className="text-2xl font-bold font-mono text-foreground">R$ {fmt(reportDataset.ratios.ebitda)}</p>
@@ -3422,7 +3423,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
       <ReportPage className={years.length > 6 ? "landscape" : ""}>
         <div className="space-y-4">
           <SectionTitle num="6" title="BALANÇO PATRIMONIAL CONSOLIDADO" />
-          <div className="text-center mb-2">
+          <div className="text-center mb-2 report-card-keep-together break-inside-avoid">
             <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">ESTRUTURA PATRIMONIAL POR GRANDES GRUPOS</h3>
             <p className="text-[10px] text-muted-foreground mt-1">Série Histórica Consolidada (Valores em R$ milhões)</p>
           </div>
@@ -3477,6 +3478,13 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                         finalVal = comp.facts.passivo_nao_circulante;
                       }
 
+                      // PATCH-01: Tax LP parity in history
+                      if (row.label.includes("Tributária") && row.label.includes("LP") && comp?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE") {
+                        finalVal = comp.residual.tax.noncurrent_obligations.value;
+                      } else if (row.label.includes("Tributária") && row.label.includes("LP") && comp?.facts?.tax_noncurrent) {
+                        finalVal = comp.facts.tax_noncurrent;
+                      }
+
                       return (
                         <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                           {typeof finalVal === "number" && Number.isFinite(finalVal) ? fmtDec(finalVal / 1_000_000) : "N/D"}
@@ -3485,6 +3493,21 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     })}
                   </TableRow>
                 ))}
+
+                <TableRow className="bg-muted/10 font-bold border-t-2 border-primary/20 break-inside-avoid">
+                  <TableCell className="text-xs py-2 text-primary">Obrigações Tributárias (LP)</TableCell>
+                  {(snapshot?.competencies || []).map(y => {
+                    const comp = snapshot?.byCompetency[y];
+                    const v = comp?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" 
+                      ? comp.residual.tax.noncurrent_obligations.value 
+                      : (comp?.facts?.tax_noncurrent || 0);
+                    return (
+                      <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
+                        {fmtDec(v / 1_000_000)}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
               </TableBody>
             </Table>
           </div>
@@ -3716,7 +3739,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <ReportPage>
           <div className="space-y-4">
             <SectionTitle num="9" title="CONCLUSÃO TÉCNICA" />
-            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4">
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 space-y-4 report-card-keep-together break-inside-avoid">
               <p className="text-sm text-foreground leading-relaxed">
                 A análise das demonstrações contábeis da competência {latestYear} evidencia Ativo Total de R$ {fmt(at)}, capital de terceiros de R$ {fmt(pt)} e Patrimônio Líquido de R$ {fmt(pl)}, com Receita Líquida de R$ {fmt(rl)} e {result >= 0 ? "lucro" : "prejuízo"} de R$ {fmt(Math.abs(result))} no período.
               </p>
@@ -3724,7 +3747,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 Os indicadores de liquidez {latestInd?.liquidezCorrente && latestInd.liquidezCorrente > 1 ? "apontam capacidade adequada para honrar compromissos de curto prazo" : "indicam fragilidade na capacidade de pagamento de curto prazo"}, {latestInd?.liquidezGeral && latestInd.liquidezGeral < 1 ? "embora a liquidez geral permaneça inferior à unidade, refletindo elevada dependência de capital de terceiros." : "com liquidez geral compatível com a operação."}
               </p>
               <p className="text-sm text-foreground leading-relaxed">
-                {latestKanitz && latestKanitz.kanitzAplicavel ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${fiFmt(latestKanitz.fi, latestKanitz.kanitzAplicavel)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : "O modelo Kanitz não é aplicável neste período devido ao Patrimônio Líquido nulo ou negativo. Recomenda-se a avaliação via ISG (Índice de Solvência Geral)."}
+                {latestKanitz && latestKanitz.kanitzAplicavel ? `O Termômetro de Insolvência de Kanitz posiciona a companhia ${latestKanitz.fi > 0 ? "na zona de solvência" : latestKanitz.fi >= -3 ? "na zona de atenção" : "em situação de alta probabilidade de insolvência"}, com Fator de Insolvência de ${fiFmt(latestKanitz.fi, latestKanitz.kanitzAplicavel)}. ${latestKanitz.fi > 0 ? "Não há indícios de insolvência no curto prazo, mas recomenda-se acompanhamento contínuo da estrutura de capital e da geração de resultados." : "Recomenda-se reestruturação financeira imediata e acompanhamento contínuo dos indicadores."}` : `O modelo Kanitz não é aplicável neste período devido ao Patrimônio Líquido nulo ou negativo. A avaliação de solvência deve ser pautada pelo ISG (AT / (PC + PNC)) = ${(reportDataset?.ratios?.isg ?? 0).toFixed(2)}.`}
               </p>
             </div>
           </div>
@@ -3898,10 +3921,11 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const coberturaJuros = (snap?.residual?.interest_coverage?.status === "AVAILABLE") 
     ? snap.residual.interest_coverage.value 
     : (Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN);
+  const ebitdaVal = snap?.residual?.ebitda?.status === "AVAILABLE" ? snap.residual.ebitda.value : NaN;
   const indiceGeracaoCaixa = (snap?.residual?.ebitda?.status === "AVAILABLE" && l.rl !== 0) ? snap.residual.ebitda.value / l.rl : NaN;
   const margemLiquida = (snap?.residual?.margins?.ytd?.status === "AVAILABLE") 
     ? snap.residual.margins.ytd.value 
-    : (l.rl !== 0 ? l.ll / l.rl : 0);
+    : (l.rl !== 0 ? l.ll / l.rl : NaN);
   const despFinSobreReceita = l.rl !== 0 ? l.despFin / l.rl : 0;
   const estoquesSobreAC = l.ac !== 0 ? l.estoque / l.ac : 0;
   const giroAtivo = l.at !== 0 ? l.rl / l.at : 0;
@@ -4043,7 +4067,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 <>
                   A empresa apresenta <strong>Patrimônio Líquido negativo</strong> de R$ {fmt(reportDataset?.facts.patrimonio_liquido || 0)} (Ativo Total R$ {fmt((reportDataset?.facts.ativo_circulante || 0) + (reportDataset?.facts.ativo_nao_circulante || 0))} vs Passivo Total R$ {fmt((reportDataset?.facts.passivo_circulante || 0) + (reportDataset?.facts.passivo_nao_circulante || 0))}). Nessa condição, o <strong>Modelo Kanitz não se aplica</strong>: o componente X1 (Rentabilidade do PL = LL/PL) divide por um denominador negativo, invertendo o sinal e tratando prejuízo como se fosse retorno positivo — o que produziria um FI artificialmente saudável e um diagnóstico incorreto.
                   <br /><br />
-                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Total)</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(reportDataset?.ratios.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(reportDataset?.ratios.isg ?? 0) < 1
+                  Substitui-se por isso o Kanitz pelo <strong>Índice de Solvência Geral (ISG = Ativo Total / Passivo Exigível (PC + PNC))</strong>, indicador padrão para empresas com PL comprometido. ISG atual: <strong className={isgClass.color}>{(reportDataset?.ratios.isg ?? 0).toFixed(2)}</strong> — {isgClass.label}. {(reportDataset?.ratios.isg ?? 0) < 1
                     ? "O ativo total não cobre as obrigações totais, caracterizando insolvência técnica e demandando reestruturação patrimonial (Lei 11.101/2005) ou aporte de capital."
                     : (reportDataset?.ratios.isg ?? 0) < 1.5
                     ? "Cobertura patrimonial estreita: cada R$ 1,00 de dívida é lastreada por menos de R$ 1,50 de ativos."
@@ -4111,7 +4135,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Índice de Solvência Geral</p>
               <p className={`text-5xl font-bold ${isgClass.color}`}>{(l.isg ?? 0).toFixed(2)}</p>
               <p className={`text-sm font-semibold mt-2 ${isgClass.color}`}>{isgClass.icon} {isgClass.label}</p>
-              <p className="text-xs text-muted-foreground mt-1">ISG = Ativo Total (R$ {fmt(l.at)}) / Passivo Total (R$ {fmt(l.pt)})</p>
+              <p className="text-xs text-muted-foreground mt-1">ISG = Ativo Total (R$ {fmt(l.at)}) / Passivo Exigível (PC + PNC) (R$ {fmt(l.pt)})</p>
             </div>
           </div>
 
@@ -4352,9 +4376,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
               {[
                 { label: "Pressão de Caixa (PC/PT)", value: l.pt > 0 ? (l.pc / l.pt) * 100 : 0, desc: `% do passivo vencendo em até 12 meses — ${fmt(l.pc)} / ${fmt(l.pt)}`, alert: l.pt > 0 && l.pc / l.pt > 0.5, suffix: "%" },
                 { label: "Fornecedores / PC", value: l.pc > 0 ? (l.fornecedores / l.pc) * 100 : 0, desc: `Concentração em fornecedores — ${fmt(l.fornecedores)} / ${fmt(l.pc)}`, alert: false, suffix: "%" },
-                { label: "Passivo / EBITDA", value: Number.isFinite(ebitda) && ebitda > 0 ? l.pt / ebitda : NaN, desc: `Anos para quitar passivo total com EBITDA — ${fmt(l.pt)} / ${fmt(ebitda)}`, alert: Number.isFinite(ebitda) && ebitda > 0 && l.pt / ebitda > 5, suffix: "x" },
+                { label: "Passivo / EBITDA", value: snap?.residual?.ebitda?.status === "AVAILABLE" && snap.residual.ebitda.value > 0 ? l.pt / snap.residual.ebitda.value : NaN, desc: `Anos para quitar passivo total com EBITDA — ${fmt(l.pt)} / ${fmt(ebitdaVal)}`, alert: snap?.residual?.ebitda?.status === "AVAILABLE" && snap.residual.ebitda.value > 0 && l.pt / snap.residual.ebitda.value > 5, suffix: "x" },
               ].map(item => (
-                <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"}`}>
+                <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"} break-inside-avoid`}>
                   <div className="flex justify-between text-[10px]">
                     <span className="font-medium text-foreground">{item.label}</span>
                     <span className="font-mono font-bold">{!Number.isFinite(item.value as number) ? "N/A" : `${(item.value as number).toFixed(item.suffix === "x" ? 2 : 1)}${item.suffix}`}</span>
@@ -4378,7 +4402,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             {[
               { label: "EBITDA Certificado", value: snap?.residual?.ebitda?.status === "AVAILABLE" ? snap.residual.ebitda.value : NaN, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
               { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: Number.isFinite(coberturaJuros) && coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
-              { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
+              { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitdaVal)} / ${fmt(l.rl)}` },
               { label: "Margem Líquida", value: snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : margemLiquida, format: "pct", alert: (snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : margemLiquida) < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
@@ -4397,10 +4421,12 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
             <p className="text-xs font-semibold text-foreground mb-1">Risco de Ruptura Financeira</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {coberturaJuros > 3
-                ? "Sem risco imediato de ruptura. Cobertura de juros adequada e geração de caixa compatível com obrigações financeiras."
+                ? "Sem risco imediato de ruptura financeira significativa. Cobertura de juros adequada e geração de caixa compatível com obrigações financeiras certificadas."
                 : coberturaJuros > 1
-                ? "Risco moderado. Cobertura de juros apertada — qualquer deterioração operacional pode comprometer o pagamento de obrigações financeiras."
-                : "Risco elevado de ruptura. Cobertura de juros insuficiente — a empresa não gera caixa operacional suficiente para honrar despesas financeiras."}
+                ? "Risco moderado de ruptura. Cobertura de juros apertada — qualquer deterioração operacional pode comprometer o pagamento de obrigações financeiras."
+                : !Number.isFinite(coberturaJuros)
+                ? "Risco indeterminado pela insuficiência de dados de D&A e Resultado certificados no balancete."
+                : "Risco elevado de ruptura financeira. Cobertura de juros insuficiente — a empresa não gera caixa operacional certificado suficiente para honrar despesas financeiras."}
             </p>
           </div>
         </div>
@@ -4558,8 +4584,8 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           <div className="space-y-4">
             {[
               { title: "Diagnóstico Financeiro", text: !kAplic
-                ? `A empresa apresenta Patrimônio Líquido de R$ ${fmt(l.pl)} (negativo), Ativo Total de R$ ${fmt(l.at)} e Passivo Total de R$ ${fmt(l.pt)}. Nessas condições, o modelo Kanitz não se aplica: substitui-se pelo Índice de Solvência Geral (ISG = AT/PT) = ${(l.isg ?? 0).toFixed(2)} — ${isgClass.label}. O Endividamento Total é de ${fmtPct(endivTotal)}, configurando estrutura patrimonial ${endivTotal > 0.9 ? "criticamente alavancada" : endivTotal > 0.7 ? "altamente dependente de capital de terceiros" : "moderadamente alavancada"}.`
-                : `A empresa apresenta Fator de Insolvência de ${fiFmt(l.fi, kAplic)} (${classColors[l.classificacao]?.label}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}. ISG = ${(l.isg ?? 0).toFixed(2)}.` },
+                ? `A empresa apresenta Patrimônio Líquido de R$ ${fmt(l.pl)} (negativo), Ativo Total de R$ ${fmt(l.at)} e Passivo Total de R$ ${fmt(l.pt)}. Nessas condições, o modelo Kanitz não se aplica: substitui-se pelo Índice de Solvência Geral (ISG = AT / (PC + PNC)) = ${(l.isg ?? 0).toFixed(2)} — ${isgClass.label}. O Endividamento Total é de ${fmtPct(endivTotal)}, configurando estrutura patrimonial ${endivTotal > 0.9 ? "criticamente alavancada" : endivTotal > 0.7 ? "altamente dependente de capital de terceiros" : "moderadamente alavancada"}.`
+                : `A empresa apresenta Fator de Insolvência de ${fiFmt(l.fi, kAplic)} (${classColors[l.classificacao]?.label}). Patrimônio Líquido de R$ ${fmt(l.pl)} e Ativo Total de R$ ${fmt(l.at)} configuram ${endivTotal < 0.5 ? "estrutura patrimonial sólida" : endivTotal < 0.7 ? "estrutura patrimonial moderadamente alavancada" : "alta dependência de capital de terceiros"}. ISG = AT / (PC + PNC) = ${(l.isg ?? 0).toFixed(2)}.` },
 
 
               { title: "Causas de Deterioração", text: previous
