@@ -268,7 +268,7 @@ tr {
   flex: 1;
   margin: 0 16mm;
   padding: 4mm 0 26mm 0;
-  max-height: 245mm; 
+  max-height: 245mm !important; 
   min-height: 245mm;
   position: relative;
   display: flex;
