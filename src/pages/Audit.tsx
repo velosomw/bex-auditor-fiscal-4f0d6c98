@@ -85,6 +85,7 @@ export interface CanonicalReportDataset {
 
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
+const RUNTIME_FORENSIC_CORRECTION_MODE = true; // MD-RUNTIME-PATH-FORENSIC-001
 const FINAL_4_RENDERER_GATE_PATCH_FREEZE = true; 
 const FINAL_4_POINT_CONSUMER_PATCH_FREEZE = true;
 const FINAL_RUNTIME_4_BINDING_PATCH_FREEZE = true;
@@ -223,7 +224,8 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.maxWidth = `${A4_W}px`;
     p.style.height = `${A4_H}px`;
     p.style.minHeight = `245mm`;
-    p.style.maxHeight = `245mm`; // Fixado para evitar cortes graduais
+    p.style.maxHeight = `245mm`; 
+    p.style.paddingBottom = `26mm`; // RP-06: Footer Safe Zone
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
     p.style.contain = 'layout paint'; 

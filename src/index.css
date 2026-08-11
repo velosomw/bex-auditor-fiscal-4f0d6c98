@@ -274,7 +274,7 @@ tr {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  overflow: visible !important; /* Permite que o engine de paginação veja o overflow */
+  overflow: hidden !important; /* RP-06: Hard Geometry Gate */
 }
 
 /* §59 — Content Overflow Gate: cartões e blocos editoriais nunca são cortados
