@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { selectModel } from "../_shared/model-router.ts";
+import { aiGatewayFetch } from "../_shared/ai-fetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -189,7 +190,7 @@ serve(async (req) => {
     const decision = selectModel("ocr_parse", "medium");
     console.log(`[router] ocr_parse → ${decision.model} (${decision.reason})`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await aiGatewayFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -218,7 +219,7 @@ serve(async (req) => {
         temperature: 0.1,
         max_tokens: 16000,
       }),
-    });
+    }, { label: `ocr_parse:${decision.serviceTag}`, maxAttempts: 3, perAttemptTimeoutMs: 120_000 });
 
     if (!response.ok) {
       if (response.status === 429) {

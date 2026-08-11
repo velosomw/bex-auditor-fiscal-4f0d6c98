@@ -84,7 +84,7 @@ interface PipelineRequest {
  * BUMP a cada mudança que afete os números calculados:
  * invalida automaticamente o cache de dedup por content_hash.
  */
-const PARSER_VERSION = "2026.05.27.14"; // Onda 9 — Sentinela DRE Check=0 + Flag YTD-Jan + variationMoM canônico
+const PARSER_VERSION = "2026.08.11.17"; // Onda 10 — Estabilização Gemini LTS (2.0 Flash) + Timeout Resiliência
 
 /* ──────────────── Hash SHA-256 do payload (Item 4 — dedupe) ──────────────── */
 async function sha256Hex(input: string): Promise<string> {
@@ -202,7 +202,7 @@ const MAX_PARALLEL = 12; // v3: era 6 (#1 paralelismo)
 async function callLLMNormalize(
   rows: Array<{ conta: string; descricao: string }>,
   dictText: string,
-  model: string = "google/gemini-2.5-flash-lite",
+  model: string = "google/gemini-2.0-flash",
 ): Promise<NormResult[] | null> {
   const inputList = rows.map((r, i) => `${i}. ${r.descricao || r.conta}`).join("\n");
 
@@ -328,14 +328,14 @@ async function normalizeChunk(
   dictText: string,
 ): Promise<NormResult[]> {
   // Tentativa 1: modelo rápido
-  let accounts = await callLLMNormalize(rows, dictText, "google/gemini-2.5-flash-lite");
+  let accounts = await callLLMNormalize(rows, dictText, "google/gemini-2.0-flash");
 
   // #5 v4 Retry com MODELO DIFERENTE (evita repetir mesmo 503/timeout)
   if (!accounts || accounts.length !== rows.length) {
     if (accounts) {
       console.warn(`LLM mismatch ${accounts.length}/${rows.length} — retry com flash`);
     }
-    accounts = await callLLMNormalize(rows, dictText, "google/gemini-2.5-flash");
+    accounts = await callLLMNormalize(rows, dictText, "google/gemini-1.5-pro");
   }
 
   if (!accounts) {
