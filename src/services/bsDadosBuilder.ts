@@ -1363,7 +1363,7 @@ export function buildIndicatorMemory(r: BSDadosRow): IndicatorMemory[] {
   const lc = safeDiv(r.ativo_circulante, r.passivo_circulante);
   const ls = safeDiv(r.ativo_circulante - r.estoques, r.passivo_circulante);
   const li = safeDiv(r.disponivel, r.passivo_circulante);
-  const isg = safeDiv(r.ativo_total, r.passivo_total);
+  const isg = safeDiv(r.ativo_total || 0, r.passivo_circulante + r.passivo_nao_circulante);
   return [
     {
       indicador: "Liquidez Corrente",
