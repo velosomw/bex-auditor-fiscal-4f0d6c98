@@ -5187,7 +5187,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
               </h1>
               <p style={{ fontSize: "10pt", color: "hsl(220, 10%, 46%)", marginTop: "8pt", fontStyle: "italic" }}>Business Extended Analysis</p>
 
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "8pt", padding: "8pt 16pt", borderRadius: "999px", border: "1px solid hsl(258, 90%, 66%, 0.3)", background: "hsl(258, 90%, 66%, 0.05)", marginTop: "20pt" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "8pt", padding: "8pt 16pt", borderRadius: "999px", border: "1px solid rgba(139, 92, 246, 0.3)", background: "rgba(139, 92, 246, 0.05)", marginTop: "20pt" }}>
                 <span style={{ fontSize: "12pt" }}>📊</span>
                 <span style={{ fontSize: "10pt", fontWeight: 600 }}>Painel de Gráficos — Auditoria + Parecer Contábil</span>
               </div>
