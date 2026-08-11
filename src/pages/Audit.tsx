@@ -5172,7 +5172,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria" id="tab-graficos-container" className="bg-background">
           {/* Capa de impressão BEx — só aparece em @media print */}
-          <div className="bex-print-cover hidden" style={{ minHeight: "287mm", flexDirection: "column", background: "white", color: "hsl(220, 25%, 14%)", borderRadius: 0 }}>
+          <div className="bex-print-cover hidden" style={{ minHeight: "287mm", flexDirection: "column", background: "white", color: "#1C2541", borderRadius: 0 }}>
             {/* Header com logo (padrão BEx) */}
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "6mm 8mm 0" }}>
               <img src={logoBrasilExpertFull} alt="Brasil Expert" style={{ height: "14mm", objectFit: "contain" }} />
@@ -5185,27 +5185,27 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
               <h1 style={{ fontSize: "22pt", fontWeight: 800, lineHeight: 1.15, margin: 0 }}>
                 RELATÓRIO TÉCNICO DE GRÁFICOS<br />AUDITORIA CONTÁBIL E PARECER
               </h1>
-              <p style={{ fontSize: "10pt", color: "hsl(220, 10%, 46%)", marginTop: "8pt", fontStyle: "italic" }}>Business Extended Analysis</p>
+              <p style={{ fontSize: "10pt", color: "#64748B", marginTop: "8pt", fontStyle: "italic" }}>Business Extended Analysis</p>
 
               <div style={{ display: "inline-flex", alignItems: "center", gap: "8pt", padding: "8pt 16pt", borderRadius: "999px", border: "1px solid rgba(139, 92, 246, 0.3)", background: "rgba(139, 92, 246, 0.05)", marginTop: "20pt" }}>
                 <span style={{ fontSize: "12pt" }}>📊</span>
                 <span style={{ fontSize: "10pt", fontWeight: 600 }}>Painel de Gráficos — Auditoria + Parecer Contábil</span>
               </div>
 
-              <div style={{ marginTop: "28pt", fontSize: "10pt", color: "hsl(220, 10%, 46%)", lineHeight: 1.7 }}>
-                <p style={{ fontWeight: 700, fontSize: "12pt", color: "hsl(220, 25%, 14%)", margin: 0 }}>Empresa Analisada: {company?.name ?? "—"}</p>
+              <div style={{ marginTop: "28pt", fontSize: "10pt", color: "#64748B", lineHeight: 1.7 }}>
+                <p style={{ fontWeight: 700, fontSize: "12pt", color: "#1C2541", margin: 0 }}>Empresa Analisada: {company?.name ?? "—"}</p>
                 {company?.cnpj && <p style={{ margin: 0 }}>CNPJ: {company.cnpj}</p>}
                 <p style={{ margin: 0 }}>Data de Emissão: {new Date().toLocaleDateString("pt-BR")}</p>
               </div>
 
-              <div style={{ marginTop: "24pt", paddingTop: "16pt", borderTop: "1px solid hsl(220, 18%, 90%)", width: "100%", maxWidth: "120mm" }}>
-                <p style={{ fontSize: "8pt", color: "hsl(220, 10%, 46%)", textTransform: "uppercase", letterSpacing: "2pt", margin: 0 }}>Responsável Técnico</p>
+              <div style={{ marginTop: "24pt", paddingTop: "16pt", borderTop: "1px solid #E2E8F0", width: "100%", maxWidth: "120mm" }}>
+                <p style={{ fontSize: "8pt", color: "#64748B", textTransform: "uppercase", letterSpacing: "2pt", margin: 0 }}>Responsável Técnico</p>
                 <p style={{ fontSize: "10pt", fontWeight: 600, margin: "4pt 0 0" }}>Técnico Contábil Sênior IA</p>
-                <p style={{ fontSize: "9pt", color: "hsl(220, 10%, 46%)", margin: 0 }}>Especialista em Recuperação Judicial e Análise Empresarial</p>
+                <p style={{ fontSize: "9pt", color: "#64748B", margin: 0 }}>Especialista em Recuperação Judicial e Análise Empresarial</p>
               </div>
             </div>
             {/* Footer */}
-            <div style={{ borderTop: "3px solid hsl(195, 53%, 50%)", padding: "3mm 8mm", textAlign: "center", fontSize: "9px", color: "hsl(220, 10%, 46%)", lineHeight: 1.5 }}>
+            <div style={{ borderTop: "3px solid #3B9EC0", padding: "3mm 8mm", textAlign: "center", fontSize: "9px", color: "#64748B", lineHeight: 1.5 }}>
               <p style={{ margin: 0 }}>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
               <p style={{ margin: 0 }}>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
             </div>
@@ -5295,7 +5295,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             onClick={goNextTab}
             disabled={currentIdx >= tabOrder.length - 1}
             aria-label="Próxima aba"
-            className="print:hidden fixed right-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[hsl(12,90%,55%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(12,90%,45%)] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="print:hidden fixed right-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[#F97316] text-white shadow-xl ring-2 ring-white/20 hover:bg-[#EA580C] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -5386,8 +5386,8 @@ const AuditContent = () => {
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-4 md:p-6">
         {company && (
-          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-[hsl(217,91%,50%)]/5 border border-[hsl(217,91%,50%)]/20">
-            <Building2 className="w-4 h-4 text-[hsl(217,91%,50%)]" />
+          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-[#2563EB]/5 border border-[#2563EB]/20">
+            <Building2 className="w-4 h-4 text-[#2563EB]" />
             <span className="text-xs text-muted-foreground">Auditoria vinculada à empresa:</span>
             <span className="text-sm font-semibold text-foreground">{company.name}</span>
           </div>
