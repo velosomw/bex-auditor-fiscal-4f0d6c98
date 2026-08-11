@@ -1300,7 +1300,7 @@ export function buildBSDados(
       (row.facts_status as any).despesas_financeiras = "AVAILABLE";
     }
     // §21..§25 — EBITDA só existe quando certificável; nunca igual ao Resultado do Período.
-    row.ebitda = residual.ebitda.status === "AVAILABLE" ? residual.ebitda.value : NaN;
+    row.ebitda = (residual.ebitda.status === "CERTIFIED" || residual.ebitda.status === "AVAILABLE" as any) ? residual.ebitda.value : NaN;
     row.lajir = residual.lajir.status === "AVAILABLE" ? residual.lajir.value : NaN;
 
     // Recalcula agregados derivados após o cutover P1.
