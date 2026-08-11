@@ -271,10 +271,9 @@ tr {
   max-height: 245mm; 
   min-height: 245mm;
   position: relative;
-  display: block; 
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
-  page-break-inside: avoid;
-  break-inside: avoid;
 }
 
 /* §59 — Content Overflow Gate: cartões e blocos editoriais nunca são cortados

@@ -362,48 +362,33 @@ export function resolveResidualFacts(
   const amortization = amortNodes.length ? compose(amortNodes, "Amortização (contas de resultado)") : EMPTY("Amortização não identificada");
 
   /* ── LAJIR / EBITDA / Cobertura de Juros (§41..§46) ──────
-   * LAJIR (EBIT) = Resultado Líquido
-   *              + Despesas Financeiras
-   *              − Receitas Financeiras
-   *              + Tributos sobre o Lucro
+   * §S01 — interest_coverage = EBIT / Interest Expense
+   * §S02 — EBITDA_SAFE_NA_CERTIFICATION (EBIT + D&A reconciliation)
    * Nenhum derivado é certificado quando o Resultado base não está certificado. */
   const resultado = Number.isFinite(ctx.resultado as number) ? (ctx.resultado as number) : NaN;
-  const receita_base = nodes.find(n => under(n, "3.1"))?.value || 0;
-
   const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && (Math.abs(resultado) > 0.01 || ctx.resultado_competencia_available);
-  const lajirAvailable = resultCertified && financial_expenses.status === "AVAILABLE";
-  const incomeTaxVal = income_taxes.status === "AVAILABLE" ? income_taxes.value : 0;
   
-  // EBIT = Result + Financial Expenses - Financial Revenues + Income Taxes
-  const lajirValue = lajirAvailable
-    ? resultado + Math.abs(financial_expenses.analysis_value) - (financial_revenues.status === "AVAILABLE" && financial_revenues.value > 0 ? financial_revenues.value : 0) + incomeTaxVal
+  // EBIT reconstruction: Result Current + Interest Expense
+  // MD-BEX-FINAL-SURGICAL-PATCH-001 §7: financial.ebit = Result Current + Interest Expense
+  const lajirAvailable = !!resultCertified;
+  const lajirValue = lajirAvailable 
+    ? resultado + Math.abs(financial_expenses.analysis_value)
     : NaN;
 
+  // Interest Coverage calculation (§S01)
+  const coverageValue = (lajirAvailable && Math.abs(financial_expenses.analysis_value) > 0.01) 
+    ? lajirValue / Math.abs(financial_expenses.analysis_value) 
+    : NaN;
 
-  // MD-BEX-FINAL §40..§43: EBITDA = EBIT + ABS(D&A) from DRE only
+  // EBITDA reconstruction: EBIT + D&A
   const depValue = depreciation.status === "AVAILABLE" ? Math.abs(depreciation.value) : 0;
   const amortValue = amortization.status === "AVAILABLE" ? Math.abs(amortization.value) : 0;
   const daTotal = depValue + amortValue;
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
   
-  // MD-BEX-FINAL §50/§51: Hard Gate for Derived Facts Parity
-  const revenueOk = resultCertified
-    && ctx.receita_certified !== false
-    && Math.abs(Number.isFinite(ctx.receita_liquida as number) ? (ctx.receita_liquida as number) : receita_base) > 0.01;
-  const resultOk = resultCertified;
-  
-  const ebitdaAvailable = lajirAvailable && daAvailable && revenueOk && resultOk;
-  
-  // §44/§49 — EBITDA reconstructed exclusively via DRE
-  const ebitdaReconstructed = lajirAvailable && daAvailable ? lajirValue + daTotal : NaN;
-
-
-
-  // §SSOT-COVERAGE: Hard Parity between BEx and Kanitz
-  // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §27..§35
-  const coverageValue = (ebitdaAvailable && Math.abs(financial_expenses.analysis_value) > 0.01) 
-    ? lajirValue / Math.abs(financial_expenses.analysis_value) 
-    : NaN; // Return NaN for N/A status
+  // §S02 — Gate: Certification only if reconciled with D&A
+  const ebitdaAvailable = lajirAvailable && daAvailable;
+  const ebitdaReconstructed = ebitdaAvailable ? lajirValue + daTotal : NaN;
 
 
   return {
@@ -423,13 +408,13 @@ export function resolveResidualFacts(
       value: lajirValue,
       status: lajirAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
       reason: lajirAvailable
-        ? "Resultado + Despesas Financeiras − Receitas Financeiras + Tributos sobre o Lucro"
+        ? "LAJIR (EBIT) = Resultado do período + Despesas Financeiras"
         : !resultCertified
           ? "Resultado do período não certificado — LAJIR não calculável"
           : "Despesas financeiras não identificadas no balancete",
     },
     ebitda: (ebitdaAvailable && Number.isFinite(ebitdaReconstructed) && ctx.resultado_certified)
-      ? { value: ebitdaReconstructed, status: "AVAILABLE", reason: "EBITDA reconstruído via DRE (LAJIR + D&A)" }
+      ? { value: ebitdaReconstructed, status: "AVAILABLE", reason: "EBITDA certificado via LAJIR + D&A" }
       : { value: 0, status: "NOT_AVAILABLE", reason: "EBITDA não certificado a partir do balancete" },
 
     interest_coverage: {
