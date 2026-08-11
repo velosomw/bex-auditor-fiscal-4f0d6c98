@@ -750,7 +750,8 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     row.ativo_nao_circulante = buckets.sawANCTotal ? (buckets.declaredByGroup["12"] ?? buckets.anc) : buckets.anc;
     row.passivo_circulante = buckets.sawPCTotal ? (buckets.declaredByGroup["21"] ?? buckets.pc) : buckets.pc;
     row.passivo_nao_circulante = buckets.sawPNCTotal ? (buckets.declaredByGroup["22"] ?? buckets.pnc) : buckets.pnc;
-    row.tax_noncurrent = buckets.declaredByGroup["223"] ?? buckets.declaredByGroup["2.2.3"] ?? row.residual_facts?.tax?.noncurrent_obligations?.value ?? 0;
+    // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §8..§10 — Bind tax.noncurrent strictly to 2.2.3
+    row.tax_noncurrent = buckets.declaredByGroup["223"] || buckets.declaredByGroup["2.2.3"] || 0;
     row.patrimonio_liquido = buckets.sawPLTotal ? (buckets.declaredByGroup["23"] ?? buckets.pl) : buckets.pl;
   }
 
