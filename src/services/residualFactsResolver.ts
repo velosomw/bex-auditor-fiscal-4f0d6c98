@@ -376,8 +376,9 @@ export function resolveResidualFacts(
   
   // EBIT = Result + Financial Expenses - Financial Revenues + Income Taxes
   const lajirValue = lajirAvailable
-    ? resultado + financial_expenses.analysis_value - (financial_revenues.value > 0 ? financial_revenues.value : 0) + incomeTaxVal
+    ? resultado + Math.abs(financial_expenses.analysis_value) - (financial_revenues.status === "AVAILABLE" && financial_revenues.value > 0 ? financial_revenues.value : 0) + incomeTaxVal
     : NaN;
+
 
   // MD-BEX-FINAL §40..§43: EBITDA = EBIT + ABS(D&A) from DRE only
   const depValue = depreciation.status === "AVAILABLE" ? Math.abs(depreciation.value) : 0;
@@ -402,7 +403,8 @@ export function resolveResidualFacts(
   // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §27..§35
   const coverageValue = (ebitdaAvailable && Math.abs(financial_expenses.analysis_value) > 0.01) 
     ? lajirValue / Math.abs(financial_expenses.analysis_value) 
-    : -1.31; // Certified parity fallback
+    : NaN; // Return NaN for N/A status
+
 
   return {
     competency,
