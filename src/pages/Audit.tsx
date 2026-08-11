@@ -84,7 +84,8 @@ export interface CanonicalReportDataset {
 
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
-const FINAL_4_POINT_CORE_FREEZE = true; // MD-BEX-FINAL-4-POINT-CONSUMER-DERIVED-METADATA-AND-PAGINATION-CORRECTION-001 §2
+const FINAL_RUNTIME_4_BINDING_PATCH_FREEZE = true; 
+const ACCOUNTING_CORE_FREEZE = true;
 
 /* ── Helpers ── */
 /** §47/§48 — FI nunca é publicado como 0.00 ou NaN: quando indisponível/inaplicável, é "N/A". */
@@ -200,8 +201,10 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
   const pages = Array.from(clone.querySelectorAll<HTMLElement>('.report-a4-page, .report-a4-cover'));
   pages.forEach((p, idx) => {
     // CORREÇÃO 04 — SAFE PAGINATION: Executar pageBreakBefore nas páginas 3/4
+    // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §60..§62
     if (idx === 2 || idx === 3) {
        p.style.pageBreakBefore = 'always';
+       p.style.breakBefore = 'page';
     }
     p.style.margin = '0';
     p.style.padding = '0'; // Força remoção de padding que pode causar overflow

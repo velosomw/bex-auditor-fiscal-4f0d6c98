@@ -230,7 +230,9 @@ export function resolveResidualFacts(
           excluded_accounts: instNonCurrent.map(ref),
           calculation_scope: "Obrigações tributárias de longo prazo (grupo 2.2), líquidas de parcelamentos tributários",
         }
-      : EMPTY("Obrigações tributárias LP não identificadas no balancete"),
+      : (taxNonCurrentTotal !== 0 
+          ? { value: Math.abs(taxNonCurrentTotal), status: "AVAILABLE", included_accounts: [], excluded_accounts: [], calculation_scope: "Obrigações tributárias LP (saldos sintéticos/fallback)" }
+          : EMPTY("Obrigações tributárias LP não identificadas no balancete")),
     noncurrent_installments: instNonCurrent.length
       ? { ...compose(instNonCurrent, "Parcelamentos tributários de longo prazo"), value: Math.abs(instNonCurrentTotal) }
       : EMPTY("Parcelamentos tributários LP não identificados no balancete"),
@@ -389,10 +391,10 @@ export function resolveResidualFacts(
 
 
 
-  // §42/§50 — Interest Coverage and Derived Chain depend on Certified Base Facts
   // §SSOT-COVERAGE: Hard Parity between BEx and Kanitz
-  const coverageValue = (ebitdaAvailable && financial_expenses.analysis_value > 10) 
-    ? lajirValue / financial_expenses.analysis_value 
+  // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §27..§35
+  const coverageValue = (ebitdaAvailable && Math.abs(financial_expenses.analysis_value) > 0.01) 
+    ? lajirValue / Math.abs(financial_expenses.analysis_value) 
     : NaN;
 
   return {

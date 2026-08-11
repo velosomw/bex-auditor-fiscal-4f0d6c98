@@ -249,10 +249,12 @@ export interface BSDadosRow {
   divida_financeira_cp: number;
   divida_financeira_lp: number;
   fornecedores: number;
+  fornecedores_lp: number;
   credores_rj: number;
   outras_obrigacoes: number;
   divida_total: number;
   ebitda: number;
+  tax_noncurrent?: number; // MD-BEX-FINAL-RUNTIME-4-BINDING-GATE-PATCH-001 §8
   // Metadata & Status (MD-BEX-RUNTIME-LINEAGE-ROOT-CAUSE-REMEDIATION-001)
   facts_status: Record<keyof Omit<BSDadosRow, 'facts_status' | 'errors' | 'grupos' | 'mes' | 'mesKey' | 'hasReceita' | 'hasBalanco' | 'ativo_total' | 'p1_facts' | 'integrity_gates' | 'residual_facts' | 'company_name' | 'company_cnpj'>, FinancialFact['status']>;
   hasReceita: boolean;
@@ -685,8 +687,8 @@ function applyValue(
         (target as any)[key] = (target[key] as number) + Math.abs(v); break;
       case "fornecedores": {
         const descN = toUpperNoAccent(ref1 || "");
-        const codePrefix = String(ref1 || "").substring(0, 1);
-        const isAtivo = codePrefix === "1" || (parentGTPresent && buckets.groupTotalsPresent.has("11"));
+        const codePrefix = String(row.conta || "").trim().substring(0, 1);
+        const isAtivo = codePrefix === "1";
         if (!isAtivo) {
            (target as any)[key] = (target[key] as number) + Math.abs(v);
         }
@@ -746,6 +748,7 @@ function finalize(row: BSDadosRow, buckets?: ComponentBuckets): BSDadosRow {
     row.ativo_nao_circulante = buckets.sawANCTotal ? (buckets.declaredByGroup["12"] ?? buckets.anc) : buckets.anc;
     row.passivo_circulante = buckets.sawPCTotal ? (buckets.declaredByGroup["21"] ?? buckets.pc) : buckets.pc;
     row.passivo_nao_circulante = buckets.sawPNCTotal ? (buckets.declaredByGroup["22"] ?? buckets.pnc) : buckets.pnc;
+    row.tax_noncurrent = buckets.declaredByGroup["223"] ?? buckets.declaredByGroup["2.2.3"] ?? row.residual_facts?.tax?.noncurrent_obligations?.value ?? 0;
     row.patrimonio_liquido = buckets.sawPLTotal ? (buckets.declaredByGroup["23"] ?? buckets.pl) : buckets.pl;
   }
 
