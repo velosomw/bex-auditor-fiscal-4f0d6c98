@@ -193,14 +193,14 @@ export function resolveResidualFacts(
 
   /** §TAX-NONCURRENT-BINDING — garante que obrigações tributárias LP (2.2.3) sejam capturadas. */
   const taxCurrentNodes = pickByTaxonomy(liabilities, "2.1", isTax, (n) => RX.labor.test(n.description) && !RX.tax.test(n.description));
+  
+  // RP-01 FORENSIC FIX: Garantir que 2.2.3 seja capturado mesmo se o seletor de taxonomia for muito restritivo
   const taxNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isTax, (n) => RX.labor.test(n.description) && !RX.tax.test(n.description));
 
-  // Se o seletor por taxonomia falhou em capturar o grupo sintético 2.2.3, forçamos a busca direta
-  if (taxNonCurrentNodes.length === 0) {
-    const syntheticTaxLP = liabilities.find(n => n.normalized_code === "2.2.3");
-    if (syntheticTaxLP && syntheticTaxLP.value !== 0) {
-      taxNonCurrentNodes.push(syntheticTaxLP);
-    }
+  // Forçamos a inclusão do grupo sintético 2.2.3 se ele existir e tiver valor, para evitar RP-01 FAIL
+  const syntheticTaxLP = liabilities.find(n => n.normalized_code === "2.2.3");
+  if (syntheticTaxLP && syntheticTaxLP.value !== 0 && !taxNonCurrentNodes.some(n => n.normalized_code === "2.2.3")) {
+    taxNonCurrentNodes.push(syntheticTaxLP);
   }
 
   const instIn = (prefix: string, parents: AccountNode[]) =>
