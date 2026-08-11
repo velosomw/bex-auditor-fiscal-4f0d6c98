@@ -108,7 +108,7 @@ const TabOrphanDocuments = () => {
               size="sm"
               onClick={reprocessAll}
               disabled={loading || docs.length === 0}
-              className="gap-1.5 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
+              className="gap-1.5 bg-[#8B5CF6] hover:bg-[hsl(258,90%,60%)] text-white"
             >
               <PlayCircle className="w-4 h-4" /> Reprocessar selecionados
             </Button>

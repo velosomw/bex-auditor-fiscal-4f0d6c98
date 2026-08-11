@@ -83,14 +83,14 @@ const ImportValidatedReferenceDialog = () => {
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="gap-1.5 border-[hsl(258,90%,66%)]/30 text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)]/10">
+        <Button size="sm" variant="outline" className="gap-1.5 border-[#8B5CF6]/30 text-[#8B5CF6] hover:bg-[#8B5CF6]/10">
           <BookOpenCheck className="w-3.5 h-3.5" /> Importar referência validada
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <BookOpenCheck className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+            <BookOpenCheck className="w-4 h-4 text-[#8B5CF6]" />
             Importar referência validada (RAG semântico)
           </DialogTitle>
         </DialogHeader>
@@ -151,7 +151,7 @@ const ImportValidatedReferenceDialog = () => {
             Cancelar
           </Button>
           <Button
-            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
+            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5"
             onClick={handleSave}
             disabled={!preview || saving || parsing}
           >

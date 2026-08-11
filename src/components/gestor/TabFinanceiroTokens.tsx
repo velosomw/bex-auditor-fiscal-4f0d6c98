@@ -292,7 +292,7 @@ const TabFinanceiroTokens = () => {
             size="sm"
             onClick={runDiagnostic}
             disabled={diagRunning}
-            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
+            className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5"
           >
             {diagRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
             {diagRunning ? "Diagnosticando..." : "Executar Diagnóstico"}
@@ -321,7 +321,7 @@ const TabFinanceiroTokens = () => {
           label="Custo por Balancete"
           value={fmtUSDc(indicators?.custoBalancete ?? 0)}
           sub={`${indicators?.totalBalancetes ?? 0} balancetes`}
-          color="hsl(258,90%,66%)"
+          color="#8B5CF6"
           info={
             <>
               <p className="font-semibold mb-1">Custo por Balancete</p>
@@ -391,11 +391,11 @@ const TabFinanceiroTokens = () => {
         return (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-[hsl(258,90%,66%)]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#8B5CF6]" />
               <h3 className="text-sm font-semibold text-foreground">
                 Custo de Processamento IA — Balancetes & Relatórios
               </h3>
-              <Badge variant="outline" className="text-[10px] h-5 border-[hsl(258,90%,66%)]/40 text-[hsl(258,90%,66%)]">
+              <Badge variant="outline" className="text-[10px] h-5 border-[#8B5CF6]/40 text-[#8B5CF6]">
                 Sem Gemini Pro · Sem Infra
               </Badge>
               <span className="text-[11px] text-muted-foreground ml-1">
@@ -423,7 +423,7 @@ const TabFinanceiroTokens = () => {
                 label="Gerar Relatório"
                 value={fmtUSDc(custoPorRelatorio)}
                 sub={`${totalReports} relatório(s) · ${fmtBRL3(procRelatorio)} no período`}
-                color="hsl(258,90%,66%)"
+                color="#8B5CF6"
                 info={
                   <>
                     <p className="font-semibold mb-1">Custo por Relatório (somente IA, sem Gemini Pro)</p>
@@ -623,7 +623,7 @@ const TabFinanceiroTokens = () => {
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={50} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <RTooltip formatter={(v: any) => fmtUSD(Number(v))} />
-                <Bar dataKey="custo" fill="hsl(258,90%,66%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="custo" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

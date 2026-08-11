@@ -651,58 +651,60 @@ const timelineSteps = [
   { id: 5, label: "Relatório Final", icon: BookOpen },
 ];
 
-const StepTimeline = ({ currentStep }: { currentStep: number }) => (
-  <div className="w-full mb-8">
-    <div className="flex items-center justify-between relative">
-      {/* Connecting line */}
-      <div className="absolute top-5 left-0 right-0 h-[2px] bg-border z-0" />
-      <div
-        className="absolute top-5 left-0 h-[2px] z-[1] transition-all duration-700"
-        style={{
-          width: `${((Math.min(currentStep, timelineSteps.length) - 1) / (timelineSteps.length - 1)) * 100}%`,
-          background: "linear-gradient(90deg, hsl(258, 90%, 66%), hsl(38, 85%, 55%))",
-        }}
-      />
+function StepTimeline({ currentStep }: { currentStep: number }) {
+  return (
+    <div className="w-full mb-8">
+      <div className="flex items-center justify-between relative">
+        {/* Connecting line */}
+        <div className="absolute top-5 left-0 right-0 h-[2px] bg-border z-0" />
+        <div
+          className="absolute top-5 left-0 h-[2px] z-[1] transition-all duration-700"
+          style={{
+            width: `${((Math.min(currentStep, timelineSteps.length) - 1) / (timelineSteps.length - 1)) * 100}%`,
+            background: "linear-gradient(90deg, #8B5CF6, #F59E0B)",
+          }}
+        />
 
-      {timelineSteps.map((step) => {
-        const isActive = step.id === currentStep;
-        const isComplete = step.id < currentStep;
-        const Icon = step.icon;
+        {timelineSteps.map((step) => {
+          const isActive = step.id === currentStep;
+          const isComplete = step.id < currentStep;
+          const Icon = step.icon;
 
-        return (
-          <div key={step.id} className="flex flex-col items-center z-10 relative" style={{ flex: 1 }}>
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-                isComplete
-                  ? "bg-[hsl(258,90%,66%)] border-[hsl(258,90%,66%)] text-white"
-                  : isActive
-                  ? "bg-white border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] shadow-lg shadow-[hsl(258,90%,66%)]/20"
-                  : "bg-white border-border text-muted-foreground"
-              }`}
-            >
-              {isComplete ? (
-                <CheckCircle2 className="w-5 h-5" />
-              ) : (
-                <Icon className={`w-4 h-4 ${isActive && step.icon === Loader2 ? "animate-spin" : ""}`} />
-              )}
+          return (
+            <div key={step.id} className="flex flex-col items-center z-10 relative" style={{ flex: 1 }}>
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                  isComplete
+                    ? "bg-[#8B5CF6] border-[#8B5CF6] text-white"
+                    : isActive
+                    ? "bg-white border-[#8B5CF6] text-[#8B5CF6] shadow-lg shadow-[#8B5CF6]/20"
+                    : "bg-white border-border text-muted-foreground"
+                }`}
+              >
+                {isComplete ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : (
+                  <Icon className={`w-4 h-4 ${isActive && step.icon === Loader2 ? "animate-spin" : ""}`} />
+                )}
+              </div>
+              <span
+                className={`text-[11px] mt-2 font-medium text-center leading-tight ${
+                  isActive ? "text-[#8B5CF6]" : isComplete ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {step.label}
+              </span>
             </div>
-            <span
-              className={`text-[11px] mt-2 font-medium text-center leading-tight ${
-                isActive ? "text-[hsl(258,90%,66%)]" : isComplete ? "text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {step.label}
-            </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
-/* ══════════════════════════════════════════════════════
+/* ======================================================
    PHASE 1: UPLOAD (Configuração + Carregamento)
-   ══════════════════════════════════════════════════════ */
+   ====================================================== */
 const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDedupChange, onDepthChange, onForceReprocess }: { onProcess: () => void; onFilesReady: (files: File[]) => void; onMesesReady?: (entries: BalanceteEntry[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void; onForceReprocess?: (force: boolean) => void }) => {
   const { subscription } = useSubscription();
   const isFreeTier = !subscription || subscription.plan_code !== "enterprise" || subscription.status !== "active";
@@ -861,9 +863,9 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
       <StepTimeline currentStep={hasFiles ? 2 : 1} />
 
       <div className="text-center space-y-2 mb-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(258,90%,66%)]/10 border border-[hsl(258,90%,66%)]/20 mb-2">
-          <Shield className="w-4 h-4 text-[hsl(258,90%,66%)]" />
-          <span className="text-xs font-semibold text-[hsl(258,90%,66%)]">Técnico Contábil Sênior IA</span>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#8B5CF6]/10 border border-[#8B5CF6]/20 mb-2">
+          <Shield className="w-4 h-4 text-[#8B5CF6]" />
+          <span className="text-xs font-semibold text-[#8B5CF6]">Técnico Contábil Sênior IA</span>
         </div>
         <h1 className="text-2xl font-bold text-foreground font-serif">
           {hasFiles ? "Carregamento" : "Configuração"}
@@ -1040,7 +1042,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
               onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
               onClick={() => document.getElementById("file-input")?.click()}
               className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
-                dragOver ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5 scale-[1.01]" : "border-border hover:border-[hsl(258,90%,66%)]/40 hover:bg-muted/30"
+                dragOver ? "border-[#8B5CF6] bg-[#8B5CF6]/5 scale-[1.01]" : "border-border hover:border-[#8B5CF6]/40 hover:bg-muted/30"
               }`}
             >
               <div className="w-14 h-14 mx-auto rounded-xl bg-muted/50 flex items-center justify-center mb-3">
@@ -1064,7 +1066,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
               ].map(opt => (
                 <button key={opt.id} onClick={() => setDepth(opt.id as any)}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                    depth === opt.id ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5" : "border-border hover:border-[hsl(258,90%,66%)]/30 hover:bg-muted/20"
+                    depth === opt.id ? "border-[#8B5CF6] bg-[#8B5CF6]/5" : "border-border hover:border-[#8B5CF6]/30 hover:bg-muted/20"
                   }`}>
                     <div className="flex items-center justify-between">
                      <div>
@@ -1081,8 +1083,8 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
                        <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
                      </div>
                      {depth === opt.id && (
-                       <div className="w-5 h-5 rounded-full border-2 border-[hsl(258,90%,66%)] flex items-center justify-center shrink-0">
-                         <div className="w-2.5 h-2.5 rounded-full bg-[hsl(258,90%,66%)]" />
+                       <div className="w-5 h-5 rounded-full border-2 border-[#8B5CF6] flex items-center justify-center shrink-0">
+                         <div className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" />
                        </div>
                      )}
                   </div>
@@ -1097,7 +1099,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
               {purposes.map(p => (
                 <button key={p.id} onClick={() => setPurpose(p.id)}
                   className={`px-4 py-2.5 rounded-full text-xs font-medium border transition-all ${
-                    purpose === p.id ? "bg-[hsl(258,90%,66%)] text-white border-[hsl(258,90%,66%)]" : "bg-white border-border text-foreground hover:border-[hsl(258,90%,66%)]/40"
+                    purpose === p.id ? "bg-[#8B5CF6] text-white border-[#8B5CF6]" : "bg-white border-border text-foreground hover:border-[#8B5CF6]/40"
                   }`}>{p.label}</button>
               ))}
             </div>
@@ -1126,7 +1128,7 @@ const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDed
           </p>
         )}
         <Button onClick={() => { onForceReprocess?.(false); handleContinue(); }} disabled={!canContinue}
-          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20">
+          className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-2 h-12 px-10 text-sm font-semibold rounded-xl shadow-lg shadow-[#8B5CF6]/20">
           Fazer Auditoria <ArrowRight className="w-5 h-5" />
         </Button>
         {onForceReprocess && (
@@ -1457,8 +1459,8 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
       <StepTimeline currentStep={3} />
       <div className="max-w-xl mx-auto space-y-8 py-8">
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-[hsl(258,90%,66%)] animate-spin" />
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#8B5CF6]/10 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-[#8B5CF6] animate-spin" />
           </div>
           <h2 className="text-xl font-bold text-foreground font-serif">Processando Análise</h2>
           <p className="text-sm text-muted-foreground">
@@ -1467,10 +1469,10 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
         </div>
 
         {/* Card unificado em destaque — substitui a lista de tópicos */}
-        <div className="rounded-2xl border border-[hsl(258,90%,66%)]/25 bg-gradient-to-br from-[hsl(258,90%,66%)]/8 to-transparent p-5 space-y-4 shadow-sm">
+        <div className="rounded-2xl border border-[#8B5CF6]/25 bg-gradient-to-br from-[#8B5CF6]/8 to-transparent p-5 space-y-4 shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/15 flex items-center justify-center shrink-0">
-              <Loader2 className="w-5 h-5 text-[hsl(258,90%,66%)] animate-spin" />
+            <div className="w-10 h-10 rounded-xl bg-[#8B5CF6]/15 flex items-center justify-center shrink-0">
+              <Loader2 className="w-5 h-5 text-[#8B5CF6] animate-spin" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -1506,7 +1508,7 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
             <button
               type="button"
               onClick={() => setShowDetails(v => !v)}
-              className="text-xs text-[hsl(258,90%,66%)] hover:underline inline-flex items-center gap-1"
+              className="text-xs text-[#8B5CF6] hover:underline inline-flex items-center gap-1"
             >
               {showDetails ? "Ocultar etapas detalhadas" : "Ver etapas detalhadas"}
               <ChevronDown className={`w-3 h-3 transition-transform ${showDetails ? "rotate-180" : ""}`} />
@@ -1519,13 +1521,13 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
             {processingSteps.map((step, i) => (
               <div key={i} className={`flex items-center gap-3 p-2.5 rounded-lg transition-all ${
                 i < currentStep ? "bg-emerald-500/5" :
-                i === currentStep ? "bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20" :
+                i === currentStep ? "bg-[#8B5CF6]/5 border border-[#8B5CF6]/20" :
                 "opacity-40"
               }`}>
                 {i < currentStep ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                 ) : i === currentStep ? (
-                  <Loader2 className="w-4 h-4 text-[hsl(258,90%,66%)] animate-spin shrink-0" />
+                  <Loader2 className="w-4 h-4 text-[#8B5CF6] animate-spin shrink-0" />
                 ) : (
                   <div className="w-4 h-4 rounded-full border border-border shrink-0" />
                 )}
@@ -2262,7 +2264,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
                     key={p.id}
                     onClick={() => setSelectedId(p.id)}
                     className={`w-full text-left p-3 rounded-lg border transition-all ${
-                      selectedId === p.id ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5" : "border-border/50 hover:bg-muted/50"
+                      selectedId === p.id ? "border-[#8B5CF6] bg-[#8B5CF6]/5" : "border-border/50 hover:bg-muted/50"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
@@ -2330,14 +2332,14 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-[hsl(258,90%,66%)]/30 shadow-lg">
-          <CardHeader className="pb-2 bg-[hsl(258,90%,66%)]/5 border-b border-[hsl(258,90%,66%)]/20">
+        <Card className="border-[#8B5CF6]/30 shadow-lg">
+          <CardHeader className="pb-2 bg-[#8B5CF6]/5 border-b border-[#8B5CF6]/20">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-sm flex items-center gap-2 text-foreground">
-                <MessageCircle className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Chat com Técnico IA Sênior
+                <MessageCircle className="w-4 h-4 text-[#8B5CF6]" /> Chat com Técnico IA Sênior
               </CardTitle>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Badge variant="outline" className="text-[10px] border-[hsl(258,90%,66%)]/40 text-[hsl(258,90%,66%)]">
+                <Badge variant="outline" className="text-[10px] border-[#8B5CF6]/40 text-[#8B5CF6]">
                   Escopo exclusivo: {balanceteScopeId}
                 </Badge>
                 {selected && (
@@ -2360,7 +2362,7 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
                   <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[85%] p-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm ${
                       msg.role === "user"
-                        ? "bg-[hsl(258,90%,66%)] text-white rounded-br-sm"
+                        ? "bg-[#8B5CF6] text-white rounded-br-sm"
                         : "bg-card text-foreground border border-border/60 rounded-bl-sm"
                     }`}>
                       {msg.text}
@@ -2381,14 +2383,14 @@ const TabAnaliseTecnica = ({ pendenciasData, parsedData, isHistoricalView = fals
               <div className="flex flex-wrap gap-1.5">
                 {["Por que classificou como crítico?", "Qual o impacto no balancete?", "Qual ajuste contábil sugere?", "Gera ressalva no parecer?"].map(q => (
                   <button key={q} onClick={() => setChatInput(q)}
-                    className="text-[10px] px-2.5 py-1 rounded-full bg-muted/60 border border-border/60 text-foreground hover:bg-[hsl(258,90%,66%)]/10 hover:border-[hsl(258,90%,66%)]/40 transition-colors">
+                    className="text-[10px] px-2.5 py-1 rounded-full bg-muted/60 border border-border/60 text-foreground hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/40 transition-colors">
                     {q}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
                 <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Pergunte sobre este balancete..." className="text-sm" disabled={isStreaming} />
-                <Button onClick={sendChat} disabled={isStreaming} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white px-4">
+                <Button onClick={sendChat} disabled={isStreaming} className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-4">
                   {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
@@ -2456,11 +2458,11 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
 
     <div className="grid lg:grid-cols-2 gap-6">
       {/* Card BEX */}
-      <Card className={`border-2 hover:border-[hsl(258,90%,66%)]/50 transition-all ${bexAvailable ? "ring-2 ring-[hsl(258,90%,66%)]/40" : ""}`}>
+      <Card className={`border-2 hover:border-[#8B5CF6]/50 transition-all ${bexAvailable ? "ring-2 ring-[#8B5CF6]/40" : ""}`}>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+            <div className="w-10 h-10 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-[#8B5CF6]" />
             </div>
             <div>
               <CardTitle className="text-base font-serif">Relatório BEx_Resumido_Kanitz</CardTitle>
@@ -2483,8 +2485,8 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
               const Icon = t.icon;
               return (
                 <div key={t.num} className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/20">
-                  <div className="w-6 h-6 rounded bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-bold text-[hsl(258,90%,66%)]">{t.num}</span>
+                  <div className="w-6 h-6 rounded bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-bold text-[#8B5CF6]">{t.num}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground">{t.title}</p>
@@ -2501,7 +2503,7 @@ const TabRelatorioPreview = ({ onGerarBex, onGerarKanitz, selectedDepth = "tecni
           </div>
           <Button
             onClick={onGerarBex}
-            className="w-full bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white gap-2 h-11 text-sm font-semibold rounded-xl shadow-lg shadow-[hsl(258,90%,66%)]/20"
+            className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-2 h-11 text-sm font-semibold rounded-xl shadow-lg shadow-[#8B5CF6]/20"
           >
             <FileText className="w-4 h-4" /> Gerar Relatório BEX
           </Button>
@@ -2777,8 +2779,8 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
   const fmtKDec = (n: number) => (n ?? 0).toFixed(4);
 
   const SectionTitle = ({ num, title }: { num: string; title: string }) => (
-    <div className="flex items-center gap-3 py-3 border-b-2 border-[hsl(258,90%,66%)]/30 mb-4">
-      <div className="w-8 h-8 rounded-lg bg-[hsl(258,90%,66%)] text-white flex items-center justify-center text-sm font-bold">{num}</div>
+    <div className="flex items-center gap-3 py-3 border-b-2 border-[#8B5CF6]/30 mb-4">
+      <div className="w-8 h-8 rounded-lg bg-[#8B5CF6] text-white flex items-center justify-center text-sm font-bold">{num}</div>
       <h2 className="text-lg font-bold text-foreground font-serif">{title}</h2>
     </div>
   );
@@ -2796,7 +2798,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           <div className="inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5">
             <div className="relative">
               <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-green-600 bg-green-100 px-1.5 py-0 rounded-full leading-4 whitespace-nowrap">Disponível</span>
-              <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(258,90%,66%)] text-white shadow-sm">
+              <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#8B5CF6] text-white shadow-sm">
                 <BookOpen className="w-3.5 h-3.5" /> Relatório BEX
               </button>
             </div>
@@ -2843,7 +2845,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
           </h1>
           <p className="text-sm text-muted-foreground mt-3 italic">Business Extended Analysis</p>
 
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[hsl(258,90%,66%)]/30 bg-[hsl(258,90%,66%)]/5 mt-8">
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/5 mt-8">
             <span className="text-lg">{riskIcon}</span>
             <span className="text-sm font-semibold text-foreground">{scoreLabel}</span>
           </div>
@@ -2977,7 +2979,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       <Tooltip formatter={(v: number) => [`${(v ?? 0).toFixed(1)}%`, "Resultado"]} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {solvencyIndicators.filter(si => !si.name.includes("Capital") && !si.name.includes("Cobertura")).map((_, i) => (
-                          <Cell key={i} fill={["hsl(258,90%,66%)", "hsl(258,70%,60%)", "hsl(258,50%,55%)", "hsl(258,90%,50%)"][i % 4]} />
+                          <Cell key={i} fill={["#8B5CF6", "#8B5CF6", "#8B5CF6", "#6D28D9"][i % 4]} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -3784,7 +3786,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
         <div className="inline-flex items-center rounded-lg border border-border bg-muted/50 p-0.5">
           <div className="relative">
             <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-green-600 bg-green-100 px-1.5 py-0 rounded-full leading-4 whitespace-nowrap">Disponível</span>
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[hsl(258,90%,66%)] text-white shadow-sm" onClick={() => {
+            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#8B5CF6] text-white shadow-sm" onClick={() => {
               const tabList = document.querySelector('[role="tablist"]');
               const bexTab = tabList?.querySelector('[value="relatorio-final"]') as HTMLElement;
               bexTab?.click();
@@ -5067,7 +5069,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <div className="flex items-center gap-2 print:hidden">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="default" className="gap-2 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,75%)] hidden">
+              <Button variant="default" className="gap-2 bg-[#8B5CF6] hover:bg-[#A78BFA] hidden">
                 <Download className="w-4 h-4" /> Exportar Resultados
                 <ChevronDown className="w-3 h-3 ml-1 opacity-50" />
               </Button>
@@ -5154,7 +5156,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             <TabsTrigger
               key={value}
               value={value}
-              className={`text-xs gap-1.5 relative rounded-t-md border-t-2 border-x-2 border-transparent transition-colors data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white data-[state=active]:border-[hsl(258,90%,66%)] ${idx < currentIdx ? "border-t-[hsl(258,90%,66%)]" : ""} ${idx > effectiveMax ? "hidden" : ""}`}
+              className={`text-xs gap-1.5 relative rounded-t-md border-t-2 border-x-2 border-transparent transition-colors data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white data-[state=active]:border-[#8B5CF6] ${idx < currentIdx ? "border-t-[#8B5CF6]" : ""} ${idx > effectiveMax ? "hidden" : ""}`}
             >
               <Icon className="w-3.5 h-3.5" /> {label}
             </TabsTrigger>
@@ -5170,7 +5172,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
         <TabsContent value="pivot"><TabPivotBalancete parsedData={parsedData} entries={balanceteEntries} /></TabsContent>
         <TabsContent value="graficos-auditoria" id="tab-graficos-container" className="bg-background">
           {/* Capa de impressão BEx — só aparece em @media print */}
-          <div className="bex-print-cover hidden" style={{ minHeight: "287mm", flexDirection: "column", background: "white", color: "hsl(220, 25%, 14%)", borderRadius: 0 }}>
+          <div className="bex-print-cover hidden" style={{ minHeight: "287mm", flexDirection: "column", background: "white", color: "#1C2541", borderRadius: 0 }}>
             {/* Header com logo (padrão BEx) */}
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "6mm 8mm 0" }}>
               <img src={logoBrasilExpertFull} alt="Brasil Expert" style={{ height: "14mm", objectFit: "contain" }} />
@@ -5183,27 +5185,27 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
               <h1 style={{ fontSize: "22pt", fontWeight: 800, lineHeight: 1.15, margin: 0 }}>
                 RELATÓRIO TÉCNICO DE GRÁFICOS<br />AUDITORIA CONTÁBIL E PARECER
               </h1>
-              <p style={{ fontSize: "10pt", color: "hsl(220, 10%, 46%)", marginTop: "8pt", fontStyle: "italic" }}>Business Extended Analysis</p>
+              <p style={{ fontSize: "10pt", color: "#64748B", marginTop: "8pt", fontStyle: "italic" }}>Business Extended Analysis</p>
 
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "8pt", padding: "8pt 16pt", borderRadius: "999px", border: "1px solid hsl(258, 90%, 66%, 0.3)", background: "hsl(258, 90%, 66%, 0.05)", marginTop: "20pt" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "8pt", padding: "8pt 16pt", borderRadius: "999px", border: "1px solid rgba(139, 92, 246, 0.3)", background: "rgba(139, 92, 246, 0.05)", marginTop: "20pt" }}>
                 <span style={{ fontSize: "12pt" }}>📊</span>
                 <span style={{ fontSize: "10pt", fontWeight: 600 }}>Painel de Gráficos — Auditoria + Parecer Contábil</span>
               </div>
 
-              <div style={{ marginTop: "28pt", fontSize: "10pt", color: "hsl(220, 10%, 46%)", lineHeight: 1.7 }}>
-                <p style={{ fontWeight: 700, fontSize: "12pt", color: "hsl(220, 25%, 14%)", margin: 0 }}>Empresa Analisada: {company?.name ?? "—"}</p>
+              <div style={{ marginTop: "28pt", fontSize: "10pt", color: "#64748B", lineHeight: 1.7 }}>
+                <p style={{ fontWeight: 700, fontSize: "12pt", color: "#1C2541", margin: 0 }}>Empresa Analisada: {company?.name ?? "—"}</p>
                 {company?.cnpj && <p style={{ margin: 0 }}>CNPJ: {company.cnpj}</p>}
                 <p style={{ margin: 0 }}>Data de Emissão: {new Date().toLocaleDateString("pt-BR")}</p>
               </div>
 
-              <div style={{ marginTop: "24pt", paddingTop: "16pt", borderTop: "1px solid hsl(220, 18%, 90%)", width: "100%", maxWidth: "120mm" }}>
-                <p style={{ fontSize: "8pt", color: "hsl(220, 10%, 46%)", textTransform: "uppercase", letterSpacing: "2pt", margin: 0 }}>Responsável Técnico</p>
+              <div style={{ marginTop: "24pt", paddingTop: "16pt", borderTop: "1px solid #E2E8F0", width: "100%", maxWidth: "120mm" }}>
+                <p style={{ fontSize: "8pt", color: "#64748B", textTransform: "uppercase", letterSpacing: "2pt", margin: 0 }}>Responsável Técnico</p>
                 <p style={{ fontSize: "10pt", fontWeight: 600, margin: "4pt 0 0" }}>Técnico Contábil Sênior IA</p>
-                <p style={{ fontSize: "9pt", color: "hsl(220, 10%, 46%)", margin: 0 }}>Especialista em Recuperação Judicial e Análise Empresarial</p>
+                <p style={{ fontSize: "9pt", color: "#64748B", margin: 0 }}>Especialista em Recuperação Judicial e Análise Empresarial</p>
               </div>
             </div>
             {/* Footer */}
-            <div style={{ borderTop: "3px solid hsl(195, 53%, 50%)", padding: "3mm 8mm", textAlign: "center", fontSize: "9px", color: "hsl(220, 10%, 46%)", lineHeight: 1.5 }}>
+            <div style={{ borderTop: "3px solid #3B9EC0", padding: "3mm 8mm", textAlign: "center", fontSize: "9px", color: "#64748B", lineHeight: 1.5 }}>
               <p style={{ margin: 0 }}>Rua Cel. Oscar Porto, nº 736, 3º Andar, Paraíso, São Paulo-SP, CEP: 04003-003</p>
               <p style={{ margin: 0 }}>(11) 3285-4472 · https://www.brasilexpert.com.br/</p>
             </div>
@@ -5243,7 +5245,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
                 <Button
                   size="sm"
                   variant={reportType === "bex" ? "default" : "outline"}
-                  className={`gap-1.5 h-8 ${reportType === "bex" ? "bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,56%)] text-white" : ""}`}
+                  className={`gap-1.5 h-8 ${reportType === "bex" ? "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white" : ""}`}
                   onClick={() => setReportType("bex")}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
@@ -5283,7 +5285,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
               type="button"
               onClick={goPrevTab}
               aria-label="Aba anterior"
-              className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[hsl(258,90%,66%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(258,90%,56%)] hover:scale-105 transition-all flex items-center justify-center"
+              className="print:hidden fixed left-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[#8B5CF6] text-white shadow-xl ring-2 ring-white/20 hover:bg-[#7C3AED] hover:scale-105 transition-all flex items-center justify-center"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
@@ -5293,7 +5295,7 @@ export const ResultsPhase = ({ onBack, aiAnalysis, parsedData, batchId, sourceDo
             onClick={goNextTab}
             disabled={currentIdx >= tabOrder.length - 1}
             aria-label="Próxima aba"
-            className="print:hidden fixed right-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[hsl(12,90%,55%)] text-white shadow-xl ring-2 ring-white/20 hover:bg-[hsl(12,90%,45%)] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="print:hidden fixed right-4 top-1/2 -translate-y-1/2 z-40 h-16 w-10 rounded-xl bg-[#F97316] text-white shadow-xl ring-2 ring-white/20 hover:bg-[#EA580C] hover:scale-105 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -5384,8 +5386,8 @@ const AuditContent = () => {
     <PlatformLayout>
       <div className="max-w-[1400px] mx-auto p-4 md:p-6">
         {company && (
-          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-[hsl(217,91%,50%)]/5 border border-[hsl(217,91%,50%)]/20">
-            <Building2 className="w-4 h-4 text-[hsl(217,91%,50%)]" />
+          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-[#2563EB]/5 border border-[#2563EB]/20">
+            <Building2 className="w-4 h-4 text-[#2563EB]" />
             <span className="text-xs text-muted-foreground">Auditoria vinculada à empresa:</span>
             <span className="text-sm font-semibold text-foreground">{company.name}</span>
           </div>

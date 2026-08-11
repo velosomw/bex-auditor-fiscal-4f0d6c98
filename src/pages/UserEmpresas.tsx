@@ -347,7 +347,7 @@ const UserEmpresas = () => {
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Empresas Cadastradas", value: totals.empresas, icon: Building2, color: "hsl(217,91%,50%)" },
-            { label: "Relatórios Gerados", value: totals.relatorios, icon: FileText, color: "hsl(258,90%,66%)" },
+            { label: "Relatórios Gerados", value: totals.relatorios, icon: FileText, color: "#8B5CF6" },
             { label: "Documentos Analisados", value: totals.documentos, icon: FileText, color: "hsl(142,76%,36%)" },
           ].map(k => (
             <Card key={k.label} className="border-border/50">
@@ -918,7 +918,7 @@ const UserEmpresas = () => {
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Histórico de Relatórios
+                      <FileText className="w-4 h-4 text-[#8B5CF6]" /> Histórico de Relatórios
                     </CardTitle>
                     <CardDescription>Relatórios de auditoria emitidos para esta empresa.</CardDescription>
                   </CardHeader>

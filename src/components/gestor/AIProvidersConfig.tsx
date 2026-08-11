@@ -51,7 +51,7 @@ const PROVIDERS: {
     name: "BEx AI Gateway",
     vendor: "BEx Cloud (managed)",
     icon: Cloud,
-    color: "hsl(258,90%,66%)",
+    color: "#8B5CF6",
     description: "API key gerenciada pela plataforma. Sem configuração — usa Gemini e GPT via gateway seguro.",
     capabilities: ["reasoning", "report"],
     fields: ["model"],
@@ -197,8 +197,8 @@ const AIProvidersConfig = () => {
 
       {/* ── Active Provider Status ─────────────────────────── */}
       <div className="bg-card rounded-xl border border-border p-4 flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
-          <CheckCircle2 className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+        <div className="w-9 h-9 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+          <CheckCircle2 className="w-5 h-5 text-[#8B5CF6]" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -219,11 +219,11 @@ const AIProvidersConfig = () => {
       </div>
 
       {/* ── Pipeline Configuration ─────────────────────────── */}
-      <div className="bg-gradient-to-br from-[hsl(258,90%,66%)]/8 to-[hsl(200,90%,50%)]/5 rounded-xl border border-border p-5">
+      <div className="bg-gradient-to-br from-[#8B5CF6]/8 to-[hsl(200,90%,50%)]/5 rounded-xl border border-border p-5">
         <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
           <div>
             <h4 className="text-base font-bold text-foreground flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Pipeline de Processamento
+              <Zap className="w-4 h-4 text-[#8B5CF6]" /> Pipeline de Processamento
             </h4>
             <p className="text-xs text-muted-foreground mt-1">
               Defina qual API processa cada etapa: leitura do documento → análise → geração do relatório.
@@ -286,7 +286,7 @@ const AIProvidersConfig = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-semibold text-sm text-foreground">{provider.name}</h4>
                       {provider.managed && (
-                        <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[hsl(258,90%,66%)]/10 text-[hsl(258,90%,66%)]">
+                        <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[#8B5CF6]/10 text-[#8B5CF6]">
                           Gerenciado
                         </span>
                       )}
@@ -330,7 +330,7 @@ const AIProvidersConfig = () => {
               {isExpanded && (
                 <div className="border-t border-border bg-muted/20 p-5 space-y-4">
                   {provider.managed && (
-                    <div className="text-xs text-muted-foreground bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20 rounded-md p-3">
+                    <div className="text-xs text-muted-foreground bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 rounded-md p-3">
                       ✨ Esta opção usa a chave <code className="bg-muted px-1 rounded">BEX_API_KEY</code> já provisionada. Não requer cadastro.
                     </div>
                   )}
@@ -461,7 +461,7 @@ const AIProvidersConfig = () => {
         </p>
         <Button
           size="sm"
-          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
+          className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5"
           onClick={saveAll}
         >
           <CheckCircle2 className="w-3.5 h-3.5" /> Salvar Configurações

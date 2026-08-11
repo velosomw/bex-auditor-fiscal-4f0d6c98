@@ -79,12 +79,12 @@ export default function TabBSDados({ parsedData, entries = [] }: Props) {
 
   return (
     <div className="space-y-4">
-      <Card className="border-[hsl(258,90%,66%)]/20">
+      <Card className="border-[#8B5CF6]/20">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Database className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+                <Database className="w-5 h-5 text-[#8B5CF6]" />
                 BS &amp; Dados — Base Consolidada (Single Source of Truth)
               </CardTitle>
               <CardDescription className="text-xs">

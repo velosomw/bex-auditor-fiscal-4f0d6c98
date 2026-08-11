@@ -133,7 +133,7 @@ const Perfil = () => {
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Administrador", value: form.full_name || "—", icon: User, color: "hsl(217,91%,50%)" },
-            { label: "Escritório", value: form.company_name || "—", icon: Building2, color: "hsl(258,90%,66%)" },
+            { label: "Escritório", value: form.company_name || "—", icon: Building2, color: "#8B5CF6" },
             { label: "Contato", value: form.whatsapp || form.phone_fixed || "—", icon: Phone, color: "hsl(142,76%,36%)" },
           ].map(k => (
             <Card key={k.label} className="border-border/50">

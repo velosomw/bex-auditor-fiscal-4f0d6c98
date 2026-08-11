@@ -194,9 +194,9 @@ const TabUpload = () => {
       <div
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
-        className="bg-card border-2 border-dashed border-border rounded-xl p-10 text-center hover:border-[hsl(258,90%,66%)] transition-colors"
+        className="bg-card border-2 border-dashed border-border rounded-xl p-10 text-center hover:border-[#8B5CF6] transition-colors"
       >
-        <Upload className="w-12 h-12 mx-auto text-[hsl(258,90%,66%)] mb-3" />
+        <Upload className="w-12 h-12 mx-auto text-[#8B5CF6] mb-3" />
         <h3 className="font-semibold text-foreground mb-1">Arraste documentos ou clique para selecionar</h3>
         <p className="text-xs text-muted-foreground mb-4">PDF, XLSX, CSV — Balancete, DRE ou Fluxo de Caixa</p>
         <input
@@ -266,7 +266,7 @@ const TabUpload = () => {
               return (
                 <div key={k} className="flex items-center gap-2">
                   {s === "done" && <CheckCircle2 className="w-5 h-5 text-[hsl(152,70%,45%)]" />}
-                  {s === "running" && <Loader2 className="w-5 h-5 text-[hsl(258,90%,66%)] animate-spin" />}
+                  {s === "running" && <Loader2 className="w-5 h-5 text-[#8B5CF6] animate-spin" />}
                   {s === "error" && <XCircle className="w-5 h-5 text-[hsl(0,70%,55%)]" />}
                   {s === "warning" && <AlertCircle className="w-5 h-5 text-[hsl(38,90%,55%)]" />}
                   {s === "idle" && <div className="w-5 h-5 rounded-full border-2 border-border" />}
@@ -286,7 +286,7 @@ const TabUpload = () => {
                 Total: <strong className="text-foreground">{(totalMs / 1000).toFixed(1)}s</strong>
               </span>
             )}
-            <Button onClick={startPipeline} disabled={processing} className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
+            <Button onClick={startPipeline} disabled={processing} className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5">
               <Sparkles className="w-3.5 h-3.5" /> {processing ? "Processando..." : "Processar com IA"}
             </Button>
           </div>
@@ -402,7 +402,7 @@ const TabUpload = () => {
                         ? "Gerar relatório executivo"
                         : "Corrija a divergência contábil antes de gerar o relatório"
                     }
-                    className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5 disabled:opacity-50"
+                    className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5 disabled:opacity-50"
                   >
                     <FileText className="w-3.5 h-3.5" /> Gerar Relatório Final
                   </Button>
@@ -416,7 +416,7 @@ const TabUpload = () => {
                   { label: "Validação", v: result.scores.validation },
                   { label: "Quality Score", v: result.scores.quality, hi: true },
                 ].map((m, i) => (
-                  <div key={i} className={`rounded-lg border p-3 ${m.hi ? "border-[hsl(258,90%,66%)]/30 bg-[hsl(258,90%,66%)]/5" : "border-border"}`}>
+                  <div key={i} className={`rounded-lg border p-3 ${m.hi ? "border-[#8B5CF6]/30 bg-[#8B5CF6]/5" : "border-border"}`}>
                     <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{m.label}</div>
                     <div className="text-lg font-bold text-foreground">{(m.v * 100).toFixed(0)}%</div>
                     <Progress value={m.v * 100} className="h-1 mt-1" />
@@ -541,7 +541,7 @@ const TabValidacao = () => {
         {/* Documento original / metadados */}
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-foreground">
-            <FileText className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Documento
+            <FileText className="w-4 h-4 text-[#8B5CF6]" /> Documento
           </div>
           {currentBal ? (
             <div className="space-y-2 text-xs">
@@ -577,7 +577,7 @@ const TabValidacao = () => {
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Brain className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Estrutura Extraída pela IA
+              <Brain className="w-4 h-4 text-[#8B5CF6]" /> Estrutura Extraída pela IA
             </div>
             <span className="text-xs text-muted-foreground">{rows.length} linhas</span>
           </div>
@@ -600,7 +600,7 @@ const TabValidacao = () => {
                 </TableHeader>
                 <TableBody>
                   {rows.map((r) => (
-                    <TableRow key={r.id} className={`cursor-pointer ${selected === r.id ? "bg-[hsl(258,90%,66%)]/5" : ""}`} onClick={() => setSelected(r.id)}>
+                    <TableRow key={r.id} className={`cursor-pointer ${selected === r.id ? "bg-[#8B5CF6]/5" : ""}`} onClick={() => setSelected(r.id)}>
                       <TableCell className="text-xs font-mono">{r.conta}</TableCell>
                       <TableCell className="text-xs">{r.descricao || "—"}</TableCell>
                       <TableCell className="text-xs">
@@ -627,7 +627,7 @@ const TabValidacao = () => {
         </Button>
         <Button
           size="sm"
-          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5"
+          className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5"
           onClick={teachSelected}
           disabled={!selected}
         >
@@ -647,7 +647,7 @@ const TabAprendizado = () => {
     loadPerfStats().then(setPerf).catch(() => {});
   }, []);
   const kpis = [
-    { label: "Documentos aprendidos", value: String(perf?.totalDocs ?? 0), icon: BookOpen, color: "hsl(258,90%,66%)" },
+    { label: "Documentos aprendidos", value: String(perf?.totalDocs ?? 0), icon: BookOpen, color: "#8B5CF6" },
     { label: "Quality médio", value: `${perf?.quality ?? 0}%`, icon: Target, color: "hsl(152,70%,45%)" },
     { label: "Termos no dicionário", value: String(rows.length), icon: TrendingUp, color: "hsl(38,90%,55%)" },
   ];
@@ -750,7 +750,7 @@ const TabPerformance = () => {
   const [perf, setPerf] = useState<Awaited<ReturnType<typeof loadPerfStats>> | null>(null);
   useEffect(() => { loadPerfStats().then(setPerf).catch(() => {}); }, []);
   const kpis = [
-    { label: "Precisão OCR", value: `${perf?.ocr ?? 0}%`, icon: Cpu, color: "hsl(258,90%,66%)" },
+    { label: "Precisão OCR", value: `${perf?.ocr ?? 0}%`, icon: Cpu, color: "#8B5CF6" },
     { label: "Precisão Mapeamento", value: `${perf?.mapping ?? 0}%`, icon: Target, color: "hsl(152,70%,45%)" },
     { label: "Validação Contábil", value: `${perf?.validation ?? 0}%`, icon: Edit3, color: "hsl(38,90%,55%)" },
     { label: "Quality Score", value: `${perf?.quality ?? 0}%`, icon: Zap, color: "hsl(200,90%,50%)" },
@@ -772,7 +772,7 @@ const TabPerformance = () => {
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-card rounded-xl border border-border p-5">
           <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Evolução da Precisão
+            <TrendingUp className="w-4 h-4 text-[#8B5CF6]" /> Evolução da Precisão
           </h4>
           {(perf?.trend.length ?? 0) === 0 ? (
             <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground text-center px-4">
@@ -785,7 +785,7 @@ const TabPerformance = () => {
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="precisao" stroke="hsl(258,90%,66%)" strokeWidth={2.5} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="precisao" stroke="#8B5CF6" strokeWidth={2.5} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -826,7 +826,7 @@ const GestaoAgentes = () => {
             </Button>
             <div>
               <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-                <Brain className="w-6 h-6 text-[hsl(258,90%,66%)]" /> Gestão de Agentes
+                <Brain className="w-6 h-6 text-[#8B5CF6]" /> Gestão de Agentes
               </h1>
               <p className="text-sm text-muted-foreground">Human-in-the-Loop visual — treine a IA na leitura de documentos e geração de relatórios.</p>
             </div>
@@ -838,31 +838,31 @@ const GestaoAgentes = () => {
 
         <Tabs defaultValue="upload">
           <TabsList className="bg-card border border-border h-auto p-1 flex-wrap">
-            <TabsTrigger value="upload" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="upload" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Upload className="w-3.5 h-3.5" /> Upload & Processamento
             </TabsTrigger>
-            <TabsTrigger value="validacao" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="validacao" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Brain className="w-3.5 h-3.5" /> Validação Inteligente
             </TabsTrigger>
-            <TabsTrigger value="aprendizado" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="aprendizado" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Lightbulb className="w-3.5 h-3.5" /> Aprendizado da IA
             </TabsTrigger>
-            <TabsTrigger value="dataset" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="dataset" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Database className="w-3.5 h-3.5" /> Dataset & Histórico
             </TabsTrigger>
-            <TabsTrigger value="performance" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="performance" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Activity className="w-3.5 h-3.5" /> Performance
             </TabsTrigger>
-            <TabsTrigger value="registro" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="registro" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Plug className="w-3.5 h-3.5" /> Registro de Agentes e Integrações
             </TabsTrigger>
-            <TabsTrigger value="financeiro" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="financeiro" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Wallet className="w-3.5 h-3.5" /> Controle Financeiro de Tokens & APIs
             </TabsTrigger>
-            <TabsTrigger value="fila" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="fila" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <ListChecks className="w-3.5 h-3.5" /> Fila de Jobs & DLQ
             </TabsTrigger>
-            <TabsTrigger value="gateway" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="gateway" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <CloudCog className="w-3.5 h-3.5" /> API Gateway
             </TabsTrigger>
           </TabsList>

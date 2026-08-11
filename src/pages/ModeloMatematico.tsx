@@ -176,7 +176,7 @@ const TabPersona = () => {
               key={i}
               onClick={() => applyPreset(i)}
               className={`text-left p-4 rounded-xl border transition-all ${
-                activePreset === i ? "border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5 shadow-md" : "border-border bg-card hover:border-muted-foreground/30"
+                activePreset === i ? "border-[#8B5CF6] bg-[#8B5CF6]/5 shadow-md" : "border-border bg-card hover:border-muted-foreground/30"
               }`}
             >
               <h5 className="font-semibold text-sm text-foreground">{p.name}</h5>
@@ -184,7 +184,7 @@ const TabPersona = () => {
               <div className="flex gap-1 mt-2">
                 {(Object.keys(p.vec) as (keyof PersonaVector)[]).map(k => (
                   <div key={k} className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-[hsl(258,90%,66%)]" style={{ width: `${p.vec[k] * 100}%` }} />
+                    <div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${p.vec[k] * 100}%` }} />
                   </div>
                 ))}
               </div>
@@ -198,7 +198,7 @@ const TabPersona = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Gauge className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Configuração do Vetor P
+              <Gauge className="w-4 h-4 text-[#8B5CF6]" /> Configuração do Vetor P
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -206,14 +206,14 @@ const TabPersona = () => {
               <div key={key} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">{personaLabels[key].label}</span>
-                  <span className="text-sm font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(persona[key], 2)}</span>
+                  <span className="text-sm font-bold font-mono text-[#8B5CF6]">{fmt(persona[key], 2)}</span>
                 </div>
                 <Slider
                   value={[persona[key] * 100]}
                   onValueChange={([v]) => updateVar(key, v / 100)}
                   max={100}
                   step={1}
-                  className="[&_[role=slider]]:border-[hsl(258,90%,66%)] [&_[role=slider]]:bg-card [&_span[data-orientation]]:bg-[hsl(258,90%,66%)]"
+                  className="[&_[role=slider]]:border-[#8B5CF6] [&_[role=slider]]:bg-card [&_span[data-orientation]]:bg-[#8B5CF6]"
                 />
                 <p className="text-xs text-muted-foreground">{personaLabels[key].desc}</p>
               </div>
@@ -239,11 +239,11 @@ const TabPersona = () => {
 
         {/* Score & Radar Summary */}
         <div className="space-y-4">
-          <Card className="bg-gradient-to-br from-[hsl(258,90%,66%)]/5 to-transparent border-[hsl(258,90%,66%)]/20">
+          <Card className="bg-gradient-to-br from-[#8B5CF6]/5 to-transparent border-[#8B5CF6]/20">
             <CardContent className="p-5 space-y-4">
               <h4 className="text-sm font-semibold text-foreground">Score Global do Agente</h4>
               <div className="text-center py-4">
-                <div className="text-5xl font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(score, 3)}</div>
+                <div className="text-5xl font-bold font-mono text-[#8B5CF6]">{fmt(score, 3)}</div>
                 <p className="text-xs text-muted-foreground mt-2">Score = (Rₙ + Cᵣ + Sᵣ + Dₐ + Fₗ + Aₚ) / 6</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -252,7 +252,7 @@ const TabPersona = () => {
                     <span className="text-xs text-muted-foreground">{key}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-[hsl(258,90%,66%)]" style={{ width: `${persona[key] * 100}%` }} />
+                        <div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${persona[key] * 100}%` }} />
                       </div>
                       <span className="text-xs font-bold font-mono text-foreground">{fmt(persona[key], 1)}</span>
                     </div>
@@ -276,9 +276,9 @@ const TabPersona = () => {
                   <span className="text-muted-foreground">α (Influência)</span>
                   <span className="font-bold font-mono">{fmt(alpha, 2)}</span>
                 </div>
-                <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20">
+                <div className="flex justify-between p-2 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
                   <span className="font-semibold text-foreground">Impacto Efetivo (α × Score)</span>
-                  <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(alpha * score, 3)}</span>
+                  <span className="font-bold font-mono text-[#8B5CF6]">{fmt(alpha * score, 3)}</span>
                 </div>
               </div>
             </CardContent>
@@ -305,12 +305,12 @@ const TabPersona = () => {
             </TableHeader>
             <TableBody>
               {presetPersonas.map((p, i) => (
-                <TableRow key={i} className={activePreset === i ? "bg-[hsl(258,90%,66%)]/5" : ""}>
+                <TableRow key={i} className={activePreset === i ? "bg-[#8B5CF6]/5" : ""}>
                   <TableCell className="font-medium">{p.name}</TableCell>
                   {(Object.keys(p.vec) as (keyof PersonaVector)[]).map(k => (
                     <TableCell key={k} className="text-center font-mono text-sm">{p.vec[k]}</TableCell>
                   ))}
-                  <TableCell className="text-center font-mono text-sm font-bold text-[hsl(258,90%,66%)]">{fmt(calcScore(p.vec), 2)}</TableCell>
+                  <TableCell className="text-center font-mono text-sm font-bold text-[#8B5CF6]">{fmt(calcScore(p.vec), 2)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -347,12 +347,12 @@ const TabAgenteTecnico = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">Base: {fmt(baseWeights[i], 2)}</span>
                     <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                    <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(adjustedWeights[i], 3)}</span>
+                    <span className="font-bold font-mono text-[#8B5CF6]">{fmt(adjustedWeights[i], 3)}</span>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="bg-[hsl(258,90%,66%)]/5 p-3 rounded-lg border border-[hsl(258,90%,66%)]/20 text-xs text-muted-foreground">
+            <div className="bg-[#8B5CF6]/5 p-3 rounded-lg border border-[#8B5CF6]/20 text-xs text-muted-foreground">
               <strong>Efeito persona:</strong> Alta sensibilidade a risco (Sᵣ={persona.Sr}) + Conservadorismo (Cᵣ={persona.Cr}) → pesos amplificados em {fmt(1 + persona.Cr + persona.Sr, 1)}×
             </div>
           </CardContent>
@@ -372,9 +372,9 @@ const TabAgenteTecnico = () => {
                 <span className="text-muted-foreground">Rigor Normativo (Rₙ)</span>
                 <span className="font-mono">{persona.Rn}</span>
               </div>
-              <div className="flex justify-between p-3 rounded-lg bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20 text-sm">
+              <div className="flex justify-between p-3 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 text-sm">
                 <span className="font-semibold text-foreground">Materialidade Ajustada</span>
-                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">R$ {materialidade.toLocaleString("pt-BR")}</span>
+                <span className="font-bold font-mono text-[#8B5CF6]">R$ {materialidade.toLocaleString("pt-BR")}</span>
               </div>
             </div>
             <div className="bg-amber-500/5 p-3 rounded-lg border border-amber-500/20 text-xs text-muted-foreground">
@@ -411,9 +411,9 @@ const TabAgenteFinanceiro = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">VAR Base</span><span className="font-mono">R$ {varBase.toLocaleString("pt-BR")}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Sᵣ + Cᵣ</span><span className="font-mono">{fmt(persona.Sr + persona.Cr, 1)}</span></div>
               <hr className="border-border" />
-              <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5">
+              <div className="flex justify-between p-2 rounded-lg bg-[#8B5CF6]/5">
                 <span className="font-semibold">VAR Ajustado</span>
-                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">R$ {varAdj.toLocaleString("pt-BR")}</span>
+                <span className="font-bold font-mono text-[#8B5CF6]">R$ {varAdj.toLocaleString("pt-BR")}</span>
               </div>
             </div>
           </CardContent>
@@ -431,7 +431,7 @@ const TabAgenteFinanceiro = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{fmt(betaBase[i], 2)}</span>
                     <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                    <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(betaAdj[i], 3)}</span>
+                    <span className="font-bold font-mono text-[#8B5CF6]">{fmt(betaAdj[i], 3)}</span>
                   </div>
                 </div>
               ))}
@@ -448,9 +448,9 @@ const TabAgenteFinanceiro = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">N Base</span><span className="font-mono">{nBaseSimulations.toLocaleString("pt-BR")}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Dₐ</span><span className="font-mono">{persona.Da}</span></div>
               <hr className="border-border" />
-              <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5">
+              <div className="flex justify-between p-2 rounded-lg bg-[#8B5CF6]/5">
                 <span className="font-semibold">N Ajustado</span>
-                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{nAdj.toLocaleString("pt-BR")}</span>
+                <span className="font-bold font-mono text-[#8B5CF6]">{nAdj.toLocaleString("pt-BR")}</span>
               </div>
             </div>
           </CardContent>
@@ -483,9 +483,9 @@ const TabAgenteRelatorio = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">Fₗ (Formalidade)</span><span className="font-mono">{persona.Fl}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">γ (gamma)</span><span className="font-mono">{gamma}</span></div>
               <hr className="border-border" />
-              <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5">
+              <div className="flex justify-between p-2 rounded-lg bg-[#8B5CF6]/5">
                 <span className="font-semibold">CT Final</span>
-                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(ct, 1)}</span>
+                <span className="font-bold font-mono text-[#8B5CF6]">{fmt(ct, 1)}</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">{ct > 70 ? "→ Linguagem altamente técnica com termos normativos" : ct > 55 ? "→ Linguagem técnica moderada" : "→ Linguagem simplificada/executiva"}</p>
@@ -500,9 +500,9 @@ const TabAgenteRelatorio = () => {
               <div className="flex justify-between"><span className="text-muted-foreground">IRC (mock)</span><span className="font-mono">{irc}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Aₚ + Cᵣ</span><span className="font-mono">{fmt(persona.Ap + persona.Cr, 1)}</span></div>
               <hr className="border-border" />
-              <div className="flex justify-between p-2 rounded-lg bg-[hsl(258,90%,66%)]/5">
+              <div className="flex justify-between p-2 rounded-lg bg-[#8B5CF6]/5">
                 <span className="font-semibold">Alert Level</span>
-                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(alertLevel, 3)}</span>
+                <span className="font-bold font-mono text-[#8B5CF6]">{fmt(alertLevel, 3)}</span>
               </div>
             </div>
             <div className={`p-3 rounded-lg text-xs ${alertLevel > 1 ? "bg-red-500/10 text-red-600 border border-red-500/20" : alertLevel > 0.7 ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"}`}>
@@ -605,7 +605,7 @@ const TabRiskEngine = () => {
           <div className="flex flex-wrap items-center gap-2 text-xs">
             {["Inputs", "Agentes Individuais", "Normalização", "Correlação", "Motor Consolidado", "Classificação", "Alertas", "Relatório"].map((step, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className={`px-3 py-1.5 rounded-lg font-medium ${i === 4 ? "bg-[hsl(258,90%,66%)] text-white" : "bg-muted text-foreground"}`}>{step}</span>
+                <span className={`px-3 py-1.5 rounded-lg font-medium ${i === 4 ? "bg-[#8B5CF6] text-white" : "bg-muted text-foreground"}`}>{step}</span>
                 {i < 7 && <ArrowRight className="w-3 h-3 text-muted-foreground" />}
               </div>
             ))}
@@ -616,7 +616,7 @@ const TabRiskEngine = () => {
       {/* Scores Base dos 3 Agentes */}
       <div className="grid md:grid-cols-3 gap-4">
         {[
-          { name: "Score Técnico (ST)", score: SA, norm: SA_norm, formula: "SA = (IRC + Inconsistências + Materialidade) / 3", items: [{ k: "IRC", v: mockIRC }, { k: "Inconsistências", v: mockInconsistencias }, { k: "Materialidade", v: mockMaterialidade }], color: "hsl(258,90%,66%)" },
+          { name: "Score Técnico (ST)", score: SA, norm: SA_norm, formula: "SA = (IRC + Inconsistências + Materialidade) / 3", items: [{ k: "IRC", v: mockIRC }, { k: "Inconsistências", v: mockInconsistencias }, { k: "Materialidade", v: mockMaterialidade }], color: "#8B5CF6" },
           { name: "Score Financeiro (SF)", score: SF, norm: SF_norm, formula: "SF = (VAR_adj + SF_stress + Alavancagem) / 3", items: [{ k: "VAR Ajustado", v: mockVARAdj }, { k: "Stress Financeiro", v: mockSFStress }, { k: "Alavancagem", v: mockAlavancagem }], color: "hsl(38,90%,55%)" },
           { name: "Score Narrativo (SR)", score: SR, norm: SR_norm, formula: "SR = (AlertLevel + Complexidade + Desvios) / 3", items: [{ k: "Alert Level", v: mockAlertLevel }, { k: "Complexidade", v: mockComplexidadeRisco }, { k: "Freq. Desvios", v: mockFreqDesvios }], color: "hsl(152,70%,45%)" },
         ].map((agent, i) => (
@@ -657,7 +657,7 @@ const TabRiskEngine = () => {
               <div key={i} className="text-center p-3 rounded-lg bg-muted/50">
                 <p className="text-xs text-muted-foreground">{s.label}: {fmt(s.raw, 3)}</p>
                 <ArrowRight className="w-3 h-3 text-muted-foreground mx-auto my-1" />
-                <p className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(s.norm, 4)}</p>
+                <p className="font-bold font-mono text-[#8B5CF6]">{fmt(s.norm, 4)}</p>
               </div>
             ))}
           </div>
@@ -700,9 +700,9 @@ const TabRiskEngine = () => {
                 </tbody>
               </table>
             </div>
-            <div className="flex justify-between text-sm p-3 rounded-lg bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20">
+            <div className="flex justify-between text-sm p-3 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
               <span className="font-semibold text-foreground">CorrFactor (ρ̄)</span>
-              <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(corrFactor, 4)}</span>
+              <span className="font-bold font-mono text-[#8B5CF6]">{fmt(corrFactor, 4)}</span>
             </div>
             {rhoAF > 0.7 && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center gap-2 text-xs">
@@ -714,7 +714,7 @@ const TabRiskEngine = () => {
         </Card>
 
         {/* ECRS Consolidado */}
-        <Card className="bg-gradient-to-br from-[hsl(258,90%,66%)]/5 to-transparent border-[hsl(258,90%,66%)]/20">
+        <Card className="bg-gradient-to-br from-[#8B5CF6]/5 to-transparent border-[#8B5CF6]/20">
           <CardContent className="p-5 space-y-4">
             <h4 className="text-sm font-semibold text-foreground">EBEX Consolidated Risk Score (ECRS)</h4>
             <FormulaBlock formula="ECRS = w_A·SA + w_F·SF + w_R·SR + λ·CorrFactor" description="w_i^adj = w_i × (1 + ScorePersona_i)" />
@@ -730,14 +730,14 @@ const TabRiskEngine = () => {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">{w.label}</span>
                     <span className="font-mono">
-                      {fmt(w.base, 2)} <ArrowRight className="w-2.5 h-2.5 inline text-muted-foreground mx-1" /> <span className="font-bold text-[hsl(258,90%,66%)]">{fmt(w.adj, 3)}</span>
+                      {fmt(w.base, 2)} <ArrowRight className="w-2.5 h-2.5 inline text-muted-foreground mx-1" /> <span className="font-bold text-[#8B5CF6]">{fmt(w.adj, 3)}</span>
                     </span>
                   </div>
                   <Slider
                     value={[w.base * 100]}
                     onValueChange={([v]) => setWeights(prev => ({ ...prev, [w.key]: v / 100 }))}
                     max={100} step={1}
-                    className="[&_[role=slider]]:border-[hsl(258,90%,66%)] [&_[role=slider]]:bg-card [&_span[data-orientation]]:bg-[hsl(258,90%,66%)]"
+                    className="[&_[role=slider]]:border-[#8B5CF6] [&_[role=slider]]:bg-card [&_span[data-orientation]]:bg-[#8B5CF6]"
                   />
                 </div>
               ))}
@@ -756,9 +756,9 @@ const TabRiskEngine = () => {
             </div>
 
             {/* Score Final */}
-            <div className="text-center p-4 rounded-xl border border-[hsl(258,90%,66%)]/30 bg-background/80">
+            <div className="text-center p-4 rounded-xl border border-[#8B5CF6]/30 bg-background/80">
               <p className="text-xs text-muted-foreground mb-1">ECRS Consolidado</p>
-              <div className="text-5xl font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(ECRSNorm, 4)}</div>
+              <div className="text-5xl font-bold font-mono text-[#8B5CF6]">{fmt(ECRSNorm, 4)}</div>
               <div className="mt-2">{getRiskBadge(classification.level)}</div>
               <p className="text-sm font-semibold text-foreground mt-1">{classification.label}</p>
             </div>
@@ -781,9 +781,9 @@ const TabRiskEngine = () => {
                 <span className="text-muted-foreground">ρ̄ (Correlação Média)</span>
                 <span className="font-mono font-bold">{fmt(corrFactor, 4)}</span>
               </div>
-              <div className="flex justify-between p-3 rounded-lg bg-[hsl(258,90%,66%)]/5 border border-[hsl(258,90%,66%)]/20">
+              <div className="flex justify-between p-3 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/20">
                 <span className="font-semibold text-foreground">Systemic Risk</span>
-                <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{fmt(systemicRisk, 4)}</span>
+                <span className="font-bold font-mono text-[#8B5CF6]">{fmt(systemicRisk, 4)}</span>
               </div>
             </div>
             {systemicAlert ? (
@@ -824,11 +824,11 @@ const TabRiskEngine = () => {
                   ].map((row) => {
                     const isActive = classification.label === row.label;
                     return (
-                      <TableRow key={row.range} className={isActive ? "bg-[hsl(258,90%,66%)]/5" : ""}>
+                      <TableRow key={row.range} className={isActive ? "bg-[#8B5CF6]/5" : ""}>
                         <TableCell className="font-mono text-sm">{row.range}</TableCell>
                         <TableCell className="font-medium">{row.label}</TableCell>
                         <TableCell className="text-center">
-                          {isActive ? <Badge className="bg-[hsl(258,90%,66%)] text-white">← Atual</Badge> : getRiskBadge(row.level)}
+                          {isActive ? <Badge className="bg-[#8B5CF6] text-white">← Atual</Badge> : getRiskBadge(row.level)}
                         </TableCell>
                       </TableRow>
                     );
@@ -863,10 +863,10 @@ const TabRiskEngine = () => {
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Peso Ajustado</span>
-                  <span className="font-mono font-bold text-[hsl(258,90%,66%)]">{fmt(a.wAdj, 3)}</span>
+                  <span className="font-mono font-bold text-[#8B5CF6]">{fmt(a.wAdj, 3)}</span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full rounded-full bg-[hsl(258,90%,66%)]" style={{ width: `${Math.min(a.wAdj * 100, 100)}%` }} />
+                  <div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${Math.min(a.wAdj * 100, 100)}%` }} />
                 </div>
               </div>
             ))}
@@ -884,7 +884,7 @@ const TabRiskEngine = () => {
               <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
               <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
               <Tooltip />
-              <Line type="monotone" dataKey="ecrs" stroke="hsl(258,90%,66%)" strokeWidth={2.5} dot={{ fill: "hsl(258,90%,66%)", r: 4 }} name="ECRS" />
+              <Line type="monotone" dataKey="ecrs" stroke="#8B5CF6" strokeWidth={2.5} dot={{ fill: "#8B5CF6", r: 4 }} name="ECRS" />
               <Line type="monotone" dataKey="sa" stroke="hsl(200,90%,50%)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="SA" />
               <Line type="monotone" dataKey="sf" stroke="hsl(38,90%,55%)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="SF" />
               <Line type="monotone" dataKey="sr" stroke="hsl(152,70%,45%)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="SR" />
@@ -892,7 +892,7 @@ const TabRiskEngine = () => {
           </ResponsiveContainer>
           <div className="flex justify-center gap-6">
             {[
-              { label: "ECRS", color: "hsl(258,90%,66%)" },
+              { label: "ECRS", color: "#8B5CF6" },
               { label: "SA (Auditor)", color: "hsl(200,90%,50%)" },
               { label: "SF (Financeiro)", color: "hsl(38,90%,55%)" },
               { label: "SR (Relatório)", color: "hsl(152,70%,45%)" },
@@ -907,10 +907,10 @@ const TabRiskEngine = () => {
       </Card>
 
       {/* Governança */}
-      <Card className="bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent border-[hsl(258,90%,66%)]/20">
+      <Card className="bg-gradient-to-r from-[#8B5CF6]/5 to-transparent border-[#8B5CF6]/20">
         <CardContent className="p-5">
           <div className="flex items-start gap-3">
-            <Shield className="w-5 h-5 text-[hsl(258,90%,66%)] shrink-0 mt-0.5" />
+            <Shield className="w-5 h-5 text-[#8B5CF6] shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-foreground mb-1">Governança & Auditoria do Risk Engine</p>
               <p className="text-xs text-muted-foreground leading-relaxed">

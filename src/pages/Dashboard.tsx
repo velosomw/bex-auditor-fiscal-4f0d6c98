@@ -400,8 +400,8 @@ const Dashboard = () => {
                           className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-muted/50 transition text-left"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-md bg-[hsl(258,90%,66%)]/10 flex items-center justify-center shrink-0">
-                              <Building2 className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+                            <div className="w-8 h-8 rounded-md bg-[#8B5CF6]/10 flex items-center justify-center shrink-0">
+                              <Building2 className="w-4 h-4 text-[#8B5CF6]" />
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
@@ -424,11 +424,11 @@ const Dashboard = () => {
         </Card>
 
         {/* ── Audit Overview Panel ── */}
-        <Card className="border-2 border-[hsl(258,90%,66%)]/20 bg-gradient-to-r from-[hsl(258,90%,66%)]/5 to-transparent">
+        <Card className="border-2 border-[#8B5CF6]/20 bg-gradient-to-r from-[#8B5CF6]/5 to-transparent">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Última Avaliação Empresarial
+                <Building2 className="w-4 h-4 text-[#8B5CF6]" /> Última Avaliação Empresarial
               </CardTitle>
               <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => navigate("/audit")}>
                 <Eye className="w-3.5 h-3.5" /> Ver Análise Completa

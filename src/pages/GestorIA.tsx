@@ -141,7 +141,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
       label: "Documentos Auditados", value: String(kpis.documentosAuditados),
       sub: "Total processado (12m)",
       change: `${kpis.documentosVariacao >= 0 ? "+" : ""}${kpis.documentosVariacao}%`,
-      positive: kpis.documentosVariacao >= 0, icon: FileText, color: "hsl(258,90%,66%)",
+      positive: kpis.documentosVariacao >= 0, icon: FileText, color: "#8B5CF6",
     },
     {
       label: "Auditorias Realizadas", value: String(kpis.auditoriasRealizadas),
@@ -159,7 +159,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
       label: "Acurácia IA", value: `${kpis.acuraciaIA}%`,
       sub: "Extração OCR/IA documentos",
       change: `${kpis.acuraciaVariacao >= 0 ? "+" : ""}${kpis.acuraciaVariacao}%`,
-      positive: kpis.acuraciaVariacao >= 0, icon: Brain, color: "hsl(258,90%,66%)",
+      positive: kpis.acuraciaVariacao >= 0, icon: Brain, color: "#8B5CF6",
     },
   ];
 
@@ -193,7 +193,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
     },
     {
       title: "Ajustes & Correções", sub: "Ações sugeridas pela IA",
-      icon: Zap, color: "hsl(258,90%,66%)",
+      icon: Zap, color: "#8B5CF6",
       items: [
         { k: "Correções Sugeridas", v: String(context.ajustes.sugeridas) },
         { k: "Impacto Financeiro",  v: String(context.ajustes.impacto) },
@@ -232,7 +232,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
 
       <div>
         <h3 className="text-lg font-bold font-serif text-foreground mb-4 flex items-center gap-2">
-          <span className="w-1 h-5 rounded-full bg-[hsl(258,90%,66%)]" /> Visão Geral
+          <span className="w-1 h-5 rounded-full bg-[#8B5CF6]" /> Visão Geral
           <span className="ml-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/30">
             Dados reais · 12m
           </span>
@@ -241,7 +241,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
           {/* Trend Chart */}
           <div className="bg-card rounded-xl border border-border p-5">
             <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-              <TrendingUp className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Tendência de Conformidade
+              <TrendingUp className="w-4 h-4 text-[#8B5CF6]" /> Tendência de Conformidade
             </div>
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={trend}>
@@ -249,7 +249,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
                 <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="hsl(258,90%,66%)" strokeWidth={2} dot={{ fill: "hsl(258,90%,66%)", r: 4 }} />
+                <Line type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2} dot={{ fill: "#8B5CF6", r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -257,7 +257,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
           {/* Pie Chart - Acurácia IA */}
           <div className="bg-card rounded-xl border border-border p-5">
             <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-              <Brain className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Acurácia IA (extração)
+              <Brain className="w-4 h-4 text-[#8B5CF6]" /> Acurácia IA (extração)
             </div>
             <ResponsiveContainer width="100%" height={160}>
               <PieChart>
@@ -279,7 +279,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
           {/* Bar Chart */}
           <div className="bg-card rounded-xl border border-border p-5">
             <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-              <BarChart3 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Auditorias por Tipo
+              <BarChart3 className="w-4 h-4 text-[#8B5CF6]" /> Auditorias por Tipo
             </div>
             {auditTypes.length === 0 ? (
               <div className="h-[160px] flex items-center justify-center text-xs text-muted-foreground">
@@ -291,7 +291,7 @@ const TabVisaoGeral = ({ period = "12m" }: { period?: string }) => {
                   <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" allowDecimals={false} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" width={70} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="hsl(258,90%,66%)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -333,7 +333,7 @@ const TabIntegracoes = () => (
   <div className="space-y-6">
     <div className="flex items-center justify-between">
       <p className="text-sm text-muted-foreground">Gerencie conexões com ERPs, APIs financeiras, BigQuery e webhooks.</p>
-      <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
+      <Button size="sm" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5">
         <Plus className="w-3.5 h-3.5" /> Nova Integração
       </Button>
     </div>
@@ -341,8 +341,8 @@ const TabIntegracoes = () => (
       {integrations.map((integ, i) => (
         <div key={i} className="bg-card rounded-xl border border-border p-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
-              <integ.icon className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+            <div className="w-10 h-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center">
+              <integ.icon className="w-5 h-5 text-[#8B5CF6]" />
             </div>
             <div>
               <h4 className="font-semibold text-sm text-foreground">{integ.name}</h4>
@@ -367,7 +367,7 @@ const TabBaseConhecimento = () => (
         <Search className="w-4 h-4 text-muted-foreground" />
         <input placeholder="Buscar documentos..." className="bg-transparent text-sm outline-none flex-1 text-foreground placeholder:text-muted-foreground" />
       </div>
-      <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5">
+      <Button size="sm" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5">
         <Upload className="w-3.5 h-3.5" /> Upload Documento
       </Button>
     </div>
@@ -381,7 +381,7 @@ const TabBaseConhecimento = () => (
             <div>
               <h4 className="font-semibold text-sm text-foreground">{item.title}</h4>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs px-2 py-0.5 rounded-full bg-[hsl(258,90%,66%)]/10 text-[hsl(258,90%,66%)] font-medium">{item.category}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-[#8B5CF6]/10 text-[#8B5CF6] font-medium">{item.category}</span>
                 <span className="text-xs text-muted-foreground">{item.date}</span>
               </div>
             </div>
@@ -429,10 +429,10 @@ const TabAgentes = () => {
     <div className="space-y-6">
       <Tabs defaultValue="apis" className="w-full">
         <TabsList className="bg-muted/50 p-1 h-auto">
-          <TabsTrigger value="apis" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+          <TabsTrigger value="apis" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
             <Plug className="w-3.5 h-3.5" /> APIs & Provedores
           </TabsTrigger>
-          <TabsTrigger value="agents" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+          <TabsTrigger value="agents" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
             <Bot className="w-3.5 h-3.5" /> Persona dos Agentes
           </TabsTrigger>
         </TabsList>
@@ -444,7 +444,7 @@ const TabAgentes = () => {
         <TabsContent value="agents" className="mt-5 space-y-6">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Configure modelos, persona e parâmetros dos agentes de IA.</p>
-            <a href="/modelo-matematico" className="text-xs font-medium text-[hsl(258,90%,66%)] hover:underline flex items-center gap-1">
+            <a href="/modelo-matematico" className="text-xs font-medium text-[#8B5CF6] hover:underline flex items-center gap-1">
               <Brain className="w-3.5 h-3.5" /> Ver Modelo Matemático Completo →
             </a>
           </div>
@@ -460,8 +460,8 @@ const TabAgentes = () => {
               <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[hsl(258,90%,66%)]/10 flex items-center justify-center">
-                      <Bot className="w-5 h-5 text-[hsl(258,90%,66%)]" />
+                    <div className="w-10 h-10 rounded-lg bg-[#8B5CF6]/10 flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-[#8B5CF6]" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-foreground">{agent.name}</h4>
@@ -471,7 +471,7 @@ const TabAgentes = () => {
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-2">
                       <p className="text-xs text-muted-foreground">Score VPC</p>
-                      <p className="text-lg font-bold font-mono text-[hsl(258,90%,66%)]">{score.toFixed(2)}</p>
+                      <p className="text-lg font-bold font-mono text-[#8B5CF6]">{score.toFixed(2)}</p>
                     </div>
                     <StatusBadge status={agent.status} />
                     <Button
@@ -506,7 +506,7 @@ const TabAgentes = () => {
                   <div className="flex gap-1 mt-3">
                     {pVals.map((v, j) => (
                       <div key={j} className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden" title={personaVarLabels[j].label}>
-                        <div className="h-full rounded-full bg-[hsl(258,90%,66%)]" style={{ width: `${v * 100}%` }} />
+                        <div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${v * 100}%` }} />
                       </div>
                     ))}
                   </div>
@@ -517,7 +517,7 @@ const TabAgentes = () => {
               {isExpanded && (
                 <div className="border-t border-border bg-muted/20 p-5 space-y-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Brain className="w-4 h-4 text-[hsl(258,90%,66%)]" />
+                    <Brain className="w-4 h-4 text-[#8B5CF6]" />
                     <h5 className="text-sm font-semibold text-foreground">Vetor de Persona Configurável (VPC)</h5>
                   </div>
                   <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
@@ -525,7 +525,7 @@ const TabAgentes = () => {
                       <div key={pv.key} className="space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-foreground">{pv.label}</span>
-                          <span className="text-xs font-bold font-mono text-[hsl(258,90%,66%)]">{pVals[j].toFixed(2)}</span>
+                          <span className="text-xs font-bold font-mono text-[#8B5CF6]">{pVals[j].toFixed(2)}</span>
                         </div>
                         <input
                           type="range"
@@ -533,7 +533,7 @@ const TabAgentes = () => {
                           max={100}
                           value={pVals[j] * 100}
                           onChange={(e) => updatePersonaVar(agent.name, j, Number(e.target.value) / 100)}
-                          className="w-full h-1.5 rounded-full appearance-none bg-muted cursor-pointer accent-[hsl(258,90%,66%)]"
+                          className="w-full h-1.5 rounded-full appearance-none bg-muted cursor-pointer accent-[#8B5CF6]"
                         />
                       </div>
                     ))}
@@ -541,13 +541,13 @@ const TabAgentes = () => {
                   <div className="flex items-center justify-between pt-3 border-t border-border">
                     <div className="flex items-center gap-4">
                       <div className="text-xs text-muted-foreground">
-                        Score Global: <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{score.toFixed(3)}</span>
+                        Score Global: <span className="font-bold font-mono text-[#8B5CF6]">{score.toFixed(3)}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         Fórmula: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">Score = Σ(Vars) / 6</code>
                       </div>
                     </div>
-                    <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5 text-xs">
+                    <Button size="sm" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5 text-xs">
                       <CheckCircle2 className="w-3 h-3" /> Salvar Persona
                     </Button>
                   </div>
@@ -570,7 +570,7 @@ const TabGovernanca = () => (
       {[
         { label: "Score de Confiabilidade", value: "94.2%", icon: ShieldCheck, color: "hsl(152,70%,45%)" },
         { label: "Taxa de Alucinação", value: "1.8%", icon: AlertTriangle, color: "hsl(38,90%,55%)" },
-        { label: "Validações Cruzadas", value: "342", icon: CheckCircle2, color: "hsl(258,90%,66%)" },
+        { label: "Validações Cruzadas", value: "342", icon: CheckCircle2, color: "#8B5CF6" },
         { label: "Tempo Médio Resposta", value: "2.4s", icon: Clock, color: "hsl(200,90%,50%)" },
       ].map((m, i) => (
         <div key={i} className="bg-card rounded-xl border border-border p-5">
@@ -697,11 +697,11 @@ const TabLogs = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
-              <span className="w-1 h-5 rounded-full bg-[hsl(258,90%,66%)]" /> Gestão de Acessos
+              <span className="w-1 h-5 rounded-full bg-[#8B5CF6]" /> Gestão de Acessos
             </h3>
             <p className="text-sm text-muted-foreground">Crie, edite e gerencie logins e perfis de acesso à plataforma.</p>
           </div>
-          <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={openCreate}>
+          <Button size="sm" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5" onClick={openCreate}>
             <Plus className="w-3.5 h-3.5" /> Novo Acesso
           </Button>
         </div>
@@ -724,7 +724,7 @@ const TabLogs = () => {
                   <td className="px-4 py-3 font-medium text-foreground">{user.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
                   <td className="px-4 py-3">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[hsl(258,90%,66%)]/10 text-[hsl(258,90%,66%)]">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#8B5CF6]/10 text-[#8B5CF6]">
                       {roleLabels[user.role] || user.role}
                     </span>
                   </td>
@@ -831,7 +831,7 @@ const TabLogs = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white" onClick={handleSave}>
+            <Button className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white" onClick={handleSave}>
               {editingUser ? "Salvar Alterações" : "Criar Acesso"}
             </Button>
           </DialogFooter>
@@ -870,7 +870,7 @@ const TabRiskEngineDash = () => {
   const getClassColor = (score: number) => {
     if (score <= 0.30) return "hsl(152,70%,45%)";
     if (score <= 0.60) return "hsl(38,90%,55%)";
-    if (score <= 0.80) return "hsl(258,90%,66%)";
+    if (score <= 0.80) return "#8B5CF6";
     return "hsl(0,70%,55%)";
   };
 
@@ -887,7 +887,7 @@ const TabRiskEngineDash = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "ECRS Consolidado", value: ECRS.toFixed(3), color: getClassColor(ECRS), sub: getClassLabel(ECRS), icon: Activity },
-          { label: "Score Técnico (ST)", value: SA.toFixed(3), color: "hsl(258,90%,66%)", sub: "Contábil", icon: Bot },
+          { label: "Score Técnico (ST)", value: SA.toFixed(3), color: "#8B5CF6", sub: "Contábil", icon: Bot },
           { label: "Score Financeiro (SF)", value: SF.toFixed(3), color: "hsl(38,90%,55%)", sub: "Financeiro", icon: DollarSign },
           { label: "Risco Sistêmico", value: systemicRisk.toFixed(3), color: systemicRisk > 0.5 ? "hsl(0,70%,55%)" : "hsl(152,70%,45%)", sub: systemicRisk > 0.5 ? "Alerta" : "Controlado", icon: AlertTriangle },
         ].map((kpi, i) => (
@@ -909,21 +909,21 @@ const TabRiskEngineDash = () => {
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-            <Activity className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Radar dos 3 Agentes
+            <Activity className="w-4 h-4 text-[#8B5CF6]" /> Radar dos 3 Agentes
           </div>
           <ResponsiveContainer width="100%" height={240}>
             <RadarChart data={radarData}>
               <PolarGrid stroke="hsl(214,20%,88%)" />
               <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} stroke="hsl(215,12%,50%)" />
               <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} stroke="hsl(215,12%,50%)" />
-              <Radar name="Risk" dataKey="A" stroke="hsl(258,90%,66%)" fill="hsl(258,90%,66%)" fillOpacity={0.2} strokeWidth={2} />
+              <Radar name="Risk" dataKey="A" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.2} strokeWidth={2} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-            <TrendingUp className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Histórico ECRS
+            <TrendingUp className="w-4 h-4 text-[#8B5CF6]" /> Histórico ECRS
           </div>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={historicalECRS}>
@@ -931,13 +931,13 @@ const TabRiskEngineDash = () => {
               <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
               <YAxis domain={[0, 1]} tick={{ fontSize: 11 }} stroke="hsl(215,12%,50%)" />
               <Tooltip />
-              <Line type="monotone" dataKey="ecrs" stroke="hsl(258,90%,66%)" strokeWidth={2.5} dot={{ fill: "hsl(258,90%,66%)", r: 4 }} name="ECRS" />
+              <Line type="monotone" dataKey="ecrs" stroke="#8B5CF6" strokeWidth={2.5} dot={{ fill: "#8B5CF6", r: 4 }} name="ECRS" />
               <Line type="monotone" dataKey="threshold" stroke="hsl(0,70%,55%)" strokeWidth={1} strokeDasharray="6 3" dot={false} name="Limiar Crítico" />
             </LineChart>
           </ResponsiveContainer>
           <div className="flex justify-center gap-6 mt-2">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="w-3 h-1 rounded-full bg-[hsl(258,90%,66%)]" /> ECRS
+              <span className="w-3 h-1 rounded-full bg-[#8B5CF6]" /> ECRS
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="w-3 h-1 rounded-full bg-[hsl(0,70%,55%)]" /> Limiar Crítico (0.75)
@@ -949,7 +949,7 @@ const TabRiskEngineDash = () => {
       {/* Correlation Matrix */}
       <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-foreground">
-          <BarChart3 className="w-4 h-4 text-[hsl(258,90%,66%)]" /> Matriz de Correlação Dinâmica
+          <BarChart3 className="w-4 h-4 text-[#8B5CF6]" /> Matriz de Correlação Dinâmica
         </div>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="overflow-auto">
@@ -985,7 +985,7 @@ const TabRiskEngineDash = () => {
           <div className="space-y-3">
             <div className="p-3 rounded-lg bg-muted/50 flex justify-between text-sm">
               <span className="text-muted-foreground">CorrFactor (ρ̄)</span>
-              <span className="font-bold font-mono text-[hsl(258,90%,66%)]">{corrFactor.toFixed(4)}</span>
+              <span className="font-bold font-mono text-[#8B5CF6]">{corrFactor.toFixed(4)}</span>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 flex justify-between text-sm">
               <span className="text-muted-foreground">ρ_AF (Auditor-Financeiro)</span>
@@ -995,7 +995,7 @@ const TabRiskEngineDash = () => {
               <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
               <span className="text-red-600 font-medium">Alta correlação Auditor-Financeiro: risco sistêmico potencial</span>
             </div>
-            <a href="/modelo-matematico" className="text-xs font-medium text-[hsl(258,90%,66%)] hover:underline flex items-center gap-1 mt-2">
+            <a href="/modelo-matematico" className="text-xs font-medium text-[#8B5CF6] hover:underline flex items-center gap-1 mt-2">
               <Brain className="w-3.5 h-3.5" /> Abrir Risk Engine Detalhado →
             </a>
           </div>
@@ -1026,7 +1026,7 @@ const GestorIA = () => {
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/gestor-ia/emails")}>
               <Mail className="w-3.5 h-3.5" /> Templates de E-mail
             </Button>
-            <Button size="sm" className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white gap-1.5" onClick={() => navigate("/usuarios")}>
+            <Button size="sm" className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white gap-1.5" onClick={() => navigate("/usuarios")}>
               <Plus className="w-3.5 h-3.5" /> Cadastrar Usuário
             </Button>
             <Button variant="outline" size="sm" className="gap-1.5">
@@ -1055,7 +1055,7 @@ const GestorIA = () => {
           <Button 
             size="sm" 
             variant="default" 
-            className="gap-1.5 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,80%,55%)] text-white h-8 text-xs"
+            className="gap-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white h-8 text-xs"
             onClick={() => {
               const prevTitle = document.title;
               document.title = bexFileName(`Dashboard_Gestor_IA_${selectedPeriod}`);
@@ -1079,7 +1079,7 @@ const GestorIA = () => {
           </Button>
           
           {["Todas as entidades", "Todos os tipos", "Todos os níveis", "Todas as áreas"].map((f, i) => (
-            <button key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:border-[hsl(258,90%,66%)] hover:text-foreground transition-colors">
+            <button key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:border-[#8B5CF6] hover:text-foreground transition-colors">
               {f} <span className="text-[10px]">▾</span>
             </button>
           ))}
@@ -1089,31 +1089,31 @@ const GestorIA = () => {
         {/* Tabs */}
         <Tabs defaultValue="visao-geral">
           <TabsList className="bg-card border border-border h-auto p-1 flex-wrap">
-            <TabsTrigger value="visao-geral" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="visao-geral" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <LayoutGrid className="w-3.5 h-3.5" /> Visão Geral
             </TabsTrigger>
-            <TabsTrigger value="base-conhecimento" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="base-conhecimento" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <BookOpen className="w-3.5 h-3.5" /> Base de Conhecimento
             </TabsTrigger>
-            <TabsTrigger value="governanca" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="governanca" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <ShieldCheck className="w-3.5 h-3.5" /> Governança
             </TabsTrigger>
-            <TabsTrigger value="logs" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="logs" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <ScrollText className="w-3.5 h-3.5" /> Logs & Auditoria
             </TabsTrigger>
-            <TabsTrigger value="risk-engine" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="risk-engine" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Activity className="w-3.5 h-3.5" /> Risk Engine
             </TabsTrigger>
-            <TabsTrigger value="limites" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="limites" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Gauge className="w-3.5 h-3.5" /> Limite de Relatórios
             </TabsTrigger>
-            <TabsTrigger value="orfaos" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="orfaos" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <FileText className="w-3.5 h-3.5" /> Documentos Órfãos
             </TabsTrigger>
-            <TabsTrigger value="exec-time" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="exec-time" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Clock className="w-3.5 h-3.5" /> Tempo de execução
             </TabsTrigger>
-            <TabsTrigger value="login-monitoring" className="gap-1.5 data-[state=active]:bg-[hsl(258,90%,66%)] data-[state=active]:text-white text-xs">
+            <TabsTrigger value="login-monitoring" className="gap-1.5 data-[state=active]:bg-[#8B5CF6] data-[state=active]:text-white text-xs">
               <Mail className="w-3.5 h-3.5" /> Monitoramento de Login
             </TabsTrigger>
           </TabsList>
