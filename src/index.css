@@ -267,13 +267,14 @@ tr {
 .report-page-body {
   flex: 1;
   margin: 0 16mm;
-  padding: 4mm 0 26mm 0;
+  padding: 4mm 0 10mm 0;
   max-height: 245mm !important; 
   min-height: 245mm;
   position: relative;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow: visible !important; /* Permite que o engine de paginação veja o overflow */
 }
 
 /* §59 — Content Overflow Gate: cartões e blocos editoriais nunca são cortados

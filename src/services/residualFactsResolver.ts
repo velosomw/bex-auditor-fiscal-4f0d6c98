@@ -191,23 +191,27 @@ export function resolveResidualFacts(
   const isTax = (n: AccountNode) => RX.tax.test(n.description) && !RX.labor.test(n.description);
   const isTaxInstallment = (n: AccountNode) => RX.installment.test(n.description) && isTax(n);
 
-  const taxIn = (prefix: string) =>
-    pickNonOverlapping(liabilities.filter(n => under(n, prefix)), isTax);
-  /** Parcelamentos tributários — descendentes dos grupos tributários já selecionados. */
+  /** §TAX-NONCURRENT-BINDING — garante que obrigações tributárias LP (2.2.3) sejam capturadas. */
+  const taxCurrentNodes = pickByTaxonomy(liabilities, "2.1", isTax, (n) => RX.labor.test(n.description) && !RX.tax.test(n.description));
+  const taxNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isTax, (n) => RX.labor.test(n.description) && !RX.tax.test(n.description));
+
+  // Se o seletor por taxonomia falhou em capturar o grupo sintético 2.2.3, forçamos a busca direta
+  if (taxNonCurrentNodes.length === 0) {
+    const syntheticTaxLP = liabilities.find(n => n.normalized_code === "2.2.3");
+    if (syntheticTaxLP && syntheticTaxLP.value !== 0) {
+      taxNonCurrentNodes.push(syntheticTaxLP);
+    }
+  }
+
   const instIn = (prefix: string, parents: AccountNode[]) =>
     pickNonOverlapping(
       liabilities.filter(
-        n => under(n, prefix) &&
+        n => n.normalized_code.startsWith(prefix + ".") &&
           parents.some(p => n.normalized_code === p.normalized_code || n.normalized_code.startsWith(p.normalized_code + "."))
       ),
       n => isTaxInstallment(n) && !parents.some(p => p.normalized_code === n.normalized_code)
     );
 
-  const isLaborNature = (n: AccountNode) => RX.labor.test(n.description) && !RX.tax.test(n.description);
-  // §MIXED-TAXONOMY — varre TODO o grupo 2.1/2.2 (não apenas 2.1.3/2.2.3) e desce
-  // em pais que misturam tributos e trabalhistas.
-  const taxCurrentNodes = pickByTaxonomy(liabilities, "2.1", isTax, isLaborNature);
-  const taxNonCurrentNodes = pickByTaxonomy(liabilities, "2.2", isTax, isLaborNature);
   const instCurrent = instIn("2.1", taxCurrentNodes);
   const instNonCurrent = instIn("2.2", taxNonCurrentNodes);
 
@@ -375,8 +379,7 @@ export function resolveResidualFacts(
   const lajirValue = lajirAvailable ? resultado + finExpAbs : NaN;
 
   // Interest Coverage calculation (§S01)
-  // §JAN-FAIL-CORRECTION: Use absolute Financial Expenses. 
-  // If result is -83k and finExp is 25k, coverage is -3.32x (economically correct).
+  // §COVERAGE-MATH-SANITY — Garante que o sinal e o valor seguem a memória publicada (LAJIR / Despesas Fin)
   const coverageValue = (lajirAvailable && finExpAbs > 0.01) 
     ? lajirValue / finExpAbs 
     : NaN;
@@ -447,7 +450,6 @@ export function resolveResidualFacts(
     margins: {
       current_month: {
         // §PATCH-03: Hard sign and period context parity
-        // Se o resultado for negativo, a margem deve ser negativa. 
         value: (ctx.receita_certified && ctx.resultado_competencia_available && ctx.resultado_certified && ctx.receita_liquida !== 0) 
           ? (Number(ctx.resultado) / Number(ctx.receita_liquida)) 
           : NaN,
@@ -455,7 +457,7 @@ export function resolveResidualFacts(
         label: "Margem da Competência"
       },
       ytd: {
-        value: (ctx.receita_certified && resultCertified) ? (num(resultado) / num(ctx.receita_liquida)) : NaN,
+        value: (ctx.receita_certified && resultCertified) ? (num(resultado) / (ctx.receita_liquida || 1)) : NaN,
         status: (ctx.receita_certified && resultCertified) ? "AVAILABLE" : "NOT_AVAILABLE",
         label: "Margem Acumulada"
       }

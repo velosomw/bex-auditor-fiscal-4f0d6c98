@@ -222,8 +222,8 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.width = `${A4_W}px`;
     p.style.maxWidth = `${A4_W}px`;
     p.style.height = `${A4_H}px`;
-    p.style.minHeight = `${A4_H}px`;
-    p.style.maxHeight = '245mm'; // §37..§47 Safe Zone
+    p.style.minHeight = `245mm`;
+    p.style.maxHeight = `245mm`; // Fixado para evitar cortes graduais
     p.style.overflow = 'hidden';
     p.style.boxSizing = 'border-box';
     p.style.contain = 'layout paint'; 
@@ -231,6 +231,13 @@ const exportPdf = async (containerId: string, reportTitle: string) => {
     p.style.transform = 'none';
     p.style.display = 'block'; 
     
+    // §SAFE-PAGINATION-GATE — Garante que blocos críticos do BEx não quebrem no meio
+    const criticalBlocks = p.querySelectorAll('.report-card-keep-together, .card, section, .break-inside-avoid');
+    criticalBlocks.forEach(b => {
+      (b as HTMLElement).style.breakInside = 'avoid';
+      (b as HTMLElement).style.pageBreakInside = 'avoid';
+    });
+
     // §42..§43 — Regras especiais para Páginas 3 e 4 do BEx
     if (idx === 2 || idx === 3) {
       p.style.pageBreakBefore = 'always';
@@ -2765,7 +2772,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
     { item: resultLabel, detail: `R$ ${fmt(snapshot?.facts.resultado_competencia ?? 0)}`, status: (snapshot?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
     { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(emprestimos)}`, status: "atencao" },
-    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.facts?.tax_noncurrent || snapshot?.residual?.tax?.noncurrent_obligations?.value || 0)}`, status: "atencao" },
+    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0)}`, status: "atencao" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -3136,7 +3143,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
                     { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
                     { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
-                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0), interp: "Exposição fiscal de longo prazo" },
+                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0, interp: "Exposição fiscal de longo prazo" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3201,7 +3208,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                       const total = Math.abs((yInd?._pc || 0) + (yInd?._pnc || 0));
                       return {
                         name: y,
-                        "OBRIG. TRIBUTÁRIAS": tributarias / 1000,
+                        "OBRIG. TRIBUTÁRIAS": (snapshot?.byCompetency[y]?.residual?.tax?.total_exposure?.value || tributarias) / 1000,
                         "OBRIG. TRABALHISTAS": trabalhistas / 1000,
                         "EMPR. E FINANCIAMENTOS": emprestimos / 1000,
                         "FORNECEDORES": fornecedores / 1000,
@@ -3521,7 +3528,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <TableCell className="text-xs py-2 text-primary">Obrigações Tributárias (LP)</TableCell>
                   {(snapshot?.competencies || []).map(y => {
                     const comp = snapshot?.byCompetency[y];
-                    const v = comp?.facts?.tax_noncurrent || comp?.residual?.tax?.noncurrent_obligations?.value || 0;
+                    const v = comp?.residual?.tax?.noncurrent_obligations?.value || comp?.facts?.tax_noncurrent || 0;
                     return (
                       <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                         {fmtDec(v / 1_000_000)}
