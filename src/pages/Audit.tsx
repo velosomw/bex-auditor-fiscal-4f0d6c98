@@ -85,6 +85,9 @@ export interface CanonicalReportDataset {
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
 const FINAL_4_RENDERER_GATE_PATCH_FREEZE = true; 
+const FINAL_4_POINT_CONSUMER_PATCH_FREEZE = true;
+const FINAL_RUNTIME_4_BINDING_PATCH_FREEZE = true;
+const BEX_PRODUCTION_HOMOLOGATED = true;
 const ACCOUNTING_CORE_FREEZE = true;
 const FINAL_CORE_FREEZE = true;
 const FINAL_CANONICAL_FREEZE = true;
@@ -2745,7 +2748,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
     { item: resultLabel, detail: `R$ ${fmt(snapshot?.facts.resultado_competencia ?? 0)}`, status: (snapshot?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
     { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(emprestimos)}`, status: "atencao" },
-    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : 0)}`, status: "atencao" },
+    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0))}`, status: "atencao" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -2985,7 +2988,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">2.2 Interpretação Técnica</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 report-keep-together">
               {[
                 { title: "Capacidade de Pagamento", text: latestInd
                     ? `A empresa apresenta liquidez corrente de ${fmtDec(latestInd.liquidezCorrente)}, ${latestInd.liquidezCorrente >= 1 ? "indicando capacidade de honrar obrigações de curto prazo" : "indicando insuficiência de ativos circulantes para cobrir obrigações de curto prazo"} (AC R$ ${fmt(ac)} / PC R$ ${fmt(pc)}).`
@@ -3063,7 +3066,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
 
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 report-keep-together">
               {activePend.map((p: any, i: number) => (
                 <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together">
                   <div className="flex items-center gap-2">
@@ -3116,7 +3119,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
                     { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
                     { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
-                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.facts?.tax_noncurrent || snapshot?.residual?.tax?.noncurrent_obligations?.value || 0, interp: "Exposição fiscal de longo prazo" },
+                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0), interp: "Exposição fiscal de longo prazo" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3233,7 +3236,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Resultado da Competência", value: snapshot?.facts.resultado_competencia ?? 0, available: snapshot?.facts_status.resultado_competencia === "AVAILABLE", scope: "Apuração mensal (Grupo 3)" },
                 { label: "Resultado Acumulado", value: snapshot?.facts.resultado_acumulado ?? 0, available: snapshot?.facts_status.resultado_acumulado === "AVAILABLE", scope: "Lucros/Prejuízos acumulados (Grupo 2.4)" },
                 { label: "Patrimônio Líquido (PL)", value: snapshot?.facts.patrimonio_liquido || 0, available: true, scope: "Situação Líquida (Grupo 2.4)" },
-                { label: "Margem Líquida (Período)", value: snapshot?.residual?.margins?.current_month?.value || 0, available: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE", scope: "Resultado Competência / Receita" },
+                { label: "Margem Líquida (Período)", value: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE" ? snapshot.residual.margins.current_month.value : NaN, available: snapshot?.residual?.margins?.current_month?.status === "AVAILABLE", scope: "Resultado Competência / Receita" },
               ].map(item => (
                 <div key={item.label} className="p-3 rounded-lg bg-muted/30 border border-border/30 break-inside-avoid">
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
@@ -3266,7 +3269,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "Margem Líquida", formula: "Resultado / Receita", value: snapshot?.residual?.margins?.ytd?.value || reportDataset.ratios?.margemLiquida, interp: "Eficiência do lucro/prejuízo sobre as vendas" },
+                    { name: "Margem Líquida", formula: "Resultado / Receita", value: snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : (reportDataset.facts.receita_liquida !== 0 ? (reportDataset.facts.resultado_liquido || 0) / reportDataset.facts.receita_liquida : NaN), interp: "Eficiência do lucro/prejuízo sobre as vendas" },
                     { name: "ROA (Retorno do Ativo)", formula: "Resultado / Ativo Total", value: reportDataset.ratios?.roa, interp: "Retorno gerado pelo ativo total" },
                     { name: "ROE (Retorno do PL)", formula: "Resultado / Patrimônio Líquido", value: reportDataset.ratios?.roe, interp: "Retorno ao acionista sobre capital investido" },
                   ].map(item => (
@@ -3361,11 +3364,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Empréstimos e Financiamentos (CP + LP)", value: emprestimos, available: borrowAvail, scope: "Total oneroso (CP + LP certificado, exclui arrendamentos)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
-                { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : 0, available: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE", scope: snapshot?.residual?.tax.noncurrent_obligations.calculation_scope },
+                { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0), available: true, scope: "Grupo 2.2.3 (Certified Binding)" },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
                 { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
-                { label: "Fornecedores (LP)", value: snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" ? snapshot.residual.suppliers_noncurrent.value : (snapshot?.facts.fornecedores_lp || 0), available: (snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" || snapshot?.facts.fornecedores_lp !== undefined), scope: "Passivo Não Circulante (PNC)" },
+                { label: "Fornecedores (LP)", value: snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" ? snapshot.residual.suppliers_noncurrent.value : (snapshot?.facts.fornecedores_lp || 0), available: true, scope: "Passivo Não Circulante (PNC)" },
 
 
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
@@ -3895,7 +3898,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   const coberturaJuros = (snap?.residual?.interest_coverage?.status === "AVAILABLE") 
     ? snap.residual.interest_coverage.value 
     : (Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN);
-  const indiceGeracaoCaixa = Number.isFinite(ebitda) && l.rl !== 0 ? ebitda / l.rl : NaN;
+  const indiceGeracaoCaixa = (snap?.residual?.ebitda?.status === "AVAILABLE" && l.rl !== 0) ? snap.residual.ebitda.value / l.rl : NaN;
   const margemLiquida = (snap?.residual?.margins?.ytd?.status === "AVAILABLE") 
     ? snap.residual.margins.ytd.value 
     : (l.rl !== 0 ? l.ll / l.rl : 0);
@@ -4373,10 +4376,10 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
           </p>
           <div className="grid sm:grid-cols-4 gap-3">
             {[
-              { label: "EBITDA Certificado", value: ebitda, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
+              { label: "EBITDA Certificado", value: snap?.residual?.ebitda?.status === "AVAILABLE" ? snap.residual.ebitda.value : NaN, isCurrency: true, formula: `LAJIR (R$ ${fmt(l.lajir)}) + Depr/Amort` },
               { label: "Cobertura de Juros", value: coberturaJuros, suffix: "x", alert: Number.isFinite(coberturaJuros) && coberturaJuros < 1.5, formula: `LAJIR / Desp.Fin = ${fmt(l.lajir)} / ${fmt(l.despFin)}` },
               { label: "Índice Geração Caixa", value: indiceGeracaoCaixa, format: "pct", formula: `EBITDA / RL = ${fmt(ebitda)} / ${fmt(l.rl)}` },
-              { label: "Margem Líquida", value: margemLiquida, format: "pct", alert: margemLiquida < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
+              { label: "Margem Líquida", value: snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : margemLiquida, format: "pct", alert: (snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : margemLiquida) < 0.05, formula: `LL / RL = ${fmt(l.ll)} / ${fmt(l.rl)}` },
             ].map(item => (
               <div key={item.label} className={`p-3 rounded-lg border text-center space-y-1 ${item.alert ? "bg-red-500/5 border-red-500/20" : "bg-muted/20 border-border/30"}`}>
                 <p className="text-[10px] text-muted-foreground">{item.label}</p>

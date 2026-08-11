@@ -418,6 +418,16 @@ tr {
   .report-a4-page table { page-break-inside: auto; break-inside: auto; }
   .report-page-body thead,
   .report-a4-page thead { display: table-header-group; }
+
+  .report-keep-together {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .report-a4-page {
+    padding-top: 26mm !important;
+    padding-bottom: 26mm !important;
+  }
   .report-page-body tfoot,
   .report-a4-page tfoot { display: table-footer-group; }
   .report-page-body tr,
@@ -430,6 +440,13 @@ tr {
   .report-a4-page h2, .report-a4-page h3, .report-a4-page h4 {
     page-break-after: avoid !important;
     break-after: avoid !important;
+  }
+
+  .report-card-keep-together {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block;
+    width: 100%;
   }
 
 

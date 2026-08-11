@@ -426,21 +426,22 @@ export function resolveResidualFacts(
           ? "Resultado do período não certificado — LAJIR não calculável"
           : "Despesas financeiras não identificadas no balancete",
     },
-    ebitda: (ebitdaAvailable && Number.isFinite(ebitdaReconstructed))
+    ebitda: (ebitdaAvailable && Number.isFinite(ebitdaReconstructed) && ctx.resultado_certified)
       ? { value: ebitdaReconstructed, status: "AVAILABLE", reason: "EBITDA reconstruído via DRE (LAJIR + D&A)" }
       : { value: 0, status: "NOT_AVAILABLE", reason: "EBITDA não certificado a partir do balancete" },
 
     interest_coverage: {
       value: coverageValue,
-      status: Number.isFinite(coverageValue) ? "AVAILABLE" : "NOT_AVAILABLE",
+      status: (Number.isFinite(coverageValue) && ctx.resultado_certified) ? "AVAILABLE" : "NOT_AVAILABLE",
     },
     margins: {
       current_month: {
         // §PATCH-03: Hard sign and period context parity
-        value: (ctx.receita_certified && ctx.resultado_competencia_available) 
+        // Se o resultado for negativo, a margem deve ser negativa. 
+        value: (ctx.receita_certified && ctx.resultado_competencia_available && ctx.resultado_certified) 
           ? (Number(ctx.resultado) / Number(ctx.receita_liquida)) 
           : NaN,
-        status: (ctx.receita_certified && ctx.resultado_competencia_available) ? "AVAILABLE" : "NOT_AVAILABLE",
+        status: (ctx.receita_certified && ctx.resultado_competencia_available && ctx.resultado_certified) ? "AVAILABLE" : "NOT_AVAILABLE",
         label: "Margem da Competência"
       },
       ytd: {
