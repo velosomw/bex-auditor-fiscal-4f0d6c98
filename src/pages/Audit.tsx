@@ -2746,9 +2746,9 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Patrimônio Líquido", detail: `R$ ${fmt(pl)}`, status: pl > 0 ? "positivo" : "negativo" },
     { item: "Endividamento Total", detail: `${fmtPct(latestInd.endividamentoTotal)} do Ativo Total`, status: latestInd.endividamentoTotal < 0.6 ? "positivo" : latestInd.endividamentoTotal < 0.8 ? "atencao" : "negativo" },
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
-    { item: resultLabel, detail: `R$ ${fmt(snap?.facts.resultado_competencia ?? 0)}`, status: (snap?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
+    { item: resultLabel, detail: `R$ ${fmt(snapshot?.facts.resultado_competencia ?? 0)}`, status: (snapshot?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
     { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(emprestimos)}`, status: "atencao" },
-    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snap?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snap.residual.tax.noncurrent_obligations.value : (snap?.facts?.tax_noncurrent || 0))}`, status: "atencao" },
+    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0))}`, status: "atencao" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
@@ -3119,7 +3119,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                     { name: "Liquidez Corrente", formula: "AC / PC", value: latestInd?.liquidezCorrente, interp: "Capacidade de pagamento de obrigações de curto prazo" },
                     { name: "Liquidez Seca", formula: "(AC - EST) / PC", value: latestInd?.liquidezSeca, interp: "Liquidez excluindo estoques" },
                     { name: "Liquidez Geral", formula: "(AC + RLP) / (PC + PNC)", value: latestInd?.liquidezGeral, interp: "Capacidade de pagamento total" },
-                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snap?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" ? snap.residual.tax.noncurrent_obligations.value : (snap?.facts?.tax_noncurrent || 0), interp: "Exposição fiscal de longo prazo" },
+                    { name: "Obrigações Tributárias LP", formula: "Grupo 2.2.3", value: snapshot?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0), interp: "Exposição fiscal de longo prazo" },
                   ].map(item => (
                     <TableRow key={item.name}>
                       <TableCell className="text-xs font-medium">{item.name}</TableCell>
@@ -3269,7 +3269,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 </TableHeader>
                 <TableBody>
                   {[
-                    { name: "Margem Líquida", formula: "Resultado / Receita", value: snap?.residual?.margins?.ytd?.status === "AVAILABLE" ? snap.residual.margins.ytd.value : (reportDataset.facts.receita_liquida !== 0 ? (reportDataset.facts.resultado_liquido || 0) / reportDataset.facts.receita_liquida : NaN), interp: "Eficiência do lucro/prejuízo sobre as vendas" },
+                    { name: "Margem Líquida", formula: "Resultado / Receita", value: snapshot?.residual?.margins?.ytd?.status === "AVAILABLE" ? snapshot.residual.margins.ytd.value : (reportDataset.facts.receita_liquida !== 0 ? (reportDataset.facts.resultado_liquido || 0) / reportDataset.facts.receita_liquida : NaN), interp: "Eficiência do lucro/prejuízo sobre as vendas" },
                     { name: "ROA (Retorno do Ativo)", formula: "Resultado / Ativo Total", value: reportDataset.ratios?.roa, interp: "Retorno gerado pelo ativo total" },
                     { name: "ROE (Retorno do PL)", formula: "Resultado / Patrimônio Líquido", value: reportDataset.ratios?.roe, interp: "Retorno ao acionista sobre capital investido" },
                   ].map(item => (
@@ -3364,11 +3364,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Empréstimos e Financiamentos (CP + LP)", value: emprestimos, available: borrowAvail, scope: "Total oneroso (CP + LP certificado, exclui arrendamentos)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
-                { label: "Obrigações Tributárias LP", value: snap?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snap.residual.tax.noncurrent_obligations.value : (snap?.facts?.tax_noncurrent || 0), available: true, scope: "Grupo 2.2.3 (Certified Binding)" },
+                { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0), available: true, scope: "Grupo 2.2.3 (Certified Binding)" },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
-                { label: "Fornecedores (CP)", value: snap?.facts.fornecedores || 0, available: snap?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
-                { label: "Fornecedores (LP)", value: snap?.residual?.suppliers_noncurrent?.status === "AVAILABLE" ? snap.residual.suppliers_noncurrent.value : (snap?.facts.fornecedores_lp || 0), available: true, scope: "Passivo Não Circulante (PNC)" },
+                { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
+                { label: "Fornecedores (LP)", value: snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" ? snapshot.residual.suppliers_noncurrent.value : (snapshot?.facts.fornecedores_lp || 0), available: true, scope: "Passivo Não Circulante (PNC)" },
 
 
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
