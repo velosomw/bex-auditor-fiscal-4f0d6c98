@@ -41,7 +41,7 @@ export interface IndicatorRow {
   roe: number;
   // EBITDA
   ebitda: number;
-  ebitdaStatus: "AVAILABLE" | "NOT_AVAILABLE";
+  ebitdaStatus: "CERTIFIED" | "NOT_CERTIFIED" | "NOT_AVAILABLE" | "NOT_APPLICABLE";
   coberturaJurosStatus: "AVAILABLE" | "NOT_AVAILABLE";
   // Bases (para drill-down)
   _ac: number;
@@ -124,8 +124,8 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
 
   // §P07 — Derived SSOT
   const lajir = r.residual_facts?.lajir?.status === "AVAILABLE" ? r.residual_facts.lajir.value : NaN;
-  const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE";
-  const ebitdaValue = ebitdaCertificado ? r.residual_facts?.ebitda.value : NaN;
+  const ebitdaStatus = r.residual_facts?.ebitda?.status || "NOT_AVAILABLE";
+  const ebitdaValue = ebitdaStatus === "CERTIFIED" ? r.residual_facts?.ebitda.value : NaN;
   const coverageCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE";
   const coberturaJuros = coverageCertificada ? r.residual_facts?.interest_coverage.value : NaN;
 
@@ -150,10 +150,10 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     liquidezImediata: div(caixa, pc),
     liquidezGeral: div(ac + rlp, pc + pnc),
     endividamentoTotal: div(pt, at),
-    grauEndividamentoPL: pl > 0 ? pt / pl : 0,
+    grauEndividamentoPL: pl > 0 ? pt / pl : NaN,
     composicaoEndividamento: div(pc, pt),
     composicaoEndividamentoLP: div(pnc, pt),
-    imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
+    imobilizacaoPL: pl > 0 ? div(imob, pl) : NaN,
     coberturaJuros,
     giroAtivo: div(receita, at),
     pmr,
@@ -164,12 +164,12 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     margemLiquida: div(resParaCalculo, receita),
     margemOperacional: div(lajir, receita),
     roa: div(resParaCalculo, at) * ctx.annualization_factor,
-    roe: pl > 0 ? div(resParaCalculo, pl) * ctx.annualization_factor : 0,
+    roe: pl > 0 ? div(resParaCalculo, pl) * ctx.annualization_factor : NaN,
     ebitda: ebitdaValue,
-    ebitdaStatus: ebitdaCertificado ? "AVAILABLE" : "NOT_AVAILABLE",
+    ebitdaStatus: ebitdaStatus as any,
     coberturaJurosStatus: coverageCertificada ? "AVAILABLE" : "NOT_AVAILABLE",
-    isg: pt > 0 ? at / pt : 0,
-    endividamentoGeral: at > 0 ? pt / at : 0,
+    isg: pt > 0 ? at / pt : NaN,
+    endividamentoGeral: at > 0 ? pt / at : NaN,
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl, _rlp: rlp,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
     _fornecedores: r.fornecedores, _receita: receita, _cmv: cmvAbs,

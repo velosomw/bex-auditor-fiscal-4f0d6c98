@@ -80,7 +80,7 @@ function buildSeries(data: MonthlyDatum[]) {
       cmv: d.hasReceita ? Math.round(d.cmv / 1000) : null,
       cmvDesp: d.hasReceita ? Math.round((Math.abs(d.cmv) + Math.abs(d.despesas)) / 1000) : null,
       resultado: d.hasReceita ? Math.round(d.resultado / 1000) : null,
-      ebitda: d.hasReceita ? Math.round(d.ebitda) : null,
+      ebitda: d.ebitdaStatus === "CERTIFIED" || (d.ebitdaStatus as any) === "AVAILABLE" ? Math.round(d.ebitda) : null,
       cmvPct: d.hasReceita && ind.cmvPct !== null ? +(ind.cmvPct * 100).toFixed(2) : null,
       cmvDespPct: d.hasReceita && ind.cmvDespPct !== null ? +(ind.cmvDespPct * 100).toFixed(2) : null,
       margemPct: d.hasReceita && ind.margemResultado !== null ? +(ind.margemResultado * 100).toFixed(2) : null,
@@ -232,15 +232,15 @@ const AuditCharts: React.FC<Props> = ({ parsedData, entries = [] }) => {
         </ChartTile>
 
         {/* 4. EBITDA */}
-        <ChartTile title="EBITDA">
+        <ChartTile title="EBITDA" subtitle="(R$ Monetário)">
           <LineChart data={series} margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
             {GRID}
             <XAxis dataKey="mes" {...AXIS_PROPS} />
             <YAxis {...AXIS_PROPS} tickFormatter={tooltipMilhar} />
             <Tooltip {...TOOLTIP_STYLE} formatter={(v: any) => [tooltipMilhar(v), "EBITDA"]} />
             <Legend wrapperStyle={{ fontSize: 12, fontWeight: 500 }} />
-            <ReferenceLine y={0} stroke={EXCEL_COLORS.cinza} />
-            <Line type="monotone" dataKey="ebitda" name="EBITDA" stroke={EXCEL_COLORS.ciano} strokeWidth={3} dot={{ r: 5, fill: EXCEL_COLORS.ciano }} />
+            <ReferenceLine y={0} stroke="hsl(var(--foreground))" strokeWidth={2} />
+            <Line type="monotone" dataKey="ebitda" name="EBITDA" stroke={EXCEL_COLORS.ciano} strokeWidth={3} dot={{ r: 5, fill: EXCEL_COLORS.ciano }} connectNulls={false} />
           </LineChart>
         </ChartTile>
 

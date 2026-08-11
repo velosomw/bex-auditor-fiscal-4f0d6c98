@@ -66,10 +66,10 @@ export interface ResidualFacts {
   financial_expenses: FinancialExpensesFact;
   financial_revenues: ComposedFact;
   income_taxes: ComposedFact;
-  /** EBITDA só é certificado quando LAJIR e D&A são reconstruíveis pelo balancete. */
-  ebitda: { value: number; status: ResidualStatus; reason: string };
-  lajir: { value: number; status: ResidualStatus; reason?: string };
-  interest_coverage: { value: number; status: ResidualStatus };
+  /** §EBITDA-CERTIFICATION — EBITDA com reconciliação dupla e unidade BRL. */
+  ebitda: { value: number; status: "CERTIFIED" | "NOT_CERTIFIED" | "NOT_AVAILABLE" | "NOT_APPLICABLE"; unit: "BRL"; reason?: string; memory?: any };
+  lajir: { value: number; status: ResidualStatus; unit: "BRL"; reason?: string };
+  interest_coverage: { value: number; status: ResidualStatus; unit: "MULTIPLE" };
   depreciation: ComposedFact;
   amortization: ComposedFact;
   suppliers_noncurrent: ComposedFact;
@@ -361,23 +361,22 @@ export function resolveResidualFacts(
   const depreciation = depNodes.length ? compose(depNodes, "Depreciação (contas de resultado)") : EMPTY("Depreciação não identificada");
   const amortization = amortNodes.length ? compose(amortNodes, "Amortização (contas de resultado)") : EMPTY("Amortização não identificada");
 
-  /* ── LAJIR / EBITDA / Cobertura de Juros (§41..§46) ──────
-   * §S01 — interest_coverage = EBIT / Interest Expense
-   * §S02 — EBITDA_SAFE_NA_CERTIFICATION (EBIT + D&A reconciliation)
-   * Nenhum derivado é certificado quando o Resultado base não está certificado. */
+  /* ── LAJIR / EBITDA / Cobertura de Juros (§12..§32 MD-BEX-001) ──────
+   * §MD-BEX-001 §13-14: Dual Reconciliation Gate
+   * Method A: LAJIR + D&A
+   * Method B: Net Result + Taxes + Financial Result + D&A
+   */
   const resultado = Number.isFinite(ctx.resultado as number) ? (ctx.resultado as number) : NaN;
   const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && (Math.abs(resultado) > 0.01 || ctx.resultado_competencia_available);
   
   // EBIT reconstruction: Result Current + Interest Expense
-  // MD-BEX-FINAL-SURGICAL-PATCH-001 §7: financial.ebit = Result Current + Interest Expense
   const lajirAvailable = !!resultCertified;
-  const lajirValue = lajirAvailable 
-    ? resultado + Math.abs(financial_expenses.analysis_value)
-    : NaN;
+  const finExpAbs = Math.abs(financial_expenses.analysis_value);
+  const lajirValue = lajirAvailable ? resultado + finExpAbs : NaN;
 
   // Interest Coverage calculation (§S01)
-  const coverageValue = (lajirAvailable && Math.abs(financial_expenses.analysis_value) > 0.01) 
-    ? lajirValue / Math.abs(financial_expenses.analysis_value) 
+  const coverageValue = (lajirAvailable && finExpAbs > 0.01) 
+    ? lajirValue / finExpAbs 
     : NaN;
 
   // EBITDA reconstruction: EBIT + D&A
@@ -386,10 +385,22 @@ export function resolveResidualFacts(
   const daTotal = depValue + amortValue;
   const daAvailable = depreciation.status === "AVAILABLE" || amortization.status === "AVAILABLE";
   
-  // §S02 — Gate: Certification only if reconciled with D&A
-  const ebitdaAvailable = lajirAvailable && daAvailable;
-  const ebitdaReconstructed = ebitdaAvailable ? lajirValue + daTotal : NaN;
+  // Reconciliação §MD-BEX-001 §18
+  const incomeTaxValue = income_taxes.status === "AVAILABLE" ? Math.abs(income_taxes.value) : 0;
+  // Financial result normalized (preservando sinal econômico)
+  const finRevValue = financial_revenues.status === "AVAILABLE" ? Math.abs(financial_revenues.value) : 0;
+  const netFinResult = finRevValue - finExpAbs; 
 
+  const ebitdaMethodA = lajirValue + daTotal;
+  const ebitdaMethodB = resultado + incomeTaxValue - netFinResult + daTotal;
+  
+  const reconciliationDiff = Math.abs(ebitdaMethodA - ebitdaMethodB);
+  const reconciled = lajirAvailable && daAvailable && reconciliationDiff <= 1.00;
+
+  let ebitdaStatus: "CERTIFIED" | "NOT_CERTIFIED" | "NOT_AVAILABLE" | "NOT_APPLICABLE" = "NOT_AVAILABLE";
+  if (!lajirAvailable) ebitdaStatus = "NOT_AVAILABLE";
+  else if (!reconciled) ebitdaStatus = "NOT_CERTIFIED";
+  else ebitdaStatus = "CERTIFIED";
 
   return {
     competency,
@@ -407,19 +418,26 @@ export function resolveResidualFacts(
     lajir: {
       value: lajirValue,
       status: lajirAvailable ? "AVAILABLE" : "NOT_AVAILABLE",
+      unit: "BRL",
       reason: lajirAvailable
         ? "LAJIR (EBIT) = Resultado do período + Despesas Financeiras"
-        : !resultCertified
-          ? "Resultado do período não certificado — LAJIR não calculável"
-          : "Despesas financeiras não identificadas no balancete",
+        : "Resultado do período ou despesas financeiras não certificados",
     },
-    ebitda: (ebitdaAvailable && Number.isFinite(ebitdaReconstructed) && ctx.resultado_certified)
-      ? { value: ebitdaReconstructed, status: "AVAILABLE", reason: "EBITDA certificado via LAJIR + D&A" }
-      : { value: 0, status: "NOT_AVAILABLE", reason: "EBITDA não certificado a partir do balancete" },
-
+    ebitda: {
+      value: ebitdaStatus === "CERTIFIED" ? ebitdaMethodA : NaN,
+      status: ebitdaStatus,
+      unit: "BRL",
+      reason: ebitdaStatus === "CERTIFIED" ? "EBITDA certificado via dupla reconciliação (§MD-BEX-001)" : `Falha na reconciliação: dif R$ ${reconciliationDiff.toFixed(2)}`,
+      memory: {
+        methodA: ebitdaMethodA,
+        methodB: ebitdaMethodB,
+        diff: reconciliationDiff
+      }
+    },
     interest_coverage: {
       value: coverageValue,
       status: (Number.isFinite(coverageValue) && ctx.resultado_certified) ? "AVAILABLE" : "NOT_AVAILABLE",
+      unit: "MULTIPLE"
     },
     margins: {
       current_month: {

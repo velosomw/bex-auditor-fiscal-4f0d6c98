@@ -28,7 +28,8 @@ export function bsDadosToMonthlyDataset(rows: BSDadosRow[]): MonthlyDatum[] {
       cmv: r.cmv,
       despesas: r.despesas,
       resultado: r.resultado,
-      ebitda,
+      ebitda: r.ebitda,
+      ebitdaStatus: r.residual_facts?.ebitda?.status || "NOT_AVAILABLE",
       depreciacao: -depAbs,
       amortizacao: -amortAbs,
       // BALANÇO
