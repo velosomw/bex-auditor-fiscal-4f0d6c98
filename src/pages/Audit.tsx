@@ -3875,7 +3875,9 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
   // MD-001 Point 29: EBITDA Certificado (Somente se componentes SSOT disponíveis)
   const ebitda = l.ebitda;
   // §35..§41 — cadeia derivada: sem base certificada (LAJIR/Desp.Fin/EBITDA), publica-se NaN → "N/A".
-  const coberturaJuros = Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN;
+  const coberturaJuros = (snap?.residual?.interest_coverage?.status === "AVAILABLE") 
+    ? snap.residual.interest_coverage.value 
+    : (Number.isFinite(l.lajir) && Number.isFinite(l.despFin) && l.despFin !== 0 ? l.lajir / l.despFin : NaN);
   const indiceGeracaoCaixa = Number.isFinite(ebitda) && l.rl !== 0 ? ebitda / l.rl : NaN;
   const margemLiquida = (snap?.residual?.margins?.ytd?.status === "AVAILABLE") 
     ? snap.residual.margins.ytd.value 
