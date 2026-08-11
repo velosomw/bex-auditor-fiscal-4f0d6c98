@@ -4355,7 +4355,7 @@ const TabRelatorioKanitz = ({ onBack, parsedData, onSwitchToBex, aiAnalysis, upl
                 { label: "Fornecedores / PC", value: l.pc > 0 ? (l.fornecedores / l.pc) * 100 : 0, desc: `Concentração em fornecedores — ${fmt(l.fornecedores)} / ${fmt(l.pc)}`, alert: false, suffix: "%" },
                 { label: "Passivo / EBITDA", value: snap?.residual?.ebitda?.status === "AVAILABLE" && snap.residual.ebitda.value > 0 ? l.pt / snap.residual.ebitda.value : NaN, desc: `Anos para quitar passivo total com EBITDA — ${fmt(l.pt)} / ${fmt(ebitdaVal)}`, alert: snap?.residual?.ebitda?.status === "AVAILABLE" && snap.residual.ebitda.value > 0 && l.pt / snap.residual.ebitda.value > 5, suffix: "x" },
               ].map(item => (
-                <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"}`}>
+                <div key={item.label} className={`p-2 rounded-lg ${item.alert ? "bg-red-500/5 border border-red-500/20" : "bg-background"} break-inside-avoid`}>
                   <div className="flex justify-between text-[10px]">
                     <span className="font-medium text-foreground">{item.label}</span>
                     <span className="font-mono font-bold">{!Number.isFinite(item.value as number) ? "N/A" : `${(item.value as number).toFixed(item.suffix === "x" ? 2 : 1)}${item.suffix}`}</span>
