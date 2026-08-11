@@ -442,6 +442,13 @@ tr {
     break-after: avoid !important;
   }
 
+  .report-card-keep-together {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block;
+    width: 100%;
+  }
+
 
   body {
     background: white !important;

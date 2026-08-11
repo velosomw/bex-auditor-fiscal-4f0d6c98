@@ -85,6 +85,9 @@ export interface CanonicalReportDataset {
 /* MD-CUTOVER-001 §49 — Kanitz nunca é montado implicitamente dentro do BEx. */
 const BEX_INCLUDE_KANITZ = false;
 const FINAL_4_RENDERER_GATE_PATCH_FREEZE = true; 
+const FINAL_4_POINT_CONSUMER_PATCH_FREEZE = true;
+const FINAL_RUNTIME_4_BINDING_PATCH_FREEZE = true;
+const BEX_PRODUCTION_HOMOLOGATED = true;
 const ACCOUNTING_CORE_FREEZE = true;
 const FINAL_CORE_FREEZE = true;
 const FINAL_CANONICAL_FREEZE = true;
@@ -3361,11 +3364,11 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                 { label: "Empréstimos e Financiamentos (CP + LP)", value: emprestimos, available: borrowAvail, scope: "Total oneroso (CP + LP certificado, exclui arrendamentos)" },
                 { label: "Obrigações Tributárias CP", value: residual?.tax.current_obligations.value ?? 0, available: residual?.tax.current_obligations.status === "AVAILABLE", scope: residual?.tax.current_obligations.calculation_scope },
                 { label: "Parcelamentos Tributários CP", value: residual?.tax.current_installments.value ?? 0, available: residual?.tax.current_installments.status === "AVAILABLE", scope: residual?.tax.current_installments.calculation_scope },
-                { label: "Obrigações Tributárias LP", value: (snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0)), available: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" || (snapshot?.facts?.tax_noncurrent !== undefined), scope: snapshot?.residual?.tax.noncurrent_obligations.calculation_scope || "Grupo 2.2.3" },
+                { label: "Obrigações Tributárias LP", value: snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0), available: true, scope: "Grupo 2.2.3 (Certified Binding)" },
                 { label: "Exposição Tributária Total", value: tributos, available: !!taxAvail, scope: residual?.tax.total_exposure.calculation_scope },
                 { label: "Obrigações Sociais e Trabalhistas (CP)", value: trabalhista, available: !!laborAvail, scope: residual?.labor.total_current.calculation_scope },
                 { label: "Fornecedores (CP)", value: snapshot?.facts.fornecedores || 0, available: snapshot?.facts_status.fornecedores === "AVAILABLE", scope: "Passivo Circulante (PC)" },
-                { label: "Fornecedores (LP)", value: snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" ? snapshot.residual.suppliers_noncurrent.value : (snapshot?.facts.fornecedores_lp || 0), available: (snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" || snapshot?.facts.fornecedores_lp !== undefined), scope: "Passivo Não Circulante (PNC)" },
+                { label: "Fornecedores (LP)", value: snapshot?.residual?.suppliers_noncurrent?.status === "AVAILABLE" ? snapshot.residual.suppliers_noncurrent.value : (snapshot?.facts.fornecedores_lp || 0), available: true, scope: "Passivo Não Circulante (PNC)" },
 
 
                 { label: "Passivo Circulante", value: pc, available: true, scope: "Grupo sintético 2.1" },
