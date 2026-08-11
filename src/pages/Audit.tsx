@@ -3068,22 +3068,22 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
             <h3 className="text-sm font-semibold text-foreground mb-3">3.2 Comentário Técnico Detalhado</h3>
             <div className="space-y-3 report-keep-together">
               {activePend.map((p: any, i: number) => (
-                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together">
+                <div key={p.id} className="p-4 rounded-lg border border-border/50 space-y-2 report-card-keep-together break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid-page' }}>
                   <div className="flex items-center gap-2">
                     <Badge className={`${severityColors[p.gravidade]?.bg} text-[10px]`}>{severityColors[p.gravidade]?.label}</Badge>
                     <span className="text-xs font-semibold text-foreground">Pendência {i + 1}: {p.problema}</span>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
-                    <div className="p-2 rounded bg-muted/30">
+                    <div className="p-2 rounded bg-muted/30 break-inside-avoid">
                       <p className="text-[10px] font-semibold text-foreground mb-0.5">Fundamentação Normativa</p>
                       <p className="text-[10px] text-muted-foreground">{p.fundamentacao}</p>
                     </div>
-                    <div className="p-2 rounded bg-red-500/5">
+                    <div className="p-2 rounded bg-red-500/5 break-inside-avoid">
                       <p className="text-[10px] font-semibold text-red-600 mb-0.5">Risco Econômico / Jurídico</p>
                       <p className="text-[10px] text-foreground">{p.risco}</p>
                     </div>
                   </div>
-                  <div className="p-2 rounded bg-accent/5 border border-accent/20">
+                  <div className="p-2 rounded bg-accent/5 border border-accent/20 break-inside-avoid">
                     <p className="text-[10px] font-semibold text-accent-foreground mb-0.5">Recomendação Corretiva</p>
                     <p className="text-[10px] text-foreground">{p.recomendacao}</p>
                   </div>
