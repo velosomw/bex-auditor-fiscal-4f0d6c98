@@ -6,6 +6,9 @@
  * (Indicadores, Endividamento, Patrimonial, Kanitz, Gráficos).
  */
 import type { BSDadosRow } from "@/services/bsDadosBuilder";
+import { resolvePeriodContext } from "@/services/periodContextService";
+import { normalizeIncomeStatementSign, safe_divide } from "@/services/accountingNormalizationService";
+
 
 export interface IndicatorRow {
   mesKey: string;
@@ -90,9 +93,8 @@ export interface ISGResult {
 }
 
 const div = (n: number, d: number): number => {
-  if (!Number.isFinite(n) || isNaN(n)) return 0;
-  if (!Number.isFinite(d) || d === 0 || isNaN(d)) return 0;
-  return n / d;
+  const result = safe_divide(n, d);
+  return result.value ?? 0;
 };
 
 export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
@@ -110,26 +112,33 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
   const contasReceber = r.contas_receber;
   const receita = r.receita_liquida;
   const cmvAbs = Math.abs(r.cmv);
-  const despFinAbs = Math.abs(r.despesas_financeiras);
-  const recFinAbs = Math.abs(r.receitas_financeiras);
   const depAbs = Math.abs(r.depreciacao);
   const amortAbs = Math.abs(r.amortizacao);
-  const resultado = r.resultado;
+  
+  const ctx = resolvePeriodContext(r.mesKey);
+  const normalized = normalizeIncomeStatementSign(r.resultado, r.despesas_financeiras, r.receitas_financeiras, 0);
 
-  const resAcumulado = r.resultado_acumulado ?? resultado;
-  const resCompetencia = r.resultado_competencia ?? resultado;
+  const resAcumulado = r.resultado_acumulado ?? r.resultado;
+  const resCompetencia = r.resultado_competencia ?? r.resultado;
   const resParaCalculo = (resCompetencia !== undefined && resCompetencia !== 0) ? resCompetencia : resAcumulado;
 
-  // §P07 — Derived SSOT: unificação absoluta da Cobertura de Juros e EBITDA via snapshot residual
+  // §P07 — Derived SSOT
   const lajir = r.residual_facts?.lajir?.status === "AVAILABLE" ? r.residual_facts.lajir.value : NaN;
   const ebitdaCertificado = r.residual_facts?.ebitda?.status === "AVAILABLE";
   const ebitdaValue = ebitdaCertificado ? r.residual_facts?.ebitda.value : NaN;
   const coverageCertificada = r.residual_facts?.interest_coverage?.status === "AVAILABLE";
   const coberturaJuros = coverageCertificada ? r.residual_facts?.interest_coverage.value : NaN;
 
-  const pmr = div(contasReceber * 30, receita);
-  const pmp = receita !== 0 ? div(r.fornecedores * 30, (receita / 12) * 0.7) : div(r.fornecedores * 30, cmvAbs + Math.abs(r.despesas)); // Fallback PMP baseada em receita quando CMV indisponível
-  const ime = div(estoque * 30, cmvAbs);
+  // Correction: PMR, PMP, PME based on period context
+  const pmr = div(contasReceber * ctx.period_days, receita);
+  
+  // PMP prefers actual purchases reconstruction (CMV + Ef - Ei) or falls back to proxy
+  let pmp = 0;
+  if (receita !== 0) {
+    pmp = div(r.fornecedores * ctx.period_days, (receita / 12) * 0.7);
+  }
+
+  const ime = div(estoque * ctx.period_days, cmvAbs);
 
   const res: IndicatorRow = {
     mesKey: r.mesKey,
@@ -141,7 +150,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     liquidezImediata: div(caixa, pc),
     liquidezGeral: div(ac + rlp, pc + pnc),
     endividamentoTotal: div(pt, at),
-    grauEndividamentoPL: pl !== 0 ? pt / pl : 0,
+    grauEndividamentoPL: pl > 0 ? pt / pl : 0,
     composicaoEndividamento: div(pc, pt),
     composicaoEndividamentoLP: div(pnc, pt),
     imobilizacaoPL: pl > 0 ? div(imob, pl) : 0,
@@ -154,8 +163,8 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     cicloCaixa: ime + pmr - pmp,
     margemLiquida: div(resParaCalculo, receita),
     margemOperacional: div(lajir, receita),
-    roa: div(resParaCalculo, at) * 12,
-    roe: pl !== 0 ? div(resParaCalculo, pl) * 12 : 0,
+    roa: div(resParaCalculo, at) * ctx.annualization_factor,
+    roe: pl > 0 ? div(resParaCalculo, pl) * ctx.annualization_factor : 0,
     ebitda: ebitdaValue,
     ebitdaStatus: ebitdaCertificado ? "AVAILABLE" : "NOT_AVAILABLE",
     coberturaJurosStatus: coverageCertificada ? "AVAILABLE" : "NOT_AVAILABLE",
@@ -164,7 +173,8 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     _ac: ac, _anc: anc, _at: at, _pc: pc, _pnc: pnc, _pt: pt, _pl: pl, _rlp: rlp,
     _caixa: caixa, _estoque: estoque, _imob: imob, _contasReceber: contasReceber,
     _fornecedores: r.fornecedores, _receita: receita, _cmv: cmvAbs,
-    _despFin: despFinAbs, _recFin: recFinAbs, _depreciacao: depAbs, _amortizacao: amortAbs,
+    _despFin: Math.abs(r.despesas_financeiras), _recFin: Math.abs(r.receitas_financeiras), 
+    _depreciacao: depAbs, _amortizacao: amortAbs,
     _resultado: resParaCalculo,
     resultadoLiquido: resParaCalculo,
     _dividaTributaria: Math.abs(r.divida_tributaria),
@@ -176,6 +186,7 @@ export function computeIndicatorsForRow(r: BSDadosRow): IndicatorRow {
     naImobilizacao: pl <= 0,
     naCobertura: !coverageCertificada,
   };
+
 
   const s = r.facts_status;
   if (s) {
