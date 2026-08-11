@@ -1575,7 +1575,7 @@ const diagnosticoData = {
     { item: "Margem Líquida", status: "atencao", detail: "13,6% → deterioração de 60% no período" },
     { item: "Endividamento Oneroso", status: "critico", detail: "R$ 155.554.694 — crescimento de 52%" },
     { item: "Cobertura de Juros", status: "atencao", detail: "6,9x — queda de 43% em relação ao ano anterior" },
-    { item: "Obrigações Tributárias (LP)", status: "atencao", detail: "R$ 131.426 — Passivo Não Circulante certificado" },
+    { item: "Obrigações Tributárias (LP)", status: "atencao", detail: `R$ ${fmt(snapshot?.residual?.tax?.noncurrent_obligations?.value || snapshot?.facts?.tax_noncurrent || 0)} — Passivo Não Circulante certificado` },
   ],
 };
 

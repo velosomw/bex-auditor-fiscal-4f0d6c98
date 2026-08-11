@@ -380,7 +380,6 @@ export function resolveResidualFacts(
 
   // Interest Coverage calculation (§S01)
   // §COVERAGE-MATH-SANITY — Garante que o sinal e o valor seguem a memória publicada (LAJIR / Despesas Fin)
-  // Coverage = LAJIR / Despesas Financeiras. Se ambos forem positivos, coverage é positivo.
   const coverageValue = (lajirAvailable && finExpAbs > 0.01) 
     ? lajirValue / finExpAbs 
     : NaN;
@@ -451,7 +450,6 @@ export function resolveResidualFacts(
     margins: {
       current_month: {
         // §PATCH-03: Hard sign and period context parity
-        // Se o resultado for negativo, a margem deve ser negativa. 
         value: (ctx.receita_certified && ctx.resultado_competencia_available && ctx.resultado_certified && ctx.receita_liquida !== 0) 
           ? (Number(ctx.resultado) / Number(ctx.receita_liquida)) 
           : NaN,
