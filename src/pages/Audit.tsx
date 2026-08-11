@@ -702,9 +702,9 @@ function StepTimeline({ currentStep }: { currentStep: number }) {
   );
 }
 
-/* ══════════════════════════════════════════════════════
+/* ======================================================
    PHASE 1: UPLOAD (Configuração + Carregamento)
-   ══════════════════════════════════════════════════════ */
+   ====================================================== */
 const UploadPhase = ({ onProcess, onFilesReady, onMesesReady, dedupConfig, onDedupChange, onDepthChange, onForceReprocess }: { onProcess: () => void; onFilesReady: (files: File[]) => void; onMesesReady?: (entries: BalanceteEntry[]) => void; dedupConfig: import("@/services/auditAIService").DedupConfig; onDedupChange: (cfg: import("@/services/auditAIService").DedupConfig) => void; onDepthChange?: (d: "executivo" | "tecnico") => void; onForceReprocess?: (force: boolean) => void }) => {
   const { subscription } = useSubscription();
   const isFreeTier = !subscription || subscription.plan_code !== "enterprise" || subscription.status !== "active";
