@@ -1306,9 +1306,17 @@ const ProcessingPhase = ({ onComplete, files, onAnalysisReady, dedupConfig, preP
                 `Pipeline IA — qualidade ${(pipelineResult.scores.quality * 100).toFixed(1)}% | mapeadas ${pipelineResult.normalized.filter(r => r.matched).length}/${pipelineResult.normalized.length} | few-shot ${pipelineResult.few_shot_examples.length}`
               );
             }
-          } catch (e) {
+          } catch (e: any) {
             console.warn("Pipeline IA pulado (continuando análise):", e);
+            if (e?.message?.includes("pipeline_busy") || (e instanceof Response && e.status === 409)) {
+              toast({
+                title: "Processamento em andamento",
+                description: "Já existe uma análise sendo executada para esta empresa. Por favor, aguarde alguns instantes.",
+                variant: "default",
+              });
+            }
           }
+
 
           // P0: Persistência server-side BS & Dados (snapshot auditável em pipeline_analysis_results).
           // Converte parsedData → balancetes[{mes, linhas[]}] e dispara a Edge Function.

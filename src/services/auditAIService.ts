@@ -822,11 +822,15 @@ export async function runAuditPipeline(
       if (response.status === 409) {
         try {
           const body = await response.json();
+          const errorMsg = body?.message || "Já existe um processamento em andamento para esta empresa.";
           onProgress?.({
             status: "error",
-            progress: body?.message || "Já existe um processamento em andamento para esta empresa.",
+            progress: errorMsg,
             documentId: body?.active_document_id,
           });
+          // Lança erro para que o chamador (UI) possa tratar especificamente se desejar
+          throw new Error(`pipeline_busy: ${errorMsg}`);
+
         } catch { /* ignore */ }
         return null;
       }
