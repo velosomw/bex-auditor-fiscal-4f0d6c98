@@ -371,15 +371,17 @@ export function resolveResidualFacts(
    * Method B: Net Result + Taxes + Financial Result + D&A
    */
   const resultado = Number.isFinite(ctx.resultado as number) ? (ctx.resultado as number) : NaN;
-  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado) && (Math.abs(resultado) > 0.01 || ctx.resultado_competencia_available);
+  const resultCertified = ctx.resultado_certified !== false && Number.isFinite(resultado);
   
   // EBIT reconstruction: Result Current + Interest Expense
-  const lajirAvailable = !!resultCertified;
+  // §EBITDA-LAJIR-PARITY — LAJIR (EBIT) deve ser o lucro antes dos impostos e juros.
   const finExpAbs = Math.abs(financial_expenses.analysis_value);
+  const lajirAvailable = resultCertified && Number.isFinite(finExpAbs);
   const lajirValue = lajirAvailable ? resultado + finExpAbs : NaN;
 
   // Interest Coverage calculation (§S01)
   // §COVERAGE-MATH-SANITY — Garante que o sinal e o valor seguem a memória publicada (LAJIR / Despesas Fin)
+  // §MD-BEX-001 §21-27: Numerator and denominator must have the same temporal context.
   const coverageValue = (lajirAvailable && finExpAbs > 0.01) 
     ? lajirValue / finExpAbs 
     : NaN;
@@ -392,7 +394,6 @@ export function resolveResidualFacts(
   
   // Reconciliação §MD-BEX-001 §18
   const incomeTaxValue = income_taxes.status === "AVAILABLE" ? Math.abs(income_taxes.value) : 0;
-  // Financial result normalized (preservando sinal econômico)
   const finRevValue = financial_revenues.status === "AVAILABLE" ? Math.abs(financial_revenues.value) : 0;
   const netFinResult = finRevValue - finExpAbs; 
 
@@ -402,7 +403,7 @@ export function resolveResidualFacts(
   const reconciliationDiff = Math.abs(ebitdaMethodA - ebitdaMethodB);
   
   // §EBITDA-CERTIFICATION-GATE: Diff must be small AND Result must be certified.
-  const reconciled = lajirAvailable && daAvailable && reconciliationDiff <= 1.00;
+  const reconciled = lajirAvailable && reconciliationDiff <= 1.00;
 
   let ebitdaStatus: "CERTIFIED" | "NOT_CERTIFIED" | "NOT_AVAILABLE" | "NOT_APPLICABLE" = "NOT_AVAILABLE";
   if (!lajirAvailable) ebitdaStatus = "NOT_AVAILABLE";
