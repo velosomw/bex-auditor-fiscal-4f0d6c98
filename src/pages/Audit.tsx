@@ -2765,7 +2765,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
     { item: "Receita Líquida", detail: `R$ ${fmt(rl)}`, status: rl > 0 ? "positivo" : "atencao" },
     { item: resultLabel, detail: `R$ ${fmt(snapshot?.facts.resultado_competencia ?? 0)}`, status: (snapshot?.facts.resultado_competencia || 0) >= 0 ? "positivo" : "negativo" },
     { item: "Empréstimos e Financiamentos (CP + LP)", detail: `R$ ${fmt(emprestimos)}`, status: "atencao" },
-    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.residual?.tax.noncurrent_obligations.status === "AVAILABLE" ? snapshot.residual.tax.noncurrent_obligations.value : (snapshot?.facts?.tax_noncurrent || 0))}`, status: "atencao" },
+    { item: "Obrigações Tributárias (LP)", detail: `R$ ${fmt(snapshot?.facts?.tax_noncurrent || snapshot?.residual?.tax?.noncurrent_obligations?.value || 0)}`, status: "atencao" },
     { item: "Fornecedores (CP)", detail: `R$ ${fmt(fornec)}`, status: "atencao" },
   ] : [];
 
