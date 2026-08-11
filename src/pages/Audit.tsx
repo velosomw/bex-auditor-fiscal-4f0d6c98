@@ -3514,9 +3514,7 @@ export const TabRelatorioFinal = ({ onBack, aiAnalysis, parsedData, onSwitchToKa
                   <TableCell className="text-xs py-2 text-primary">Obrigações Tributárias (LP)</TableCell>
                   {(snapshot?.competencies || []).map(y => {
                     const comp = snapshot?.byCompetency[y];
-                    const v = comp?.residual?.tax?.noncurrent_obligations?.status === "AVAILABLE" 
-                      ? comp.residual.tax.noncurrent_obligations.value 
-                      : (comp?.facts?.tax_noncurrent || 0);
+                    const v = comp?.facts?.tax_noncurrent || comp?.residual?.tax?.noncurrent_obligations?.value || 0;
                     return (
                       <TableCell key={y} className="text-right text-xs font-mono py-2 whitespace-nowrap">
                         {fmtDec(v / 1_000_000)}
