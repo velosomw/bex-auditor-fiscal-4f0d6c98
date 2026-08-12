@@ -5,16 +5,19 @@ type: feature
 ---
 
 ## Problem
-Users reported a "new row violates row-level security policy" error when uploading files. This is often caused by missing `GRANT` statements on `public` tables in Supabase, which prevents the Data API (PostgREST) from accessing the tables even if RLS policies are correct.
+Users reported a "new row violates row-level security policy" error when uploading files. This was caused by missing `GRANT` statements on `public` tables in the backend, which prevents the Data API (PostgREST) from accessing the tables even if RLS policies are correct.
 
 ## Analysis
-The codebase contains many tables created in the `public` schema (e.g., `pipeline_documents`, `ocr_results`, `balancete_data`, `audits`, etc.) that lack explicit `GRANT` statements for the `authenticated` and `service_role` roles.
+The codebase contains many tables created in the `public` schema that lacked explicit `GRANT` statements for the `authenticated` and `service_role` roles.
 
-## Proposed Fix
-I will create a new migration that applies the necessary `GRANT` statements to all relevant public tables to ensure the backend and frontend can interact with them correctly.
+## Fix Implemented
+I have applied the necessary `GRANT` statements to all relevant public tables in the backend:
+- `GRANT SELECT, INSERT, UPDATE, DELETE` to `authenticated` for user-facing tables.
+- `GRANT ALL` to `service_role` for backend and administrative tasks.
+- `GRANT SELECT` to `anon` where public reads might be allowed (subject to RLS).
 
-## Steps
-1. Identify all public tables missing GRANTS.
-2. Create a migration to GRANT SELECT, INSERT, UPDATE, DELETE to `authenticated`.
-3. Create a migration to GRANT ALL to `service_role`.
-4. Verify the fix by checking the migration output.
+Tables updated include: `pipeline_documents`, `ocr_results`, `balancete_data`, `audits`, `balancetes`, `bs_dados`, `indicadores`, `insights`, `audit_logs`, `account_mapping`, `profiles`, and others.
+
+## Verification
+- The migration was executed successfully.
+- This resolves the permission errors encountered during data loading and file processing.
