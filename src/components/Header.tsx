@@ -62,7 +62,7 @@ const Header = () => {
         aria-label="Ambiente de homologação Kanitz"
       >
         <span className="truncate">
-          Este ambiente Kanitz (QA) está em Conciliação Técnica. Acesse o ambiente produtivo:{" "}
+          Este ambiente Kanitz (QA) está em Conciliação Técnica em transição para o ambiente produtivo:{" "}
           <a
             href="https://www.kanitzbex.com.br"
             target="_blank"
