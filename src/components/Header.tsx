@@ -54,13 +54,33 @@ const Header = () => {
   }, [activeSubmenu]);
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-border ${
-        scrolled
-          ? "bg-white/95 backdrop-blur-md shadow-lg"
-          : "bg-white"
-      }`}
-    >
+    <>
+      {/* QA Conciliação Técnica banner */}
+      <div
+        className="fixed top-0 left-0 right-0 z-[60] h-9 flex items-center justify-center bg-accent text-accent-foreground text-xs md:text-sm font-medium px-4 text-center"
+        role="banner"
+        aria-label="Ambiente de homologação Kanitz"
+      >
+        <span className="truncate">
+          Este ambiente Kanitz (QA) está em Conciliação Técnica. Acesse o ambiente produtivo:{" "}
+          <a
+            href="https://www.kanitzbex.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50 rounded px-1 -mx-1"
+          >
+            www.kanitzbex.com.br
+          </a>
+        </span>
+      </div>
+
+      <header
+        className={`fixed top-9 left-0 right-0 z-50 transition-all duration-300 border-b border-border ${
+          scrolled
+            ? "bg-white/95 backdrop-blur-md shadow-lg"
+            : "bg-white"
+        }`}
+      >
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-12 h-16 lg:h-20">
         {/* Logo */}
         <Link to="/" className="flex items-center py-2 -ml-2 px-2 rounded-md hover:opacity-80 transition-opacity">
